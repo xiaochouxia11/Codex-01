@@ -1,0 +1,81 @@
+/* =====================================================================
+   主题：彩色渐变 (Colorful / Rainbow)
+   基底布局 100% 复用 base.css（与极简版完全一致），此处只做：
+   ① 强调色换成紫（搭配多彩渐变）  ② 每页加一团多彩渐变光
+   ③ 封面随机多彩渐变图形  ④ 极细颗粒(grain)质感
+   ===================================================================== */
+@import url("./base.css");
+
+:root {
+  /* 强调色：紫（统一点缀色，配合多彩渐变块） */
+  --lime: #7c3aed;
+  --lime-2: #ff4d8d;
+}
+
+/* —— 每页统一的多彩渐变光（蓝/青/粉/紫/橙 叠加） —— */
+.slide::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(30% 42% at 70% 30%, rgba(96, 165, 250, 0.55), transparent 70%),
+    radial-gradient(30% 42% at 88% 52%, rgba(244, 114, 182, 0.5), transparent 70%),
+    radial-gradient(28% 40% at 66% 62%, rgba(167, 139, 250, 0.5), transparent 70%),
+    radial-gradient(26% 38% at 92% 36%, rgba(253, 186, 116, 0.45), transparent 70%),
+    radial-gradient(26% 38% at 78% 74%, rgba(45, 212, 191, 0.4), transparent 70%);
+}
+
+/* —— 极细颗粒质感 —— */
+.slide::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* =====================================================================
+   封面随机多彩渐变图形 —— 柔和无边界（参考红箭头：自然扩散，无实体轮廓）
+   做法：① 不用 conic 实色 + 硬边 mask（那会出现实体圆轮廓）；
+        ② 改用多团不同颜色的径向光，颜色「提前淡出到透明」，自然交融；
+        ③ 再叠大范围 blur，多彩光团自然过渡、无任何边缘。
+   ===================================================================== */
+.cover-mark {
+  width: 560px;
+  height: 540px;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  background:
+    radial-gradient(36% 38% at 40% 36%, rgba(96, 165, 250, 0.88), transparent 74%),
+    radial-gradient(32% 34% at 60% 32%, rgba(34, 211, 238, 0.7), transparent 72%),
+    radial-gradient(34% 36% at 66% 60%, rgba(244, 114, 182, 0.82), transparent 74%),
+    radial-gradient(32% 34% at 34% 64%, rgba(167, 139, 250, 0.8), transparent 73%),
+    radial-gradient(28% 30% at 74% 48%, rgba(251, 146, 60, 0.6), transparent 72%);
+  filter: blur(34px) saturate(1.06);
+}
+
+/* 第二团偏移多彩柔光（更软更淡，外缘继续自然消散） */
+.cover-mark::before {
+  content: "";
+  position: absolute;
+  width: 340px;
+  height: 340px;
+  right: -34px;
+  bottom: -40px;
+  z-index: -1;
+  background:
+    radial-gradient(45% 45% at 40% 45%, rgba(244, 114, 182, 0.6), transparent 80%),
+    radial-gradient(45% 45% at 65% 60%, rgba(124, 92, 240, 0.6), transparent 80%);
+  filter: blur(42px);
+  opacity: 0.85;
+}
+
+.cover-mark::after {
+  content: none;
+}
