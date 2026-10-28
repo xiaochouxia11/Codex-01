@@ -1,6 +1,11 @@
 name: Sync Apple Design Skill
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/sync-apple-design-skill.yml
+      - scripts/sync_apple_design_skill.py
   schedule:
     - cron: '23 1 * * *'
   workflow_dispatch:
