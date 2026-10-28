@@ -9,4 +9,4 @@ chatgpt  Codex
 - [Skill 入口](skills/apple-design-skill/SKILL.md)
 - [来源与同步记录](docs/apple-design-skill-source.md)
 
-此分支保存导入时的上游版本；后续更新需重新同步。将完整目录复制到对应工具的 Skills 目录后即可按上游说明使用。
+此分支支持每天自动同步及手动触发，详见 [同步说明](docs/apple-design-skill-sync.md)。将完整目录复制到对应工具的 Skills 目录后即可按上游说明使用。

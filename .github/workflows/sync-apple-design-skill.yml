@@ -1,0 +1,47 @@
+name: Sync Apple Design Skill
+
+on:
+  schedule:
+    - cron: '23 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-apple-design-skill
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out trusted sync scripts
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: main
+          path: automation
+          persist-credentials: false
+      - name: Check out sync target
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: add/apple-design-skill
+          path: target
+          fetch-depth: 1
+      - name: Synchronize upstream files
+        working-directory: target
+        run: python3 ../automation/scripts/sync_apple_design_skill.py
+      - name: Commit and push changes
+        working-directory: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --cached --quiet; then
+            echo "No upstream changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Sync apple-design-skill from upstream"
+          git push origin HEAD:refs/heads/add/apple-design-skill
