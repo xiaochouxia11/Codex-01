@@ -1,0 +1,28 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+    - name: setup node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '21.x'
+    - name: install deps
+      run: |
+        # install app deps
+        npm install
+        # install build deps
+        npm install -g @vercel/ncc
+    - name: build
+      run: |
+        rm dist/index.js
+        make
