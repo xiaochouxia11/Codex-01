@@ -1,0 +1,8 @@
+.DS_Store
+
+# TypeScript MCP server
+typescript-authenticated-mcp-server-scaffold/node_modules/
+typescript-authenticated-mcp-server-scaffold/.env
+
+# Python MCP server
+python-authenticated-mcp-server-scaffold/.env
