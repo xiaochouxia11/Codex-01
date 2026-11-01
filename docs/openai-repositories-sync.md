@@ -1,15 +1,15 @@
-# OpenAI 项目同步
+# OpenAI 组织公开仓库同步
 
-- openai/plugins → sync/plugins 分支 upstream/plugins/
+每天北京时间 09:41（GitHub 可能延迟）重新发现 https://github.com/openai 的全部公开仓库，包括归档仓库与公开 fork，自动纳入新公开仓库。
 
-- openai/codex-security → sync/codex-security 分支 upstream/codex-security/
-- openai/codex → sync/codex 分支 upstream/codex/
+每个仓库独立保存：`openai/<name>` → `sync/<name>` 分支 → `upstream/<name>/`。沿用已有同名同步分支。新分支仅保存上游文件和来源记录，源仓库的 GitHub 工作流位于子目录，不执行。
 
-每日北京时间 09:41 检查上游默认分支（GitHub 可能延迟）。有文件变化自动提交；无变化不提交。
-手动运行：https://github.com/xiaochouxia11/Codex-01/actions/workflows/sync-openai-repositories.yml
-点击 Run workflow，选择 main。
+手动同步：[Sync OpenAI repositories](https://github.com/xiaochouxia11/Codex-01/actions/workflows/sync-openai-repositories.yml)，点击 Run workflow，选择 main。
 
-工作流和脚本放在 main；项目文件分别保存在目标分支。保留完整 Git tree，包括授权说明、符号链接、文件模式和子模块指针。子模块内容、Git LFS 实体、历史和 Release 附件不在此同步范围。
-同步新增、修改和删除，并核对导入 Git tree。目录内自定义修改会被后续同步替换；目录外文件保留。不会运行上游代码。
+同步默认分支的 Git 文件和模式、符号链接、原始授权说明及子模块指针，并验证导入 tree SHA。无文件变化不提交。不包含完整历史、Issues、讨论、Release 附件、子模块内容或 Git LFS 实体。空仓库没有可导入文件，运行摘要会标记。上游删除或转为私有后保留已有快照，不自动删除目标分支。
 
-无需本机开机或登录。需要 Actions 可用、GITHUB_TOKEN 允许 contents: write，且目标分支允许推送。公开仓库连续 60 天无活动时 GitHub 可能暂停定时任务，需要重新启用。自动更新不会合并项目分支到 main。
+同步目录内自定义修改会在上游文件变化时被替换；目录外内容保留。自动提交不强制推送，冲突会报错。某仓库失败不阻止同组其他仓库，失败项目在日志和运行摘要中列出，下次执行重试。
+
+工作流和同步脚本位于 main；8 组任务，最多 4 组并行，每次只临时拉取一个项目以控制磁盘用量。组织全量首次导入可能耗时较长；受 GitHub 单文件、推送大小、Actions 额度与平台限制影响，失败需查看运行摘要，不能保证所有仓库永久可镜像。
+
+正常运行无需本机开机或登录。需要 GitHub Actions 可用、contents: write 权限和目标分支允许推送。公开仓库连续 60 天无活动时 GitHub 可能暂停定时任务，需要重新启用。
