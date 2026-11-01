@@ -6,14 +6,16 @@ import subprocess
 
 PREFIX = "skills/apple-design-skill"
 def git(*args):
+    """Run Git and return its stripped standard output."""
     return subprocess.check_output(["git", *args], text=True).strip()
 
 def sync(url):
+    """Stage the upstream tree and source record, returning whether it changed."""
     git("fetch", "--no-tags", "--depth=1", url, "HEAD")
     sha = git("rev-parse", "FETCH_HEAD")
     upstream_tree = git("rev-parse", "FETCH_HEAD^{tree}")
     old = subprocess.run(["git", "rev-parse", "HEAD:" + PREFIX],
-                         capture_output=True, text=True)
+                         capture_output=True, text=True, check=False)
     if old.returncode == 0 and old.stdout.strip() == upstream_tree:
         print("Upstream files are unchanged.")
         return False
@@ -43,7 +45,7 @@ def sync(url):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--upstream", default="https://github.com/dickwu/apple-design-skill.git")
-    args = parser.parse_args()
+    options = parser.parse_args()
     if git("status", "--porcelain"):
         raise SystemExit("Refusing to sync a dirty checkout.")
-    sync(args.upstream)
+    sync(options.upstream)
