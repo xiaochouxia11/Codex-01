@@ -1,0 +1,965 @@
+package jsonview
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"image/color"
+	"io"
+	"math"
+	"os"
+	"strings"
+	"sync"
+
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/table"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/term"
+	"github.com/muesli/reflow/truncate"
+	"github.com/muesli/reflow/wordwrap"
+	"github.com/tidwall/gjson"
+)
+
+const (
+	// UI layout constants
+	borderPadding         = 2
+	heightOffset          = 5
+	tableMinHeight        = 2
+	titlePaddingLeft      = 2
+	titlePaddingTop       = 0
+	footerPaddingLeft     = 1
+	cellHorizontalPadding = 2 // bubbles/v2 table cell style: Padding(0, 1) on both sides
+
+	// Column width constants
+	defaultColumnWidth = 10
+	keyColumnWidth     = 3
+	valueColumnWidth   = 5
+
+	// String formatting constants
+	maxStringLength  = 100
+	maxPreviewLength = 24
+)
+
+var (
+	arrayColor  = lipgloss.Color("1")
+	stringColor = lipgloss.Color("5")
+	objectColor = lipgloss.Color("4")
+)
+
+type keyMap struct {
+	Up         key.Binding
+	Down       key.Binding
+	Enter      key.Binding
+	Back       key.Binding
+	PrintValue key.Binding
+	Raw        key.Binding
+	Quit       key.Binding
+}
+
+func (k keyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Quit, k.Up, k.Down, k.Back, k.Enter, k.PrintValue, k.Raw}
+}
+
+func (k keyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{k.ShortHelp()}
+}
+
+var keys = keyMap{
+	Up: key.NewBinding(
+		key.WithKeys("up", "k"),
+		key.WithHelp("↑/k", "up"),
+	),
+	Down: key.NewBinding(
+		key.WithKeys("down", "j"),
+		key.WithHelp("↓/j", "down"),
+	),
+	Back: key.NewBinding(
+		key.WithKeys("left", "h", "backspace"),
+		key.WithHelp("←/h", "go back"),
+	),
+	Enter: key.NewBinding(
+		key.WithKeys("right", "l"),
+		key.WithHelp("→/l", "expand"),
+	),
+	PrintValue: key.NewBinding(
+		key.WithKeys("p"),
+		key.WithHelp("p", "print and exit"),
+	),
+	Raw: key.NewBinding(
+		key.WithKeys("r"),
+		key.WithHelp("r", "toggle raw JSON"),
+	),
+	Quit: key.NewBinding(
+		key.WithKeys("q", "esc", "ctrl+c", "enter"),
+		key.WithHelp("q/enter", "quit"),
+	),
+}
+
+var (
+	titleStyle         = lipgloss.NewStyle().Bold(true).PaddingLeft(titlePaddingLeft).PaddingTop(titlePaddingTop)
+	arrayStyle         = lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()).BorderForeground(arrayColor)
+	stringStyle        = lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()).BorderForeground(stringColor)
+	objectStyle        = lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()).BorderForeground(objectColor)
+	stringLiteralStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("2"))
+)
+
+type JSONView interface {
+	GetPath() string
+	GetData() gjson.Result
+	Update(tea.Msg, bool) tea.Cmd
+	View() string
+	Resize(width, height int)
+}
+
+type TableView struct {
+	width      int
+	height     int
+	path       string
+	data       gjson.Result
+	table      table.Model
+	rowData    []gjson.Result
+	iterator   AnyIterator
+	isLoading  bool
+	columns    []table.Column
+	columnKeys []string
+}
+
+func (tv *TableView) GetPath() string       { return tv.path }
+func (tv *TableView) GetData() gjson.Result { return tv.data }
+func (tv *TableView) View() string          { return tv.table.View() }
+
+func (tv *TableView) Update(msg tea.Msg, raw bool) tea.Cmd {
+	var cmd tea.Cmd
+	tv.table, cmd = tv.table.Update(msg)
+
+	// Check if we need to load more data
+	if tv.iterator != nil && !tv.isLoading && tv.data.IsArray() {
+		cursor := tv.table.Cursor()
+		totalRows := len(tv.table.Rows())
+
+		// Load more when we're at the last row
+		if cursor == totalRows-1 {
+			tv.isLoading = true
+			return tv.loadMoreData()
+		}
+	}
+
+	return cmd
+}
+
+// tableItemMsg transfers iterator work back to the UI loop. Commands must not
+// mutate a view while key and resize messages are being processed.
+type tableItemMsg struct {
+	view   *TableView
+	result gjson.Result
+	err    error
+}
+
+func (tv *TableView) loadMoreData() tea.Cmd {
+	iterator := tv.iterator
+	return func() tea.Msg {
+		msg := tableItemMsg{view: tv}
+		if iterator == nil {
+			return msg
+		}
+		if !iterator.Next() {
+			msg.err = iterator.Err()
+			return msg
+		}
+		item := iterator.Current()
+		if hasRaw, ok := item.(hasRawJSON); ok {
+			msg.result = gjson.Parse(hasRaw.RawJSON())
+			return msg
+		}
+		jsonBytes, err := json.Marshal(item)
+		msg.err = err
+		if err == nil {
+			msg.result = gjson.ParseBytes(jsonBytes)
+		}
+		return msg
+	}
+}
+
+func (tv *TableView) appendItem(result gjson.Result, raw bool) {
+	tv.rowData = append(tv.rowData, result)
+	newRow := table.Row{formatValue(result, raw)}
+	// columnKeys is only populated by the array-of-objects constructor, so it — not
+	// the column count — says whether this table is column-shaped. A stream whose
+	// items share a single key still has exactly one column.
+	if len(tv.columnKeys) > 0 && result.IsObject() {
+		newRow = make(table.Row, len(tv.columns))
+		values := result.Map()
+		for i, col := range tv.columns {
+			key := col.Title
+			if i < len(tv.columnKeys) {
+				key = tv.columnKeys[i]
+			}
+			newRow[i] = formatValue(values[key], raw)
+		}
+	}
+	tv.table.SetRows(append(tv.table.Rows(), newRow))
+	tv.Resize(tv.width, tv.height)
+}
+
+func (tv *TableView) Resize(width, height int) {
+	tv.width = width
+	tv.height = height
+	tv.updateColumnWidths(width)
+	// In bubbles v2 the table's underlying viewport renders nothing when its
+	// width is 0, and pads rows to its full width when set. Size it to the
+	// natural content width so rows aren't padded past the surrounding border.
+	contentWidth := 0
+	for _, c := range tv.table.Columns() {
+		if c.Width > 0 {
+			contentWidth += c.Width + cellHorizontalPadding
+		}
+	}
+	tv.table.SetWidth(contentWidth)
+	tv.table.SetHeight(min(height-heightOffset, tableMinHeight+len(tv.table.Rows())))
+	if tv.table.Height() > 0 {
+		// Reveal the cursor once the resized viewport has room for rows again.
+		tv.table.MoveDown(0)
+	}
+}
+
+func (tv *TableView) updateColumnWidths(width int) {
+	columns := tv.table.Columns()
+	widths := make([]int, len(columns))
+
+	// Calculate required widths from headers and content
+	for i, col := range columns {
+		widths[i] = lipgloss.Width(col.Title)
+	}
+
+	for _, row := range tv.table.Rows() {
+		for i, cell := range row {
+			if i < len(widths) {
+				widths[i] = max(widths[i], lipgloss.Width(cell))
+			}
+		}
+	}
+
+	totalWidth := sum(widths)
+	available := width - borderPadding*len(columns)
+
+	if totalWidth <= available {
+		for i, w := range widths {
+			columns[i].Width = w
+		}
+		return
+	}
+
+	fairShare := float64(available) / float64(len(columns))
+	shrinkable := 0.0
+
+	for _, w := range widths {
+		if float64(w) > fairShare {
+			shrinkable += float64(w) - fairShare
+		}
+	}
+
+	if shrinkable > 0 {
+		excess := float64(totalWidth - available)
+		for i, w := range widths {
+			if float64(w) > fairShare {
+				reduction := (float64(w) - fairShare) * (excess / shrinkable)
+				widths[i] = int(math.Round(float64(w) - reduction))
+			}
+		}
+	}
+
+	for i, w := range widths {
+		columns[i].Width = w
+	}
+
+	tv.table.SetColumns(columns)
+}
+
+type TextView struct {
+	path     string
+	data     gjson.Result
+	viewport viewport.Model
+	ready    bool
+}
+
+func (tv *TextView) GetPath() string       { return tv.path }
+func (tv *TextView) GetData() gjson.Result { return tv.data }
+func (tv *TextView) View() string          { return tv.viewport.View() }
+
+func (tv *TextView) Update(msg tea.Msg, raw bool) tea.Cmd {
+	var cmd tea.Cmd
+	tv.viewport, cmd = tv.viewport.Update(msg)
+	return cmd
+}
+
+func (tv *TextView) Resize(width, height int) {
+	h := max(0, height-heightOffset)
+	rewrap := !tv.ready || tv.viewport.Width() != width
+	if !tv.ready {
+		tv.viewport = viewport.New(viewport.WithWidth(width), viewport.WithHeight(h))
+		tv.ready = true
+	} else {
+		tv.viewport.SetWidth(width)
+		tv.viewport.SetHeight(h)
+	}
+	if rewrap {
+		tv.viewport.SetContent(wordwrap.String(SanitizeTerminalString(tv.data.Str), width))
+		// A zero-height viewport can scroll one line past the content.
+		tv.viewport.SetYOffset(min(tv.viewport.YOffset(), tv.viewport.TotalLineCount()-1))
+	}
+}
+
+type JSONViewer struct {
+	stack   []JSONView
+	root    string
+	width   int
+	height  int
+	rawMode bool
+	message string
+	loadErr error
+	help    help.Model
+}
+
+// ExploreJSON explores a single JSON value known ahead of time
+func ExploreJSON(title string, json gjson.Result) error {
+	return ExploreJSONWithOutput(title, json, os.Stdout)
+}
+
+// ExploreJSONWithOutput sends the explorer and its selected value to output.
+func ExploreJSONWithOutput(title string, json gjson.Result, output io.Writer) error {
+	return ExploreJSONWithContext(context.Background(), title, json, output)
+}
+
+// ExploreJSONWithContext also stops the explorer when its caller is canceled.
+func ExploreJSONWithContext(ctx context.Context, title string, json gjson.Result, output io.Writer, options ...tea.ProgramOption) error {
+	view, err := newView("", json, false)
+	if err != nil {
+		return err
+	}
+
+	viewer := &JSONViewer{stack: []JSONView{view}, root: title, rawMode: false, help: help.New()}
+	return runExplorerWithOutput(viewer, output, append(options, tea.WithContext(ctx))...)
+}
+
+func runExplorerWithOutput(viewer *JSONViewer, output io.Writer, options ...tea.ProgramOption) error {
+	if output == nil {
+		output = os.Stdout
+	}
+	tracked := &explorerOutput{writer: output}
+	options = append(options, tea.WithOutput(tracked.terminalOutput()))
+	_, err := tea.NewProgram(viewer, options...).Run()
+	err = errors.Join(err, viewer.loadErr, tracked.Err())
+	if viewer.message != "" {
+		message := "\n" + viewer.message + "\n"
+		_, msgErr := io.WriteString(tracked, message)
+		err = errors.Join(err, msgErr)
+	}
+	return err
+}
+
+// Bubble Tea ignores rendering write errors, so retain the first failure and
+// return it after the program has restored the terminal.
+type explorerOutput struct {
+	writer io.Writer
+	mu     sync.Mutex
+	err    error
+}
+
+func (w *explorerOutput) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	n, err := w.writer.Write(p)
+	if err == nil && n != len(p) {
+		err = io.ErrShortWrite
+	}
+	if w.err == nil {
+		w.err = err
+	}
+	return n, err
+}
+
+func (w *explorerOutput) Err() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.err
+}
+
+func (w *explorerOutput) terminalOutput() io.Writer {
+	if file, ok := w.writer.(term.File); ok {
+		return explorerFileOutput{File: file, output: w}
+	}
+	return w
+}
+
+// Preserve Bubble Tea's terminal detection without giving ordinary writers a
+// synthetic file descriptor.
+type explorerFileOutput struct {
+	term.File
+	output *explorerOutput
+}
+
+func (w explorerFileOutput) Write(p []byte) (int, error) { return w.output.Write(p) }
+
+type hasRawJSON interface {
+	RawJSON() string
+}
+
+// ExploreJSONStream explores JSON data loaded incrementally via an iterator
+func ExploreJSONStream[T any](title string, it Iterator[T]) error {
+	return ExploreJSONStreamWithOutput(title, it, os.Stdout)
+}
+
+// ExploreJSONStreamWithOutput sends the explorer and its selected value to output.
+func ExploreJSONStreamWithOutput[T any](title string, it Iterator[T], output io.Writer) error {
+	anyIt := genericToAnyIterator(it)
+	if output == nil {
+		output = os.Stdout
+	}
+
+	preloadCount := 20
+	if file, ok := output.(interface{ Fd() uintptr }); ok {
+		if termHeight, _, err := term.GetSize(file.Fd()); err == nil {
+			preloadCount = termHeight
+		}
+	}
+
+	items := make([]any, 0, preloadCount)
+	for i := 0; i < preloadCount && anyIt.Next(); i++ {
+		items = append(items, anyIt.Current())
+	}
+
+	preloadErr := anyIt.Err()
+	if preloadErr != nil && (len(items) == 0 || errors.Is(preloadErr, context.Canceled) || errors.Is(preloadErr, context.DeadlineExceeded)) {
+		return preloadErr
+	}
+
+	arrayJSONBytes, err := marshalItemsToJSONArray(items)
+	if err != nil {
+		return errors.Join(err, preloadErr)
+	}
+	if preloadErr != nil {
+		// Preserve already-loaded records when a stream fails before the UI can
+		// open. Compact first so escaping terminal controls keeps valid JSON.
+		var compact bytes.Buffer
+		if err := json.Compact(&compact, arrayJSONBytes); err != nil {
+			return errors.Join(err, preloadErr)
+		}
+		text := SanitizeTerminalString(compact.String()) + "\n"
+		n, err := io.WriteString(output, text)
+		if err == nil && n != len(text) {
+			err = io.ErrShortWrite
+		}
+		return errors.Join(preloadErr, err)
+	}
+
+	arrayJSON := gjson.ParseBytes(arrayJSONBytes)
+	view, err := newTableView("", arrayJSON, false)
+	if err != nil {
+		return err
+	}
+
+	// Set iterator if there might be more data
+	if len(items) == preloadCount {
+		view.iterator = anyIt
+	}
+
+	viewer := &JSONViewer{stack: []JSONView{view}, root: title, rawMode: false, help: help.New()}
+	return runExplorerWithOutput(viewer, output)
+}
+
+func marshalItemsToJSONArray(items []any) ([]byte, error) {
+	var buf bytes.Buffer
+	buf.WriteByte('[')
+
+	for i, item := range items {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		if hasRaw, ok := item.(hasRawJSON); ok {
+			buf.WriteString(hasRaw.RawJSON())
+		} else {
+			jsonData, err := json.Marshal(item)
+			if err != nil {
+				return nil, err
+			}
+			buf.Write(jsonData)
+		}
+	}
+
+	buf.WriteByte(']')
+	return buf.Bytes(), nil
+}
+
+func (v *JSONViewer) current() JSONView { return v.stack[len(v.stack)-1] }
+func (v *JSONViewer) Init() tea.Cmd     { return nil }
+
+func (v *JSONViewer) resize(width, height int) {
+	v.width, v.height = width, height
+	v.help.SetWidth(width)
+	for i := range v.stack {
+		v.stack[i].Resize(width, height)
+	}
+}
+
+func (v *JSONViewer) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tableItemMsg:
+		// A load can finish while a nested view is active.
+		for _, view := range v.stack {
+			if view == msg.view {
+				msg.view.isLoading = false
+				if msg.err != nil {
+					v.loadErr = msg.err
+					return v, tea.Quit
+				}
+				if msg.result.Exists() {
+					msg.view.appendItem(msg.result, v.rawMode)
+				}
+				break
+			}
+		}
+		return v, nil
+	case tea.WindowSizeMsg:
+		v.resize(msg.Width-borderPadding, msg.Height)
+		return v, nil
+	case tea.KeyPressMsg:
+		switch {
+		case key.Matches(msg, keys.Quit):
+			return v, tea.Quit
+		case key.Matches(msg, keys.Enter):
+			return v.navigateForward()
+		case key.Matches(msg, keys.Back):
+			return v.navigateBack()
+		case key.Matches(msg, keys.Raw):
+			return v.toggleRaw()
+		case key.Matches(msg, keys.PrintValue):
+			v.message = v.getSelectedContent()
+			return v, tea.Quit
+		}
+	}
+
+	return v, v.current().Update(msg, v.rawMode)
+}
+
+func (v *JSONViewer) getSelectedContent() string {
+	tableView, ok := v.current().(*TableView)
+	if !ok {
+		return v.current().GetData().Raw
+	}
+
+	// An empty array or object builds a table with no rows, so there is no row
+	// under the cursor to print. Fall back to the container itself, which is what
+	// the view is already displaying.
+	cursor := tableView.table.Cursor()
+	if cursor < 0 || cursor >= len(tableView.rowData) {
+		return tableView.GetData().Raw
+	}
+
+	selected := tableView.rowData[cursor]
+	if selected.Type == gjson.String {
+		return SanitizeTerminalString(selected.Str)
+	}
+	return selected.Raw
+}
+
+func (v *JSONViewer) navigateForward() (tea.Model, tea.Cmd) {
+	tableView, ok := v.current().(*TableView)
+	if !ok {
+		return v, nil
+	}
+
+	if len(tableView.rowData) < 1 {
+		return v, nil
+	}
+
+	cursor := tableView.table.Cursor()
+	selected := tableView.rowData[cursor]
+	if !v.canNavigateInto(selected) {
+		return v, nil
+	}
+
+	path := v.buildNavigationPath(tableView, cursor)
+	forwardView, err := newView(path, selected, v.rawMode)
+	if err != nil {
+		return v, nil
+	}
+
+	v.stack = append(v.stack, forwardView)
+	v.resize(v.width, v.height)
+	return v, nil
+}
+
+func (v *JSONViewer) buildNavigationPath(tableView *TableView, cursor int) string {
+	if tableView.data.IsArray() {
+		return fmt.Sprintf("%s[%d]", tableView.path, cursor)
+	}
+	key := tableView.data.Get("@keys").Array()[cursor].Str
+	return fmt.Sprintf("%s[%s]", tableView.path, quoteString(key))
+}
+
+func quoteString(s string) string {
+	// Replace backslashes and quotes with escaped versions
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "\"", "\\\"")
+	s = SanitizeTerminalString(s)
+	return stringLiteralStyle.Render("\"" + s + "\"")
+}
+
+func (v *JSONViewer) canNavigateInto(data gjson.Result) bool {
+	switch {
+	case data.IsArray():
+		return len(data.Array()) > 0
+	case data.IsObject():
+		return len(data.Map()) > 0
+	case data.Type == gjson.String:
+		str := data.String()
+		return strings.Contains(str, "\n") || lipgloss.Width(str) >= maxStringLength
+	}
+	return false
+}
+
+func (v *JSONViewer) navigateBack() (tea.Model, tea.Cmd) {
+	if len(v.stack) > 1 {
+		v.stack = v.stack[:len(v.stack)-1]
+	}
+	return v, nil
+}
+
+func (v *JSONViewer) toggleRaw() (tea.Model, tea.Cmd) {
+	v.rawMode = !v.rawMode
+
+	for i, view := range v.stack {
+		if tv, ok := view.(*TableView); ok && tv.data.IsArray() {
+			cursor := tv.table.Cursor()
+			// rowData includes completed lazy loads. Rebuild only the presentation,
+			// retaining the view identity and any pending iterator command.
+			var rendered *TableView
+			if isArrayOfObjects(tv.rowData) {
+				rendered = newArrayOfObjectsTableView(tv.path, tv.data, tv.rowData, v.rawMode)
+			} else {
+				rendered = newArrayTableView(tv.path, tv.data, tv.rowData, v.rawMode)
+			}
+			tv.table, tv.columns, tv.columnKeys = rendered.table, rendered.columns, rendered.columnKeys
+			tv.table.SetCursor(cursor)
+			continue
+		}
+		viewWithRaw, err := newView(view.GetPath(), view.GetData(), v.rawMode)
+		if err != nil {
+			return v, tea.Printf("Error: %s", err)
+		}
+		if previous, ok := view.(*TableView); ok {
+			viewWithRaw.(*TableView).table.SetCursor(previous.table.Cursor())
+		}
+		v.stack[i] = viewWithRaw
+	}
+
+	v.resize(v.width, v.height)
+	return v, nil
+}
+
+func (v *JSONViewer) View() tea.View {
+	view := v.current()
+	title := v.buildTitle(view)
+	content := titleStyle.Render(title)
+	style := v.getStyleForData(view.GetData())
+	content += "\n" + style.Render(view.View())
+	content += "\n" + v.help.View(keys)
+	return tea.NewView(content)
+}
+
+func (v *JSONViewer) buildTitle(view JSONView) string {
+	title := v.root
+	if len(view.GetPath()) > 0 {
+		title += " → " + view.GetPath()
+	}
+	if v.rawMode {
+		title += " (JSON)"
+	}
+	return title
+}
+
+func (v *JSONViewer) getStyleForData(data gjson.Result) lipgloss.Style {
+	switch {
+	case data.Type == gjson.String:
+		return stringStyle
+	case data.IsArray():
+		return arrayStyle
+	default:
+		return objectStyle
+	}
+}
+
+func newView(path string, data gjson.Result, raw bool) (JSONView, error) {
+	if data.Type == gjson.String {
+		return newTextView(path, data)
+	}
+	return newTableView(path, data, raw)
+}
+
+func newTextView(path string, data gjson.Result) (*TextView, error) {
+	if !data.Exists() || data.Type != gjson.String {
+		return nil, fmt.Errorf("invalid text JSON")
+	}
+	return &TextView{path: path, data: data}, nil
+}
+
+func newTableView(path string, data gjson.Result, raw bool) (*TableView, error) {
+	if !data.Exists() || data.Type != gjson.JSON {
+		return nil, fmt.Errorf("invalid table JSON")
+	}
+
+	switch {
+	case data.IsArray():
+		array := data.Array()
+		if isArrayOfObjects(array) {
+			return newArrayOfObjectsTableView(path, data, array, raw), nil
+		} else {
+			return newArrayTableView(path, data, array, raw), nil
+		}
+	case data.IsObject():
+		return newObjectTableView(path, data, raw), nil
+	default:
+		return nil, fmt.Errorf("unsupported JSON type")
+	}
+}
+
+func newArrayTableView(path string, data gjson.Result, array []gjson.Result, raw bool) *TableView {
+	columns := []table.Column{{Title: "Items", Width: defaultColumnWidth}}
+	rows := make([]table.Row, 0, len(array))
+	rowData := make([]gjson.Result, 0, len(array))
+
+	for _, item := range array {
+		rows = append(rows, table.Row{formatValue(item, raw)})
+		rowData = append(rowData, item)
+	}
+
+	t := createTable(columns, rows, arrayColor)
+	return &TableView{
+		path:    path,
+		data:    data,
+		table:   t,
+		rowData: rowData,
+		columns: columns,
+	}
+}
+
+func newArrayOfObjectsTableView(path string, data gjson.Result, array []gjson.Result, raw bool) *TableView {
+	// Collect unique keys
+	keySet := make(map[string]struct{})
+	var columns []table.Column
+	var columnKeys []string
+
+	for _, item := range array {
+		for _, key := range item.Get("@keys").Array() {
+			if _, exists := keySet[key.Str]; !exists {
+				keySet[key.Str] = struct{}{}
+				title := SanitizeTerminalString(key.Str)
+				columns = append(columns, table.Column{Title: title, Width: defaultColumnWidth})
+				columnKeys = append(columnKeys, key.Str)
+			}
+		}
+	}
+
+	rows := make([]table.Row, 0, len(array))
+	rowData := make([]gjson.Result, 0, len(array))
+
+	for _, item := range array {
+		row := make(table.Row, len(columns))
+		values := item.Map()
+		for i, key := range columnKeys {
+			row[i] = formatValue(values[key], raw)
+		}
+		rows = append(rows, row)
+		rowData = append(rowData, item)
+	}
+
+	t := createTable(columns, rows, arrayColor)
+	return &TableView{
+		path:       path,
+		data:       data,
+		table:      t,
+		rowData:    rowData,
+		columns:    columns,
+		columnKeys: columnKeys,
+	}
+}
+
+func newObjectTableView(path string, data gjson.Result, raw bool) *TableView {
+	columns := []table.Column{{Title: "Object"}, {}}
+
+	keys := data.Get("@keys").Array()
+	rows := make([]table.Row, 0, len(keys))
+	rowData := make([]gjson.Result, 0, len(keys))
+	values := data.Map()
+
+	for _, key := range keys {
+		value := values[key.Str]
+		title := SanitizeTerminalString(key.Str)
+		rows = append(rows, table.Row{title, formatValue(value, raw)})
+		rowData = append(rowData, value)
+	}
+
+	// Adjust column widths based on content
+	for _, row := range rows {
+		for i, cell := range row {
+			if i < len(columns) {
+				columns[i].Width = max(columns[i].Width, lipgloss.Width(cell))
+			}
+		}
+	}
+
+	t := createTable(columns, rows, objectColor)
+	return &TableView{
+		path:    path,
+		data:    data,
+		table:   t,
+		rowData: rowData,
+		columns: columns,
+	}
+}
+
+func createTable(columns []table.Column, rows []table.Row, bgColor color.Color) table.Model {
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+	)
+
+	// Set common table styles
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(bgColor).
+		Bold(false)
+	t.SetStyles(s)
+
+	return t
+}
+
+func formatValue(value gjson.Result, raw bool) string {
+	if raw {
+		return value.Get("@ugly").Raw
+	}
+
+	switch {
+	case value.IsObject():
+		return formatObject(value)
+	case value.IsArray():
+		return formatArray(value)
+	case value.Type == gjson.String:
+		return SanitizeTerminalString(value.Str)
+	default:
+		return value.Raw
+	}
+}
+
+func formatObject(value gjson.Result) string {
+	keys := value.Get("@keys").Array()
+	keyStrs := make([]string, len(keys))
+	values := value.Map()
+
+	for i, key := range keys {
+		val := values[key.Str]
+		keyStrs[i] = formatObjectKey(SanitizeTerminalString(key.Str), val)
+	}
+
+	return "{" + strings.Join(keyStrs, ", ") + "}"
+}
+
+func formatObjectKey(key string, val gjson.Result) string {
+	switch {
+	case val.IsObject():
+		return key + ":{…}"
+	case val.IsArray():
+		return key + ":[…]"
+	case val.Type == gjson.String:
+		str := SanitizeTerminalString(val.Str)
+		if lipgloss.Width(str) <= maxPreviewLength {
+			return fmt.Sprintf(`%s:"%s"`, key, str)
+		}
+		return fmt.Sprintf(`%s:"%s…"`, key, truncate.String(str, uint(maxPreviewLength)))
+	default:
+		return key + ":" + val.Raw
+	}
+}
+
+func formatArray(value gjson.Result) string {
+	switch count := len(value.Array()); count {
+	case 0:
+		return "[]"
+	case 1:
+		return "[...1 item...]"
+	default:
+		return fmt.Sprintf("[...%d items...]", count)
+	}
+}
+
+func isArrayOfObjects(array []gjson.Result) bool {
+	for _, item := range array {
+		if !item.IsObject() {
+			return false
+		}
+	}
+	return len(array) > 0
+}
+
+func sum(ints []int) int {
+	total := 0
+	for _, n := range ints {
+		total += n
+	}
+	return total
+}
+
+// An iterator over `any` values
+type AnyIterator interface {
+	Next() bool
+	Err() error
+	Current() any
+}
+
+// A generic iterator interface that is used by the `genericIterator` struct
+// below to convert iterators over specific types to an AnyIterator
+type Iterator[T any] interface {
+	Next() bool
+	Err() error
+	Current() T
+}
+
+// genericIterator adapts a generic Iterator[T] to an AnyIterator.
+type genericIterator[T any] struct {
+	iterator Iterator[T]
+	current  any
+}
+
+func (g *genericIterator[T]) Next() bool {
+	if !g.iterator.Next() {
+		return false
+	}
+	g.current = g.iterator.Current()
+	return true
+}
+
+func (g *genericIterator[T]) Err() error {
+	return g.iterator.Err()
+}
+
+func (g *genericIterator[T]) Current() any {
+	return g.current
+}
+
+func genericToAnyIterator[T any](it Iterator[T]) AnyIterator {
+	return &genericIterator[T]{
+		iterator: it,
+	}
+}

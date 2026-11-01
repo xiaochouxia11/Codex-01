@@ -1,0 +1,326 @@
+package apiform
+
+import (
+	"fmt"
+	"io"
+	"math"
+	"mime/multipart"
+	"net/textproto"
+	"path"
+	"reflect"
+	"runtime"
+	"sort"
+	"strconv"
+	"strings"
+)
+
+// formatFloat renders a float field value for a multipart part body. Non-finite
+// values (NaN, +Inf, -Inf) have no valid multipart representation; reject them
+// the way encoding/json rejects them ("json: unsupported value: +Inf") instead
+// of writing "+Inf"/"NaN" on the wire.
+func formatFloat(f float64, bitSize int) (string, error) {
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return "", fmt.Errorf("apiform: unsupported value: %s", strconv.FormatFloat(f, 'g', -1, bitSize))
+	}
+	return strconv.FormatFloat(f, 'f', -1, bitSize), nil
+}
+
+// Marshal encodes a value as multipart form data using default settings
+func Marshal(value any, writer *multipart.Writer) error {
+	e := &encoder{
+		format: FormatRepeat,
+	}
+	return e.marshal(value, writer)
+}
+
+// MarshalWithSettings encodes a value with custom array format
+func MarshalWithSettings(value any, writer *multipart.Writer, arrayFormat FormFormat) error {
+	e := &encoder{
+		format: arrayFormat,
+	}
+	return e.marshal(value, writer)
+}
+
+type encoder struct {
+	format FormFormat
+}
+
+func (e *encoder) marshal(value any, writer *multipart.Writer) error {
+	val := reflect.ValueOf(value)
+	if !val.IsValid() {
+		return nil
+	}
+	return e.encodeValue("", val, writer)
+}
+
+func (e *encoder) encodeValue(key string, val reflect.Value, writer *multipart.Writer) error {
+	if err := validateMIMEHeaderValue(key, "field name"); err != nil {
+		return err
+	}
+
+	if !val.IsValid() {
+		return writer.WriteField(key, "")
+	}
+
+	// Unwrap interfaces before detecting io.Reader. A non-nil interface can
+	// contain a typed nil pointer, which must retain the encoder's empty-field
+	// semantics instead of being passed to io.Copy.
+	for val.Kind() == reflect.Interface {
+		if val.IsNil() {
+			return writer.WriteField(key, "")
+		}
+		val = val.Elem()
+	}
+	if val.Kind() == reflect.Pointer && val.IsNil() {
+		return writer.WriteField(key, "")
+	}
+
+	t := val.Type()
+
+	if t.Implements(reflect.TypeOf((*io.Reader)(nil)).Elem()) {
+		return e.encodeReader(key, val, writer)
+	}
+
+	switch t.Kind() {
+	case reflect.Pointer:
+		return e.encodeValue(key, val.Elem(), writer)
+
+	case reflect.Slice, reflect.Array:
+		return e.encodeArray(key, val, writer)
+
+	case reflect.Map:
+		return e.encodeMap(key, val, writer)
+
+	case reflect.String:
+		return writer.WriteField(key, val.String())
+
+	case reflect.Bool:
+		if val.Bool() {
+			return writer.WriteField(key, "true")
+		}
+		return writer.WriteField(key, "false")
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return writer.WriteField(key, strconv.FormatInt(val.Int(), 10))
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return writer.WriteField(key, strconv.FormatUint(val.Uint(), 10))
+
+	case reflect.Float32:
+		strVal, err := formatFloat(val.Float(), 32)
+		if err != nil {
+			return err
+		}
+		return writer.WriteField(key, strVal)
+
+	case reflect.Float64:
+		strVal, err := formatFloat(val.Float(), 64)
+		if err != nil {
+			return err
+		}
+		return writer.WriteField(key, strVal)
+
+	default:
+		return fmt.Errorf("unknown type: %s", t.String())
+	}
+}
+
+func (e *encoder) encodeArray(key string, val reflect.Value, writer *multipart.Writer) error {
+	if e.format == FormatComma {
+		var values []string
+		for i := 0; i < val.Len(); i++ {
+			item := val.Index(i)
+			for item.Kind() == reflect.Pointer || item.Kind() == reflect.Interface {
+				if item.IsNil() {
+					// Null values are sent as an empty string.
+					values = append(values, "")
+					item = reflect.Value{}
+					break
+				}
+				item = item.Elem()
+			}
+			if !item.IsValid() {
+				continue
+			}
+			var strValue string
+			switch item.Kind() {
+			case reflect.String:
+				strValue = item.String()
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				strValue = strconv.FormatInt(item.Int(), 10)
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				strValue = strconv.FormatUint(item.Uint(), 10)
+			case reflect.Float32:
+				s, err := formatFloat(item.Float(), 32)
+				if err != nil {
+					return err
+				}
+				strValue = s
+			case reflect.Float64:
+				s, err := formatFloat(item.Float(), 64)
+				if err != nil {
+					return err
+				}
+				strValue = s
+			case reflect.Bool:
+				strValue = strconv.FormatBool(item.Bool())
+			default:
+				return fmt.Errorf("comma format not supported for complex array elements")
+			}
+			values = append(values, strValue)
+		}
+		return writer.WriteField(key, strings.Join(values, ","))
+	}
+
+	for i := 0; i < val.Len(); i++ {
+		var formattedKey string
+		switch e.format {
+		case FormatRepeat:
+			formattedKey = key
+		case FormatBrackets:
+			formattedKey = key + "[]"
+		case FormatIndicesDots:
+			if key == "" {
+				formattedKey = strconv.Itoa(i)
+			} else {
+				formattedKey = key + "." + strconv.Itoa(i)
+			}
+		case FormatIndicesBrackets:
+			if key == "" {
+				formattedKey = strconv.Itoa(i)
+			} else {
+				formattedKey = key + "[" + strconv.Itoa(i) + "]"
+			}
+		default:
+			return fmt.Errorf("apiform: unsupported array format")
+		}
+
+		if err := e.encodeValue(formattedKey, val.Index(i), writer); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
+}
+
+func multipartBaseName(name string) string {
+	return multipartBaseNameForOS(name, runtime.GOOS)
+}
+
+func multipartBaseNameForOS(name, goos string) string {
+	windowsPath := isWindowsPath(name)
+	if windowsPath && len(name) >= 2 && name[1] == ':' {
+		name = name[2:]
+	}
+	if goos == "windows" || windowsPath {
+		name = strings.ReplaceAll(name, `\`, "/")
+	}
+	return path.Base(name)
+}
+
+func isWindowsPath(name string) bool {
+	if strings.HasPrefix(name, `\\`) {
+		return true
+	}
+	if len(name) < 2 || name[1] != ':' {
+		return false
+	}
+	drive := name[0]
+	return (drive >= 'A' && drive <= 'Z') || (drive >= 'a' && drive <= 'z')
+}
+
+func validateMIMEHeaderValue(value, component string) error {
+	for i := 0; i < len(value); i++ {
+		if (value[i] < ' ' && value[i] != '\t') || value[i] == '\x7f' {
+			return fmt.Errorf("apiform: invalid control character in multipart %s", component)
+		}
+	}
+	return nil
+}
+
+func (e *encoder) encodeReader(key string, val reflect.Value, writer *multipart.Writer) error {
+	reader, ok := val.Convert(reflect.TypeOf((*io.Reader)(nil)).Elem()).Interface().(io.Reader)
+	if !ok {
+		return nil
+	}
+
+	// Set defaults
+	filename := "anonymous_file"
+	contentType := "application/octet-stream"
+
+	// Get filename if available
+	if named, ok := reader.(interface{ Filename() string }); ok {
+		filename = named.Filename()
+	} else if named, ok := reader.(interface{ Name() string }); ok {
+		filename = multipartBaseName(named.Name())
+	}
+
+	// Get content type if available
+	if typed, ok := reader.(interface{ ContentType() string }); ok {
+		contentType = typed.ContentType()
+	}
+
+	if err := validateMIMEHeaderValue(filename, "filename"); err != nil {
+		return err
+	}
+	if err := validateMIMEHeaderValue(contentType, "content type"); err != nil {
+		return err
+	}
+
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+		escapeQuotes(key), escapeQuotes(filename)))
+	h.Set("Content-Type", contentType)
+
+	filewriter, err := writer.CreatePart(h)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(filewriter, reader)
+	return err
+}
+
+func (e *encoder) encodeMap(key string, val reflect.Value, writer *multipart.Writer) error {
+	type mapPair struct {
+		key   string
+		value reflect.Value
+	}
+
+	// Collect and sort map entries for deterministic output
+	pairs := []mapPair{}
+	iter := val.MapRange()
+	for iter.Next() {
+		if iter.Key().Type().Kind() != reflect.String {
+			return fmt.Errorf("cannot encode a map with a non string key")
+		}
+		pairs = append(pairs, mapPair{key: iter.Key().String(), value: iter.Value()})
+	}
+
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].key < pairs[j].key
+	})
+
+	// Process sorted pairs
+	for _, p := range pairs {
+		if err := e.encodeValue(e.mapKey(key, p.key), p.value, writer); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (e *encoder) mapKey(parent string, child string) string {
+	if parent == "" {
+		return child
+	}
+	if e.format == FormatBrackets {
+		return parent + "[" + child + "]"
+	}
+	return parent + "." + child
+}
