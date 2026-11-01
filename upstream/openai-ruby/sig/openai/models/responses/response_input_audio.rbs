@@ -1,0 +1,69 @@
+module OpenAI
+  module Models
+    module Responses
+      type response_input_audio =
+        {
+          input_audio: OpenAI::Responses::ResponseInputAudio::InputAudio,
+          ?type: :input_audio
+        }
+
+      class ResponseInputAudio < OpenAI::Internal::Type::BaseModel
+        attr_accessor input_audio: OpenAI::Responses::ResponseInputAudio::InputAudio
+
+        # The type of the input item. Always `input_audio`.
+        attr_accessor type: :input_audio
+
+        # @param type
+        #   The type of the input item. Always `input_audio`.
+        def initialize: (
+          input_audio: OpenAI::Responses::ResponseInputAudio::InputAudio,
+          ?type: :input_audio
+        ) -> void
+
+        def to_hash: -> {
+          input_audio: OpenAI::Responses::ResponseInputAudio::InputAudio,
+          ?type: :input_audio
+        }
+
+        type input_audio =
+          {
+            data: String,
+            format_: OpenAI::Models::Responses::ResponseInputAudio::InputAudio::format_
+          }
+
+        class InputAudio < OpenAI::Internal::Type::BaseModel
+          # Base64-encoded audio data.
+          attr_accessor data: String
+
+          # The format of the audio data. Currently supported formats are `mp3` and `wav`.
+          attr_accessor format_: OpenAI::Models::Responses::ResponseInputAudio::InputAudio::format_
+
+          # @param data
+          #   Base64-encoded audio data.
+          # @param format_
+          #   The format of the audio data. Currently supported formats are `mp3` and `wav`.
+          def initialize: (
+            data: String,
+            format_: OpenAI::Models::Responses::ResponseInputAudio::InputAudio::format_
+          ) -> void
+
+          def to_hash: -> {
+            data: String,
+            format_: OpenAI::Models::Responses::ResponseInputAudio::InputAudio::format_
+          }
+
+          type format_ = :mp3 | :wav
+
+          module Format
+            extend OpenAI::Internal::Type::Enum
+
+            MP3: :mp3
+            WAV: :wav
+
+            def self?.values: -> ::Array[OpenAI::Models::Responses::ResponseInputAudio::InputAudio::format_]
+          end
+        end
+      end
+    end
+  end
+end

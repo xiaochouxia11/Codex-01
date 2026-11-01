@@ -1,0 +1,184 @@
+name: CI checks
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: Runner label for CI jobs
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  lint:
+    timeout-minutes: 10
+    name: lint (rubocop)
+    permissions:
+      contents: read
+    runs-on: ${{ inputs.runner }}
+    env:
+      RUBOCOP_CACHE_ROOT: ${{ github.workspace }}/.cache/rubocop
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+      - name: Restore RuboCop cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.RUBOCOP_CACHE_ROOT }}
+          key: >-
+            rubocop-${{ runner.os }}-ruby-4.0-${{ hashFiles('Gemfile.lock', '.rubocop.yml') }}-${{ github.sha }}
+          restore-keys: |
+            rubocop-${{ runner.os }}-ruby-4.0-${{ hashFiles('Gemfile.lock', '.rubocop.yml') }}-
+      - name: Run RuboCop
+        run: bundle exec rake lint:rubocop
+
+  typecheck:
+    timeout-minutes: 10
+    name: typecheck (rbi)
+    permissions:
+      contents: read
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+      - name: Typecheck rbi files
+        run: bundle exec rake typecheck:sorbet
+
+  validate-rbs:
+    timeout-minutes: 10
+    name: validate (rbs)
+    permissions:
+      contents: read
+    runs-on: ${{ inputs.runner }}
+    env:
+      # The consolidated green path always uses one worker; keep the reference
+      # fallback tuned so failing builds produce exact diagnostics promptly.
+      STEEP_JOBS: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+      - name: Validate rbs files
+        run: bundle exec rake validate:rbs
+
+  package:
+    timeout-minutes: 10
+    name: package
+    permissions:
+      contents: read
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+      - name: Build gem
+        run: bundle exec rake build:gem
+
+  test-ruby:
+    timeout-minutes: 15
+    name: test (ruby ${{ matrix.ruby-version }}, shard ${{ matrix.shard }}/1)
+    permissions:
+      contents: read
+    runs-on: ${{ inputs.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby-version: ['3.3', '3.4', '4.0']
+        shard: [1]
+    env:
+      TEST_SHARD: ${{ matrix.shard }}/1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+      - name: Check primary dependency bundle
+        run: bundle check
+      - name: Check concurrent Steady publication
+        run: node scripts/steady/publication.test.cjs
+      - name: Check browser lifecycle
+        run: node --test test/openai/realtime/browser/peer_test.mjs
+
+      - name: Run tests
+        run: ./scripts/test
+
+  test-bedrock:
+    timeout-minutes: 10
+    name: test (bedrock, ruby 4.0)
+    permissions:
+      contents: read
+    runs-on: ${{ inputs.runner }}
+    env:
+      BUNDLE_GEMFILE: gemfiles/bedrock.gemfile
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+      - name: Check Bedrock dependency bundle
+        run: bundle check
+      - name: Run Bedrock tests
+        run: bundle exec rake test:bedrock
+
+  required:
+    timeout-minutes: 5
+    name: ci-required
+    # Keep branch protection on one stable context as the job matrix evolves.
+    needs:
+      - lint
+      - typecheck
+      - validate-rbs
+      - package
+      - test-bedrock
+      - test-ruby
+    if: ${{ always() }}
+    permissions: {}
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Check required job results
+        env:
+          LINT_RESULT: ${{ needs.lint.result }}
+          TYPECHECK_RESULT: ${{ needs.typecheck.result }}
+          RBS_VALIDATION_RESULT: ${{ needs.validate-rbs.result }}
+          PACKAGE_RESULT: ${{ needs.package.result }}
+          BEDROCK_TEST_RESULT: ${{ needs.test-bedrock.result }}
+          TEST_RESULT: ${{ needs.test-ruby.result }}
+        run: |
+          test "$LINT_RESULT" = "success"
+          test "$TYPECHECK_RESULT" = "success"
+          test "$RBS_VALIDATION_RESULT" = "success"
+          test "$PACKAGE_RESULT" = "success"
+          test "$BEDROCK_TEST_RESULT" = "success"
+          test "$TEST_RESULT" = "success"

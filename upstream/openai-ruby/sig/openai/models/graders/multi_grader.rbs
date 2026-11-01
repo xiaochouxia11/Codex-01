@@ -1,0 +1,66 @@
+module OpenAI
+  module Models
+    class MultiGrader = Graders::MultiGrader
+
+    module Graders
+      type multi_grader =
+        {
+          calculate_output: String,
+          graders: OpenAI::Models::Graders::MultiGrader::graders,
+          name: String,
+          ?type: :multi
+        }
+
+      class MultiGrader < OpenAI::Internal::Type::BaseModel
+        # A formula to calculate the output based on grader results.
+        attr_accessor calculate_output: String
+
+        # A StringCheckGrader object that performs a string comparison between input and
+        # reference using a specified operation.
+        attr_accessor graders: OpenAI::Models::Graders::MultiGrader::graders
+
+        # The name of the grader.
+        attr_accessor name: String
+
+        # The object type, which is always `multi`.
+        attr_accessor type: :multi
+
+        # @param calculate_output
+        #   A formula to calculate the output based on grader results.
+        # @param graders
+        #   A StringCheckGrader object that performs a string comparison between input and
+        #   reference using a specified operation.
+        # @param name
+        #   The name of the grader.
+        # @param type
+        #   The object type, which is always `multi`.
+        def initialize: (
+          calculate_output: String,
+          graders: OpenAI::Models::Graders::MultiGrader::graders,
+          name: String,
+          ?type: :multi
+        ) -> void
+
+        def to_hash: -> {
+          calculate_output: String,
+          graders: OpenAI::Models::Graders::MultiGrader::graders,
+          name: String,
+          ?type: :multi
+        }
+
+        type graders =
+          OpenAI::Graders::StringCheckGrader
+          | OpenAI::Graders::TextSimilarityGrader
+          | OpenAI::Graders::PythonGrader
+          | OpenAI::Graders::ScoreModelGrader
+          | OpenAI::Graders::LabelModelGrader
+
+        module Graders
+          extend OpenAI::Internal::Type::Union
+
+          def self?.variants: -> ::Array[OpenAI::Models::Graders::MultiGrader::graders]
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,81 @@
+module OpenAI
+  module Models
+    module Admin
+      module Organization
+        module Projects
+          type role_list_params =
+            {
+              project_id: String,
+              ?after: String,
+              ?limit: Integer,
+              ?order: OpenAI::Models::Admin::Organization::Projects::RoleListParams::order,
+              ?request_options: OpenAI::request_opts
+            }
+
+          class RoleListParams < OpenAI::Internal::Type::BaseModel
+            extend OpenAI::Internal::Type::RequestParameters::Converter
+            include OpenAI::Internal::Type::RequestParameters
+
+            attr_accessor project_id: String
+
+            # Cursor for pagination. Provide the value from the previous response's `next`
+            # field to continue listing roles.
+            attr_reader after: String?
+
+            # Cursor for pagination. Provide the value from the previous response's `next`
+            # field to continue listing roles.
+            def after=: (String) -> String
+
+            # A limit on the number of roles to return. Defaults to 1000.
+            attr_reader limit: Integer?
+
+            # A limit on the number of roles to return. Defaults to 1000.
+            def limit=: (Integer) -> Integer
+
+            # Sort order for the returned roles.
+            attr_reader order: OpenAI::Models::Admin::Organization::Projects::RoleListParams::order?
+
+            # Sort order for the returned roles.
+            def order=: (
+              OpenAI::Models::Admin::Organization::Projects::RoleListParams::order
+            ) -> OpenAI::Models::Admin::Organization::Projects::RoleListParams::order
+
+            # @param after
+            #   Cursor for pagination. Provide the value from the previous response's `next`
+            #   field to continue listing roles.
+            # @param limit
+            #   A limit on the number of roles to return. Defaults to 1000.
+            # @param order
+            #   Sort order for the returned roles.
+            def initialize: (
+              project_id: String,
+              ?after: String,
+              ?limit: Integer,
+              ?order: OpenAI::Models::Admin::Organization::Projects::RoleListParams::order,
+              ?request_options: OpenAI::request_opts
+            ) -> void
+
+            def to_hash: -> {
+              project_id: String,
+              ?after: String,
+              ?limit: Integer,
+              ?order: OpenAI::Models::Admin::Organization::Projects::RoleListParams::order,
+              ?request_options: OpenAI::RequestOptions
+            }
+
+            type order = :asc | :desc
+
+            module Order
+              extend OpenAI::Internal::Type::Enum
+
+              ASC: :asc
+              DESC: :desc
+
+              def self?.values: -> ::Array[OpenAI::Models::Admin::Organization::Projects::RoleListParams::order]
+            end
+          end
+        end
+      end
+    end
+  end
+end

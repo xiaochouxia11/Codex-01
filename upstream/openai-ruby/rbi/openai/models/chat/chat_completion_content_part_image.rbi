@@ -1,0 +1,238 @@
+# typed: strong
+
+module OpenAI
+  module Models
+
+    ChatCompletionContentPartImage = Chat::ChatCompletionContentPartImage
+
+    module Chat
+
+      class ChatCompletionContentPartImage < OpenAI::Internal::Type::BaseModel
+
+        OrHash = T.type_alias do
+          T.any(
+            OpenAI::Chat::ChatCompletionContentPartImage,
+            OpenAI::Internal::AnyHash
+          )
+        end
+
+        sig { returns(OpenAI::Chat::ChatCompletionContentPartImage::ImageURL) }
+        attr_reader :image_url
+
+        sig { params(image_url: OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::OrHash).void }
+        attr_writer :image_url
+
+        # The type of the content part.
+        sig { returns(Symbol) }
+        attr_accessor :type
+
+        # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+        # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+        # not rounded to a token block.
+        sig { returns(T.nilable(OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint)) }
+        attr_reader :prompt_cache_breakpoint
+
+        sig {
+          params(prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::OrHash)
+            .void
+        }
+        attr_writer :prompt_cache_breakpoint
+
+        # Learn about
+        # [image inputs](https://developers.openai.com/api/docs/guides/images-vision).
+        sig do
+          params(
+
+            image_url: OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::OrHash,
+
+            prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::OrHash,
+
+            type: Symbol
+          )
+            .returns(T.attached_class)
+        end
+        def self.new(
+
+          image_url:,
+
+          # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+          # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+          # not rounded to a token block.
+          prompt_cache_breakpoint: nil,
+
+          # The type of the content part.
+
+          type: :image_url
+        )
+        end
+
+        sig do
+          override.returns(
+            {
+              image_url: OpenAI::Chat::ChatCompletionContentPartImage::ImageURL,
+              type: Symbol,
+              prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint
+            }
+          )
+        end
+        def to_hash
+        end
+
+        class ImageURL < OpenAI::Internal::Type::BaseModel
+          OrHash = T.type_alias do
+            T.any(
+              OpenAI::Chat::ChatCompletionContentPartImage::ImageURL,
+              OpenAI::Internal::AnyHash
+            )
+          end
+
+          # Either a URL of the image or the base64 encoded image data.
+          sig { returns(String) }
+          attr_accessor :url
+
+          # Specifies the detail level of the image. Learn more in the
+          # [Vision guide](https://developers.openai.com/api/docs/guides/images-vision#choose-an-image-detail-level).
+          sig { returns(T.nilable(OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::Detail::OrSymbol)) }
+          attr_reader :detail
+
+          sig { params(detail: OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::Detail::OrSymbol).void }
+          attr_writer :detail
+
+          sig do
+            params(
+
+              url: String,
+
+              detail: OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::Detail::OrSymbol
+            )
+              .returns(T.attached_class)
+          end
+          def self.new(
+
+            # Either a URL of the image or the base64 encoded image data.
+            url:,
+
+            # Specifies the detail level of the image. Learn more in the
+            # [Vision guide](https://developers.openai.com/api/docs/guides/images-vision#choose-an-image-detail-level).
+
+            detail: nil
+          )
+          end
+
+          sig do
+            override.returns(
+              {url: String, detail: OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::Detail::OrSymbol}
+            )
+          end
+          def to_hash
+          end
+
+          # Specifies the detail level of the image. Learn more in the
+          # [Vision guide](https://developers.openai.com/api/docs/guides/images-vision#choose-an-image-detail-level).
+          module Detail
+            extend OpenAI::Internal::Type::Enum
+
+            TaggedSymbol = T.type_alias {
+              T.all(Symbol, OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::Detail)
+            }
+            OrSymbol = T.type_alias { T.any(Symbol, String) }
+
+            AUTO = T.let(:auto, OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::Detail::TaggedSymbol)
+            LOW = T.let(:low, OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::Detail::TaggedSymbol)
+            HIGH = T.let(:high, OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::Detail::TaggedSymbol)
+            ORIGINAL = T.let(:original, OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::Detail::TaggedSymbol)
+
+            sig {
+              override.returns(T::Array[OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::Detail::TaggedSymbol])
+            }
+            def self.values
+            end
+          end
+        end
+
+        class PromptCacheBreakpoint < OpenAI::Internal::Type::BaseModel
+          OrHash = T.type_alias do
+            T.any(
+              OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint,
+              OpenAI::Internal::AnyHash
+            )
+          end
+
+          # The breakpoint mode. Always `explicit`.
+          sig { returns(Symbol) }
+          attr_accessor :mode
+
+          # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          sig {
+            returns(T.nilable(OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::Ttl::OrSymbol))
+          }
+          attr_reader :ttl
+
+          sig { params(ttl: OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::Ttl::OrSymbol).void }
+          attr_writer :ttl
+
+          # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+          # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+          # not rounded to a token block.
+          sig do
+            params(
+
+              ttl: OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::Ttl::OrSymbol,
+
+              mode: Symbol
+            )
+              .returns(T.attached_class)
+          end
+          def self.new(
+
+            # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+            ttl: nil,
+
+            # The breakpoint mode. Always `explicit`.
+
+            mode: :explicit
+          )
+          end
+
+          sig do
+            override.returns(
+              {mode: Symbol, ttl: OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::Ttl::OrSymbol}
+            )
+          end
+          def to_hash
+          end
+
+          # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          module Ttl
+            extend OpenAI::Internal::Type::Enum
+
+            TaggedSymbol = T.type_alias {
+              T.all(Symbol, OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::Ttl)
+            }
+            OrSymbol = T.type_alias { T.any(Symbol, String) }
+
+            TTL_30M = T.let(
+              :"30m",
+              OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::Ttl::TaggedSymbol
+            )
+            TTL_12H = T.let(
+              :"12h",
+              OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::Ttl::TaggedSymbol
+            )
+
+            sig {
+              override.returns(
+                T::Array[OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::Ttl::TaggedSymbol]
+              )
+            }
+            def self.values
+            end
+          end
+        end
+
+      end
+
+    end
+
+  end
+end

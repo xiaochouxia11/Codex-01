@@ -1,0 +1,139 @@
+module OpenAI
+  module Models
+    type file_object =
+      {
+        id: String,
+        bytes: Integer,
+        created_at: Integer,
+        filename: String,
+        ?object: :file,
+        purpose: OpenAI::Models::FileObject::purpose,
+        status: OpenAI::Models::FileObject::status,
+        ?expires_at: Integer,
+        ?status_details: String
+      }
+
+    class FileObject < OpenAI::Internal::Type::BaseModel
+      # The file identifier, which can be referenced in the API endpoints.
+      attr_accessor id: String
+
+      # The size of the file, in bytes.
+      attr_accessor bytes: Integer
+
+      # The Unix timestamp (in seconds) for when the file was created.
+      attr_accessor created_at: Integer
+
+      # The name of the file.
+      attr_accessor filename: String
+
+      # The object type, which is always `file`.
+      attr_accessor object: :file
+
+      # The intended purpose of the file. Supported values are `assistants`,
+      # `assistants_output`, `batch`, `batch_output`, `fine-tune`, `fine-tune-results`,
+      # `vision`, and `user_data`.
+      attr_accessor purpose: OpenAI::Models::FileObject::purpose
+
+      # Deprecated. The current status of the file, which can be either `uploaded`,
+      # `processed`, or `error`.
+      attr_accessor status: OpenAI::Models::FileObject::status
+
+      # The Unix timestamp (in seconds) for when the file will expire.
+      attr_reader expires_at: Integer?
+
+      # The Unix timestamp (in seconds) for when the file will expire.
+      def expires_at=: (Integer) -> Integer
+
+      # Deprecated. For details on why a fine-tuning training file failed validation,
+      # see the `error` field on `fine_tuning.job`.
+      attr_reader status_details: String?
+
+      # Deprecated. For details on why a fine-tuning training file failed validation,
+      # see the `error` field on `fine_tuning.job`.
+      def status_details=: (String) -> String
+
+      # @param id
+      #   The file identifier, which can be referenced in the API endpoints.
+      # @param bytes
+      #   The size of the file, in bytes.
+      # @param created_at
+      #   The Unix timestamp (in seconds) for when the file was created.
+      # @param filename
+      #   The name of the file.
+      # @param purpose
+      #   The intended purpose of the file. Supported values are `assistants`,
+      #   `assistants_output`, `batch`, `batch_output`, `fine-tune`, `fine-tune-results`,
+      #   `vision`, and `user_data`.
+      # @param status
+      #   Deprecated. The current status of the file, which can be either `uploaded`,
+      #   `processed`, or `error`.
+      # @param expires_at
+      #   The Unix timestamp (in seconds) for when the file will expire.
+      # @param status_details
+      #   Deprecated. For details on why a fine-tuning training file failed validation,
+      #   see the `error` field on `fine_tuning.job`.
+      # @param object
+      #   The object type, which is always `file`.
+      def initialize: (
+        id: String,
+        bytes: Integer,
+        created_at: Integer,
+        filename: String,
+        purpose: OpenAI::Models::FileObject::purpose,
+        status: OpenAI::Models::FileObject::status,
+        ?expires_at: Integer,
+        ?status_details: String,
+        ?object: :file
+      ) -> void
+
+      def to_hash: -> {
+        id: String,
+        bytes: Integer,
+        created_at: Integer,
+        filename: String,
+        ?object: :file,
+        purpose: OpenAI::Models::FileObject::purpose,
+        status: OpenAI::Models::FileObject::status,
+        ?expires_at: Integer,
+        ?status_details: String
+      }
+
+      type purpose =
+        :assistants
+        | :assistants_output
+        | :batch
+        | :batch_output
+        | :"fine-tune"
+        | :"fine-tune-results"
+        | :vision
+        | :user_data
+
+      module Purpose
+        extend OpenAI::Internal::Type::Enum
+
+        ASSISTANTS: :assistants
+        ASSISTANTS_OUTPUT: :assistants_output
+        BATCH: :batch
+        BATCH_OUTPUT: :batch_output
+        FINE_TUNE: :"fine-tune"
+        FINE_TUNE_RESULTS: :"fine-tune-results"
+        VISION: :vision
+        USER_DATA: :user_data
+
+        def self?.values: -> ::Array[OpenAI::Models::FileObject::purpose]
+      end
+
+      type status = :uploaded | :processed | :error
+
+      module Status
+        extend OpenAI::Internal::Type::Enum
+
+        UPLOADED: :uploaded
+        PROCESSED: :processed
+        ERROR: :error
+
+        def self?.values: -> ::Array[OpenAI::Models::FileObject::status]
+      end
+    end
+  end
+end

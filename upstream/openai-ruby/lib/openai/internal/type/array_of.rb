@@ -1,0 +1,188 @@
+# frozen_string_literal: true
+
+module OpenAI
+  module Internal
+    module Type
+      # @api private
+      #
+      # @abstract
+      #
+      # @generic Elem
+      #
+      # Array of items of a given type.
+      class ArrayOf
+        include OpenAI::Internal::Type::Converter
+        include OpenAI::Internal::Util::SorbetRuntimeSupport
+
+        private_class_method :new
+
+        # @overload [](type_info, spec = {})
+        #
+        # @param type_info [Hash{Symbol=>Object}, Proc, OpenAI::Internal::Type::Converter, Class]
+        #
+        # @param spec [Hash{Symbol=>Object}] .
+        #
+        #   @option spec [NilClass, TrueClass, FalseClass, Integer, Float, Symbol] :const
+        #
+        #   @option spec [Proc] :enum
+        #
+        #   @option spec [Proc] :union
+        #
+        #   @option spec [Boolean] :"nil?"
+        #
+        # @return [self]
+        def self.[](...) = new(...)
+
+        # @api public
+        #
+        # @param other [Object]
+        #
+        # @return [Boolean]
+        def ===(other)
+          return false unless other.is_a?(Array)
+
+          target = item_type
+          other.all? do |item|
+            case item
+            in ^target
+              true
+            in nil
+              nilable?
+            else
+              false
+            end
+          end
+        end
+
+        # @api public
+        #
+        # @param other [Object]
+        #
+        # @return [Boolean]
+        def ==(other)
+          other.is_a?(OpenAI::Internal::Type::ArrayOf) && other.nilable? == nilable? && other.item_type == item_type
+        end
+
+        # @api public
+        #
+        # @return [Integer]
+        def hash = [self.class, item_type, nilable?].hash
+
+        # @api private
+        #
+        # @param value [Array<Object>, Object]
+        #
+        # @param state [Hash{Symbol=>Object}] .
+        #
+        #   @option state [Boolean] :translate_names
+        #
+        #   @option state [Boolean] :strictness
+        #
+        #   @option state [Hash{Symbol=>Object}] :exactness
+        #
+        #   @option state [Class<StandardError>] :error
+        #
+        #   @option state [Integer] :branched
+        #
+        # @return [Array<Object>, Object]
+        def coerce(value, state:)
+          exactness = state.fetch(:exactness)
+
+          unless value.is_a?(Array)
+            exactness[:no] += 1
+            state[:error] = TypeError.new("#{value.class} can't be coerced into #{Array}")
+            return value
+          end
+
+          target = OpenAI::Internal::Type::Converter.resolve_type(@item_type_fn, state: state)
+          exactness[:yes] += 1
+          previous_error = state.fetch(:error)
+          last_error = nil
+          converted = value.map do |item|
+            case [nilable?, item]
+            in [true, nil]
+              exactness[:yes] += 1
+              nil
+            else
+              coerced, item_error = OpenAI::Internal::Type::Converter.coerce_with_error(target, item, state: state)
+              last_error = item_error if item_error
+              coerced
+            end
+          end
+
+          state[:error] = last_error || previous_error
+          converted
+        end
+
+        # @api private
+        #
+        # @param value [Array<Object>, Object]
+        #
+        # @param state [Hash{Symbol=>Object}] .
+        #
+        #   @option state [Boolean] :can_retry
+        #
+        # @return [Array<Object>, Object]
+        def dump(value, state:)
+          target = item_type
+          if value.is_a?(Array)
+            value.map do
+              OpenAI::Internal::Type::Converter.dump(target, _1, state: state)
+            end
+          else
+            super
+          end
+        end
+
+        # @api private
+        #
+        # @return [Object]
+        def to_sorbet_type
+          type = OpenAI::Internal::Util::SorbetRuntimeSupport.to_sorbet_type(item_type)
+          type = T.nilable(type) if nilable?
+          T::Array[type]
+        end
+
+        # @api private
+        #
+        # @return [generic<Elem>]
+        def item_type = @item_type_fn.call
+
+        # @api private
+        #
+        # @return [Boolean]
+        protected def nilable? = @nilable
+
+        # @api private
+        #
+        # @param type_info [Hash{Symbol=>Object}, Proc, OpenAI::Internal::Type::Converter, Class]
+        #
+        # @param spec [Hash{Symbol=>Object}] .
+        #
+        #   @option spec [NilClass, TrueClass, FalseClass, Integer, Float, Symbol] :const
+        #
+        #   @option spec [Proc] :enum
+        #
+        #   @option spec [Proc] :union
+        #
+        #   @option spec [Boolean] :"nil?"
+        def initialize(type_info, spec = {})
+          @item_type_fn = OpenAI::Internal::Type::Converter.type_info(type_info || spec)
+          @meta = OpenAI::Internal::Type::Converter.meta_info(type_info, spec)
+          @nilable = spec.fetch(:nil?, false)
+        end
+
+        # @api private
+        #
+        # @param depth [Integer]
+        #
+        # @return [String]
+        def inspect(depth: 0)
+          items = OpenAI::Internal::Type::Converter.inspect(item_type, depth: depth.succ)
+
+          "#{self.class}[#{[items, nilable? ? "nil" : nil].compact.join(" | ")}]"
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,34 @@
+module OpenAI
+  module Models
+    module Live
+      type decisions_delegation_config =
+        {
+          model: String,
+          questions: ::Array[OpenAI::Models::Live::decision_question]
+        }
+
+      class DecisionsDelegationConfig < OpenAI::Internal::Type::BaseModel
+        attr_accessor model: String
+
+        # Native Decision API questions evaluated together, in order.
+        attr_accessor questions: ::Array[OpenAI::Models::Live::decision_question]
+
+        # @param questions
+        #   Native Decision API questions evaluated together, in order.
+        def initialize: (
+          model: String,
+          questions: ::Array[OpenAI::Models::Live::decision_question]
+        ) -> void
+
+        def to_hash: -> {
+          model: String,
+          questions: ::Array[OpenAI::Models::Live::decision_question]
+        }
+
+        type question = ::OpenAI::Models::Live::decision_question
+
+        module Question = ::OpenAI::Models::Live::DecisionQuestion
+      end
+    end
+  end
+end

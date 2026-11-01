@@ -1,0 +1,169 @@
+module OpenAI
+  module Models
+    class ChatCompletionCustomTool = Chat::ChatCompletionCustomTool
+
+    module Chat
+      type chat_completion_custom_tool =
+        {
+          custom: OpenAI::Chat::ChatCompletionCustomTool::Custom,
+          ?type: :custom
+        }
+
+      class ChatCompletionCustomTool < OpenAI::Internal::Type::BaseModel
+        # Properties of the custom tool.
+        attr_accessor custom: OpenAI::Chat::ChatCompletionCustomTool::Custom
+
+        # The type of the custom tool. Always `custom`.
+        attr_accessor type: :custom
+
+        # @param custom
+        #   Properties of the custom tool.
+        # @param type
+        #   The type of the custom tool. Always `custom`.
+        def initialize: (
+          custom: OpenAI::Chat::ChatCompletionCustomTool::Custom,
+          ?type: :custom
+        ) -> void
+
+        def to_hash: -> {
+          custom: OpenAI::Chat::ChatCompletionCustomTool::Custom,
+          ?type: :custom
+        }
+
+        type custom =
+          {
+            name: String,
+            ?description: String,
+            ?format_: OpenAI::Models::Chat::ChatCompletionCustomTool::Custom::format_
+          }
+
+        class Custom < OpenAI::Internal::Type::BaseModel
+          # The name of the custom tool, used to identify it in tool calls.
+          attr_accessor name: String
+
+          # Optional description of the custom tool, used to provide more context.
+          attr_reader description: String?
+
+          # Optional description of the custom tool, used to provide more context.
+          def description=: (String) -> String
+
+          # The input format for the custom tool. Default is unconstrained text.
+          attr_reader format_: OpenAI::Models::Chat::ChatCompletionCustomTool::Custom::format_?
+
+          # The input format for the custom tool. Default is unconstrained text.
+          def format_=: (
+            OpenAI::Models::Chat::ChatCompletionCustomTool::Custom::format_
+          ) -> OpenAI::Models::Chat::ChatCompletionCustomTool::Custom::format_
+
+          # @param name
+          #   The name of the custom tool, used to identify it in tool calls.
+          # @param description
+          #   Optional description of the custom tool, used to provide more context.
+          # @param format_
+          #   The input format for the custom tool. Default is unconstrained text.
+          def initialize: (
+            name: String,
+            ?description: String,
+            ?format_: OpenAI::Models::Chat::ChatCompletionCustomTool::Custom::format_
+          ) -> void
+
+          def to_hash: -> {
+            name: String,
+            ?description: String,
+            ?format_: OpenAI::Models::Chat::ChatCompletionCustomTool::Custom::format_
+          }
+
+          type format_ =
+            OpenAI::Chat::ChatCompletionCustomTool::Custom::Format::Text
+            | OpenAI::Chat::ChatCompletionCustomTool::Custom::Format::Grammar
+
+          module Format
+            extend OpenAI::Internal::Type::Union
+
+            type text = { ?type: :text }
+
+            class Text < OpenAI::Internal::Type::BaseModel
+              # Unconstrained text format. Always `text`.
+              attr_accessor type: :text
+
+              # @param type
+              #   Unconstrained text format. Always `text`.
+              def initialize: (?type: :text) -> void
+
+              def to_hash: -> { ?type: :text }
+            end
+
+            type grammar =
+              {
+                grammar: OpenAI::Chat::ChatCompletionCustomTool::Custom::Format::Grammar::Grammar,
+                ?type: :grammar
+              }
+
+            class Grammar < OpenAI::Internal::Type::BaseModel
+              # Your chosen grammar.
+              attr_accessor grammar: OpenAI::Chat::ChatCompletionCustomTool::Custom::Format::Grammar::Grammar
+
+              # Grammar format. Always `grammar`.
+              attr_accessor type: :grammar
+
+              # @param grammar
+              #   Your chosen grammar.
+              # @param type
+              #   Grammar format. Always `grammar`.
+              def initialize: (
+                grammar: OpenAI::Chat::ChatCompletionCustomTool::Custom::Format::Grammar::Grammar,
+                ?type: :grammar
+              ) -> void
+
+              def to_hash: -> {
+                grammar: OpenAI::Chat::ChatCompletionCustomTool::Custom::Format::Grammar::Grammar,
+                ?type: :grammar
+              }
+
+              type grammar =
+                {
+                  definition: String,
+                  syntax: OpenAI::Models::Chat::ChatCompletionCustomTool::Custom::Format::Grammar::Grammar::syntax
+                }
+
+              class Grammar < OpenAI::Internal::Type::BaseModel
+                # The grammar definition.
+                attr_accessor definition: String
+
+                # The syntax of the grammar definition. One of `lark` or `regex`.
+                attr_accessor syntax: OpenAI::Models::Chat::ChatCompletionCustomTool::Custom::Format::Grammar::Grammar::syntax
+
+                # @param definition
+                #   The grammar definition.
+                # @param syntax
+                #   The syntax of the grammar definition. One of `lark` or `regex`.
+                def initialize: (
+                  definition: String,
+                  syntax: OpenAI::Models::Chat::ChatCompletionCustomTool::Custom::Format::Grammar::Grammar::syntax
+                ) -> void
+
+                def to_hash: -> {
+                  definition: String,
+                  syntax: OpenAI::Models::Chat::ChatCompletionCustomTool::Custom::Format::Grammar::Grammar::syntax
+                }
+
+                type syntax = :lark | :regex
+
+                module Syntax
+                  extend OpenAI::Internal::Type::Enum
+
+                  LARK: :lark
+                  REGEX: :regex
+
+                  def self?.values: -> ::Array[OpenAI::Models::Chat::ChatCompletionCustomTool::Custom::Format::Grammar::Grammar::syntax]
+                end
+              end
+            end
+
+            def self?.variants: -> ::Array[OpenAI::Models::Chat::ChatCompletionCustomTool::Custom::format_]
+          end
+        end
+      end
+    end
+  end
+end

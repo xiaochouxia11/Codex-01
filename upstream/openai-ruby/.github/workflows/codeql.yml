@@ -1,0 +1,99 @@
+name: CodeQL
+
+on:
+  push:
+    branches:
+      - main
+      - next
+  pull_request:
+    branches:
+      - main
+      - next
+  merge_group:
+    types:
+      - checks_requested
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  analyze:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read # Fetch workflow metadata for CodeQL analysis.
+      contents: read # Check out and analyze repository contents.
+      security-events: write # Upload CodeQL results to code scanning.
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - actions
+          - javascript-typescript
+          - ruby
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+
+      - name: Perform CodeQL analysis
+        id: analyze
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: '/language:${{ matrix.language }}'
+          output: ${{ runner.temp }}/codeql-results/${{ matrix.language }}
+
+      - name: Reject CodeQL findings
+        env:
+          CODEQL_LANGUAGE: ${{ matrix.language }}
+          SARIF_DIRECTORY: ${{ steps.analyze.outputs.sarif-output }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          sarif_files=("${SARIF_DIRECTORY}"/*.sarif)
+          if [[ ${#sarif_files[@]} -eq 0 ]]; then
+            echo "::error::CodeQL produced no SARIF results for ${CODEQL_LANGUAGE}."
+            exit 1
+          fi
+
+          for sarif_file in "${sarif_files[@]}"; do
+            if ! jq -e \
+              '(.runs | type == "array" and length > 0) and all(.runs[]; .results | type == "array")' \
+              "${sarif_file}" > /dev/null; then
+              echo "::error::CodeQL produced invalid SARIF for ${CODEQL_LANGUAGE}."
+              exit 1
+            fi
+
+            finding_count="$(jq '[.runs[] | .results // [] | .[]] | length' "${sarif_file}")"
+            if [[ ${finding_count} -ne 0 ]]; then
+              jq -r '
+                def escape_data:
+                  tostring | gsub("%"; "%25") | gsub("\r"; "%0D") | gsub("\n"; "%0A");
+                def escape_property:
+                  escape_data | gsub(":"; "%3A") | gsub(","; "%2C");
+
+                .runs[] | .results[] |
+                (.ruleId // "unknown" | escape_property) as $rule |
+                (.message.text // .message.markdown // "CodeQL finding" | escape_data) as $message |
+                (.locations[0].physicalLocation.artifactLocation.uri // "unknown" | escape_property) as $file |
+                (.locations[0].physicalLocation.region.startLine // 1 |
+                  if type == "number" and . > 0 then floor else 1 end) as $line |
+                "::error file=\($file),line=\($line),title=\($rule)::\($message)"
+              ' "${sarif_file}"
+              exit 1
+            fi
+          done

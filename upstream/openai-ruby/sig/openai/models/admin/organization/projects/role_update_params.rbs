@@ -1,0 +1,61 @@
+module OpenAI
+  module Models
+    module Admin
+      module Organization
+        module Projects
+          type role_update_params =
+            {
+              project_id: String,
+              role_id: String,
+              ?description: String?,
+              ?permissions: ::Array[String]?,
+              ?role_name: String?,
+              ?request_options: OpenAI::request_opts
+            }
+
+          class RoleUpdateParams < OpenAI::Internal::Type::BaseModel
+            extend OpenAI::Internal::Type::RequestParameters::Converter
+            include OpenAI::Internal::Type::RequestParameters
+
+            attr_accessor project_id: String
+
+            attr_accessor role_id: String
+
+            # New description for the role.
+            attr_accessor description: String?
+
+            # Updated set of permissions for the role.
+            attr_accessor permissions: ::Array[String]?
+
+            # New name for the role.
+            attr_accessor role_name: String?
+
+            # @param description
+            #   New description for the role.
+            # @param permissions
+            #   Updated set of permissions for the role.
+            # @param role_name
+            #   New name for the role.
+            def initialize: (
+              project_id: String,
+              role_id: String,
+              ?description: String?,
+              ?permissions: ::Array[String]?,
+              ?role_name: String?,
+              ?request_options: OpenAI::request_opts
+            ) -> void
+
+            def to_hash: -> {
+              project_id: String,
+              role_id: String,
+              ?description: String?,
+              ?permissions: ::Array[String]?,
+              ?role_name: String?,
+              ?request_options: OpenAI::RequestOptions
+            }
+          end
+        end
+      end
+    end
+  end
+end

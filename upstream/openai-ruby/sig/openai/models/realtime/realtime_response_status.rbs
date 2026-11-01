@@ -1,0 +1,140 @@
+module OpenAI
+  module Models
+    module Realtime
+      type realtime_response_status =
+        {
+          ?error: OpenAI::Realtime::RealtimeResponseStatus::Error,
+          ?reason: OpenAI::Models::Realtime::RealtimeResponseStatus::reason,
+          ?type: OpenAI::Models::Realtime::RealtimeResponseStatus::type_
+        }
+
+      class RealtimeResponseStatus < OpenAI::Internal::Type::BaseModel
+        # A description of the error that caused the response to fail, populated when the
+        # `status` is `failed`.
+        attr_reader error: OpenAI::Realtime::RealtimeResponseStatus::Error?
+
+        # A description of the error that caused the response to fail, populated when the
+        # `status` is `failed`.
+        def error=: (
+          OpenAI::Realtime::RealtimeResponseStatus::Error
+        ) -> OpenAI::Realtime::RealtimeResponseStatus::Error
+
+        # The reason the Response did not complete. For a `cancelled` Response, one of
+        # `turn_detected` (the server VAD detected a new start of speech) or
+        # `client_cancelled` (the client sent a cancel event). For an `incomplete`
+        # Response, one of `max_output_tokens` or `content_filter` (the server-side safety
+        # filter activated and cut off the response).
+        attr_reader reason: OpenAI::Models::Realtime::RealtimeResponseStatus::reason?
+
+        # The reason the Response did not complete. For a `cancelled` Response, one of
+        # `turn_detected` (the server VAD detected a new start of speech) or
+        # `client_cancelled` (the client sent a cancel event). For an `incomplete`
+        # Response, one of `max_output_tokens` or `content_filter` (the server-side safety
+        # filter activated and cut off the response).
+        def reason=: (
+          OpenAI::Models::Realtime::RealtimeResponseStatus::reason
+        ) -> OpenAI::Models::Realtime::RealtimeResponseStatus::reason
+
+        # The type of error that caused the response to fail, corresponding with the
+        # `status` field (`completed`, `cancelled`, `incomplete`, `failed`).
+        attr_reader type: OpenAI::Models::Realtime::RealtimeResponseStatus::type_?
+
+        # The type of error that caused the response to fail, corresponding with the
+        # `status` field (`completed`, `cancelled`, `incomplete`, `failed`).
+        def type=: (
+          OpenAI::Models::Realtime::RealtimeResponseStatus::type_
+        ) -> OpenAI::Models::Realtime::RealtimeResponseStatus::type_
+
+        # @param error
+        #   A description of the error that caused the response to fail, populated when the
+        #   `status` is `failed`.
+        # @param reason
+        #   The reason the Response did not complete. For a `cancelled` Response, one of
+        #   `turn_detected` (the server VAD detected a new start of speech) or
+        #   `client_cancelled` (the client sent a cancel event). For an `incomplete`
+        #   Response, one of `max_output_tokens` or `content_filter` (the server-side safety
+        #   filter activated and cut off the response).
+        # @param type
+        #   The type of error that caused the response to fail, corresponding with the
+        #   `status` field (`completed`, `cancelled`, `incomplete`, `failed`).
+        def initialize: (
+          ?error: OpenAI::Realtime::RealtimeResponseStatus::Error,
+          ?reason: OpenAI::Models::Realtime::RealtimeResponseStatus::reason,
+          ?type: OpenAI::Models::Realtime::RealtimeResponseStatus::type_
+        ) -> void
+
+        def to_hash: -> {
+          ?error: OpenAI::Realtime::RealtimeResponseStatus::Error,
+          ?reason: OpenAI::Models::Realtime::RealtimeResponseStatus::reason,
+          ?type: OpenAI::Models::Realtime::RealtimeResponseStatus::type_
+        }
+
+        type error = { ?code: String, ?message: String, ?type: String }
+
+        class Error < OpenAI::Internal::Type::BaseModel
+          # Error code, if any.
+          attr_reader code: String?
+
+          # Error code, if any.
+          def code=: (String) -> String
+
+          # A human-readable error message.
+          attr_reader message: String?
+
+          # A human-readable error message.
+          def message=: (String) -> String
+
+          # The type of error.
+          attr_reader type: String?
+
+          # The type of error.
+          def type=: (String) -> String
+
+          # @param code
+          #   Error code, if any.
+          # @param message
+          #   A human-readable error message.
+          # @param type
+          #   The type of error.
+          def initialize: (
+            ?code: String,
+            ?message: String,
+            ?type: String
+          ) -> void
+
+          def to_hash: -> { ?code: String, ?message: String, ?type: String }
+        end
+
+        type reason =
+          :turn_detected
+          | :client_cancelled
+          | :max_output_tokens
+          | :content_filter
+
+        module Reason
+          extend OpenAI::Internal::Type::Enum
+
+          TURN_DETECTED: :turn_detected
+          CLIENT_CANCELLED: :client_cancelled
+          MAX_OUTPUT_TOKENS: :max_output_tokens
+          CONTENT_FILTER: :content_filter
+
+          def self?.values: -> ::Array[OpenAI::Models::Realtime::RealtimeResponseStatus::reason]
+        end
+
+        type type_ = :completed | :cancelled | :incomplete | :failed
+
+        module Type
+          extend OpenAI::Internal::Type::Enum
+
+          COMPLETED: :completed
+          CANCELLED: :cancelled
+          INCOMPLETE: :incomplete
+          FAILED: :failed
+
+          def self?.values: -> ::Array[OpenAI::Models::Realtime::RealtimeResponseStatus::type_]
+        end
+      end
+    end
+  end
+end

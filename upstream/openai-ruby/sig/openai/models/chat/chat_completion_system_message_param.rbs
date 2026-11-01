@@ -1,0 +1,60 @@
+module OpenAI
+  module Models
+    class ChatCompletionSystemMessageParam = Chat::ChatCompletionSystemMessageParam
+
+    module Chat
+      type chat_completion_system_message_param =
+        {
+          content: OpenAI::Models::Chat::ChatCompletionSystemMessageParam::content,
+          ?role: :system,
+          ?name: String
+        }
+
+      class ChatCompletionSystemMessageParam < OpenAI::Internal::Type::BaseModel
+        # The contents of the system message.
+        attr_accessor content: OpenAI::Models::Chat::ChatCompletionSystemMessageParam::content
+
+        # The role of the messages author, in this case `system`.
+        attr_accessor role: :system
+
+        # An optional name for the participant. Provides the model information to
+        # differentiate between participants of the same role.
+        attr_reader name: String?
+
+        # An optional name for the participant. Provides the model information to
+        # differentiate between participants of the same role.
+        def name=: (String) -> String
+
+        # @param content
+        #   The contents of the system message.
+        # @param name
+        #   An optional name for the participant. Provides the model information to
+        #   differentiate between participants of the same role.
+        # @param role
+        #   The role of the messages author, in this case `system`.
+        def initialize: (
+          content: OpenAI::Models::Chat::ChatCompletionSystemMessageParam::content,
+          ?name: String,
+          ?role: :system
+        ) -> void
+
+        def to_hash: -> {
+          content: OpenAI::Models::Chat::ChatCompletionSystemMessageParam::content,
+          ?role: :system,
+          ?name: String
+        }
+
+        type content =
+          String | ::Array[OpenAI::Chat::ChatCompletionContentPartText]
+
+        module Content
+          extend OpenAI::Internal::Type::Union
+
+          def self?.variants: -> ::Array[OpenAI::Models::Chat::ChatCompletionSystemMessageParam::content]
+
+          ChatCompletionContentPartTextArray: OpenAI::Internal::Type::Converter
+        end
+      end
+    end
+  end
+end

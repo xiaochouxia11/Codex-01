@@ -1,0 +1,31 @@
+module OpenAI
+  module Internal
+    module Provider
+      class Runtime
+        attr_accessor name: String
+        attr_accessor base_url: String
+        attr_accessor prepare_request: (^(
+          OpenAI::Internal::Transport::BaseClient::request_input
+        ) -> OpenAI::Internal::Transport::BaseClient::request_input)?
+        attr_accessor authentication_headers: Array[String]
+        attr_accessor wrap_request: Proc?
+
+        def initialize: (
+          name: String,
+          base_url: String,
+          prepare_request: (^(
+            OpenAI::Internal::Transport::BaseClient::request_input
+          ) -> OpenAI::Internal::Transport::BaseClient::request_input)?,
+          authentication_headers: Array[String],
+          ?wrap_request: Proc?
+        ) -> void
+      end
+
+      def self.create: (untyped definition) -> OpenAI::Provider
+      def self.name: (OpenAI::Provider provider) -> String
+      def self.configure: (
+        OpenAI::Provider provider
+      ) -> OpenAI::Internal::Provider::Runtime
+    end
+  end
+end

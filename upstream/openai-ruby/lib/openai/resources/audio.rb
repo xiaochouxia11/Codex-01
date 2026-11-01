@@ -1,0 +1,39 @@
+# frozen_string_literal: true
+
+module OpenAI
+  module Resources
+    class Audio
+      # Turn audio into text or text into audio.
+      # @return [OpenAI::Resources::Audio::Transcriptions]
+      attr_reader :transcriptions
+
+      # Turn audio into text or text into audio.
+      # @return [OpenAI::Resources::Audio::Translations]
+      attr_reader :translations
+
+      # Turn audio into text or text into audio.
+      # @return [OpenAI::Resources::Audio::Speech]
+      attr_reader :speech
+
+      # Turn audio into text or text into audio.
+      # @return [OpenAI::Resources::Audio::Voices]
+      attr_reader :voices
+
+      # Turn audio into text or text into audio.
+      # @return [OpenAI::Resources::Audio::VoiceConsents]
+      attr_reader :voice_consents
+
+      # @api private
+      #
+      # @param client [OpenAI::Client]
+      def initialize(client:)
+        @client = client
+        @transcriptions = OpenAI::Resources::Audio::Transcriptions.new(client: client)
+        @translations = OpenAI::Resources::Audio::Translations.new(client: client)
+        @speech = OpenAI::Resources::Audio::Speech.new(client: client)
+        @voices = OpenAI::Resources::Audio::Voices.new(client: client)
+        @voice_consents = OpenAI::Resources::Audio::VoiceConsents.new(client: client)
+      end
+    end
+  end
+end

@@ -1,0 +1,126 @@
+# frozen_string_literal: true
+
+module OpenAI
+  module Models
+    module Chat
+      class ChatCompletionContentPartImage < OpenAI::Internal::Type::BaseModel
+        # @!attribute image_url
+        #
+        #   @return [OpenAI::Models::Chat::ChatCompletionContentPartImage::ImageURL]
+        required :image_url, -> { OpenAI::Chat::ChatCompletionContentPartImage::ImageURL }
+
+        # @!attribute type
+        #   The type of the content part.
+        #
+        #   @return [Symbol, :image_url]
+        required :type, const: :image_url
+
+        # @!attribute prompt_cache_breakpoint
+        #   Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+        #   breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+        #   not rounded to a token block.
+        #
+        #   @return [OpenAI::Models::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint, nil]
+        optional(
+          :prompt_cache_breakpoint,
+          -> { OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint }
+        )
+
+        # @!method initialize(image_url:, prompt_cache_breakpoint: nil, type: :image_url)
+        #   Learn about
+        #   [image inputs](https://developers.openai.com/api/docs/guides/images-vision).
+        #
+        #   @param image_url [OpenAI::Models::Chat::ChatCompletionContentPartImage::ImageURL]
+        #
+        #   @param prompt_cache_breakpoint [OpenAI::Models::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint]
+        #     Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+        #     breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+        #     not rounded to a token block.
+        #
+        #   @param type [Symbol, :image_url]
+        #     The type of the content part.
+
+        # @see OpenAI::Models::Chat::ChatCompletionContentPartImage#image_url
+        class ImageURL < OpenAI::Internal::Type::BaseModel
+          # @!attribute url
+          #   Either a URL of the image or the base64 encoded image data.
+          #
+          #   @return [String]
+          required :url, String
+
+          # @!attribute detail
+          #   Specifies the detail level of the image. Learn more in the
+          #   [Vision guide](https://developers.openai.com/api/docs/guides/images-vision#choose-an-image-detail-level).
+          #
+          #   @return [Symbol, OpenAI::Models::Chat::ChatCompletionContentPartImage::ImageURL::Detail, nil]
+          optional :detail, enum: -> { OpenAI::Chat::ChatCompletionContentPartImage::ImageURL::Detail }
+
+          # @!method initialize(url:, detail: nil)
+          #   @param url [String]
+          #     Either a URL of the image or the base64 encoded image data.
+          #
+          #   @param detail [Symbol, OpenAI::Models::Chat::ChatCompletionContentPartImage::ImageURL::Detail]
+          #     Specifies the detail level of the image. Learn more in the
+          #     [Vision guide](https://developers.openai.com/api/docs/guides/images-vision#choose-an-image-detail-level).
+
+          # Specifies the detail level of the image. Learn more in the
+          # [Vision guide](https://developers.openai.com/api/docs/guides/images-vision#choose-an-image-detail-level).
+          #
+          # @see OpenAI::Models::Chat::ChatCompletionContentPartImage::ImageURL#detail
+          module Detail
+            extend OpenAI::Internal::Type::Enum
+
+            AUTO = :auto
+            LOW = :low
+            HIGH = :high
+            ORIGINAL = :original
+
+            # @!method self.values
+            #   @return [Array<Symbol>]
+          end
+        end
+
+        # @see OpenAI::Models::Chat::ChatCompletionContentPartImage#prompt_cache_breakpoint
+        class PromptCacheBreakpoint < OpenAI::Internal::Type::BaseModel
+          # @!attribute mode
+          #   The breakpoint mode. Always `explicit`.
+          #
+          #   @return [Symbol, :explicit]
+          required :mode, const: :explicit
+
+          # @!attribute ttl
+          #   The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          #
+          #   @return [Symbol, OpenAI::Models::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::Ttl, nil]
+          optional :ttl, enum: -> { OpenAI::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::Ttl }
+
+          # @!method initialize(ttl: nil, mode: :explicit)
+          #   Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+          #   breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+          #   not rounded to a token block.
+          #
+          #   @param ttl [Symbol, OpenAI::Models::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint::Ttl]
+          #     The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          #
+          #   @param mode [Symbol, :explicit]
+          #     The breakpoint mode. Always `explicit`.
+
+          # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          #
+          # @see OpenAI::Models::Chat::ChatCompletionContentPartImage::PromptCacheBreakpoint#ttl
+          module Ttl
+            extend OpenAI::Internal::Type::Enum
+
+            TTL_30M = :"30m"
+            TTL_12H = :"12h"
+
+            # @!method self.values
+            #   @return [Array<Symbol>]
+          end
+        end
+      end
+    end
+
+    ChatCompletionContentPartImage = Chat::ChatCompletionContentPartImage
+  end
+end

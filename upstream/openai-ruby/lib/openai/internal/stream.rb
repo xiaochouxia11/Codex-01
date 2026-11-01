@@ -1,0 +1,67 @@
+# frozen_string_literal: true
+
+require_relative "../helpers/streaming/response_event_decoder"
+
+module OpenAI
+  module Internal
+    # @generic Elem
+    #
+    # @example
+    #   stream.each do |event|
+    #     puts(event)
+    #   end
+    class Stream
+      include OpenAI::Internal::Type::BaseStream
+
+      # @api private
+      #
+      # @return [Enumerable<generic<Elem>>]
+      private def iterator
+        @iterator ||= OpenAI::Internal::Util.chain_fused(@stream) do |y|
+          consume = false
+          decoder = OpenAI::Helpers::Streaming::ResponseEventDecoder.new(model: @model)
+
+          @stream.each do |msg|
+            next if consume
+
+            case msg
+            in {data: String => data} if data.start_with?("[DONE]")
+              consume = true
+              next
+            in {data: String => data}
+              case JSON.parse(data, symbolize_names: true)
+              in {error: error}
+                message = case error
+                in String
+                  error
+                in {message: String => m}
+                  m
+                else
+                  "An error occurred during streaming"
+                end
+
+                err = OpenAI::Errors::APIStatusError.for(
+                  url: @url,
+                  status: status,
+                  headers: headers,
+                  body: data,
+                  request: nil,
+                  response: @response,
+                  message: message
+                )
+                raise err
+              in decoded
+                unwrapped = OpenAI::Internal::Util.dig(decoded, @unwrap)
+                # Some providers emit transport heartbeats as JSON events. They are not
+                # part of the API's typed streaming event surface.
+                next if unwrapped in {type: "keepalive"}
+                y << decoder.decode(unwrapped)
+              end
+            else
+            end
+          end
+        end
+      end
+    end
+  end
+end

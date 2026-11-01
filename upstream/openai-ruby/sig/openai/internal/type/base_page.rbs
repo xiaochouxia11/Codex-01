@@ -1,0 +1,31 @@
+module OpenAI
+  module Internal
+    module Type
+      module BasePage[Elem]
+        # The ID of the API request, returned via the `x-request-id` response
+        # header. This is only populated on top-level response objects returned
+        # by the client.
+        def _request_id: -> String?
+
+        def last_response: -> OpenAI::ResponseMetadata
+
+        def next_page?: -> bool
+
+        def next_page: -> instance
+
+        def auto_paging_each: { (Elem arg0) -> void } -> void
+
+        def to_enum: -> Enumerable[Elem]
+
+        alias enum_for to_enum
+
+        def initialize: (
+          client: OpenAI::Internal::Transport::BaseClient,
+          req: OpenAI::Internal::Transport::BaseClient::request_components,
+          response_metadata: OpenAI::ResponseMetadata,
+          page_data: top
+        ) -> void
+      end
+    end
+  end
+end

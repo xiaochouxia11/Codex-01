@@ -1,0 +1,71 @@
+module OpenAI
+  module Models
+    module Live
+      type decision_trigger =
+        {
+          decisions: OpenAI::Live::DecisionTrigger::Decisions,
+          event_type: OpenAI::Models::Live::DecisionTrigger::event_type,
+          ?type: :decisions
+        }
+
+      class DecisionTrigger < OpenAI::Internal::Type::BaseModel
+        # Questions evaluated using the current transcript and the session's shared
+        # Decision items.
+        attr_accessor decisions: OpenAI::Live::DecisionTrigger::Decisions
+
+        attr_accessor event_type: OpenAI::Models::Live::DecisionTrigger::event_type
+
+        attr_accessor type: :decisions
+
+        # @param decisions
+        #   Questions evaluated using the current transcript and the session's shared
+        #   Decision items.
+        def initialize: (
+          decisions: OpenAI::Live::DecisionTrigger::Decisions,
+          event_type: OpenAI::Models::Live::DecisionTrigger::event_type,
+          ?type: :decisions
+        ) -> void
+
+        def to_hash: -> {
+          decisions: OpenAI::Live::DecisionTrigger::Decisions,
+          event_type: OpenAI::Models::Live::DecisionTrigger::event_type,
+          ?type: :decisions
+        }
+
+        type decisions =
+          { questions: ::Array[OpenAI::Models::Live::decision_question] }
+
+        class Decisions < OpenAI::Internal::Type::BaseModel
+          type question = ::OpenAI::Models::Live::decision_question
+
+          module Question = ::OpenAI::Models::Live::DecisionQuestion
+
+          # Native Decision API questions evaluated together, in order.
+          attr_accessor questions: ::Array[OpenAI::Models::Live::decision_question]
+
+          # @param questions
+          #   Native Decision API questions evaluated together, in order.
+          def initialize: (
+            questions: ::Array[OpenAI::Models::Live::decision_question]
+          ) -> void
+
+          def to_hash: -> {
+            questions: ::Array[OpenAI::Models::Live::decision_question]
+          }
+        end
+
+        type event_type =
+          :"session.input_transcript.delta" | :"session.output_transcript.delta"
+
+        module EventType
+          extend OpenAI::Internal::Type::Enum
+
+          SESSION_INPUT_TRANSCRIPT_DELTA: :"session.input_transcript.delta"
+          SESSION_OUTPUT_TRANSCRIPT_DELTA: :"session.output_transcript.delta"
+
+          def self?.values: -> ::Array[OpenAI::Models::Live::DecisionTrigger::event_type]
+        end
+      end
+    end
+  end
+end

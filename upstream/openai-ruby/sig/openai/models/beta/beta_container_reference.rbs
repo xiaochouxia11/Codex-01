@@ -1,0 +1,29 @@
+module OpenAI
+  module Models
+    class BetaContainerReference = Beta::BetaContainerReference
+
+    module Beta
+      type beta_container_reference =
+        { container_id: String, ?type: :container_reference }
+
+      class BetaContainerReference < OpenAI::Internal::Type::BaseModel
+        # The ID of the referenced container.
+        attr_accessor container_id: String
+
+        # References a container created with the /v1/containers endpoint
+        attr_accessor type: :container_reference
+
+        # @param container_id
+        #   The ID of the referenced container.
+        # @param type
+        #   References a container created with the /v1/containers endpoint
+        def initialize: (
+          container_id: String,
+          ?type: :container_reference
+        ) -> void
+
+        def to_hash: -> { container_id: String, ?type: :container_reference }
+      end
+    end
+  end
+end

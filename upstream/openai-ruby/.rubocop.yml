@@ -1,0 +1,211 @@
+# yaml-language-server: $schema=https://www.rubyschema.org/rubocop.json
+---
+inherit_from:
+  - lib/openai/.rubocop.generated.yml
+
+# Keep RuboCop's standard file types and dependency exclusions alongside ours.
+inherit_mode:
+  merge:
+    - Include
+    - Exclude
+
+# RuboCop checks correctness and security, not source layout.
+# New rules should be enabled deliberately, not by a dependency update.
+AllCops:
+  Include:
+    - "**/*.rbi"
+  Exclude:
+    - "bin/*"
+    - "sorbet/rbi/annotations/**/*"
+    - "sorbet/rbi/gems/**/*"
+    - "sorbet/tapioca/**/*"
+  NewCops: disable
+  SuggestExtensions: false
+  TargetRubyVersion: 3.3
+
+Layout:
+  Enabled: false
+Metrics:
+  Enabled: false
+Naming:
+  Enabled: false
+Style:
+  Enabled: false
+
+# These autocorrections can change behavior.
+Lint/UnusedMethodArgument:
+  AutoCorrect: false
+Lint/UselessAssignment:
+  AutoCorrect: false
+
+# Keep suppressions limited to active offenses as the policy evolves.
+Lint/RedundantCopDisableDirective:
+  Enabled: true
+# Every enable directive must still close an active disable.
+Lint/RedundantCopEnableDirective:
+  Enabled: true
+
+# Dependency ordering is layout, not package correctness.
+Bundler/OrderedGems:
+  Enabled: false
+Gemspec/OrderedDependencies:
+  Enabled: false
+
+# Retain non-layout checks that RuboCop classifies in other departments.
+Bundler/DuplicatedGem:
+  Enabled: true
+Bundler/InsecureProtocolSource:
+  Enabled: true
+Gemspec/DuplicatedAssignment:
+  Enabled: true
+Gemspec/RequiredRubyVersion:
+  Enabled: true
+Style/MutableConstant:
+  Enabled: true
+  Exclude:
+    - "**/*.rbi"
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+  Exclude:
+    - "**/*.rbi"
+Style/MissingRespondToMissing:
+  Enabled: true
+
+Gemspec/RequireMFA:
+  Enabled: true
+Gemspec/DeprecatedAttributeAssignment:
+  Enabled: true
+
+# Preserve existing safety cops and explicitly enable newly reviewed checks.
+# Future pending cops remain opt-in.
+Lint/AmbiguousAssignment:
+  Enabled: true
+Lint/AmbiguousOperatorPrecedence:
+  Enabled: true
+Lint/AmbiguousRange:
+  Enabled: true
+# These cops require project indexing and rubydex; adopt them separately.
+Lint/ArgumentMismatch:
+  Enabled: false
+Lint/ArrayLiteralInRegexp:
+  Enabled: true
+Lint/ConstantOverwrittenInRescue:
+  Enabled: true
+Lint/ConstantReassignment:
+  Enabled: true
+Lint/CopDirectiveSyntax:
+  Enabled: true
+Lint/DataDefineOverride:
+  Enabled: true
+Lint/DeprecatedConstants:
+  Enabled: true
+Lint/DeprecatedReference:
+  Enabled: true
+Lint/DuplicateBranch:
+  Enabled: true
+Lint/DuplicateMagicComment:
+  Enabled: true
+Lint/DuplicateMatchPattern:
+  Enabled: true
+Lint/DuplicateRegexpCharacterClassElement:
+  Enabled: true
+Lint/DuplicateSetElement:
+  Enabled: true
+Lint/EmptyBlock:
+  Enabled: true
+Lint/EmptyClass:
+  Enabled: true
+Lint/EmptyInPattern:
+  Enabled: true
+Lint/HashNewWithKeywordArgumentsAsDefault:
+  Enabled: true
+# This cop only chooses source layout; rubyfmt owns heredoc placement.
+Lint/HeredocMethodCallPosition:
+  Enabled: false
+Lint/IncompatibleIoSelectWithFiberScheduler:
+  Enabled: true
+Lint/ItWithoutArgumentsInBlock:
+  Enabled: true
+Lint/LambdaWithoutLiteralBlock:
+  Enabled: true
+Lint/LiteralAssignmentInCondition:
+  Enabled: true
+Lint/MisplacedMagicComment:
+  Enabled: true
+Lint/MixedCaseRange:
+  Enabled: true
+Lint/NameTypo:
+  Enabled: true
+Lint/NoReturnInBeginEndBlocks:
+  Enabled: true
+Lint/NonAtomicFileOperation:
+  Enabled: true
+Lint/NumberedParameterAssignment:
+  Enabled: true
+Lint/NumberConversion:
+  Enabled: true
+  AutoCorrect: false
+Lint/NumericOperationWithConstantResult:
+  Enabled: true
+Lint/OrAssignmentToConstant:
+  Enabled: true
+Lint/RedundantDirGlobSort:
+  Enabled: true
+Lint/RedundantRegexpQuantifiers:
+  Enabled: true
+Lint/RedundantTypeConversion:
+  Enabled: true
+Lint/RefinementImportMethods:
+  Enabled: true
+Lint/RequireRangeParentheses:
+  Enabled: true
+Lint/RequireRelativeSelfPath:
+  Enabled: true
+Lint/ShadowingOuterLocalVariable:
+  Enabled: true
+Lint/SharedMutableDefault:
+  Enabled: true
+Lint/SuppressedExceptionInNumberConversion:
+  Enabled: true
+Lint/SuperArgumentMismatch:
+  Enabled: false
+Lint/SymbolConversion:
+  Enabled: true
+Lint/TopLevelReturnWithArgument:
+  Enabled: true
+  # Remove RuboCop's built-in `.jb` exclusion.
+  Exclude: ~
+Lint/ToEnumArguments:
+  Enabled: true
+Lint/TripleQuotes:
+  Enabled: true
+Lint/UnescapedBracketInRegexp:
+  Enabled: true
+Lint/UnexpectedBlockArity:
+  Enabled: true
+Lint/UnreachablePatternBranch:
+  Enabled: true
+Lint/UnmodifiedReduceAccumulator:
+  Enabled: true
+Lint/UnusedPrivateMethod:
+  # Requires project indexing and rubydex; adopt separately.
+  Enabled: false
+Lint/UselessConstantScoping:
+  Enabled: true
+Lint/UselessDefaultValueArgument:
+  Enabled: true
+Lint/UselessDefined:
+  Enabled: true
+Lint/UselessNumericOperation:
+  Enabled: true
+Lint/UselessOr:
+  Enabled: true
+Lint/UselessRescue:
+  Enabled: true
+Lint/UselessRuby2Keywords:
+  Enabled: true
+Security/CompoundHash:
+  Enabled: true
+Security/IoMethods:
+  Enabled: true

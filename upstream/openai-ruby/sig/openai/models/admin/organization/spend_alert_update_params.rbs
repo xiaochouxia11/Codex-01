@@ -1,0 +1,118 @@
+module OpenAI
+  module Models
+    module Admin
+      module Organization
+        type spend_alert_update_params =
+          {
+            alert_id: String,
+            currency: OpenAI::Models::Admin::Organization::SpendAlertUpdateParams::currency,
+            interval: OpenAI::Models::Admin::Organization::SpendAlertUpdateParams::interval,
+            notification_channel: OpenAI::Admin::Organization::SpendAlertUpdateParams::NotificationChannel,
+            threshold_amount: Integer,
+            ?request_options: OpenAI::request_opts
+          }
+
+        class SpendAlertUpdateParams < OpenAI::Internal::Type::BaseModel
+          extend OpenAI::Internal::Type::RequestParameters::Converter
+          include OpenAI::Internal::Type::RequestParameters
+
+          attr_accessor alert_id: String
+
+          # The currency for the threshold amount.
+          attr_accessor currency: OpenAI::Models::Admin::Organization::SpendAlertUpdateParams::currency
+
+          # The time interval for evaluating spend against the threshold.
+          attr_accessor interval: OpenAI::Models::Admin::Organization::SpendAlertUpdateParams::interval
+
+          # Email notification settings for a spend alert.
+          attr_accessor notification_channel: OpenAI::Admin::Organization::SpendAlertUpdateParams::NotificationChannel
+
+          # The alert threshold amount, in cents.
+          attr_accessor threshold_amount: Integer
+
+          # @param currency
+          #   The currency for the threshold amount.
+          # @param interval
+          #   The time interval for evaluating spend against the threshold.
+          # @param notification_channel
+          #   Email notification settings for a spend alert.
+          # @param threshold_amount
+          #   The alert threshold amount, in cents.
+          def initialize: (
+            alert_id: String,
+            currency: OpenAI::Models::Admin::Organization::SpendAlertUpdateParams::currency,
+            interval: OpenAI::Models::Admin::Organization::SpendAlertUpdateParams::interval,
+            notification_channel: OpenAI::Admin::Organization::SpendAlertUpdateParams::NotificationChannel,
+            threshold_amount: Integer,
+            ?request_options: OpenAI::request_opts
+          ) -> void
+
+          def to_hash: -> {
+            alert_id: String,
+            currency: OpenAI::Models::Admin::Organization::SpendAlertUpdateParams::currency,
+            interval: OpenAI::Models::Admin::Organization::SpendAlertUpdateParams::interval,
+            notification_channel: OpenAI::Admin::Organization::SpendAlertUpdateParams::NotificationChannel,
+            threshold_amount: Integer,
+            ?request_options: OpenAI::RequestOptions
+          }
+
+          type currency = :USD
+
+          module Currency
+            extend OpenAI::Internal::Type::Enum
+
+            USD: :USD
+
+            def self?.values: -> ::Array[OpenAI::Models::Admin::Organization::SpendAlertUpdateParams::currency]
+          end
+
+          type interval = :month
+
+          module Interval
+            extend OpenAI::Internal::Type::Enum
+
+            MONTH: :month
+
+            def self?.values: -> ::Array[OpenAI::Models::Admin::Organization::SpendAlertUpdateParams::interval]
+          end
+
+          type notification_channel =
+            {
+              recipients: ::Array[String],
+              ?type: :email,
+              ?subject_prefix: String?
+            }
+
+          class NotificationChannel < OpenAI::Internal::Type::BaseModel
+            # Email addresses that receive the spend alert notification.
+            attr_accessor recipients: ::Array[String]
+
+            # The notification channel type. Currently only `email` is supported.
+            attr_accessor type: :email
+
+            # Optional subject prefix for alert emails.
+            attr_accessor subject_prefix: String?
+
+            # @param recipients
+            #   Email addresses that receive the spend alert notification.
+            # @param subject_prefix
+            #   Optional subject prefix for alert emails.
+            # @param type
+            #   The notification channel type. Currently only `email` is supported.
+            def initialize: (
+              recipients: ::Array[String],
+              ?subject_prefix: String?,
+              ?type: :email
+            ) -> void
+
+            def to_hash: -> {
+              recipients: ::Array[String],
+              ?type: :email,
+              ?subject_prefix: String?
+            }
+          end
+        end
+      end
+    end
+  end
+end

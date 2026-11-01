@@ -1,0 +1,60 @@
+module OpenAI
+  module Models
+    class ChatCompletionUserMessageParam = Chat::ChatCompletionUserMessageParam
+
+    module Chat
+      type chat_completion_user_message_param =
+        {
+          content: OpenAI::Models::Chat::ChatCompletionUserMessageParam::content,
+          ?role: :user,
+          ?name: String
+        }
+
+      class ChatCompletionUserMessageParam < OpenAI::Internal::Type::BaseModel
+        # The contents of the user message.
+        attr_accessor content: OpenAI::Models::Chat::ChatCompletionUserMessageParam::content
+
+        # The role of the messages author, in this case `user`.
+        attr_accessor role: :user
+
+        # An optional name for the participant. Provides the model information to
+        # differentiate between participants of the same role.
+        attr_reader name: String?
+
+        # An optional name for the participant. Provides the model information to
+        # differentiate between participants of the same role.
+        def name=: (String) -> String
+
+        # @param content
+        #   The contents of the user message.
+        # @param name
+        #   An optional name for the participant. Provides the model information to
+        #   differentiate between participants of the same role.
+        # @param role
+        #   The role of the messages author, in this case `user`.
+        def initialize: (
+          content: OpenAI::Models::Chat::ChatCompletionUserMessageParam::content,
+          ?name: String,
+          ?role: :user
+        ) -> void
+
+        def to_hash: -> {
+          content: OpenAI::Models::Chat::ChatCompletionUserMessageParam::content,
+          ?role: :user,
+          ?name: String
+        }
+
+        type content =
+          String | ::Array[OpenAI::Models::Chat::chat_completion_content_part]
+
+        module Content
+          extend OpenAI::Internal::Type::Union
+
+          def self?.variants: -> ::Array[OpenAI::Models::Chat::ChatCompletionUserMessageParam::content]
+
+          ChatCompletionContentPartArray: OpenAI::Internal::Type::Converter
+        end
+      end
+    end
+  end
+end

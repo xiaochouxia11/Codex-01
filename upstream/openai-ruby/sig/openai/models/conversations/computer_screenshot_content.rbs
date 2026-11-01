@@ -1,0 +1,129 @@
+module OpenAI
+  module Models
+    module Conversations
+      type computer_screenshot_content =
+        {
+          detail: OpenAI::Models::Conversations::ComputerScreenshotContent::detail,
+          file_id: String?,
+          image_url: String?,
+          ?type: :computer_screenshot,
+          ?prompt_cache_breakpoint: OpenAI::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint
+        }
+
+      class ComputerScreenshotContent < OpenAI::Internal::Type::BaseModel
+        # The detail level of the screenshot image to be sent to the model. One of `high`,
+        # `low`, `auto`, or `original`. Defaults to `auto`.
+        attr_accessor detail: OpenAI::Models::Conversations::ComputerScreenshotContent::detail
+
+        # The identifier of an uploaded file that contains the screenshot.
+        attr_accessor file_id: String?
+
+        # The URL of the screenshot image.
+        attr_accessor image_url: String?
+
+        # Specifies the event type. For a computer screenshot, this property is always set
+        # to `computer_screenshot`.
+        attr_accessor type: :computer_screenshot
+
+        # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+        # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+        # not rounded to a token block.
+        attr_reader prompt_cache_breakpoint: OpenAI::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint?
+
+        # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+        # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+        # not rounded to a token block.
+        def prompt_cache_breakpoint=: (
+          OpenAI::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint
+        ) -> OpenAI::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint
+
+        # @param detail
+        #   The detail level of the screenshot image to be sent to the model. One of `high`,
+        #   `low`, `auto`, or `original`. Defaults to `auto`.
+        # @param file_id
+        #   The identifier of an uploaded file that contains the screenshot.
+        # @param image_url
+        #   The URL of the screenshot image.
+        # @param prompt_cache_breakpoint
+        #   Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+        #   breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+        #   not rounded to a token block.
+        # @param type
+        #   Specifies the event type. For a computer screenshot, this property is always set
+        #   to `computer_screenshot`.
+        def initialize: (
+          detail: OpenAI::Models::Conversations::ComputerScreenshotContent::detail,
+          file_id: String?,
+          image_url: String?,
+          ?prompt_cache_breakpoint: OpenAI::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint,
+          ?type: :computer_screenshot
+        ) -> void
+
+        def to_hash: -> {
+          detail: OpenAI::Models::Conversations::ComputerScreenshotContent::detail,
+          file_id: String?,
+          image_url: String?,
+          ?type: :computer_screenshot,
+          ?prompt_cache_breakpoint: OpenAI::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint
+        }
+
+        type detail = :low | :high | :auto | :original
+
+        module Detail
+          extend OpenAI::Internal::Type::Enum
+
+          LOW: :low
+          HIGH: :high
+          AUTO: :auto
+          ORIGINAL: :original
+
+          def self?.values: -> ::Array[OpenAI::Models::Conversations::ComputerScreenshotContent::detail]
+        end
+
+        type prompt_cache_breakpoint =
+          {
+            ?mode: :explicit,
+            ?ttl: OpenAI::Models::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint::ttl
+          }
+
+        class PromptCacheBreakpoint < OpenAI::Internal::Type::BaseModel
+          # The breakpoint mode. Always `explicit`.
+          attr_accessor mode: :explicit
+
+          # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          attr_reader ttl: OpenAI::Models::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint::ttl?
+
+          # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          def ttl=: (
+            OpenAI::Models::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint::ttl
+          ) -> OpenAI::Models::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint::ttl
+
+          # @param ttl
+          #   The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          # @param mode
+          #   The breakpoint mode. Always `explicit`.
+          def initialize: (
+            ?ttl: OpenAI::Models::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint::ttl,
+            ?mode: :explicit
+          ) -> void
+
+          def to_hash: -> {
+            ?mode: :explicit,
+            ?ttl: OpenAI::Models::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint::ttl
+          }
+
+          type ttl = :"30m" | :"12h"
+
+          module Ttl
+            extend OpenAI::Internal::Type::Enum
+
+            TTL_30M: :"30m"
+            TTL_12H: :"12h"
+
+            def self?.values: -> ::Array[OpenAI::Models::Conversations::ComputerScreenshotContent::PromptCacheBreakpoint::ttl]
+          end
+        end
+      end
+    end
+  end
+end

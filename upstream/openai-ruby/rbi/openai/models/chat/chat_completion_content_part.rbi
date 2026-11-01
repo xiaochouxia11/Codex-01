@@ -1,0 +1,253 @@
+# typed: strong
+
+module OpenAI
+  module Models
+
+    ChatCompletionContentPart = Chat::ChatCompletionContentPart
+
+    module Chat
+
+      # Learn about [text inputs](https://developers.openai.com/api/docs/guides/text).
+      module ChatCompletionContentPart
+        extend OpenAI::Internal::Type::Union
+
+        Variants = T.type_alias do
+          T.any(
+            OpenAI::Chat::ChatCompletionContentPartText,
+            OpenAI::Chat::ChatCompletionContentPartImage,
+            OpenAI::Chat::ChatCompletionContentPartInputAudio,
+            OpenAI::Chat::ChatCompletionContentPart::File
+          )
+        end
+
+        class File < OpenAI::Internal::Type::BaseModel
+          OrHash = T.type_alias do
+            T.any(
+              OpenAI::Chat::ChatCompletionContentPart::File,
+              OpenAI::Internal::AnyHash
+            )
+          end
+
+          sig { returns(OpenAI::Chat::ChatCompletionContentPart::File::File) }
+          attr_reader :file
+
+          sig { params(file: OpenAI::Chat::ChatCompletionContentPart::File::File::OrHash).void }
+          attr_writer :file
+
+          # The type of the content part. Always `file`.
+          sig { returns(Symbol) }
+          attr_accessor :type
+
+          # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+          # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+          # not rounded to a token block.
+          sig { returns(T.nilable(OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint)) }
+          attr_reader :prompt_cache_breakpoint
+
+          sig {
+            params(
+              prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::OrHash
+            )
+              .void
+          }
+          attr_writer :prompt_cache_breakpoint
+
+          # Learn about [file inputs](https://developers.openai.com/api/docs/guides/text)
+          # for text generation.
+          sig do
+            params(
+
+              file: OpenAI::Chat::ChatCompletionContentPart::File::File::OrHash,
+
+              prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::OrHash,
+
+              type: Symbol
+            )
+              .returns(T.attached_class)
+          end
+          def self.new(
+
+            file:,
+
+            # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+            # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+            # not rounded to a token block.
+            prompt_cache_breakpoint: nil,
+
+            # The type of the content part. Always `file`.
+
+            type: :file
+          )
+          end
+
+          sig do
+            override.returns(
+              {
+                file: OpenAI::Chat::ChatCompletionContentPart::File::File,
+                type: Symbol,
+                prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint
+              }
+            )
+          end
+          def to_hash
+          end
+
+          class File < OpenAI::Internal::Type::BaseModel
+            OrHash = T.type_alias do
+              T.any(
+                OpenAI::Chat::ChatCompletionContentPart::File::File,
+                OpenAI::Internal::AnyHash
+              )
+            end
+
+            # The base64 encoded file data, used when passing the file to the model as a
+            # string.
+            sig { returns(T.nilable(String)) }
+            attr_reader :file_data
+
+            sig { params(file_data: String).void }
+            attr_writer :file_data
+
+            # The ID of an uploaded file to use as input.
+            sig { returns(T.nilable(String)) }
+            attr_reader :file_id
+
+            sig { params(file_id: String).void }
+            attr_writer :file_id
+
+            # The name of the file, used when passing the file to the model as a string.
+            sig { returns(T.nilable(String)) }
+            attr_reader :filename
+
+            sig { params(filename: String).void }
+            attr_writer :filename
+
+            sig do
+              params(
+
+                file_data: String,
+
+                file_id: String,
+
+                filename: String
+              )
+                .returns(T.attached_class)
+            end
+            def self.new(
+
+              # The base64 encoded file data, used when passing the file to the model as a
+              # string.
+              file_data: nil,
+
+              # The ID of an uploaded file to use as input.
+              file_id: nil,
+
+              # The name of the file, used when passing the file to the model as a string.
+
+              filename: nil
+            )
+            end
+
+            sig do
+              override.returns(
+                {file_data: String, file_id: String, filename: String}
+              )
+            end
+            def to_hash
+            end
+
+          end
+
+          class PromptCacheBreakpoint < OpenAI::Internal::Type::BaseModel
+            OrHash = T.type_alias do
+              T.any(
+                OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint,
+                OpenAI::Internal::AnyHash
+              )
+            end
+
+            # The breakpoint mode. Always `explicit`.
+            sig { returns(Symbol) }
+            attr_accessor :mode
+
+            # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+            sig {
+              returns(T.nilable(OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::Ttl::OrSymbol))
+            }
+            attr_reader :ttl
+
+            sig {
+              params(ttl: OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::Ttl::OrSymbol).void
+            }
+            attr_writer :ttl
+
+            # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+            # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+            # not rounded to a token block.
+            sig do
+              params(
+
+                ttl: OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::Ttl::OrSymbol,
+
+                mode: Symbol
+              )
+                .returns(T.attached_class)
+            end
+            def self.new(
+
+              # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+              ttl: nil,
+
+              # The breakpoint mode. Always `explicit`.
+
+              mode: :explicit
+            )
+            end
+
+            sig do
+              override.returns(
+                {mode: Symbol, ttl: OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::Ttl::OrSymbol}
+              )
+            end
+            def to_hash
+            end
+
+            # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+            module Ttl
+              extend OpenAI::Internal::Type::Enum
+
+              TaggedSymbol = T.type_alias {
+                T.all(Symbol, OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::Ttl)
+              }
+              OrSymbol = T.type_alias { T.any(Symbol, String) }
+
+              TTL_30M = T.let(
+                :"30m",
+                OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::Ttl::TaggedSymbol
+              )
+              TTL_12H = T.let(
+                :"12h",
+                OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::Ttl::TaggedSymbol
+              )
+
+              sig {
+                override.returns(
+                  T::Array[OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::Ttl::TaggedSymbol]
+                )
+              }
+              def self.values
+              end
+            end
+          end
+        end
+
+        sig { override.returns(T::Array[OpenAI::Chat::ChatCompletionContentPart::Variants]) }
+        def self.variants
+        end
+
+      end
+
+    end
+
+  end
+end

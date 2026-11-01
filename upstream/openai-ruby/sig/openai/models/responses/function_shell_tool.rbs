@@ -1,0 +1,60 @@
+module OpenAI
+  module Models
+    module Responses
+      type function_shell_tool =
+        {
+          ?type: :shell,
+          ?allowed_callers: ::Array[OpenAI::Models::Responses::FunctionShellTool::allowed_caller]?,
+          ?environment: OpenAI::Models::Responses::FunctionShellTool::environment?
+        }
+
+      class FunctionShellTool < OpenAI::Internal::Type::BaseModel
+        # The type of the shell tool. Always `shell`.
+        attr_accessor type: :shell
+
+        # The tool invocation context(s).
+        attr_accessor allowed_callers: ::Array[OpenAI::Models::Responses::FunctionShellTool::allowed_caller]?
+
+        attr_accessor environment: OpenAI::Models::Responses::FunctionShellTool::environment?
+
+        # @param allowed_callers
+        #   The tool invocation context(s).
+        # @param type
+        #   The type of the shell tool. Always `shell`.
+        def initialize: (
+          ?allowed_callers: ::Array[OpenAI::Models::Responses::FunctionShellTool::allowed_caller]?,
+          ?environment: OpenAI::Models::Responses::FunctionShellTool::environment?,
+          ?type: :shell
+        ) -> void
+
+        def to_hash: -> {
+          ?type: :shell,
+          ?allowed_callers: ::Array[OpenAI::Models::Responses::FunctionShellTool::allowed_caller]?,
+          ?environment: OpenAI::Models::Responses::FunctionShellTool::environment?
+        }
+
+        type allowed_caller = :direct | :programmatic
+
+        module AllowedCaller
+          extend OpenAI::Internal::Type::Enum
+
+          DIRECT: :direct
+          PROGRAMMATIC: :programmatic
+
+          def self?.values: -> ::Array[OpenAI::Models::Responses::FunctionShellTool::allowed_caller]
+        end
+
+        type environment =
+          OpenAI::Responses::ContainerAuto
+          | OpenAI::Responses::LocalEnvironment
+          | OpenAI::Responses::ContainerReference
+
+        module Environment
+          extend OpenAI::Internal::Type::Union
+
+          def self?.variants: -> ::Array[OpenAI::Models::Responses::FunctionShellTool::environment]
+        end
+      end
+    end
+  end
+end

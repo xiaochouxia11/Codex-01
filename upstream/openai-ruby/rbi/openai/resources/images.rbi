@@ -1,0 +1,565 @@
+# typed: strong
+
+module OpenAI
+  module Resources
+
+    # Given a prompt and/or an input image, the model will generate a new image.
+    class Images
+
+      # This endpoint is retired and no longer available. Use the image edits endpoint
+      # with a GPT Image model and a prompt to create a variation of an image. The
+      # request and response schemas below describe the legacy contract.
+      sig {
+        params(
+          image: OpenAI::Internal::FileInput,
+          model: T.nilable(T.any(String, OpenAI::ImageModel::OrSymbol)),
+          n: T.nilable(Integer),
+          response_format: T.nilable(OpenAI::ImageCreateVariationParams::ResponseFormat::OrSymbol),
+          size: T.nilable(OpenAI::ImageCreateVariationParams::Size::OrSymbol),
+          user: String,
+          request_options: OpenAI::RequestOptions::OrHash
+        )
+          .returns(OpenAI::ImagesResponse)
+      }
+      def create_variation(
+        # The image to use as the basis for the variation(s). Must be a valid PNG file,
+        # less than 4MB, and square.
+        #
+        # `String`, `StringIO`, and pathless `IO` inputs are sent with generic upload
+        # metadata. Use `OpenAI::FilePart` when you need to override the filename or
+        # content type.
+        image:,
+        # The legacy model used by the retired image variations endpoint. This endpoint no
+        # longer accepts requests.
+        model: nil,
+        # The number of images to generate. Must be between 1 and 10.
+        n: nil,
+        # The format in which the generated images are returned. Must be one of `url` or
+        # `b64_json`. URLs are only valid for 60 minutes after the image has been
+        # generated.
+        response_format: nil,
+        # The size of the generated images. Must be one of `256x256`, `512x512`, or
+        # `1024x1024`.
+        size: nil,
+        # A unique identifier representing your end-user, which can help OpenAI to monitor
+        # and detect abuse.
+        # [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifiers).
+        user: nil,
+        request_options: {}
+      )
+      end
+
+      # See {OpenAI::Resources::Images#edit_stream_raw} for streaming counterpart.
+      #
+      # Creates an edited or extended image given one or more source images and a
+      # prompt. This endpoint supports GPT Image models.
+      sig {
+        params(
+          image: OpenAI::ImageEditParams::Image::Variants,
+          prompt: String,
+          background: T.nilable(OpenAI::ImageEditParams::Background::OrSymbol),
+          input_fidelity: T.nilable(OpenAI::ImageEditParams::InputFidelity::OrSymbol),
+          markup: OpenAI::Internal::FileInput,
+          mask: OpenAI::Internal::FileInput,
+          model: T.nilable(T.any(String, OpenAI::ImageModel::OrSymbol)),
+          n: T.nilable(Integer),
+          output_compression: T.nilable(Integer),
+          output_format: T.nilable(OpenAI::ImageEditParams::OutputFormat::OrSymbol),
+          partial_images: T.nilable(Integer),
+          quality: T.nilable(OpenAI::ImageEditParams::Quality::OrSymbol),
+          response_format: T.nilable(OpenAI::ImageEditParams::ResponseFormat::OrSymbol),
+          safety_identifier: T.nilable(String),
+          size: T.nilable(T.any(String, OpenAI::ImageEditParams::Size::OrSymbol)),
+          user: String,
+          stream: T.noreturn,
+          request_options: OpenAI::RequestOptions::OrHash
+        )
+          .returns(OpenAI::ImagesResponse)
+      }
+      def edit(
+        # The image(s) to edit. Must be a supported image file or an array of images.
+        #
+        # For the GPT image models (`gpt-image-1-mini`, `gpt-image-1.5`, `gpt-image-2`,
+        # `gpt-image-2-2026-04-21`, `gpt-image-2.5-sunburst`,
+        # `gpt-image-2.5-sunburst-2026-09-08`, `gpt-image-2.5-flare`, and
+        # `gpt-image-2.5-flare-2026-09-08`), each image should be a `png`, `webp`, or
+        # `jpg` file less than 50MB. You can provide up to 16 images.
+        # `chatgpt-image-latest` follows the same input constraints as GPT image models.
+        #
+        # `String`, `StringIO`, and pathless `IO` inputs are sent with generic upload
+        # metadata. Use `OpenAI::FilePart` when you need to override the filename or
+        # content type.
+        image:,
+        # A text description of the desired image(s). The maximum length is 32000
+        # characters for the GPT image models.
+        prompt:,
+        # Allows to set transparency for the background of the generated image(s). Must be
+        # one of `transparent`, `opaque`, or `auto` (default value). When `auto` is used,
+        # the model will automatically determine the best background for the image.
+        #
+        # `gpt-image-2.5-sunburst` and `gpt-image-2.5-flare`, including their `2026-09-08`
+        # snapshots, support `opaque` and `transparent` backgrounds. Transparent
+        # backgrounds are available for supported GPT Image models. For `gpt-image-2` and
+        # `gpt-image-2-2026-04-21`, this support is in preview. When using `transparent`,
+        # set the output format to `png` or `webp`.
+        background: nil,
+        # Control how much effort the model will exert to match the style and features,
+        # especially facial features, of input images. Supports `high` and `low` on
+        # `gpt-image-1.5`; `gpt-image-1-mini` supports only `low`. For `gpt-image-2`, omit
+        # this parameter. Defaults to `low` on supported models.
+        input_fidelity: nil,
+        # A transparent PNG overlaid on the first image to guide the edit. Must match that
+        # image's dimensions after orientation and contain transparent pixels. Supports
+        # GPT Image 2.5 and 2.6. Cannot be combined with mask.
+        #
+        # `String`, `StringIO`, and pathless `IO` inputs are sent with generic upload
+        # metadata. Use `OpenAI::FilePart` when you need to override the filename or
+        # content type.
+        markup: nil,
+        # An additional image whose fully transparent areas (e.g. where alpha is zero)
+        # indicate where `image` should be edited. If there are multiple images provided,
+        # the mask will be applied on the first image. Must be a valid PNG file, less than
+        # 4MB, and have the same dimensions as `image`.
+        #
+        # `String`, `StringIO`, and pathless `IO` inputs are sent with generic upload
+        # metadata. Use `OpenAI::FilePart` when you need to override the filename or
+        # content type.
+        mask: nil,
+        # The GPT image model to use for image editing (`gpt-image-1-mini`,
+        # `gpt-image-1.5`, `gpt-image-2`, `gpt-image-2-2026-04-21`,
+        # `gpt-image-2.5-sunburst`, `gpt-image-2.5-sunburst-2026-09-08`,
+        # `gpt-image-2.5-flare`, `gpt-image-2.5-flare-2026-09-08`, or
+        # `chatgpt-image-latest`).
+        #
+        # `gpt-image-1` was shut down on October 23, 2026. Use `gpt-image-2.5-sunburst` or
+        # `gpt-image-2.5-flare` instead.
+        model: nil,
+        # The number of images to generate. Must be between 1 and 10.
+        n: nil,
+        # The compression level (0-100%) for the generated images. This parameter is only
+        # supported for the GPT image models with the `webp` or `jpeg` output formats, and
+        # defaults to 100.
+        output_compression: nil,
+        # The format in which the generated images are returned. This parameter is only
+        # supported for the GPT image models. Must be one of `png`, `jpeg`, or `webp`. The
+        # default value is `png`.
+        output_format: nil,
+        # The number of partial images to generate. This parameter is used for streaming
+        # responses that return partial images. Value must be between 0 and 3. When set to
+        # 0, the response will be a single image sent in one streaming event.
+        #
+        # Note that the final image may be sent before the full number of partial images
+        # are generated if the full image is generated more quickly.
+        partial_images: nil,
+        # The quality of the image that will be generated for GPT image models. The GPT
+        # image models support `low`, `medium`, and `high`. `gpt-image-2.5-sunburst` and
+        # `gpt-image-2.5-flare`, including their `2026-09-08` snapshots, also support
+        # `xhigh` and `max`. Defaults to `auto`.
+        quality: nil,
+        # Legacy response format parameter for retired image models. Unsupported for GPT
+        # image models, which always return base64-encoded images.
+        response_format: nil,
+        # A stable identifier for an end user in your organization, used for safety
+        # monitoring and abuse detection. Hash a username or email address to avoid
+        # sending identifying information. A non-empty value takes precedence over the
+        # deprecated `user` parameter. If omitted, null, or empty, the API uses `user`
+        # when available.
+        # [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifiers).
+        safety_identifier: nil,
+        # The size of the generated images. Defaults to `auto`. For `gpt-image-2`,
+        # `gpt-image-2-2026-04-21`, `gpt-image-2.5-sunburst`,
+        # `gpt-image-2.5-sunburst-2026-09-08`, `gpt-image-2.5-flare`, and
+        # `gpt-image-2.5-flare-2026-09-08`, arbitrary resolutions are supported as
+        # `WIDTHxHEIGHT` strings, for example `1536x864`. Width and height must both be
+        # divisible by 16 and the requested aspect ratio must be between 1:3 and 3:1.
+        # Resolutions above `2560x1440` are experimental, and the maximum supported
+        # resolution is `3840x2160`. The requested size must also satisfy the model's
+        # current pixel and edge limits. The standard sizes `1024x1024`, `1536x1024`, and
+        # `1024x1536` are supported by the GPT image models; `auto` is supported for
+        # models that allow automatic sizing.
+        size: nil,
+        # Deprecated: use `safety_identifier` instead. This parameter remains accepted for
+        # backward compatibility and is used when `safety_identifier` is omitted, null, or
+        # empty.
+        # [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifiers).
+        user: nil,
+        # There is no need to provide `stream:`. Instead, use `#edit_stream_raw` or
+        # `#edit` for streaming and non-streaming use cases, respectively.
+        stream: false,
+        request_options: {}
+      )
+      end
+
+      # See {OpenAI::Resources::Images#edit} for non-streaming counterpart.
+      #
+      # Creates an edited or extended image given one or more source images and a
+      # prompt. This endpoint supports GPT Image models.
+      sig {
+        params(
+          image: OpenAI::ImageEditParams::Image::Variants,
+          prompt: String,
+          background: T.nilable(OpenAI::ImageEditParams::Background::OrSymbol),
+          input_fidelity: T.nilable(OpenAI::ImageEditParams::InputFidelity::OrSymbol),
+          markup: OpenAI::Internal::FileInput,
+          mask: OpenAI::Internal::FileInput,
+          model: T.nilable(T.any(String, OpenAI::ImageModel::OrSymbol)),
+          n: T.nilable(Integer),
+          output_compression: T.nilable(Integer),
+          output_format: T.nilable(OpenAI::ImageEditParams::OutputFormat::OrSymbol),
+          partial_images: T.nilable(Integer),
+          quality: T.nilable(OpenAI::ImageEditParams::Quality::OrSymbol),
+          response_format: T.nilable(OpenAI::ImageEditParams::ResponseFormat::OrSymbol),
+          safety_identifier: T.nilable(String),
+          size: T.nilable(T.any(String, OpenAI::ImageEditParams::Size::OrSymbol)),
+          user: String,
+          stream: T.noreturn,
+          request_options: OpenAI::RequestOptions::OrHash
+        )
+          .returns(OpenAI::Internal::Stream[OpenAI::ImageEditStreamEvent::Variants])
+      }
+      def edit_stream_raw(
+        # The image(s) to edit. Must be a supported image file or an array of images.
+        #
+        # For the GPT image models (`gpt-image-1-mini`, `gpt-image-1.5`, `gpt-image-2`,
+        # `gpt-image-2-2026-04-21`, `gpt-image-2.5-sunburst`,
+        # `gpt-image-2.5-sunburst-2026-09-08`, `gpt-image-2.5-flare`, and
+        # `gpt-image-2.5-flare-2026-09-08`), each image should be a `png`, `webp`, or
+        # `jpg` file less than 50MB. You can provide up to 16 images.
+        # `chatgpt-image-latest` follows the same input constraints as GPT image models.
+        #
+        # `String`, `StringIO`, and pathless `IO` inputs are sent with generic upload
+        # metadata. Use `OpenAI::FilePart` when you need to override the filename or
+        # content type.
+        image:,
+        # A text description of the desired image(s). The maximum length is 32000
+        # characters for the GPT image models.
+        prompt:,
+        # Allows to set transparency for the background of the generated image(s). Must be
+        # one of `transparent`, `opaque`, or `auto` (default value). When `auto` is used,
+        # the model will automatically determine the best background for the image.
+        #
+        # `gpt-image-2.5-sunburst` and `gpt-image-2.5-flare`, including their `2026-09-08`
+        # snapshots, support `opaque` and `transparent` backgrounds. Transparent
+        # backgrounds are available for supported GPT Image models. For `gpt-image-2` and
+        # `gpt-image-2-2026-04-21`, this support is in preview. When using `transparent`,
+        # set the output format to `png` or `webp`.
+        background: nil,
+        # Control how much effort the model will exert to match the style and features,
+        # especially facial features, of input images. Supports `high` and `low` on
+        # `gpt-image-1.5`; `gpt-image-1-mini` supports only `low`. For `gpt-image-2`, omit
+        # this parameter. Defaults to `low` on supported models.
+        input_fidelity: nil,
+        # A transparent PNG overlaid on the first image to guide the edit. Must match that
+        # image's dimensions after orientation and contain transparent pixels. Supports
+        # GPT Image 2.5 and 2.6. Cannot be combined with mask.
+        #
+        # `String`, `StringIO`, and pathless `IO` inputs are sent with generic upload
+        # metadata. Use `OpenAI::FilePart` when you need to override the filename or
+        # content type.
+        markup: nil,
+        # An additional image whose fully transparent areas (e.g. where alpha is zero)
+        # indicate where `image` should be edited. If there are multiple images provided,
+        # the mask will be applied on the first image. Must be a valid PNG file, less than
+        # 4MB, and have the same dimensions as `image`.
+        #
+        # `String`, `StringIO`, and pathless `IO` inputs are sent with generic upload
+        # metadata. Use `OpenAI::FilePart` when you need to override the filename or
+        # content type.
+        mask: nil,
+        # The GPT image model to use for image editing (`gpt-image-1-mini`,
+        # `gpt-image-1.5`, `gpt-image-2`, `gpt-image-2-2026-04-21`,
+        # `gpt-image-2.5-sunburst`, `gpt-image-2.5-sunburst-2026-09-08`,
+        # `gpt-image-2.5-flare`, `gpt-image-2.5-flare-2026-09-08`, or
+        # `chatgpt-image-latest`).
+        #
+        # `gpt-image-1` was shut down on October 23, 2026. Use `gpt-image-2.5-sunburst` or
+        # `gpt-image-2.5-flare` instead.
+        model: nil,
+        # The number of images to generate. Must be between 1 and 10.
+        n: nil,
+        # The compression level (0-100%) for the generated images. This parameter is only
+        # supported for the GPT image models with the `webp` or `jpeg` output formats, and
+        # defaults to 100.
+        output_compression: nil,
+        # The format in which the generated images are returned. This parameter is only
+        # supported for the GPT image models. Must be one of `png`, `jpeg`, or `webp`. The
+        # default value is `png`.
+        output_format: nil,
+        # The number of partial images to generate. This parameter is used for streaming
+        # responses that return partial images. Value must be between 0 and 3. When set to
+        # 0, the response will be a single image sent in one streaming event.
+        #
+        # Note that the final image may be sent before the full number of partial images
+        # are generated if the full image is generated more quickly.
+        partial_images: nil,
+        # The quality of the image that will be generated for GPT image models. The GPT
+        # image models support `low`, `medium`, and `high`. `gpt-image-2.5-sunburst` and
+        # `gpt-image-2.5-flare`, including their `2026-09-08` snapshots, also support
+        # `xhigh` and `max`. Defaults to `auto`.
+        quality: nil,
+        # Legacy response format parameter for retired image models. Unsupported for GPT
+        # image models, which always return base64-encoded images.
+        response_format: nil,
+        # A stable identifier for an end user in your organization, used for safety
+        # monitoring and abuse detection. Hash a username or email address to avoid
+        # sending identifying information. A non-empty value takes precedence over the
+        # deprecated `user` parameter. If omitted, null, or empty, the API uses `user`
+        # when available.
+        # [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifiers).
+        safety_identifier: nil,
+        # The size of the generated images. Defaults to `auto`. For `gpt-image-2`,
+        # `gpt-image-2-2026-04-21`, `gpt-image-2.5-sunburst`,
+        # `gpt-image-2.5-sunburst-2026-09-08`, `gpt-image-2.5-flare`, and
+        # `gpt-image-2.5-flare-2026-09-08`, arbitrary resolutions are supported as
+        # `WIDTHxHEIGHT` strings, for example `1536x864`. Width and height must both be
+        # divisible by 16 and the requested aspect ratio must be between 1:3 and 3:1.
+        # Resolutions above `2560x1440` are experimental, and the maximum supported
+        # resolution is `3840x2160`. The requested size must also satisfy the model's
+        # current pixel and edge limits. The standard sizes `1024x1024`, `1536x1024`, and
+        # `1024x1536` are supported by the GPT image models; `auto` is supported for
+        # models that allow automatic sizing.
+        size: nil,
+        # Deprecated: use `safety_identifier` instead. This parameter remains accepted for
+        # backward compatibility and is used when `safety_identifier` is omitted, null, or
+        # empty.
+        # [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifiers).
+        user: nil,
+        # There is no need to provide `stream:`. Instead, use `#edit_stream_raw` or
+        # `#edit` for streaming and non-streaming use cases, respectively.
+        stream: true,
+        request_options: {}
+      )
+      end
+
+      # See {OpenAI::Resources::Images#generate_stream_raw} for streaming counterpart.
+      #
+      # Creates an image given a prompt using a GPT Image model.
+      # [Learn more](https://developers.openai.com/api/docs/guides/images-vision).
+      sig {
+        params(
+          prompt: String,
+          background: T.nilable(OpenAI::ImageGenerateParams::Background::OrSymbol),
+          model: T.nilable(T.any(String, OpenAI::ImageModel::OrSymbol)),
+          moderation: T.nilable(OpenAI::ImageGenerateParams::Moderation::OrSymbol),
+          n: T.nilable(Integer),
+          output_compression: T.nilable(Integer),
+          output_format: T.nilable(OpenAI::ImageGenerateParams::OutputFormat::OrSymbol),
+          partial_images: T.nilable(Integer),
+          quality: T.nilable(OpenAI::ImageGenerateParams::Quality::OrSymbol),
+          response_format: T.nilable(OpenAI::ImageGenerateParams::ResponseFormat::OrSymbol),
+          safety_identifier: T.nilable(String),
+          size: T.nilable(T.any(String, OpenAI::ImageGenerateParams::Size::OrSymbol)),
+          style: T.nilable(OpenAI::ImageGenerateParams::Style::OrSymbol),
+          user: String,
+          stream: T.noreturn,
+          request_options: OpenAI::RequestOptions::OrHash
+        )
+          .returns(OpenAI::ImagesResponse)
+      }
+      def generate(
+        # A text description of the desired image(s). The maximum length is 32000
+        # characters.
+        prompt:,
+        # Allows to set transparency for the background of the generated image(s). Must be
+        # one of `transparent`, `opaque`, or `auto` (default value). When `auto` is used,
+        # the model will automatically determine the best background for the image.
+        #
+        # `gpt-image-2.5-sunburst` and `gpt-image-2.5-flare`, including their `2026-09-08`
+        # snapshots, support `opaque` and `transparent` backgrounds. Transparent
+        # backgrounds are available for supported GPT Image models. For `gpt-image-2` and
+        # `gpt-image-2-2026-04-21`, this support is in preview. When using `transparent`,
+        # set the output format to `png` or `webp`.
+        background: nil,
+        # The GPT image model to use for image generation. Specify a model explicitly.
+        # Supported models include `gpt-image-1-mini`, `gpt-image-1.5`, `gpt-image-2`,
+        # `gpt-image-2-2026-04-21`, `gpt-image-2.5-sunburst`,
+        # `gpt-image-2.5-sunburst-2026-09-08`, `gpt-image-2.5-flare`,
+        # `gpt-image-2.5-flare-2026-09-08`, and `chatgpt-image-latest`.
+        #
+        # `gpt-image-1` was shut down on October 23, 2026. Use `gpt-image-2.5-sunburst` or
+        # `gpt-image-2.5-flare` instead.
+        model: nil,
+        # Control the content-moderation level for images generated by the GPT image
+        # models. Must be either `low` for less restrictive filtering or `auto` (default
+        # value).
+        moderation: nil,
+        # The number of images to generate. Must be between 1 and 10.
+        n: nil,
+        # The compression level (0-100%) for the generated images. This parameter is only
+        # supported for the GPT image models with the `webp` or `jpeg` output formats, and
+        # defaults to 100.
+        output_compression: nil,
+        # The format in which the generated images are returned. This parameter is only
+        # supported for the GPT image models. Must be one of `png`, `jpeg`, or `webp`.
+        output_format: nil,
+        # The number of partial images to generate. This parameter is used for streaming
+        # responses that return partial images. Value must be between 0 and 3. When set to
+        # 0, the response will be a single image sent in one streaming event.
+        #
+        # Note that the final image may be sent before the full number of partial images
+        # are generated if the full image is generated more quickly.
+        partial_images: nil,
+        # The quality of the image that will be generated.
+        #
+        # - `auto` (default value) will automatically select the best quality for the
+        #   given model.
+        # - `high`, `medium` and `low` are supported for the GPT image models.
+        # - `gpt-image-2.5-sunburst` and `gpt-image-2.5-flare`, including their
+        #   `2026-09-08` snapshots, also support `xhigh` and `max`.
+        quality: nil,
+        # Legacy response format parameter for retired image models. Unsupported for GPT
+        # image models, which always return base64-encoded images.
+        response_format: nil,
+        # A stable identifier for an end user in your organization, used for safety
+        # monitoring and abuse detection. Hash a username or email address to avoid
+        # sending identifying information. A non-empty value takes precedence over the
+        # deprecated `user` parameter. If omitted, null, or empty, the API uses `user`
+        # when available.
+        # [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifiers).
+        safety_identifier: nil,
+        # The size of the generated images. For `gpt-image-2`, `gpt-image-2-2026-04-21`,
+        # `gpt-image-2.5-sunburst`, `gpt-image-2.5-sunburst-2026-09-08`,
+        # `gpt-image-2.5-flare`, and `gpt-image-2.5-flare-2026-09-08`, arbitrary
+        # resolutions are supported as `WIDTHxHEIGHT` strings, for example `1536x864`.
+        # Width and height must both be divisible by 16 and the requested aspect ratio
+        # must be between 1:3 and 3:1. Resolutions above `2560x1440` are experimental, and
+        # the maximum supported resolution is `3840x2160`. The requested size must also
+        # satisfy the model's current pixel and edge limits. The standard sizes
+        # `1024x1024`, `1536x1024`, and `1024x1536` are supported by the GPT image models;
+        # `auto` is supported for models that allow automatic sizing.
+        size: nil,
+        # Legacy style parameter for retired image models. Unsupported for GPT image
+        # models; describe the desired style in the prompt instead.
+        style: nil,
+        # Deprecated: use `safety_identifier` instead. This parameter remains accepted for
+        # backward compatibility and is used when `safety_identifier` is omitted, null, or
+        # empty.
+        # [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifiers).
+        user: nil,
+        # There is no need to provide `stream:`. Instead, use `#generate_stream_raw` or
+        # `#generate` for streaming and non-streaming use cases, respectively.
+        stream: false,
+        request_options: {}
+      )
+      end
+
+      # See {OpenAI::Resources::Images#generate} for non-streaming counterpart.
+      #
+      # Creates an image given a prompt using a GPT Image model.
+      # [Learn more](https://developers.openai.com/api/docs/guides/images-vision).
+      sig {
+        params(
+          prompt: String,
+          background: T.nilable(OpenAI::ImageGenerateParams::Background::OrSymbol),
+          model: T.nilable(T.any(String, OpenAI::ImageModel::OrSymbol)),
+          moderation: T.nilable(OpenAI::ImageGenerateParams::Moderation::OrSymbol),
+          n: T.nilable(Integer),
+          output_compression: T.nilable(Integer),
+          output_format: T.nilable(OpenAI::ImageGenerateParams::OutputFormat::OrSymbol),
+          partial_images: T.nilable(Integer),
+          quality: T.nilable(OpenAI::ImageGenerateParams::Quality::OrSymbol),
+          response_format: T.nilable(OpenAI::ImageGenerateParams::ResponseFormat::OrSymbol),
+          safety_identifier: T.nilable(String),
+          size: T.nilable(T.any(String, OpenAI::ImageGenerateParams::Size::OrSymbol)),
+          style: T.nilable(OpenAI::ImageGenerateParams::Style::OrSymbol),
+          user: String,
+          stream: T.noreturn,
+          request_options: OpenAI::RequestOptions::OrHash
+        )
+          .returns(OpenAI::Internal::Stream[OpenAI::ImageGenStreamEvent::Variants])
+      }
+      def generate_stream_raw(
+        # A text description of the desired image(s). The maximum length is 32000
+        # characters.
+        prompt:,
+        # Allows to set transparency for the background of the generated image(s). Must be
+        # one of `transparent`, `opaque`, or `auto` (default value). When `auto` is used,
+        # the model will automatically determine the best background for the image.
+        #
+        # `gpt-image-2.5-sunburst` and `gpt-image-2.5-flare`, including their `2026-09-08`
+        # snapshots, support `opaque` and `transparent` backgrounds. Transparent
+        # backgrounds are available for supported GPT Image models. For `gpt-image-2` and
+        # `gpt-image-2-2026-04-21`, this support is in preview. When using `transparent`,
+        # set the output format to `png` or `webp`.
+        background: nil,
+        # The GPT image model to use for image generation. Specify a model explicitly.
+        # Supported models include `gpt-image-1-mini`, `gpt-image-1.5`, `gpt-image-2`,
+        # `gpt-image-2-2026-04-21`, `gpt-image-2.5-sunburst`,
+        # `gpt-image-2.5-sunburst-2026-09-08`, `gpt-image-2.5-flare`,
+        # `gpt-image-2.5-flare-2026-09-08`, and `chatgpt-image-latest`.
+        #
+        # `gpt-image-1` was shut down on October 23, 2026. Use `gpt-image-2.5-sunburst` or
+        # `gpt-image-2.5-flare` instead.
+        model: nil,
+        # Control the content-moderation level for images generated by the GPT image
+        # models. Must be either `low` for less restrictive filtering or `auto` (default
+        # value).
+        moderation: nil,
+        # The number of images to generate. Must be between 1 and 10.
+        n: nil,
+        # The compression level (0-100%) for the generated images. This parameter is only
+        # supported for the GPT image models with the `webp` or `jpeg` output formats, and
+        # defaults to 100.
+        output_compression: nil,
+        # The format in which the generated images are returned. This parameter is only
+        # supported for the GPT image models. Must be one of `png`, `jpeg`, or `webp`.
+        output_format: nil,
+        # The number of partial images to generate. This parameter is used for streaming
+        # responses that return partial images. Value must be between 0 and 3. When set to
+        # 0, the response will be a single image sent in one streaming event.
+        #
+        # Note that the final image may be sent before the full number of partial images
+        # are generated if the full image is generated more quickly.
+        partial_images: nil,
+        # The quality of the image that will be generated.
+        #
+        # - `auto` (default value) will automatically select the best quality for the
+        #   given model.
+        # - `high`, `medium` and `low` are supported for the GPT image models.
+        # - `gpt-image-2.5-sunburst` and `gpt-image-2.5-flare`, including their
+        #   `2026-09-08` snapshots, also support `xhigh` and `max`.
+        quality: nil,
+        # Legacy response format parameter for retired image models. Unsupported for GPT
+        # image models, which always return base64-encoded images.
+        response_format: nil,
+        # A stable identifier for an end user in your organization, used for safety
+        # monitoring and abuse detection. Hash a username or email address to avoid
+        # sending identifying information. A non-empty value takes precedence over the
+        # deprecated `user` parameter. If omitted, null, or empty, the API uses `user`
+        # when available.
+        # [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifiers).
+        safety_identifier: nil,
+        # The size of the generated images. For `gpt-image-2`, `gpt-image-2-2026-04-21`,
+        # `gpt-image-2.5-sunburst`, `gpt-image-2.5-sunburst-2026-09-08`,
+        # `gpt-image-2.5-flare`, and `gpt-image-2.5-flare-2026-09-08`, arbitrary
+        # resolutions are supported as `WIDTHxHEIGHT` strings, for example `1536x864`.
+        # Width and height must both be divisible by 16 and the requested aspect ratio
+        # must be between 1:3 and 3:1. Resolutions above `2560x1440` are experimental, and
+        # the maximum supported resolution is `3840x2160`. The requested size must also
+        # satisfy the model's current pixel and edge limits. The standard sizes
+        # `1024x1024`, `1536x1024`, and `1024x1536` are supported by the GPT image models;
+        # `auto` is supported for models that allow automatic sizing.
+        size: nil,
+        # Legacy style parameter for retired image models. Unsupported for GPT image
+        # models; describe the desired style in the prompt instead.
+        style: nil,
+        # Deprecated: use `safety_identifier` instead. This parameter remains accepted for
+        # backward compatibility and is used when `safety_identifier` is omitted, null, or
+        # empty.
+        # [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifiers).
+        user: nil,
+        # There is no need to provide `stream:`. Instead, use `#generate_stream_raw` or
+        # `#generate` for streaming and non-streaming use cases, respectively.
+        stream: true,
+        request_options: {}
+      )
+      end
+
+      # @api private
+      sig { params(client: OpenAI::Client).returns(T.attached_class) }
+      def self.new(client:)
+      end
+    end
+
+  end
+end

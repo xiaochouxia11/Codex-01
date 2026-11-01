@@ -1,0 +1,100 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+# typed: strong
+
+require_relative "../lib/openai"
+
+# gets API Key from environment variable `OPENAI_API_KEY`
+client = OpenAI::Client.new
+
+begin
+  pp("----- streams are enumerable -----")
+
+  stream = client.completions.create_streaming(
+    model: :"gpt-3.5-turbo-instruct",
+    prompt: "1,2,3,",
+    max_tokens: 5,
+    temperature: 0.0
+  )
+
+  # the `stream` itself is an `https://rubyapi.org/3.3/o/enumerable`
+  #   which means that you can work with the stream almost as if it is an array
+  all_choices = stream
+    # calling any of the `enumerable` methods will block until the whole stream is consumed
+    #   it will also clean up the stream.
+    .select do |completion|
+      completion.object == :text_completion
+    end
+    .flat_map do |completion|
+      completion.choices
+    end
+
+  pp(all_choices)
+  abort("The eager stream completed without choices") if all_choices.empty?
+  eager_stream_finished = all_choices.any? do |choice|
+    case choice[:finish_reason]
+    when String, Symbol
+      true
+    else
+      false
+    end
+  end
+
+  unless eager_stream_finished
+    abort("The eager stream ended before a terminal choice was received")
+  end
+
+  # once the stream has been consumed, it will become "empty"
+  pp("this will print an empty array")
+  pp(stream.to_a)
+end
+
+begin
+  pp("----- streams can be lazy -----")
+
+  stream = client.completions.create_streaming(
+    model: :"gpt-3.5-turbo-instruct",
+    prompt: "1,2,3,",
+    max_tokens: 5,
+    temperature: 0.0
+  )
+
+  stream_of_choices = stream
+    # calling `#lazy` will return a deferred `https://rubyapi.org/3.3/o/enumerator/lazy`
+    .lazy
+    # each successive calls to methods that return another `enumerable` will not consume the stream
+    #   but rather, return a transformed stream. (see link above)
+    .select do |completion|
+      completion.object == :text_completion
+    end
+    .flat_map do |completion|
+      completion.choices
+    end
+
+  # prints the suspended intermediary stream
+  pp(stream_of_choices)
+  # beware that if the intermediary stream is not used, a call to `stream.close` is required
+  #  to release the underlying connection
+
+  # method calls that do not return another `enumerable` will consume the intermediary stream
+  #   and perform cleanup
+  lazy_choice_count = 0
+  lazy_terminal_choice_count = 0
+  stream_of_choices.each do |choice|
+    lazy_choice_count += 1
+    case choice[:finish_reason]
+    when String, Symbol
+      lazy_terminal_choice_count += 1
+    end
+
+    pp(choice)
+  end
+
+  abort("The lazy stream completed without choices") if lazy_choice_count.zero?
+  if lazy_terminal_choice_count.zero?
+    abort("The lazy stream ended before a terminal choice was received")
+  end
+
+  # at this point the stream has been consumed already, so it will return an empty array
+  pp(stream_of_choices.to_a)
+end

@@ -1,0 +1,134 @@
+module OpenAI
+  module Models
+    class ChatCompletionContentPartInputAudio = Chat::ChatCompletionContentPartInputAudio
+
+    module Chat
+      type chat_completion_content_part_input_audio =
+        {
+          input_audio: OpenAI::Chat::ChatCompletionContentPartInputAudio::InputAudio,
+          ?type: :input_audio,
+          ?prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint
+        }
+
+      class ChatCompletionContentPartInputAudio < OpenAI::Internal::Type::BaseModel
+        attr_accessor input_audio: OpenAI::Chat::ChatCompletionContentPartInputAudio::InputAudio
+
+        # The type of the content part. Always `input_audio`.
+        attr_accessor type: :input_audio
+
+        # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+        # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+        # not rounded to a token block.
+        attr_reader prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint?
+
+        # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+        # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+        # not rounded to a token block.
+        def prompt_cache_breakpoint=: (
+          OpenAI::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint
+        ) -> OpenAI::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint
+
+        # @param prompt_cache_breakpoint
+        #   Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+        #   breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+        #   not rounded to a token block.
+        # @param type
+        #   The type of the content part. Always `input_audio`.
+        def initialize: (
+          input_audio: OpenAI::Chat::ChatCompletionContentPartInputAudio::InputAudio,
+          ?prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint,
+          ?type: :input_audio
+        ) -> void
+
+        def to_hash: -> {
+          input_audio: OpenAI::Chat::ChatCompletionContentPartInputAudio::InputAudio,
+          ?type: :input_audio,
+          ?prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint
+        }
+
+        type input_audio =
+          {
+            data: String,
+            format_: OpenAI::Models::Chat::ChatCompletionContentPartInputAudio::InputAudio::format_
+          }
+
+        class InputAudio < OpenAI::Internal::Type::BaseModel
+          # Base64 encoded audio data.
+          attr_accessor data: String
+
+          # The format of the encoded audio data. Currently supports "wav" and "mp3".
+          attr_accessor format_: OpenAI::Models::Chat::ChatCompletionContentPartInputAudio::InputAudio::format_
+
+          # @param data
+          #   Base64 encoded audio data.
+          # @param format_
+          #   The format of the encoded audio data. Currently supports "wav" and "mp3".
+          def initialize: (
+            data: String,
+            format_: OpenAI::Models::Chat::ChatCompletionContentPartInputAudio::InputAudio::format_
+          ) -> void
+
+          def to_hash: -> {
+            data: String,
+            format_: OpenAI::Models::Chat::ChatCompletionContentPartInputAudio::InputAudio::format_
+          }
+
+          type format_ = :wav | :mp3
+
+          module Format
+            extend OpenAI::Internal::Type::Enum
+
+            WAV: :wav
+            MP3: :mp3
+
+            def self?.values: -> ::Array[OpenAI::Models::Chat::ChatCompletionContentPartInputAudio::InputAudio::format_]
+          end
+        end
+
+        type prompt_cache_breakpoint =
+          {
+            ?mode: :explicit,
+            ?ttl: OpenAI::Models::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint::ttl
+          }
+
+        class PromptCacheBreakpoint < OpenAI::Internal::Type::BaseModel
+          # The breakpoint mode. Always `explicit`.
+          attr_accessor mode: :explicit
+
+          # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          attr_reader ttl: OpenAI::Models::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint::ttl?
+
+          # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          def ttl=: (
+            OpenAI::Models::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint::ttl
+          ) -> OpenAI::Models::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint::ttl
+
+          # @param ttl
+          #   The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          # @param mode
+          #   The breakpoint mode. Always `explicit`.
+          def initialize: (
+            ?ttl: OpenAI::Models::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint::ttl,
+            ?mode: :explicit
+          ) -> void
+
+          def to_hash: -> {
+            ?mode: :explicit,
+            ?ttl: OpenAI::Models::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint::ttl
+          }
+
+          type ttl = :"30m" | :"12h"
+
+          module Ttl
+            extend OpenAI::Internal::Type::Enum
+
+            TTL_30M: :"30m"
+            TTL_12H: :"12h"
+
+            def self?.values: -> ::Array[OpenAI::Models::Chat::ChatCompletionContentPartInputAudio::PromptCacheBreakpoint::ttl]
+          end
+        end
+      end
+    end
+  end
+end

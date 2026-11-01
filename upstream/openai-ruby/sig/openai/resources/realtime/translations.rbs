@@ -1,0 +1,19 @@
+module OpenAI
+  module Resources
+    class Realtime
+      class Translations
+        include OpenAI::WebSocket::TypedResource[OpenAI::Models::Realtime::realtime_translation_client_event, OpenAI::Models::Realtime::realtime_translation_server_event
+        | ::Hash[Symbol, untyped]]
+        def __websocket_request: (
+          ?query: Hash[untyped, untyped]
+        ) -> Hash[Symbol, untyped]
+        def __websocket_client_event: -> untyped
+        def __websocket_server_event: -> untyped
+
+        attr_reader client_secrets: OpenAI::Resources::Realtime::Translations::ClientSecrets
+
+        def initialize: (client: OpenAI::Client) -> void
+      end
+    end
+  end
+end

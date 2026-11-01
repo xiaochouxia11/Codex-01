@@ -1,0 +1,27 @@
+module OpenAI
+  module Resources
+    class Live
+      include OpenAI::WebSocket::TypedResource[OpenAI::Models::Live::client_event, OpenAI::Models::Live::server_event
+      | ::Hash[Symbol, untyped]]
+      def __websocket_request: (
+        ?query: Hash[untyped, untyped]
+      ) -> Hash[Symbol, untyped]
+      def __websocket_client_event: -> untyped
+      def __websocket_server_event: -> untyped
+
+      attr_reader sideband: OpenAI::Resources::Live::Sideband
+
+      attr_reader forks: OpenAI::Resources::Live::Forks
+
+      attr_reader sessions: OpenAI::Resources::Live::Sessions
+
+      def create: (
+        session: OpenAI::Live::MediaSessionConfig,
+        transport: OpenAI::Live::LiveCreateParams::Transport,
+        ?request_options: OpenAI::request_opts
+      ) -> OpenAI::Models::Live::LiveCreateResponse
+
+      def initialize: (client: OpenAI::Client) -> void
+    end
+  end
+end

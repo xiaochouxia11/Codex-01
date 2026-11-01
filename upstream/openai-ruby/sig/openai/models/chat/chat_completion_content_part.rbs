@@ -1,0 +1,151 @@
+module OpenAI
+  module Models
+    module ChatCompletionContentPart = Chat::ChatCompletionContentPart
+
+    module Chat
+      type chat_completion_content_part =
+        OpenAI::Chat::ChatCompletionContentPartText
+        | OpenAI::Chat::ChatCompletionContentPartImage
+        | OpenAI::Chat::ChatCompletionContentPartInputAudio
+        | OpenAI::Chat::ChatCompletionContentPart::File
+
+      module ChatCompletionContentPart
+        extend OpenAI::Internal::Type::Union
+
+        type file =
+          {
+            file: OpenAI::Chat::ChatCompletionContentPart::File::File,
+            ?type: :file,
+            ?prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint
+          }
+
+        class File < OpenAI::Internal::Type::BaseModel
+          attr_accessor file: OpenAI::Chat::ChatCompletionContentPart::File::File
+
+          # The type of the content part. Always `file`.
+          attr_accessor type: :file
+
+          # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+          # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+          # not rounded to a token block.
+          attr_reader prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint?
+
+          # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+          # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+          # not rounded to a token block.
+          def prompt_cache_breakpoint=: (
+            OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint
+          ) -> OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint
+
+          # @param prompt_cache_breakpoint
+          #   Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+          #   breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+          #   not rounded to a token block.
+          # @param type
+          #   The type of the content part. Always `file`.
+          def initialize: (
+            file: OpenAI::Chat::ChatCompletionContentPart::File::File,
+            ?prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint,
+            ?type: :file
+          ) -> void
+
+          def to_hash: -> {
+            file: OpenAI::Chat::ChatCompletionContentPart::File::File,
+            ?type: :file,
+            ?prompt_cache_breakpoint: OpenAI::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint
+          }
+
+          type file =
+            { ?file_data: String, ?file_id: String, ?filename: String }
+
+          class File < OpenAI::Internal::Type::BaseModel
+            # The base64 encoded file data, used when passing the file to the model as a
+            # string.
+            attr_reader file_data: String?
+
+            # The base64 encoded file data, used when passing the file to the model as a
+            # string.
+            def file_data=: (String) -> String
+
+            # The ID of an uploaded file to use as input.
+            attr_reader file_id: String?
+
+            # The ID of an uploaded file to use as input.
+            def file_id=: (String) -> String
+
+            # The name of the file, used when passing the file to the model as a string.
+            attr_reader filename: String?
+
+            # The name of the file, used when passing the file to the model as a string.
+            def filename=: (String) -> String
+
+            # @param file_data
+            #   The base64 encoded file data, used when passing the file to the model as a
+            #   string.
+            # @param file_id
+            #   The ID of an uploaded file to use as input.
+            # @param filename
+            #   The name of the file, used when passing the file to the model as a string.
+            def initialize: (
+              ?file_data: String,
+              ?file_id: String,
+              ?filename: String
+            ) -> void
+
+            def to_hash: -> {
+              ?file_data: String,
+              ?file_id: String,
+              ?filename: String
+            }
+          end
+
+          type prompt_cache_breakpoint =
+            {
+              ?mode: :explicit,
+              ?ttl: OpenAI::Models::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::ttl
+            }
+
+          class PromptCacheBreakpoint < OpenAI::Internal::Type::BaseModel
+            # The breakpoint mode. Always `explicit`.
+            attr_accessor mode: :explicit
+
+            # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+            attr_reader ttl: OpenAI::Models::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::ttl?
+
+            # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+            def ttl=: (
+              OpenAI::Models::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::ttl
+            ) -> OpenAI::Models::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::ttl
+
+            # @param ttl
+            #   The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+            # @param mode
+            #   The breakpoint mode. Always `explicit`.
+            def initialize: (
+              ?ttl: OpenAI::Models::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::ttl,
+              ?mode: :explicit
+            ) -> void
+
+            def to_hash: -> {
+              ?mode: :explicit,
+              ?ttl: OpenAI::Models::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::ttl
+            }
+
+            type ttl = :"30m" | :"12h"
+
+            module Ttl
+              extend OpenAI::Internal::Type::Enum
+
+              TTL_30M: :"30m"
+              TTL_12H: :"12h"
+
+              def self?.values: -> ::Array[OpenAI::Models::Chat::ChatCompletionContentPart::File::PromptCacheBreakpoint::ttl]
+            end
+          end
+        end
+
+        def self?.variants: -> ::Array[OpenAI::Models::Chat::chat_completion_content_part]
+      end
+    end
+  end
+end

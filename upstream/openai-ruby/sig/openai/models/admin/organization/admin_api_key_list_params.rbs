@@ -1,0 +1,68 @@
+module OpenAI
+  module Models
+    module Admin
+      module Organization
+        type admin_api_key_list_params =
+          {
+            ?after: String?,
+            ?limit: Integer,
+            ?order: OpenAI::Models::Admin::Organization::AdminAPIKeyListParams::order,
+            ?request_options: OpenAI::request_opts
+          }
+
+        class AdminAPIKeyListParams < OpenAI::Internal::Type::BaseModel
+          extend OpenAI::Internal::Type::RequestParameters::Converter
+          include OpenAI::Internal::Type::RequestParameters
+
+          # Return keys with IDs that come after this ID in the pagination order.
+          attr_accessor after: String?
+
+          # Maximum number of keys to return.
+          attr_reader limit: Integer?
+
+          # Maximum number of keys to return.
+          def limit=: (Integer) -> Integer
+
+          # Order results by creation time, ascending or descending.
+          attr_reader order: OpenAI::Models::Admin::Organization::AdminAPIKeyListParams::order?
+
+          # Order results by creation time, ascending or descending.
+          def order=: (
+            OpenAI::Models::Admin::Organization::AdminAPIKeyListParams::order
+          ) -> OpenAI::Models::Admin::Organization::AdminAPIKeyListParams::order
+
+          # @param after
+          #   Return keys with IDs that come after this ID in the pagination order.
+          # @param limit
+          #   Maximum number of keys to return.
+          # @param order
+          #   Order results by creation time, ascending or descending.
+          def initialize: (
+            ?after: String?,
+            ?limit: Integer,
+            ?order: OpenAI::Models::Admin::Organization::AdminAPIKeyListParams::order,
+            ?request_options: OpenAI::request_opts
+          ) -> void
+
+          def to_hash: -> {
+            ?after: String?,
+            ?limit: Integer,
+            ?order: OpenAI::Models::Admin::Organization::AdminAPIKeyListParams::order,
+            ?request_options: OpenAI::RequestOptions
+          }
+
+          type order = :asc | :desc
+
+          module Order
+            extend OpenAI::Internal::Type::Enum
+
+            ASC: :asc
+            DESC: :desc
+
+            def self?.values: -> ::Array[OpenAI::Models::Admin::Organization::AdminAPIKeyListParams::order]
+          end
+        end
+      end
+    end
+  end
+end

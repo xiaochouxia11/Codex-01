@@ -1,0 +1,349 @@
+module OpenAI
+  module Models
+    module Live
+      type session_config =
+        {
+          model: OpenAI::Models::Live::SessionConfig::model,
+          ?audio: OpenAI::Live::SessionConfig::Audio,
+          ?client: OpenAI::Live::ClientConfig,
+          ?delegation: OpenAI::Models::Live::SessionConfig::delegation?,
+          ?input: ::Array[OpenAI::Models::Live::initial_item],
+          ?instructions: String?,
+          ?store: bool,
+          ?triggers: ::Array[OpenAI::Live::DecisionTrigger]
+        }
+
+      class SessionConfig < OpenAI::Internal::Type::BaseModel
+        # The Live model. Required in the session configuration for every transport; do
+        # not pass it as a URL query parameter.
+        attr_accessor model: OpenAI::Models::Live::SessionConfig::model
+
+        # Startup audio configuration. Only primary WebSockets accept audio.format; WebRTC
+        # and SIP negotiate their media format. Voice and format are immutable after
+        # startup.
+        attr_reader audio: OpenAI::Live::SessionConfig::Audio?
+
+        # Startup audio configuration. Only primary WebSockets accept audio.format; WebRTC
+        # and SIP negotiate their media format. Voice and format are immutable after
+        # startup.
+        def audio=: (
+          OpenAI::Live::SessionConfig::Audio
+        ) -> OpenAI::Live::SessionConfig::Audio
+
+        # Startup-only capabilities for an untrusted frontend attached to a unified WebRTC
+        # session. Trusted sideband connections are unaffected.
+        attr_reader client: OpenAI::Live::ClientConfig?
+
+        # Startup-only capabilities for an untrusted frontend attached to a unified WebRTC
+        # session. Trusted sideband connections are unaffected.
+        def client=: (OpenAI::Live::ClientConfig) -> OpenAI::Live::ClientConfig
+
+        # Who handles tasks delegated by the Live model. Omitted or null selects your
+        # application; use `responses` or `decisions` to delegate to the corresponding
+        # API.
+        attr_accessor delegation: OpenAI::Models::Live::SessionConfig::delegation?
+
+        # Ordered text-only history supplied before startup. Supports developer, user, and
+        # assistant messages with one text part each; at most 128 messages and a
+        # configured rendered-token limit (8,192 by default).
+        attr_reader input: ::Array[OpenAI::Models::Live::initial_item]?
+
+        # Ordered text-only history supplied before startup. Supports developer, user, and
+        # assistant messages with one text part each; at most 128 messages and a
+        # configured rendered-token limit (8,192 by default).
+        def input=: (
+          ::Array[OpenAI::Models::Live::initial_item]
+        ) -> ::Array[OpenAI::Models::Live::initial_item]
+
+        # Frontend instructions for voice, conversation, interruptions, and when to
+        # delegate. Start with the
+        # [Live prompting guide](https://developers.openai.com/api/docs/guides/live-prompting);
+        # put business rules and tool workflows in a separate
+        # [backend prompt](https://developers.openai.com/api/docs/guides/live-delegation#start-with-your-existing-backend-prompt).
+        # Limited to 16,384 client-supplied tokens. Omitted or blank instructions use
+        # server defaults. Immutable after startup.
+        attr_accessor instructions: String?
+
+        # Whether to store the session for later forking and recording download. Defaults
+        # to false for new sessions.
+        attr_reader store: bool?
+
+        # Whether to store the session for later forking and recording download. Defaults
+        # to false for new sessions.
+        def store=: (bool) -> bool
+
+        # At most one Decisions trigger per transcript event type. Triggers run
+        # independently of delegation. On update, omit triggers to keep the current
+        # configuration, send a list to replace it, or send an empty list to disable
+        # triggers.
+        attr_reader triggers: ::Array[OpenAI::Live::DecisionTrigger]?
+
+        # At most one Decisions trigger per transcript event type. Triggers run
+        # independently of delegation. On update, omit triggers to keep the current
+        # configuration, send a list to replace it, or send an empty list to disable
+        # triggers.
+        def triggers=: (
+          ::Array[OpenAI::Live::DecisionTrigger]
+        ) -> ::Array[OpenAI::Live::DecisionTrigger]
+
+        # @param model
+        #   The Live model. Required in the session configuration for every transport; do
+        #   not pass it as a URL query parameter.
+        # @param audio
+        #   Startup audio configuration. Only primary WebSockets accept audio.format; WebRTC
+        #   and SIP negotiate their media format. Voice and format are immutable after
+        #   startup.
+        # @param client
+        #   Startup-only capabilities for an untrusted frontend attached to a unified WebRTC
+        #   session. Trusted sideband connections are unaffected.
+        # @param delegation
+        #   Who handles tasks delegated by the Live model. Omitted or null selects your
+        #   application; use `responses` or `decisions` to delegate to the corresponding
+        #   API.
+        # @param input
+        #   Ordered text-only history supplied before startup. Supports developer, user, and
+        #   assistant messages with one text part each; at most 128 messages and a
+        #   configured rendered-token limit (8,192 by default).
+        # @param instructions
+        #   Frontend instructions for voice, conversation, interruptions, and when to
+        #   delegate. Start with the
+        #   [Live prompting guide](https://developers.openai.com/api/docs/guides/live-prompting);
+        #   put business rules and tool workflows in a separate
+        #   [backend prompt](https://developers.openai.com/api/docs/guides/live-delegation#start-with-your-existing-backend-prompt).
+        #   Limited to 16,384 client-supplied tokens. Omitted or blank instructions use
+        #   server defaults. Immutable after startup.
+        # @param store
+        #   Whether to store the session for later forking and recording download. Defaults
+        #   to false for new sessions.
+        # @param triggers
+        #   At most one Decisions trigger per transcript event type. Triggers run
+        #   independently of delegation. On update, omit triggers to keep the current
+        #   configuration, send a list to replace it, or send an empty list to disable
+        #   triggers.
+        def initialize: (
+          model: OpenAI::Models::Live::SessionConfig::model,
+          ?audio: OpenAI::Live::SessionConfig::Audio,
+          ?client: OpenAI::Live::ClientConfig,
+          ?delegation: OpenAI::Models::Live::SessionConfig::delegation?,
+          ?input: ::Array[OpenAI::Models::Live::initial_item],
+          ?instructions: String?,
+          ?store: bool,
+          ?triggers: ::Array[OpenAI::Live::DecisionTrigger]
+        ) -> void
+
+        def to_hash: -> {
+          model: OpenAI::Models::Live::SessionConfig::model,
+          ?audio: OpenAI::Live::SessionConfig::Audio,
+          ?client: OpenAI::Live::ClientConfig,
+          ?delegation: OpenAI::Models::Live::SessionConfig::delegation?,
+          ?input: ::Array[OpenAI::Models::Live::initial_item],
+          ?instructions: String?,
+          ?store: bool,
+          ?triggers: ::Array[OpenAI::Live::DecisionTrigger]
+        }
+
+        type model = String | :"gpt-live-1"
+
+        module Model
+          extend OpenAI::Internal::Type::Union
+
+          def self?.variants: -> ::Array[OpenAI::Models::Live::SessionConfig::model]
+
+          GPT_LIVE_1: :"gpt-live-1"
+        end
+
+        type audio =
+          {
+            ?format_: OpenAI::Models::Live::audio_format,
+            ?output: OpenAI::Live::SessionConfig::Audio::Output
+          }
+
+        class Audio < OpenAI::Internal::Type::BaseModel
+          # Audio encoding and sample rate for audio sent and received over a Live WebSocket
+          # connection. WebRTC and SIP negotiate their media format separately.
+          attr_reader format_: OpenAI::Models::Live::audio_format?
+
+          # Audio encoding and sample rate for audio sent and received over a Live WebSocket
+          # connection. WebRTC and SIP negotiate their media format separately.
+          def format_=: (
+            OpenAI::Models::Live::audio_format
+          ) -> OpenAI::Models::Live::audio_format
+
+          # The voice used for speech generated by the Live model.
+          attr_reader output: OpenAI::Live::SessionConfig::Audio::Output?
+
+          # The voice used for speech generated by the Live model.
+          def output=: (
+            OpenAI::Live::SessionConfig::Audio::Output
+          ) -> OpenAI::Live::SessionConfig::Audio::Output
+
+          # @param format_
+          #   Audio encoding and sample rate for audio sent and received over a Live WebSocket
+          #   connection. WebRTC and SIP negotiate their media format separately.
+          # @param output
+          #   The voice used for speech generated by the Live model.
+          def initialize: (
+            ?format_: OpenAI::Models::Live::audio_format,
+            ?output: OpenAI::Live::SessionConfig::Audio::Output
+          ) -> void
+
+          def to_hash: -> {
+            ?format_: OpenAI::Models::Live::audio_format,
+            ?output: OpenAI::Live::SessionConfig::Audio::Output
+          }
+
+          type output =
+            {
+              ?voice: OpenAI::Models::Live::SessionConfig::Audio::Output::voice
+            }
+
+          class Output < OpenAI::Internal::Type::BaseModel
+            # The voice used for Live speech, as a built-in voice name or a custom voice
+            # object containing its ID. Defaults to `marin` and cannot change after startup.
+            attr_reader voice: OpenAI::Models::Live::SessionConfig::Audio::Output::voice?
+
+            # The voice used for Live speech, as a built-in voice name or a custom voice
+            # object containing its ID. Defaults to `marin` and cannot change after startup.
+            def voice=: (
+              OpenAI::Models::Live::SessionConfig::Audio::Output::voice
+            ) -> OpenAI::Models::Live::SessionConfig::Audio::Output::voice
+
+            # @param voice
+            #   The voice used for Live speech, as a built-in voice name or a custom voice
+            #   object containing its ID. Defaults to `marin` and cannot change after startup.
+            def initialize: (
+              ?voice: OpenAI::Models::Live::SessionConfig::Audio::Output::voice
+            ) -> void
+
+            def to_hash: -> {
+              ?voice: OpenAI::Models::Live::SessionConfig::Audio::Output::voice
+            }
+
+            type voice =
+              String
+              | OpenAI::Models::Live::built_in_voice
+              | OpenAI::Live::CustomVoice
+
+            module Voice
+              extend OpenAI::Internal::Type::Union
+
+              def self?.variants: -> ::Array[OpenAI::Models::Live::SessionConfig::Audio::Output::voice]
+            end
+          end
+        end
+
+        type delegation =
+          OpenAI::Live::ClientDelegation
+          | OpenAI::Live::SessionConfig::Delegation::Responses
+          | OpenAI::Live::SessionConfig::Delegation::Decisions
+
+        module Delegation
+          extend OpenAI::Internal::Type::Union
+
+          type responses =
+            {
+              responses: OpenAI::Live::ResponsesDelegationConfig,
+              ?type: :responses,
+              ?acknowledgement_delay_ms: Integer
+            }
+
+          class Responses < OpenAI::Internal::Type::BaseModel
+            # Backend model, prompt, and tools used when the Live session delegates a task to
+            # Responses.
+            attr_accessor responses: OpenAI::Live::ResponsesDelegationConfig
+
+            # The delegation owner. Always `responses` for tasks handled by the Responses API.
+            attr_accessor type: :responses
+
+            # Milliseconds to wait before requesting an automatic spoken acknowledgement for a
+            # delegation. The model may still speak before this delay. Any commentary or
+            # thinking appended to the session cancels all pending acknowledgements, including
+            # those for other delegations. Defaults to 400 for Decisions sessions and 0
+            # (request immediately) for other sessions. Omission in a session update preserves
+            # the current value. Updates apply to subsequent delegations.
+            attr_reader acknowledgement_delay_ms: Integer?
+
+            # Milliseconds to wait before requesting an automatic spoken acknowledgement for a
+            # delegation. The model may still speak before this delay. Any commentary or
+            # thinking appended to the session cancels all pending acknowledgements, including
+            # those for other delegations. Defaults to 400 for Decisions sessions and 0
+            # (request immediately) for other sessions. Omission in a session update preserves
+            # the current value. Updates apply to subsequent delegations.
+            def acknowledgement_delay_ms=: (Integer) -> Integer
+
+            # @param responses
+            #   Backend model, prompt, and tools used when the Live session delegates a task to
+            #   Responses.
+            # @param acknowledgement_delay_ms
+            #   Milliseconds to wait before requesting an automatic spoken acknowledgement for a
+            #   delegation. The model may still speak before this delay. Any commentary or
+            #   thinking appended to the session cancels all pending acknowledgements, including
+            #   those for other delegations. Defaults to 400 for Decisions sessions and 0
+            #   (request immediately) for other sessions. Omission in a session update preserves
+            #   the current value. Updates apply to subsequent delegations.
+            # @param type
+            #   The delegation owner. Always `responses` for tasks handled by the Responses API.
+            def initialize: (
+              responses: OpenAI::Live::ResponsesDelegationConfig,
+              ?acknowledgement_delay_ms: Integer,
+              ?type: :responses
+            ) -> void
+
+            def to_hash: -> {
+              responses: OpenAI::Live::ResponsesDelegationConfig,
+              ?type: :responses,
+              ?acknowledgement_delay_ms: Integer
+            }
+          end
+
+          type decisions =
+            {
+              decisions: OpenAI::Live::DecisionsDelegationConfig,
+              ?type: :decisions,
+              ?acknowledgement_delay_ms: Integer
+            }
+
+          class Decisions < OpenAI::Internal::Type::BaseModel
+            attr_accessor decisions: OpenAI::Live::DecisionsDelegationConfig
+
+            attr_accessor type: :decisions
+
+            # Milliseconds to wait before requesting an automatic spoken acknowledgement for a
+            # delegation. The model may still speak before this delay. Any commentary or
+            # thinking appended to the session cancels all pending acknowledgements, including
+            # those for other delegations. Defaults to 400. Updates apply to subsequent
+            # delegations.
+            attr_reader acknowledgement_delay_ms: Integer?
+
+            # Milliseconds to wait before requesting an automatic spoken acknowledgement for a
+            # delegation. The model may still speak before this delay. Any commentary or
+            # thinking appended to the session cancels all pending acknowledgements, including
+            # those for other delegations. Defaults to 400. Updates apply to subsequent
+            # delegations.
+            def acknowledgement_delay_ms=: (Integer) -> Integer
+
+            # @param acknowledgement_delay_ms
+            #   Milliseconds to wait before requesting an automatic spoken acknowledgement for a
+            #   delegation. The model may still speak before this delay. Any commentary or
+            #   thinking appended to the session cancels all pending acknowledgements, including
+            #   those for other delegations. Defaults to 400. Updates apply to subsequent
+            #   delegations.
+            def initialize: (
+              decisions: OpenAI::Live::DecisionsDelegationConfig,
+              ?acknowledgement_delay_ms: Integer,
+              ?type: :decisions
+            ) -> void
+
+            def to_hash: -> {
+              decisions: OpenAI::Live::DecisionsDelegationConfig,
+              ?type: :decisions,
+              ?acknowledgement_delay_ms: Integer
+            }
+          end
+
+          def self?.variants: -> ::Array[OpenAI::Models::Live::SessionConfig::delegation]
+        end
+      end
+    end
+  end
+end

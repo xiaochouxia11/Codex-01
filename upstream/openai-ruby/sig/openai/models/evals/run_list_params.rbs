@@ -1,0 +1,107 @@
+module OpenAI
+  module Models
+    module Evals
+      type run_list_params =
+        {
+          eval_id: String,
+          ?after: String,
+          ?limit: Integer,
+          ?order: OpenAI::Models::Evals::RunListParams::order,
+          ?status: OpenAI::Models::Evals::RunListParams::status,
+          ?request_options: OpenAI::request_opts
+        }
+
+      class RunListParams < OpenAI::Internal::Type::BaseModel
+        extend OpenAI::Internal::Type::RequestParameters::Converter
+        include OpenAI::Internal::Type::RequestParameters
+
+        attr_accessor eval_id: String
+
+        # Identifier for the last run from the previous pagination request.
+        attr_reader after: String?
+
+        # Identifier for the last run from the previous pagination request.
+        def after=: (String) -> String
+
+        # Number of runs to retrieve.
+        attr_reader limit: Integer?
+
+        # Number of runs to retrieve.
+        def limit=: (Integer) -> Integer
+
+        # Sort order for runs by timestamp. Use `asc` for ascending order or `desc` for
+        # descending order. Defaults to `asc`.
+        attr_reader order: OpenAI::Models::Evals::RunListParams::order?
+
+        # Sort order for runs by timestamp. Use `asc` for ascending order or `desc` for
+        # descending order. Defaults to `asc`.
+        def order=: (
+          OpenAI::Models::Evals::RunListParams::order
+        ) -> OpenAI::Models::Evals::RunListParams::order
+
+        # Filter runs by status. One of `queued` | `in_progress` | `failed` | `completed`
+        # | `canceled`.
+        attr_reader status: OpenAI::Models::Evals::RunListParams::status?
+
+        # Filter runs by status. One of `queued` | `in_progress` | `failed` | `completed`
+        # | `canceled`.
+        def status=: (
+          OpenAI::Models::Evals::RunListParams::status
+        ) -> OpenAI::Models::Evals::RunListParams::status
+
+        # @param after
+        #   Identifier for the last run from the previous pagination request.
+        # @param limit
+        #   Number of runs to retrieve.
+        # @param order
+        #   Sort order for runs by timestamp. Use `asc` for ascending order or `desc` for
+        #   descending order. Defaults to `asc`.
+        # @param status
+        #   Filter runs by status. One of `queued` | `in_progress` | `failed` | `completed`
+        #   | `canceled`.
+        def initialize: (
+          eval_id: String,
+          ?after: String,
+          ?limit: Integer,
+          ?order: OpenAI::Models::Evals::RunListParams::order,
+          ?status: OpenAI::Models::Evals::RunListParams::status,
+          ?request_options: OpenAI::request_opts
+        ) -> void
+
+        def to_hash: -> {
+          eval_id: String,
+          ?after: String,
+          ?limit: Integer,
+          ?order: OpenAI::Models::Evals::RunListParams::order,
+          ?status: OpenAI::Models::Evals::RunListParams::status,
+          ?request_options: OpenAI::RequestOptions
+        }
+
+        type order = :asc | :desc
+
+        module Order
+          extend OpenAI::Internal::Type::Enum
+
+          ASC: :asc
+          DESC: :desc
+
+          def self?.values: -> ::Array[OpenAI::Models::Evals::RunListParams::order]
+        end
+
+        type status = :queued | :in_progress | :completed | :canceled | :failed
+
+        module Status
+          extend OpenAI::Internal::Type::Enum
+
+          QUEUED: :queued
+          IN_PROGRESS: :in_progress
+          COMPLETED: :completed
+          CANCELED: :canceled
+          FAILED: :failed
+
+          def self?.values: -> ::Array[OpenAI::Models::Evals::RunListParams::status]
+        end
+      end
+    end
+  end
+end

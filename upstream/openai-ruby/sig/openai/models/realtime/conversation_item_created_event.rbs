@@ -1,0 +1,53 @@
+module OpenAI
+  module Models
+    module Realtime
+      type conversation_item_created_event =
+        {
+          event_id: String,
+          item: OpenAI::Models::Realtime::conversation_item,
+          ?type: :"conversation.item.created",
+          ?previous_item_id: String?
+        }
+
+      class ConversationItemCreatedEvent < OpenAI::Internal::Type::BaseModel
+        # The unique ID of the server event.
+        attr_accessor event_id: String
+
+        # A single item within a Realtime conversation.
+        attr_accessor item: OpenAI::Models::Realtime::conversation_item
+
+        # The event type, must be `conversation.item.created`.
+        attr_accessor type: :"conversation.item.created"
+
+        # The ID of the preceding item in the Conversation context, allows the client to
+        # understand the order of the conversation. Can be `null` if the item has no
+        # predecessor.
+        attr_accessor previous_item_id: String?
+
+        # @param event_id
+        #   The unique ID of the server event.
+        # @param item
+        #   A single item within a Realtime conversation.
+        # @param previous_item_id
+        #   The ID of the preceding item in the Conversation context, allows the client to
+        #   understand the order of the conversation. Can be `null` if the item has no
+        #   predecessor.
+        # @param type
+        #   The event type, must be `conversation.item.created`.
+        def initialize: (
+          event_id: String,
+          item: OpenAI::Models::Realtime::conversation_item,
+          ?previous_item_id: String?,
+          ?type: :"conversation.item.created"
+        ) -> void
+
+        def to_hash: -> {
+          event_id: String,
+          item: OpenAI::Models::Realtime::conversation_item,
+          ?type: :"conversation.item.created",
+          ?previous_item_id: String?
+        }
+      end
+    end
+  end
+end

@@ -1,0 +1,104 @@
+module OpenAI
+  module Models
+    module Responses
+      type response_configuration_update_item_param =
+        {
+          ?type: :configuration_update,
+          ?id: String?,
+          ?reasoning: OpenAI::Responses::ResponseConfigurationUpdateItemParam::Reasoning,
+          ?text: OpenAI::Responses::ResponseConfigurationUpdateItemParam::Text
+        }
+
+      class ResponseConfigurationUpdateItemParam < OpenAI::Internal::Type::BaseModel
+        # The item type. Always `configuration_update`.
+        attr_accessor type: :configuration_update
+
+        # The unique ID of the configuration update item.
+        attr_accessor id: String?
+
+        # Updates to reasoning configuration. Only effort is supported.
+        attr_reader reasoning: OpenAI::Responses::ResponseConfigurationUpdateItemParam::Reasoning?
+
+        # Updates to reasoning configuration. Only effort is supported.
+        def reasoning=: (
+          OpenAI::Responses::ResponseConfigurationUpdateItemParam::Reasoning
+        ) -> OpenAI::Responses::ResponseConfigurationUpdateItemParam::Reasoning
+
+        # The text output configuration for subsequent responses.
+        attr_reader text: OpenAI::Responses::ResponseConfigurationUpdateItemParam::Text?
+
+        # The text output configuration for subsequent responses.
+        def text=: (
+          OpenAI::Responses::ResponseConfigurationUpdateItemParam::Text
+        ) -> OpenAI::Responses::ResponseConfigurationUpdateItemParam::Text
+
+        # @param id
+        #   The unique ID of the configuration update item.
+        # @param reasoning
+        #   Updates to reasoning configuration. Only effort is supported.
+        # @param text
+        #   The text output configuration for subsequent responses.
+        # @param type
+        #   The item type. Always `configuration_update`.
+        def initialize: (
+          ?id: String?,
+          ?reasoning: OpenAI::Responses::ResponseConfigurationUpdateItemParam::Reasoning,
+          ?text: OpenAI::Responses::ResponseConfigurationUpdateItemParam::Text,
+          ?type: :configuration_update
+        ) -> void
+
+        def to_hash: -> {
+          ?type: :configuration_update,
+          ?id: String?,
+          ?reasoning: OpenAI::Responses::ResponseConfigurationUpdateItemParam::Reasoning,
+          ?text: OpenAI::Responses::ResponseConfigurationUpdateItemParam::Text
+        }
+
+        type reasoning = { ?effort: OpenAI::Models::reasoning_effort? }
+
+        class Reasoning < OpenAI::Internal::Type::BaseModel
+          # The reasoning effort to use for subsequent responses until another configuration
+          # update replaces it.
+          attr_accessor effort: OpenAI::Models::reasoning_effort?
+
+          # @param effort
+          #   The reasoning effort to use for subsequent responses until another configuration
+          #   update replaces it.
+          def initialize: (?effort: OpenAI::Models::reasoning_effort?) -> void
+
+          def to_hash: -> { ?effort: OpenAI::Models::reasoning_effort? }
+        end
+
+        type text =
+          {
+            format_: OpenAI::Models::Responses::ResponseConfigurationUpdateItemParam::Text::format_
+          }
+
+        class Text < OpenAI::Internal::Type::BaseModel
+          # Use a JSON schema for structured output or text to return to plain text.
+          attr_accessor format_: OpenAI::Models::Responses::ResponseConfigurationUpdateItemParam::Text::format_
+
+          # @param format_
+          #   Use a JSON schema for structured output or text to return to plain text.
+          def initialize: (
+            format_: OpenAI::Models::Responses::ResponseConfigurationUpdateItemParam::Text::format_
+          ) -> void
+
+          def to_hash: -> {
+            format_: OpenAI::Models::Responses::ResponseConfigurationUpdateItemParam::Text::format_
+          }
+
+          type format_ =
+            OpenAI::ResponseFormatText
+            | OpenAI::Responses::ResponseFormatTextJSONSchemaConfig
+
+          module Format
+            extend OpenAI::Internal::Type::Union
+
+            def self?.variants: -> ::Array[OpenAI::Models::Responses::ResponseConfigurationUpdateItemParam::Text::format_]
+          end
+        end
+      end
+    end
+  end
+end

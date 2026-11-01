@@ -1,0 +1,17 @@
+module OpenAI
+  module Resources
+    class Audio
+      attr_reader transcriptions: OpenAI::Resources::Audio::Transcriptions
+
+      attr_reader translations: OpenAI::Resources::Audio::Translations
+
+      attr_reader speech: OpenAI::Resources::Audio::Speech
+
+      attr_reader voices: OpenAI::Resources::Audio::Voices
+
+      attr_reader voice_consents: OpenAI::Resources::Audio::VoiceConsents
+
+      def initialize: (client: OpenAI::Client) -> void
+    end
+  end
+end

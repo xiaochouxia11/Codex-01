@@ -1,0 +1,233 @@
+# typed: strong
+
+module OpenAI
+  module Models
+
+    BetaResponseInputFile = Beta::BetaResponseInputFile
+
+    module Beta
+
+      class BetaResponseInputFile < OpenAI::Internal::Type::BaseModel
+
+        OrHash = T.type_alias do
+          T.any(
+            OpenAI::Beta::BetaResponseInputFile,
+            OpenAI::Internal::AnyHash
+          )
+        end
+
+        # The type of the input item. Always `input_file`.
+        sig { returns(Symbol) }
+        attr_accessor :type
+
+        # The detail level of the file to be sent to the model. Use `auto` to let the
+        # system select the detail level; for GPT-5.6 and later models, `auto` uses
+        # high-quality rendering, which may increase input token usage. Use `low` for
+        # lower-cost rendering, or `high` to render the file at higher quality. Defaults
+        # to `auto`.
+        sig { returns(T.nilable(OpenAI::Beta::BetaResponseInputFile::Detail::OrSymbol)) }
+        attr_reader :detail
+
+        sig { params(detail: OpenAI::Beta::BetaResponseInputFile::Detail::OrSymbol).void }
+        attr_writer :detail
+
+        # The content of the file to be sent to the model.
+        sig { returns(T.nilable(String)) }
+        attr_reader :file_data
+
+        sig { params(file_data: String).void }
+        attr_writer :file_data
+
+        # The ID of the file to be sent to the model.
+        sig { returns(T.nilable(String)) }
+        attr_accessor :file_id
+
+        # The URL of the file to be sent to the model.
+        sig { returns(T.nilable(String)) }
+        attr_reader :file_url
+
+        sig { params(file_url: String).void }
+        attr_writer :file_url
+
+        # The name of the file to be sent to the model.
+        sig { returns(T.nilable(String)) }
+        attr_reader :filename
+
+        sig { params(filename: String).void }
+        attr_writer :filename
+
+        # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+        # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+        # not rounded to a token block.
+        sig { returns(T.nilable(OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint)) }
+        attr_reader :prompt_cache_breakpoint
+
+        sig {
+          params(prompt_cache_breakpoint: OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint::OrHash).void
+        }
+        attr_writer :prompt_cache_breakpoint
+
+        # A file input to the model.
+        sig do
+          params(
+
+            detail: OpenAI::Beta::BetaResponseInputFile::Detail::OrSymbol,
+
+            file_data: String,
+
+            file_id: T.nilable(String),
+
+            file_url: String,
+
+            filename: String,
+
+            prompt_cache_breakpoint: OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint::OrHash,
+
+            type: Symbol
+          )
+            .returns(T.attached_class)
+        end
+        def self.new(
+
+          # The detail level of the file to be sent to the model. Use `auto` to let the
+          # system select the detail level; for GPT-5.6 and later models, `auto` uses
+          # high-quality rendering, which may increase input token usage. Use `low` for
+          # lower-cost rendering, or `high` to render the file at higher quality. Defaults
+          # to `auto`.
+          detail: nil,
+
+          # The content of the file to be sent to the model.
+          file_data: nil,
+
+          # The ID of the file to be sent to the model.
+          file_id: nil,
+
+          # The URL of the file to be sent to the model.
+          file_url: nil,
+
+          # The name of the file to be sent to the model.
+          filename: nil,
+
+          # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+          # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+          # not rounded to a token block.
+          prompt_cache_breakpoint: nil,
+
+          # The type of the input item. Always `input_file`.
+
+          type: :input_file
+        )
+        end
+
+        sig do
+          override.returns(
+            {
+              type: Symbol,
+              detail: OpenAI::Beta::BetaResponseInputFile::Detail::OrSymbol,
+              file_data: String,
+              file_id: T.nilable(String),
+              file_url: String,
+              filename: String,
+              prompt_cache_breakpoint: OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint
+            }
+          )
+        end
+        def to_hash
+        end
+
+        # The detail level of the file to be sent to the model. Use `auto` to let the
+        # system select the detail level; for GPT-5.6 and later models, `auto` uses
+        # high-quality rendering, which may increase input token usage. Use `low` for
+        # lower-cost rendering, or `high` to render the file at higher quality. Defaults
+        # to `auto`.
+        module Detail
+          extend OpenAI::Internal::Type::Enum
+
+          TaggedSymbol = T.type_alias { T.all(Symbol, OpenAI::Beta::BetaResponseInputFile::Detail) }
+          OrSymbol = T.type_alias { T.any(Symbol, String) }
+
+          AUTO = T.let(:auto, OpenAI::Beta::BetaResponseInputFile::Detail::TaggedSymbol)
+          LOW = T.let(:low, OpenAI::Beta::BetaResponseInputFile::Detail::TaggedSymbol)
+          HIGH = T.let(:high, OpenAI::Beta::BetaResponseInputFile::Detail::TaggedSymbol)
+
+          sig { override.returns(T::Array[OpenAI::Beta::BetaResponseInputFile::Detail::TaggedSymbol]) }
+          def self.values
+          end
+        end
+
+        class PromptCacheBreakpoint < OpenAI::Internal::Type::BaseModel
+          OrHash = T.type_alias do
+            T.any(
+              OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint,
+              OpenAI::Internal::AnyHash
+            )
+          end
+
+          # The breakpoint mode. Always `explicit`.
+          sig { returns(Symbol) }
+          attr_accessor :mode
+
+          # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          sig { returns(T.nilable(OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint::Ttl::OrSymbol)) }
+          attr_reader :ttl
+
+          sig { params(ttl: OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint::Ttl::OrSymbol).void }
+          attr_writer :ttl
+
+          # Marks the exact end of a reusable prompt prefix. When `ttl` is omitted, the
+          # breakpoint inherits the request's `prompt_cache_options.ttl`; the boundary is
+          # not rounded to a token block.
+          sig do
+            params(
+
+              ttl: OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint::Ttl::OrSymbol,
+
+              mode: Symbol
+            )
+              .returns(T.attached_class)
+          end
+          def self.new(
+
+            # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+            ttl: nil,
+
+            # The breakpoint mode. Always `explicit`.
+
+            mode: :explicit
+          )
+          end
+
+          sig do
+            override.returns(
+              {mode: Symbol, ttl: OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint::Ttl::OrSymbol}
+            )
+          end
+          def to_hash
+          end
+
+          # The minimum lifetime of this cache breakpoint. Defaults to the request TTL.
+          module Ttl
+            extend OpenAI::Internal::Type::Enum
+
+            TaggedSymbol = T.type_alias {
+              T.all(Symbol, OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint::Ttl)
+            }
+            OrSymbol = T.type_alias { T.any(Symbol, String) }
+
+            TTL_30M = T.let(:"30m", OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint::Ttl::TaggedSymbol)
+            TTL_12H = T.let(:"12h", OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint::Ttl::TaggedSymbol)
+
+            sig {
+              override.returns(T::Array[OpenAI::Beta::BetaResponseInputFile::PromptCacheBreakpoint::Ttl::TaggedSymbol])
+            }
+            def self.values
+            end
+          end
+        end
+
+      end
+
+    end
+
+  end
+end

@@ -1,0 +1,101 @@
+module OpenAI
+  module Internal
+    module Type
+      module Converter
+        extend OpenAI::Internal::Util::SorbetRuntimeSupport
+
+        type input = OpenAI::Internal::Type::Converter | Class
+
+        type coerce_state =
+          {
+            translate_names: bool,
+            request_only: bool,
+            strictness: bool,
+            exactness: { yes: Integer, no: Integer, maybe: Integer },
+            error: StandardError?,
+            branched: Integer,
+            memo: Hash[untyped, untyped]?
+          }
+
+        type dump_state = { can_retry: bool }
+
+        def coerce: (
+          top value,
+          state: OpenAI::Internal::Type::Converter::coerce_state
+        ) -> top
+
+        def dump: (
+          top value,
+          state: OpenAI::Internal::Type::Converter::dump_state
+        ) -> top
+
+        def inspect: (?depth: Integer) -> String
+
+        def self.type_info: (
+          {
+            const: (nil | bool | Integer | Float | Symbol)?,
+            enum: ^-> OpenAI::Internal::Type::Converter::input?,
+            union: ^-> OpenAI::Internal::Type::Converter::input?
+          }
+          | ^-> OpenAI::Internal::Type::Converter::input
+          | OpenAI::Internal::Type::Converter::input spec
+        ) -> (^-> top)
+
+        def self.meta_info: (
+          {
+            const: (nil | bool | Integer | Float | Symbol)?,
+            enum: ^-> OpenAI::Internal::Type::Converter::input?,
+            union: ^-> OpenAI::Internal::Type::Converter::input?
+          }
+          | ^-> OpenAI::Internal::Type::Converter::input
+          | OpenAI::Internal::Type::Converter::input type_info,
+          {
+            const: (nil | bool | Integer | Float | Symbol)?,
+            enum: ^-> OpenAI::Internal::Type::Converter::input?,
+            union: ^-> OpenAI::Internal::Type::Converter::input?
+          }
+          | ^-> OpenAI::Internal::Type::Converter::input
+          | OpenAI::Internal::Type::Converter::input spec
+        ) -> ::Hash[Symbol, top]
+
+        def self.new_coerce_state: (
+          ?translate_names: bool,
+          ?request_only: bool,
+          ?memoize: bool
+        ) -> OpenAI::Internal::Type::Converter::coerce_state
+
+        def self.coerce: (
+          OpenAI::Internal::Type::Converter::input target,
+          top value,
+          ?state: OpenAI::Internal::Type::Converter::coerce_state
+        ) -> top
+
+        # @api private
+        def self.resolve_type: (
+          ^-> untyped type_fn,
+          ?state: coerce_state?
+        ) -> untyped
+
+        def self.coerce_cached: (
+          OpenAI::Internal::Type::Converter target,
+          Hash[untyped, untyped] | Array[untyped] value,
+          state: OpenAI::Internal::Type::Converter::coerce_state
+        ) -> untyped
+
+        def self.coerce_with_error: (
+          OpenAI::Internal::Type::Converter::input target,
+          top value,
+          state: OpenAI::Internal::Type::Converter::coerce_state
+        ) -> [top, StandardError?]
+
+        def self.dump: (
+          OpenAI::Internal::Type::Converter::input target,
+          top value,
+          ?state: OpenAI::Internal::Type::Converter::dump_state
+        ) -> top
+
+        def self.inspect: (top target, depth: Integer) -> String
+      end
+    end
+  end
+end

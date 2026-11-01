@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+      - '!gh-readonly-queue/**'
+      - '!integrated/**'
+  pull_request:
+  merge_group:
+    types:
+      - checks_requested
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  checks:
+    name: ci
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event_name == 'merge_group' ||
+      github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/next'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci-checks.yml
+    with:
+      runner: ubuntu-latest
