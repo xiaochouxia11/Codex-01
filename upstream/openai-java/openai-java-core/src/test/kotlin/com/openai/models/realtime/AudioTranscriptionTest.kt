@@ -1,0 +1,42 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.realtime
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import kotlin.jvm.optionals.getOrNull
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class AudioTranscriptionTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val audioTranscription =
+            AudioTranscription.builder()
+                .delay(AudioTranscription.Delay.MINIMAL)
+                .addKeyword("string")
+                .language("language")
+                .addLanguage("string")
+                .model(AudioTranscription.Model.WHISPER_1)
+                .prompt("prompt")
+                .build()
+
+        assertThat(audioTranscription.delay()).contains(AudioTranscription.Delay.MINIMAL)
+        assertThat(audioTranscription.keywords().getOrNull()).containsExactly("string")
+        assertThat(audioTranscription.language()).contains("language")
+        assertThat(audioTranscription.languages().getOrNull()).containsExactly("string")
+        assertThat(audioTranscription.model()).contains(AudioTranscription.Model.WHISPER_1)
+        assertThat(audioTranscription.prompt()).contains("prompt")
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedAudioTranscription =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(audioTranscription),
+                jacksonTypeRef<AudioTranscription>(),
+            )
+
+        assertThat(roundtrippedAudioTranscription).isEqualTo(audioTranscription)
+    }
+}

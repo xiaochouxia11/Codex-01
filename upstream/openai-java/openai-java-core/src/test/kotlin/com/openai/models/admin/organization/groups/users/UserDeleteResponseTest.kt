@@ -1,0 +1,28 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.admin.organization.groups.users
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class UserDeleteResponseTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val userDeleteResponse = UserDeleteResponse.builder().deleted(true).build()
+
+        assertThat(userDeleteResponse.deleted()).isEqualTo(true)
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedUserDeleteResponse =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(userDeleteResponse),
+                jacksonTypeRef<UserDeleteResponse>(),
+            )
+
+        assertThat(roundtrippedUserDeleteResponse).isEqualTo(userDeleteResponse)
+    }
+}

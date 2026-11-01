@@ -1,0 +1,31 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.chat.completions
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class ChatCompletionPredictionContentTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val chatCompletionPredictionContent =
+            ChatCompletionPredictionContent.builder().content("string").build()
+
+        assertThat(chatCompletionPredictionContent.content())
+            .isEqualTo(ChatCompletionPredictionContent.Content.ofText("string"))
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedChatCompletionPredictionContent =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(chatCompletionPredictionContent),
+                jacksonTypeRef<ChatCompletionPredictionContent>(),
+            )
+
+        assertThat(roundtrippedChatCompletionPredictionContent)
+            .isEqualTo(chatCompletionPredictionContent)
+    }
+}

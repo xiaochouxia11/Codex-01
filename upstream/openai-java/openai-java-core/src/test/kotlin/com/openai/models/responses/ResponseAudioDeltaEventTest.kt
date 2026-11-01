@@ -1,0 +1,30 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.responses
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class ResponseAudioDeltaEventTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val responseAudioDeltaEvent =
+            ResponseAudioDeltaEvent.builder().delta("delta").sequenceNumber(0L).build()
+
+        assertThat(responseAudioDeltaEvent.delta()).isEqualTo("delta")
+        assertThat(responseAudioDeltaEvent.sequenceNumber()).isEqualTo(0L)
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedResponseAudioDeltaEvent =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(responseAudioDeltaEvent),
+                jacksonTypeRef<ResponseAudioDeltaEvent>(),
+            )
+
+        assertThat(roundtrippedResponseAudioDeltaEvent).isEqualTo(responseAudioDeltaEvent)
+    }
+}

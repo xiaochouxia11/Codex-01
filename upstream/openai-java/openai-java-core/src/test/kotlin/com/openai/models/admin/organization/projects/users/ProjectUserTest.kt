@@ -1,0 +1,39 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.admin.organization.projects.users
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class ProjectUserTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val projectUser =
+            ProjectUser.builder()
+                .id("id")
+                .addedAt(0L)
+                .role("role")
+                .email("email")
+                .name("name")
+                .build()
+
+        assertThat(projectUser.id()).isEqualTo("id")
+        assertThat(projectUser.addedAt()).isEqualTo(0L)
+        assertThat(projectUser.role()).isEqualTo("role")
+        assertThat(projectUser.email()).contains("email")
+        assertThat(projectUser.name()).contains("name")
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedProjectUser =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(projectUser),
+                jacksonTypeRef<ProjectUser>(),
+            )
+
+        assertThat(roundtrippedProjectUser).isEqualTo(projectUser)
+    }
+}

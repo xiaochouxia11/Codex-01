@@ -1,0 +1,29 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.beta.chatkit.threads
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class ChatSessionRateLimitsTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val chatSessionRateLimits =
+            ChatSessionRateLimits.builder().maxRequestsPer1Minute(0L).build()
+
+        assertThat(chatSessionRateLimits.maxRequestsPer1Minute()).isEqualTo(0L)
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedChatSessionRateLimits =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(chatSessionRateLimits),
+                jacksonTypeRef<ChatSessionRateLimits>(),
+            )
+
+        assertThat(roundtrippedChatSessionRateLimits).isEqualTo(chatSessionRateLimits)
+    }
+}

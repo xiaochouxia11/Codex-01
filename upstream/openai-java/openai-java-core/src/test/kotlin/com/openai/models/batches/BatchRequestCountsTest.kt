@@ -1,0 +1,31 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.batches
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class BatchRequestCountsTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val batchRequestCounts =
+            BatchRequestCounts.builder().completed(0L).failed(0L).total(0L).build()
+
+        assertThat(batchRequestCounts.completed()).isEqualTo(0L)
+        assertThat(batchRequestCounts.failed()).isEqualTo(0L)
+        assertThat(batchRequestCounts.total()).isEqualTo(0L)
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedBatchRequestCounts =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(batchRequestCounts),
+                jacksonTypeRef<BatchRequestCounts>(),
+            )
+
+        assertThat(roundtrippedBatchRequestCounts).isEqualTo(batchRequestCounts)
+    }
+}

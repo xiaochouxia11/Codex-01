@@ -1,0 +1,47 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.beta.responses
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class BetaResponseCustomToolCallTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val betaResponseCustomToolCall =
+            BetaResponseCustomToolCall.builder()
+                .callId("call_id")
+                .input("input")
+                .name("name")
+                .id("id")
+                .agent(BetaResponseCustomToolCall.Agent.builder().agentName("agent_name").build())
+                .async(true)
+                .callerDirect()
+                .namespace("namespace")
+                .build()
+
+        assertThat(betaResponseCustomToolCall.callId()).isEqualTo("call_id")
+        assertThat(betaResponseCustomToolCall.input()).isEqualTo("input")
+        assertThat(betaResponseCustomToolCall.name()).isEqualTo("name")
+        assertThat(betaResponseCustomToolCall.id()).contains("id")
+        assertThat(betaResponseCustomToolCall.agent())
+            .contains(BetaResponseCustomToolCall.Agent.builder().agentName("agent_name").build())
+        assertThat(betaResponseCustomToolCall.async()).contains(true)
+        assertThat(betaResponseCustomToolCall.caller())
+            .contains(BetaResponseCustomToolCall.Caller.ofDirect())
+        assertThat(betaResponseCustomToolCall.namespace()).contains("namespace")
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedBetaResponseCustomToolCall =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(betaResponseCustomToolCall),
+                jacksonTypeRef<BetaResponseCustomToolCall>(),
+            )
+
+        assertThat(roundtrippedBetaResponseCustomToolCall).isEqualTo(betaResponseCustomToolCall)
+    }
+}

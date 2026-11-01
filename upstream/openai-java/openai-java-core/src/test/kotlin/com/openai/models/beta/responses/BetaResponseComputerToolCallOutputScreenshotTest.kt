@@ -1,0 +1,35 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.beta.responses
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class BetaResponseComputerToolCallOutputScreenshotTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val betaResponseComputerToolCallOutputScreenshot =
+            BetaResponseComputerToolCallOutputScreenshot.builder()
+                .fileId("file_id")
+                .imageUrl("https://example.com")
+                .build()
+
+        assertThat(betaResponseComputerToolCallOutputScreenshot.fileId()).contains("file_id")
+        assertThat(betaResponseComputerToolCallOutputScreenshot.imageUrl())
+            .contains("https://example.com")
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedBetaResponseComputerToolCallOutputScreenshot =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(betaResponseComputerToolCallOutputScreenshot),
+                jacksonTypeRef<BetaResponseComputerToolCallOutputScreenshot>(),
+            )
+
+        assertThat(roundtrippedBetaResponseComputerToolCallOutputScreenshot)
+            .isEqualTo(betaResponseComputerToolCallOutputScreenshot)
+    }
+}

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+case "$*" in
+    "") task=formatKotlin ;;
+    "--dry-run --set-exit-if-changed"|"--set-exit-if-changed --dry-run") task=lintKotlin ;;
+    *) echo "Usage: $0 [--dry-run --set-exit-if-changed]" >&2; exit 2 ;;
+esac
+
+exec ./scripts/gradle "$task"

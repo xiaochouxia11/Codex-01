@@ -1,0 +1,29 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.evals.runs
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class EvalApiErrorTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val evalApiError = EvalApiError.builder().code("code").message("message").build()
+
+        assertThat(evalApiError.code()).isEqualTo("code")
+        assertThat(evalApiError.message()).isEqualTo("message")
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedEvalApiError =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(evalApiError),
+                jacksonTypeRef<EvalApiError>(),
+            )
+
+        assertThat(roundtrippedEvalApiError).isEqualTo(evalApiError)
+    }
+}

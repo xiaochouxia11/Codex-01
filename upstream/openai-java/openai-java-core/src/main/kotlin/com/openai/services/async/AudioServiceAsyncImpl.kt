@@ -1,0 +1,106 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.services.async
+
+import com.openai.core.ClientOptions
+import com.openai.services.async.audio.SpeechServiceAsync
+import com.openai.services.async.audio.SpeechServiceAsyncImpl
+import com.openai.services.async.audio.TranscriptionServiceAsync
+import com.openai.services.async.audio.TranscriptionServiceAsyncImpl
+import com.openai.services.async.audio.TranslationServiceAsync
+import com.openai.services.async.audio.TranslationServiceAsyncImpl
+import com.openai.services.async.audio.VoiceConsentServiceAsync
+import com.openai.services.async.audio.VoiceConsentServiceAsyncImpl
+import com.openai.services.async.audio.VoiceServiceAsync
+import com.openai.services.async.audio.VoiceServiceAsyncImpl
+import java.util.function.Consumer
+
+class AudioServiceAsyncImpl internal constructor(private val clientOptions: ClientOptions) :
+    AudioServiceAsync {
+
+    private val withRawResponse: AudioServiceAsync.WithRawResponse by lazy {
+        WithRawResponseImpl(clientOptions)
+    }
+
+    private val transcriptions: TranscriptionServiceAsync by lazy {
+        TranscriptionServiceAsyncImpl(clientOptions)
+    }
+
+    private val translations: TranslationServiceAsync by lazy {
+        TranslationServiceAsyncImpl(clientOptions)
+    }
+
+    private val speech: SpeechServiceAsync by lazy { SpeechServiceAsyncImpl(clientOptions) }
+
+    private val voices: VoiceServiceAsync by lazy { VoiceServiceAsyncImpl(clientOptions) }
+
+    private val voiceConsents: VoiceConsentServiceAsync by lazy {
+        VoiceConsentServiceAsyncImpl(clientOptions)
+    }
+
+    override fun withRawResponse(): AudioServiceAsync.WithRawResponse = withRawResponse
+
+    override fun withOptions(modifier: Consumer<ClientOptions.Builder>): AudioServiceAsync =
+        AudioServiceAsyncImpl(clientOptions.toBuilder().apply(modifier::accept).build())
+
+    /** Turn audio into text or text into audio. */
+    override fun transcriptions(): TranscriptionServiceAsync = transcriptions
+
+    /** Turn audio into text or text into audio. */
+    override fun translations(): TranslationServiceAsync = translations
+
+    /** Turn audio into text or text into audio. */
+    override fun speech(): SpeechServiceAsync = speech
+
+    /** Turn audio into text or text into audio. */
+    override fun voices(): VoiceServiceAsync = voices
+
+    /** Turn audio into text or text into audio. */
+    override fun voiceConsents(): VoiceConsentServiceAsync = voiceConsents
+
+    class WithRawResponseImpl internal constructor(private val clientOptions: ClientOptions) :
+        AudioServiceAsync.WithRawResponse {
+
+        private val transcriptions: TranscriptionServiceAsync.WithRawResponse by lazy {
+            TranscriptionServiceAsyncImpl.WithRawResponseImpl(clientOptions)
+        }
+
+        private val translations: TranslationServiceAsync.WithRawResponse by lazy {
+            TranslationServiceAsyncImpl.WithRawResponseImpl(clientOptions)
+        }
+
+        private val speech: SpeechServiceAsync.WithRawResponse by lazy {
+            SpeechServiceAsyncImpl.WithRawResponseImpl(clientOptions)
+        }
+
+        private val voices: VoiceServiceAsync.WithRawResponse by lazy {
+            VoiceServiceAsyncImpl.WithRawResponseImpl(clientOptions)
+        }
+
+        private val voiceConsents: VoiceConsentServiceAsync.WithRawResponse by lazy {
+            VoiceConsentServiceAsyncImpl.WithRawResponseImpl(clientOptions)
+        }
+
+        override fun withOptions(
+            modifier: Consumer<ClientOptions.Builder>
+        ): AudioServiceAsync.WithRawResponse =
+            AudioServiceAsyncImpl.WithRawResponseImpl(
+                clientOptions.toBuilder().apply(modifier::accept).build()
+            )
+
+        /** Turn audio into text or text into audio. */
+        override fun transcriptions(): TranscriptionServiceAsync.WithRawResponse = transcriptions
+
+        /** Turn audio into text or text into audio. */
+        override fun translations(): TranslationServiceAsync.WithRawResponse = translations
+
+        /** Turn audio into text or text into audio. */
+        override fun speech(): SpeechServiceAsync.WithRawResponse = speech
+
+        /** Turn audio into text or text into audio. */
+        override fun voices(): VoiceServiceAsync.WithRawResponse = voices
+
+        /** Turn audio into text or text into audio. */
+        override fun voiceConsents(): VoiceConsentServiceAsync.WithRawResponse = voiceConsents
+    }
+}

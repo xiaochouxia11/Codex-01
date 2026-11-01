@@ -1,0 +1,28 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.beta.responses
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class BetaInlineSkillSourceTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val betaInlineSkillSource = BetaInlineSkillSource.builder().data("x").build()
+
+        assertThat(betaInlineSkillSource.data()).isEqualTo("x")
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedBetaInlineSkillSource =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(betaInlineSkillSource),
+                jacksonTypeRef<BetaInlineSkillSource>(),
+            )
+
+        assertThat(roundtrippedBetaInlineSkillSource).isEqualTo(betaInlineSkillSource)
+    }
+}

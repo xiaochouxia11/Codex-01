@@ -1,0 +1,118 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.services.async
+
+import com.openai.core.ClientOptions
+import com.openai.services.async.beta.AgentServiceAsync
+import com.openai.services.async.beta.AgentServiceAsyncImpl
+import com.openai.services.async.beta.AssistantServiceAsync
+import com.openai.services.async.beta.AssistantServiceAsyncImpl
+import com.openai.services.async.beta.ChatKitServiceAsync
+import com.openai.services.async.beta.ChatKitServiceAsyncImpl
+import com.openai.services.async.beta.RealtimeServiceAsync
+import com.openai.services.async.beta.RealtimeServiceAsyncImpl
+import com.openai.services.async.beta.ResponseServiceAsync
+import com.openai.services.async.beta.ResponseServiceAsyncImpl
+import com.openai.services.async.beta.ThreadServiceAsync
+import com.openai.services.async.beta.ThreadServiceAsyncImpl
+import java.util.function.Consumer
+
+class BetaServiceAsyncImpl internal constructor(private val clientOptions: ClientOptions) :
+    BetaServiceAsync {
+
+    private val withRawResponse: BetaServiceAsync.WithRawResponse by lazy {
+        WithRawResponseImpl(clientOptions)
+    }
+
+    private val realtime: RealtimeServiceAsync by lazy { RealtimeServiceAsyncImpl(clientOptions) }
+
+    private val agents: AgentServiceAsync by lazy { AgentServiceAsyncImpl(clientOptions) }
+
+    private val responses: ResponseServiceAsync by lazy { ResponseServiceAsyncImpl(clientOptions) }
+
+    private val chatkit: ChatKitServiceAsync by lazy { ChatKitServiceAsyncImpl(clientOptions) }
+
+    private val assistants: AssistantServiceAsync by lazy {
+        AssistantServiceAsyncImpl(clientOptions)
+    }
+
+    private val threads: ThreadServiceAsync by lazy { ThreadServiceAsyncImpl(clientOptions) }
+
+    override fun withRawResponse(): BetaServiceAsync.WithRawResponse = withRawResponse
+
+    override fun withOptions(modifier: Consumer<ClientOptions.Builder>): BetaServiceAsync =
+        BetaServiceAsyncImpl(clientOptions.toBuilder().apply(modifier::accept).build())
+
+    @Deprecated(
+        "Realtime has now launched and is generally available. The old beta API is now deprecated."
+    )
+    override fun realtime(): RealtimeServiceAsync = realtime
+
+    override fun agents(): AgentServiceAsync = agents
+
+    /** Create and manage model responses. */
+    override fun responses(): ResponseServiceAsync = responses
+
+    override fun chatkit(): ChatKitServiceAsync = chatkit
+
+    /** Build Assistants that can call models and use tools. */
+    override fun assistants(): AssistantServiceAsync = assistants
+
+    /** Build Assistants that can call models and use tools. */
+    @Deprecated("The Assistants API is deprecated in favor of the Responses API")
+    override fun threads(): ThreadServiceAsync = threads
+
+    class WithRawResponseImpl internal constructor(private val clientOptions: ClientOptions) :
+        BetaServiceAsync.WithRawResponse {
+
+        private val realtime: RealtimeServiceAsync.WithRawResponse by lazy {
+            RealtimeServiceAsyncImpl.WithRawResponseImpl(clientOptions)
+        }
+
+        private val agents: AgentServiceAsync.WithRawResponse by lazy {
+            AgentServiceAsyncImpl.WithRawResponseImpl(clientOptions)
+        }
+
+        private val responses: ResponseServiceAsync.WithRawResponse by lazy {
+            ResponseServiceAsyncImpl.WithRawResponseImpl(clientOptions)
+        }
+
+        private val chatkit: ChatKitServiceAsync.WithRawResponse by lazy {
+            ChatKitServiceAsyncImpl.WithRawResponseImpl(clientOptions)
+        }
+
+        private val assistants: AssistantServiceAsync.WithRawResponse by lazy {
+            AssistantServiceAsyncImpl.WithRawResponseImpl(clientOptions)
+        }
+
+        private val threads: ThreadServiceAsync.WithRawResponse by lazy {
+            ThreadServiceAsyncImpl.WithRawResponseImpl(clientOptions)
+        }
+
+        override fun withOptions(
+            modifier: Consumer<ClientOptions.Builder>
+        ): BetaServiceAsync.WithRawResponse =
+            BetaServiceAsyncImpl.WithRawResponseImpl(
+                clientOptions.toBuilder().apply(modifier::accept).build()
+            )
+
+        @Deprecated(
+            "Realtime has now launched and is generally available. The old beta API is now deprecated."
+        )
+        override fun realtime(): RealtimeServiceAsync.WithRawResponse = realtime
+
+        override fun agents(): AgentServiceAsync.WithRawResponse = agents
+
+        /** Create and manage model responses. */
+        override fun responses(): ResponseServiceAsync.WithRawResponse = responses
+
+        override fun chatkit(): ChatKitServiceAsync.WithRawResponse = chatkit
+
+        /** Build Assistants that can call models and use tools. */
+        override fun assistants(): AssistantServiceAsync.WithRawResponse = assistants
+
+        /** Build Assistants that can call models and use tools. */
+        @Deprecated("The Assistants API is deprecated in favor of the Responses API")
+        override fun threads(): ThreadServiceAsync.WithRawResponse = threads
+    }
+}

@@ -1,0 +1,56 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.responses
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import com.openai.models.ReasoningEffort
+import com.openai.models.ResponseFormatText
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class ResponseConfigurationUpdateItemParamTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val responseConfigurationUpdateItemParam =
+            ResponseConfigurationUpdateItemParam.builder()
+                .id("cnfu_123")
+                .reasoning(
+                    ResponseConfigurationUpdateItemParam.Reasoning.builder()
+                        .effort(ReasoningEffort.NONE)
+                        .build()
+                )
+                .text(
+                    ResponseConfigurationUpdateItemParam.Text.builder()
+                        .format(ResponseFormatText.builder().build())
+                        .build()
+                )
+                .build()
+
+        assertThat(responseConfigurationUpdateItemParam.id()).contains("cnfu_123")
+        assertThat(responseConfigurationUpdateItemParam.reasoning())
+            .contains(
+                ResponseConfigurationUpdateItemParam.Reasoning.builder()
+                    .effort(ReasoningEffort.NONE)
+                    .build()
+            )
+        assertThat(responseConfigurationUpdateItemParam.text())
+            .contains(
+                ResponseConfigurationUpdateItemParam.Text.builder()
+                    .format(ResponseFormatText.builder().build())
+                    .build()
+            )
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedResponseConfigurationUpdateItemParam =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(responseConfigurationUpdateItemParam),
+                jacksonTypeRef<ResponseConfigurationUpdateItemParam>(),
+            )
+
+        assertThat(roundtrippedResponseConfigurationUpdateItemParam)
+            .isEqualTo(responseConfigurationUpdateItemParam)
+    }
+}

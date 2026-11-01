@@ -1,0 +1,567 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.services.async.beta
+
+import com.google.errorprone.annotations.MustBeClosed
+import com.openai.core.ClientOptions
+import com.openai.core.RequestOptions
+import com.openai.core.http.AsyncStreamResponse
+import com.openai.core.http.HttpResponse
+import com.openai.core.http.HttpResponseFor
+import com.openai.core.http.StreamResponse
+import com.openai.models.beta.responses.BetaCompactedResponse
+import com.openai.models.beta.responses.BetaResponse
+import com.openai.models.beta.responses.BetaResponseStreamEvent
+import com.openai.models.beta.responses.ResponseCancelParams
+import com.openai.models.beta.responses.ResponseCompactParams
+import com.openai.models.beta.responses.ResponseCreateParams
+import com.openai.models.beta.responses.ResponseDeleteParams
+import com.openai.models.beta.responses.ResponseRetrieveParams
+import com.openai.services.async.beta.responses.InputItemServiceAsync
+import com.openai.services.async.beta.responses.InputTokenServiceAsync
+import java.util.concurrent.CompletableFuture
+import java.util.function.Consumer
+
+/** Create and manage model responses. */
+interface ResponseServiceAsync {
+
+    /**
+     * Returns a view of this service that provides access to raw HTTP responses for each method.
+     */
+    fun withRawResponse(): WithRawResponse
+
+    /**
+     * Returns a view of this service with the given option modifications applied.
+     *
+     * The original service is not modified.
+     */
+    fun withOptions(modifier: Consumer<ClientOptions.Builder>): ResponseServiceAsync
+
+    /** Opens a typed WebSocket using the SDK-owned connection implementation. */
+    fun connectWebSocket():
+        CompletableFuture<
+            com.openai.core.http.WebSocketConnection<
+                com.openai.models.beta.responses.BetaResponsesClientEvent,
+                com.openai.models.beta.responses.BetaResponsesServerEvent,
+            >
+        > =
+        connectWebSocket(
+            com.openai.core.http.WebSocketOptions.defaults(),
+            com.openai.core.RequestOptions.none(),
+        )
+
+    fun connectWebSocket(
+        options: com.openai.core.http.WebSocketOptions
+    ): CompletableFuture<
+        com.openai.core.http.WebSocketConnection<
+            com.openai.models.beta.responses.BetaResponsesClientEvent,
+            com.openai.models.beta.responses.BetaResponsesServerEvent,
+        >
+    > = connectWebSocket(options, com.openai.core.RequestOptions.none())
+
+    fun connectWebSocket(
+        options: com.openai.core.http.WebSocketOptions,
+        requestOptions: com.openai.core.RequestOptions,
+    ): CompletableFuture<
+        com.openai.core.http.WebSocketConnection<
+            com.openai.models.beta.responses.BetaResponsesClientEvent,
+            com.openai.models.beta.responses.BetaResponsesServerEvent,
+        >
+    > =
+        throw UnsupportedOperationException(
+            "This service implementation does not support WebSockets"
+        )
+
+    /** Create and manage model responses. */
+    fun inputItems(): InputItemServiceAsync =
+        throw UnsupportedOperationException("Subservice is not supported by this implementation")
+
+    /** Create and manage model responses. */
+    fun inputTokens(): InputTokenServiceAsync =
+        throw UnsupportedOperationException("Subservice is not supported by this implementation")
+
+    /**
+     * Creates a model response. Provide [text](https://developers.openai.com/api/docs/guides/text)
+     * or [image](https://developers.openai.com/api/docs/guides/images-vision) inputs to generate
+     * [text](https://developers.openai.com/api/docs/guides/text) or
+     * [JSON](https://developers.openai.com/api/docs/guides/structured-outputs) outputs. Have the
+     * model call your own
+     * [custom code](https://developers.openai.com/api/docs/guides/function-calling) or use built-in
+     * [tools](https://developers.openai.com/api/docs/guides/tools) like
+     * [web search](https://developers.openai.com/api/docs/guides/tools-web-search) or
+     * [file search](https://developers.openai.com/api/docs/guides/tools-file-search) to use your
+     * own data as input for the model's response.
+     */
+    fun create(): CompletableFuture<BetaResponse> = create(ResponseCreateParams.none())
+
+    /** @see create */
+    fun create(
+        params: ResponseCreateParams = ResponseCreateParams.none(),
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<BetaResponse>
+
+    /** @see create */
+    fun create(
+        params: ResponseCreateParams = ResponseCreateParams.none()
+    ): CompletableFuture<BetaResponse> = create(params, RequestOptions.none())
+
+    /** @see create */
+    fun create(requestOptions: RequestOptions): CompletableFuture<BetaResponse> =
+        create(ResponseCreateParams.none(), requestOptions)
+
+    /**
+     * Creates a model response. Provide [text](https://developers.openai.com/api/docs/guides/text)
+     * or [image](https://developers.openai.com/api/docs/guides/images-vision) inputs to generate
+     * [text](https://developers.openai.com/api/docs/guides/text) or
+     * [JSON](https://developers.openai.com/api/docs/guides/structured-outputs) outputs. Have the
+     * model call your own
+     * [custom code](https://developers.openai.com/api/docs/guides/function-calling) or use built-in
+     * [tools](https://developers.openai.com/api/docs/guides/tools) like
+     * [web search](https://developers.openai.com/api/docs/guides/tools-web-search) or
+     * [file search](https://developers.openai.com/api/docs/guides/tools-file-search) to use your
+     * own data as input for the model's response.
+     */
+    fun createStreaming(): AsyncStreamResponse<BetaResponseStreamEvent> =
+        createStreaming(ResponseCreateParams.none())
+
+    /** @see createStreaming */
+    fun createStreaming(
+        params: ResponseCreateParams = ResponseCreateParams.none(),
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): AsyncStreamResponse<BetaResponseStreamEvent>
+
+    /** @see createStreaming */
+    fun createStreaming(
+        params: ResponseCreateParams = ResponseCreateParams.none()
+    ): AsyncStreamResponse<BetaResponseStreamEvent> = createStreaming(params, RequestOptions.none())
+
+    /** @see createStreaming */
+    fun createStreaming(
+        requestOptions: RequestOptions
+    ): AsyncStreamResponse<BetaResponseStreamEvent> =
+        createStreaming(ResponseCreateParams.none(), requestOptions)
+
+    /** Retrieves a model response with the given ID. */
+    fun retrieve(responseId: String): CompletableFuture<BetaResponse> =
+        retrieve(responseId, ResponseRetrieveParams.none())
+
+    /** @see retrieve */
+    fun retrieve(
+        responseId: String,
+        params: ResponseRetrieveParams = ResponseRetrieveParams.none(),
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<BetaResponse> =
+        retrieve(params.toBuilder().responseId(responseId).build(), requestOptions)
+
+    /** @see retrieve */
+    fun retrieve(
+        responseId: String,
+        params: ResponseRetrieveParams = ResponseRetrieveParams.none(),
+    ): CompletableFuture<BetaResponse> = retrieve(responseId, params, RequestOptions.none())
+
+    /** @see retrieve */
+    fun retrieve(
+        params: ResponseRetrieveParams,
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<BetaResponse>
+
+    /** @see retrieve */
+    fun retrieve(params: ResponseRetrieveParams): CompletableFuture<BetaResponse> =
+        retrieve(params, RequestOptions.none())
+
+    /** @see retrieve */
+    fun retrieve(
+        responseId: String,
+        requestOptions: RequestOptions,
+    ): CompletableFuture<BetaResponse> =
+        retrieve(responseId, ResponseRetrieveParams.none(), requestOptions)
+
+    /** Retrieves a model response with the given ID. */
+    fun retrieveStreaming(responseId: String): AsyncStreamResponse<BetaResponseStreamEvent> =
+        retrieveStreaming(responseId, ResponseRetrieveParams.none())
+
+    /** @see retrieveStreaming */
+    fun retrieveStreaming(
+        responseId: String,
+        params: ResponseRetrieveParams = ResponseRetrieveParams.none(),
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): AsyncStreamResponse<BetaResponseStreamEvent> =
+        retrieveStreaming(params.toBuilder().responseId(responseId).build(), requestOptions)
+
+    /** @see retrieveStreaming */
+    fun retrieveStreaming(
+        responseId: String,
+        params: ResponseRetrieveParams = ResponseRetrieveParams.none(),
+    ): AsyncStreamResponse<BetaResponseStreamEvent> =
+        retrieveStreaming(responseId, params, RequestOptions.none())
+
+    /** @see retrieveStreaming */
+    fun retrieveStreaming(
+        params: ResponseRetrieveParams,
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): AsyncStreamResponse<BetaResponseStreamEvent>
+
+    /** @see retrieveStreaming */
+    fun retrieveStreaming(
+        params: ResponseRetrieveParams
+    ): AsyncStreamResponse<BetaResponseStreamEvent> =
+        retrieveStreaming(params, RequestOptions.none())
+
+    /** @see retrieveStreaming */
+    fun retrieveStreaming(
+        responseId: String,
+        requestOptions: RequestOptions,
+    ): AsyncStreamResponse<BetaResponseStreamEvent> =
+        retrieveStreaming(responseId, ResponseRetrieveParams.none(), requestOptions)
+
+    /** Deletes a model response with the given ID. */
+    fun delete(responseId: String): CompletableFuture<Void?> =
+        delete(responseId, ResponseDeleteParams.none())
+
+    /** @see delete */
+    fun delete(
+        responseId: String,
+        params: ResponseDeleteParams = ResponseDeleteParams.none(),
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<Void?> =
+        delete(params.toBuilder().responseId(responseId).build(), requestOptions)
+
+    /** @see delete */
+    fun delete(
+        responseId: String,
+        params: ResponseDeleteParams = ResponseDeleteParams.none(),
+    ): CompletableFuture<Void?> = delete(responseId, params, RequestOptions.none())
+
+    /** @see delete */
+    fun delete(
+        params: ResponseDeleteParams,
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<Void?>
+
+    /** @see delete */
+    fun delete(params: ResponseDeleteParams): CompletableFuture<Void?> =
+        delete(params, RequestOptions.none())
+
+    /** @see delete */
+    fun delete(responseId: String, requestOptions: RequestOptions): CompletableFuture<Void?> =
+        delete(responseId, ResponseDeleteParams.none(), requestOptions)
+
+    /**
+     * Cancels a model response with the given ID. Only responses created with the `background`
+     * parameter set to `true` can be cancelled.
+     * [Learn more](https://developers.openai.com/api/docs/guides/background).
+     */
+    fun cancel(responseId: String): CompletableFuture<BetaResponse> =
+        cancel(responseId, ResponseCancelParams.none())
+
+    /** @see cancel */
+    fun cancel(
+        responseId: String,
+        params: ResponseCancelParams = ResponseCancelParams.none(),
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<BetaResponse> =
+        cancel(params.toBuilder().responseId(responseId).build(), requestOptions)
+
+    /** @see cancel */
+    fun cancel(
+        responseId: String,
+        params: ResponseCancelParams = ResponseCancelParams.none(),
+    ): CompletableFuture<BetaResponse> = cancel(responseId, params, RequestOptions.none())
+
+    /** @see cancel */
+    fun cancel(
+        params: ResponseCancelParams,
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<BetaResponse>
+
+    /** @see cancel */
+    fun cancel(params: ResponseCancelParams): CompletableFuture<BetaResponse> =
+        cancel(params, RequestOptions.none())
+
+    /** @see cancel */
+    fun cancel(
+        responseId: String,
+        requestOptions: RequestOptions,
+    ): CompletableFuture<BetaResponse> =
+        cancel(responseId, ResponseCancelParams.none(), requestOptions)
+
+    /**
+     * Compact a conversation. Returns a compacted response object.
+     *
+     * Learn when and how to compact long-running conversations in the
+     * [conversation state guide](https://developers.openai.com/api/docs/guides/conversation-state#managing-the-context-window).
+     * For ZDR-compatible compaction details, see
+     * [Compaction (advanced)](https://developers.openai.com/api/docs/guides/conversation-state#compaction-advanced).
+     */
+    fun compact(params: ResponseCompactParams): CompletableFuture<BetaCompactedResponse> =
+        compact(params, RequestOptions.none())
+
+    /** @see compact */
+    fun compact(
+        params: ResponseCompactParams,
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<BetaCompactedResponse>
+
+    /**
+     * A view of [ResponseServiceAsync] that provides access to raw HTTP responses for each method.
+     */
+    interface WithRawResponse {
+
+        /**
+         * Returns a view of this service with the given option modifications applied.
+         *
+         * The original service is not modified.
+         */
+        fun withOptions(
+            modifier: Consumer<ClientOptions.Builder>
+        ): ResponseServiceAsync.WithRawResponse
+
+        /** Create and manage model responses. */
+        fun inputItems(): InputItemServiceAsync.WithRawResponse =
+            throw UnsupportedOperationException(
+                "Subservice is not supported by this implementation"
+            )
+
+        /** Create and manage model responses. */
+        fun inputTokens(): InputTokenServiceAsync.WithRawResponse =
+            throw UnsupportedOperationException(
+                "Subservice is not supported by this implementation"
+            )
+
+        /**
+         * Returns a raw HTTP response for `post /responses?beta=true`, but is otherwise the same as
+         * [ResponseServiceAsync.create].
+         */
+        fun create(): CompletableFuture<HttpResponseFor<BetaResponse>> =
+            create(ResponseCreateParams.none())
+
+        /** @see create */
+        fun create(
+            params: ResponseCreateParams = ResponseCreateParams.none(),
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<BetaResponse>>
+
+        /** @see create */
+        fun create(
+            params: ResponseCreateParams = ResponseCreateParams.none()
+        ): CompletableFuture<HttpResponseFor<BetaResponse>> = create(params, RequestOptions.none())
+
+        /** @see create */
+        fun create(
+            requestOptions: RequestOptions
+        ): CompletableFuture<HttpResponseFor<BetaResponse>> =
+            create(ResponseCreateParams.none(), requestOptions)
+
+        /**
+         * Returns a raw HTTP response for `post /responses?beta=true`, but is otherwise the same as
+         * [ResponseServiceAsync.createStreaming].
+         */
+        @MustBeClosed
+        fun createStreaming():
+            CompletableFuture<HttpResponseFor<StreamResponse<BetaResponseStreamEvent>>> =
+            createStreaming(ResponseCreateParams.none())
+
+        /** @see createStreaming */
+        @MustBeClosed
+        fun createStreaming(
+            params: ResponseCreateParams = ResponseCreateParams.none(),
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<StreamResponse<BetaResponseStreamEvent>>>
+
+        /** @see createStreaming */
+        @MustBeClosed
+        fun createStreaming(
+            params: ResponseCreateParams = ResponseCreateParams.none()
+        ): CompletableFuture<HttpResponseFor<StreamResponse<BetaResponseStreamEvent>>> =
+            createStreaming(params, RequestOptions.none())
+
+        /** @see createStreaming */
+        @MustBeClosed
+        fun createStreaming(
+            requestOptions: RequestOptions
+        ): CompletableFuture<HttpResponseFor<StreamResponse<BetaResponseStreamEvent>>> =
+            createStreaming(ResponseCreateParams.none(), requestOptions)
+
+        /**
+         * Returns a raw HTTP response for `get /responses/{response_id}?beta=true`, but is
+         * otherwise the same as [ResponseServiceAsync.retrieve].
+         */
+        fun retrieve(responseId: String): CompletableFuture<HttpResponseFor<BetaResponse>> =
+            retrieve(responseId, ResponseRetrieveParams.none())
+
+        /** @see retrieve */
+        fun retrieve(
+            responseId: String,
+            params: ResponseRetrieveParams = ResponseRetrieveParams.none(),
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<BetaResponse>> =
+            retrieve(params.toBuilder().responseId(responseId).build(), requestOptions)
+
+        /** @see retrieve */
+        fun retrieve(
+            responseId: String,
+            params: ResponseRetrieveParams = ResponseRetrieveParams.none(),
+        ): CompletableFuture<HttpResponseFor<BetaResponse>> =
+            retrieve(responseId, params, RequestOptions.none())
+
+        /** @see retrieve */
+        fun retrieve(
+            params: ResponseRetrieveParams,
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<BetaResponse>>
+
+        /** @see retrieve */
+        fun retrieve(
+            params: ResponseRetrieveParams
+        ): CompletableFuture<HttpResponseFor<BetaResponse>> =
+            retrieve(params, RequestOptions.none())
+
+        /** @see retrieve */
+        fun retrieve(
+            responseId: String,
+            requestOptions: RequestOptions,
+        ): CompletableFuture<HttpResponseFor<BetaResponse>> =
+            retrieve(responseId, ResponseRetrieveParams.none(), requestOptions)
+
+        /**
+         * Returns a raw HTTP response for `get /responses/{response_id}?beta=true`, but is
+         * otherwise the same as [ResponseServiceAsync.retrieveStreaming].
+         */
+        @MustBeClosed
+        fun retrieveStreaming(
+            responseId: String
+        ): CompletableFuture<HttpResponseFor<StreamResponse<BetaResponseStreamEvent>>> =
+            retrieveStreaming(responseId, ResponseRetrieveParams.none())
+
+        /** @see retrieveStreaming */
+        @MustBeClosed
+        fun retrieveStreaming(
+            responseId: String,
+            params: ResponseRetrieveParams = ResponseRetrieveParams.none(),
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<StreamResponse<BetaResponseStreamEvent>>> =
+            retrieveStreaming(params.toBuilder().responseId(responseId).build(), requestOptions)
+
+        /** @see retrieveStreaming */
+        @MustBeClosed
+        fun retrieveStreaming(
+            responseId: String,
+            params: ResponseRetrieveParams = ResponseRetrieveParams.none(),
+        ): CompletableFuture<HttpResponseFor<StreamResponse<BetaResponseStreamEvent>>> =
+            retrieveStreaming(responseId, params, RequestOptions.none())
+
+        /** @see retrieveStreaming */
+        @MustBeClosed
+        fun retrieveStreaming(
+            params: ResponseRetrieveParams,
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<StreamResponse<BetaResponseStreamEvent>>>
+
+        /** @see retrieveStreaming */
+        @MustBeClosed
+        fun retrieveStreaming(
+            params: ResponseRetrieveParams
+        ): CompletableFuture<HttpResponseFor<StreamResponse<BetaResponseStreamEvent>>> =
+            retrieveStreaming(params, RequestOptions.none())
+
+        /** @see retrieveStreaming */
+        @MustBeClosed
+        fun retrieveStreaming(
+            responseId: String,
+            requestOptions: RequestOptions,
+        ): CompletableFuture<HttpResponseFor<StreamResponse<BetaResponseStreamEvent>>> =
+            retrieveStreaming(responseId, ResponseRetrieveParams.none(), requestOptions)
+
+        /**
+         * Returns a raw HTTP response for `delete /responses/{response_id}?beta=true`, but is
+         * otherwise the same as [ResponseServiceAsync.delete].
+         */
+        fun delete(responseId: String): CompletableFuture<HttpResponse> =
+            delete(responseId, ResponseDeleteParams.none())
+
+        /** @see delete */
+        fun delete(
+            responseId: String,
+            params: ResponseDeleteParams = ResponseDeleteParams.none(),
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponse> =
+            delete(params.toBuilder().responseId(responseId).build(), requestOptions)
+
+        /** @see delete */
+        fun delete(
+            responseId: String,
+            params: ResponseDeleteParams = ResponseDeleteParams.none(),
+        ): CompletableFuture<HttpResponse> = delete(responseId, params, RequestOptions.none())
+
+        /** @see delete */
+        fun delete(
+            params: ResponseDeleteParams,
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponse>
+
+        /** @see delete */
+        fun delete(params: ResponseDeleteParams): CompletableFuture<HttpResponse> =
+            delete(params, RequestOptions.none())
+
+        /** @see delete */
+        fun delete(
+            responseId: String,
+            requestOptions: RequestOptions,
+        ): CompletableFuture<HttpResponse> =
+            delete(responseId, ResponseDeleteParams.none(), requestOptions)
+
+        /**
+         * Returns a raw HTTP response for `post /responses/{response_id}/cancel?beta=true`, but is
+         * otherwise the same as [ResponseServiceAsync.cancel].
+         */
+        fun cancel(responseId: String): CompletableFuture<HttpResponseFor<BetaResponse>> =
+            cancel(responseId, ResponseCancelParams.none())
+
+        /** @see cancel */
+        fun cancel(
+            responseId: String,
+            params: ResponseCancelParams = ResponseCancelParams.none(),
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<BetaResponse>> =
+            cancel(params.toBuilder().responseId(responseId).build(), requestOptions)
+
+        /** @see cancel */
+        fun cancel(
+            responseId: String,
+            params: ResponseCancelParams = ResponseCancelParams.none(),
+        ): CompletableFuture<HttpResponseFor<BetaResponse>> =
+            cancel(responseId, params, RequestOptions.none())
+
+        /** @see cancel */
+        fun cancel(
+            params: ResponseCancelParams,
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<BetaResponse>>
+
+        /** @see cancel */
+        fun cancel(params: ResponseCancelParams): CompletableFuture<HttpResponseFor<BetaResponse>> =
+            cancel(params, RequestOptions.none())
+
+        /** @see cancel */
+        fun cancel(
+            responseId: String,
+            requestOptions: RequestOptions,
+        ): CompletableFuture<HttpResponseFor<BetaResponse>> =
+            cancel(responseId, ResponseCancelParams.none(), requestOptions)
+
+        /**
+         * Returns a raw HTTP response for `post /responses/compact?beta=true`, but is otherwise the
+         * same as [ResponseServiceAsync.compact].
+         */
+        fun compact(
+            params: ResponseCompactParams
+        ): CompletableFuture<HttpResponseFor<BetaCompactedResponse>> =
+            compact(params, RequestOptions.none())
+
+        /** @see compact */
+        fun compact(
+            params: ResponseCompactParams,
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<BetaCompactedResponse>>
+    }
+}

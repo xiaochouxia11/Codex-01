@@ -1,0 +1,53 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.realtime
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class RealtimeResponseCreateAudioOutputTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val realtimeResponseCreateAudioOutput =
+            RealtimeResponseCreateAudioOutput.builder()
+                .output(
+                    RealtimeResponseCreateAudioOutput.Output.builder()
+                        .format(
+                            RealtimeAudioFormats.AudioPcm.builder()
+                                .rate(RealtimeAudioFormats.AudioPcm.Rate._24000)
+                                .type(RealtimeAudioFormats.AudioPcm.Type.AUDIO_PCM)
+                                .build()
+                        )
+                        .voice(RealtimeResponseCreateAudioOutput.Output.Voice.UnionMember1.ALLOY)
+                        .build()
+                )
+                .build()
+
+        assertThat(realtimeResponseCreateAudioOutput.output())
+            .contains(
+                RealtimeResponseCreateAudioOutput.Output.builder()
+                    .format(
+                        RealtimeAudioFormats.AudioPcm.builder()
+                            .rate(RealtimeAudioFormats.AudioPcm.Rate._24000)
+                            .type(RealtimeAudioFormats.AudioPcm.Type.AUDIO_PCM)
+                            .build()
+                    )
+                    .voice(RealtimeResponseCreateAudioOutput.Output.Voice.UnionMember1.ALLOY)
+                    .build()
+            )
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedRealtimeResponseCreateAudioOutput =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(realtimeResponseCreateAudioOutput),
+                jacksonTypeRef<RealtimeResponseCreateAudioOutput>(),
+            )
+
+        assertThat(roundtrippedRealtimeResponseCreateAudioOutput)
+            .isEqualTo(realtimeResponseCreateAudioOutput)
+    }
+}

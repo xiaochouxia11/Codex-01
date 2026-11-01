@@ -1,0 +1,32 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.chat.completions
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class ChatCompletionSystemMessageParamTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val chatCompletionSystemMessageParam =
+            ChatCompletionSystemMessageParam.builder().content("string").name("name").build()
+
+        assertThat(chatCompletionSystemMessageParam.content())
+            .isEqualTo(ChatCompletionSystemMessageParam.Content.ofText("string"))
+        assertThat(chatCompletionSystemMessageParam.name()).contains("name")
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedChatCompletionSystemMessageParam =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(chatCompletionSystemMessageParam),
+                jacksonTypeRef<ChatCompletionSystemMessageParam>(),
+            )
+
+        assertThat(roundtrippedChatCompletionSystemMessageParam)
+            .isEqualTo(chatCompletionSystemMessageParam)
+    }
+}

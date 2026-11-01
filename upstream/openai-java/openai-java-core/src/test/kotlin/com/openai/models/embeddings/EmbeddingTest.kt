@@ -1,0 +1,29 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.embeddings
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class EmbeddingTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val embedding = Embedding.builder().addEmbedding(0.0f).index(0L).build()
+
+        assertThat(embedding.embedding()).containsExactly(0.0f)
+        assertThat(embedding.index()).isEqualTo(0L)
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedEmbedding =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(embedding),
+                jacksonTypeRef<Embedding>(),
+            )
+
+        assertThat(roundtrippedEmbedding).isEqualTo(embedding)
+    }
+}

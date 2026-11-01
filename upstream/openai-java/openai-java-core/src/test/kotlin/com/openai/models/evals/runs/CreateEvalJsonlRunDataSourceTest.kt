@@ -1,0 +1,71 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.evals.runs
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.JsonValue
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class CreateEvalJsonlRunDataSourceTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val createEvalJsonlRunDataSource =
+            CreateEvalJsonlRunDataSource.builder()
+                .fileContentSource(
+                    listOf(
+                        CreateEvalJsonlRunDataSource.Source.FileContent.Content.builder()
+                            .item(
+                                CreateEvalJsonlRunDataSource.Source.FileContent.Content.Item
+                                    .builder()
+                                    .putAdditionalProperty("foo", JsonValue.from("bar"))
+                                    .build()
+                            )
+                            .sample(
+                                CreateEvalJsonlRunDataSource.Source.FileContent.Content.Sample
+                                    .builder()
+                                    .putAdditionalProperty("foo", JsonValue.from("bar"))
+                                    .build()
+                            )
+                            .build()
+                    )
+                )
+                .build()
+
+        assertThat(createEvalJsonlRunDataSource.source())
+            .isEqualTo(
+                CreateEvalJsonlRunDataSource.Source.ofFileContent(
+                    CreateEvalJsonlRunDataSource.Source.FileContent.builder()
+                        .addContent(
+                            CreateEvalJsonlRunDataSource.Source.FileContent.Content.builder()
+                                .item(
+                                    CreateEvalJsonlRunDataSource.Source.FileContent.Content.Item
+                                        .builder()
+                                        .putAdditionalProperty("foo", JsonValue.from("bar"))
+                                        .build()
+                                )
+                                .sample(
+                                    CreateEvalJsonlRunDataSource.Source.FileContent.Content.Sample
+                                        .builder()
+                                        .putAdditionalProperty("foo", JsonValue.from("bar"))
+                                        .build()
+                                )
+                                .build()
+                        )
+                        .build()
+                )
+            )
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedCreateEvalJsonlRunDataSource =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(createEvalJsonlRunDataSource),
+                jacksonTypeRef<CreateEvalJsonlRunDataSource>(),
+            )
+
+        assertThat(roundtrippedCreateEvalJsonlRunDataSource).isEqualTo(createEvalJsonlRunDataSource)
+    }
+}

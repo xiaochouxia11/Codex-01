@@ -1,0 +1,4110 @@
+# Changelog
+
+## [4.95.0](https://github.com/openai/openai-java/compare/v4.94.0...v4.95.0) (2026-10-31)
+
+
+### Features
+
+* **api:** add agent context compaction settings ([#1304](https://github.com/openai/openai-java/issues/1304)) ([1fc6935](https://github.com/openai/openai-java/commit/1fc6935fc4a5258cb1910151a06a38ff223b4f33))
+* **api:** add agent session review and tool settings ([#1310](https://github.com/openai/openai-java/issues/1310)) ([4f0700c](https://github.com/openai/openai-java/commit/4f0700c332af5e1b83a41ad455851dfbcd31a6a3))
+* **api:** add experimental agent time awareness ([#1306](https://github.com/openai/openai-java/issues/1306)) ([3fc2fe6](https://github.com/openai/openai-java/commit/3fc2fe6f972a0b44858814aa7f0a929d2b67c4ee))
+* **api:** add hosted tool usage accessors to responses ([#1300](https://github.com/openai/openai-java/issues/1300)) ([ccb201d](https://github.com/openai/openai-java/commit/ccb201df9fc98368f4b83123c3704b8c62a2ef3e))
+* **api:** add image edit markup overlays ([#1305](https://github.com/openai/openai-java/issues/1305)) ([aa8cead](https://github.com/openai/openai-java/commit/aa8cead62c662e1fb8762e5b2f3779510c70f885))
+* **api:** add organization external key management ([#1302](https://github.com/openai/openai-java/issues/1302)) ([b0407aa](https://github.com/openai/openai-java/commit/b0407aa27e52e021ff7204d46988e8b9833e42ce))
+* **api:** add SIP DTMF commands and delivery events ([#1303](https://github.com/openai/openai-java/issues/1303)) ([f37ca05](https://github.com/openai/openai-java/commit/f37ca058d187b6e916b0c158eba8e29d66f759f2))
+* **api:** filter agent sessions by metadata ([#1299](https://github.com/openai/openai-java/issues/1299)) ([c6c4d00](https://github.com/openai/openai-java/commit/c6c4d008f1774ff18f5d6041b62a8ad1a2106fb9))
+* **api:** support Live Decision tool items ([#1308](https://github.com/openai/openai-java/issues/1308)) ([946a258](https://github.com/openai/openai-java/commit/946a258995f5f757b0f1299658e6240b647caa92))
+* **api:** support text formats on Responses configuration updates ([#1307](https://github.com/openai/openai-java/issues/1307)) ([d4259c8](https://github.com/openai/openai-java/commit/d4259c8e772b50ed3793702e48d8b87768fb10f9))
+* expose response headers on parsing and stream errors ([#1285](https://github.com/openai/openai-java/issues/1285)) ([ec391b3](https://github.com/openai/openai-java/commit/ec391b3cb0f77d3a7a5271b2a48ab6b5d6244469))
+
+
+### Bug Fixes
+
+* **api:** preserve unknown Java union value identity ([#1301](https://github.com/openai/openai-java/issues/1301)) ([de0e061](https://github.com/openai/openai-java/commit/de0e061f0fd39509a9ba68821415658e15739487))
+* **auth:** accept additional token exchange response fields ([#1289](https://github.com/openai/openai-java/issues/1289)) ([e1bd0d3](https://github.com/openai/openai-java/commit/e1bd0d34d2ffe1e907bf0a5e3b2ee10fa8e8f0cd))
+* **examples:** replace retired model in live smoke tests ([#1292](https://github.com/openai/openai-java/issues/1292)) ([bf65abb](https://github.com/openai/openai-java/commit/bf65abbc03dad7b4126da5476494ee83b1849097))
+* **okhttp:** omit proxy headers on TLS and explicit direct WebSockets ([#1297](https://github.com/openai/openai-java/issues/1297)) ([4ac86f2](https://github.com/openai/openai-java/commit/4ac86f297da1d07e11d61290dcf05ee4a60bfb34))
+* respect explicit WebSocket Authorization with workload identity ([#1309](https://github.com/openai/openai-java/issues/1309)) ([c4ea628](https://github.com/openai/openai-java/commit/c4ea6287b06165fec12c0f0164032ef9c54420a7))
+* **websocket:** apply connection query overrides once ([#1283](https://github.com/openai/openai-java/issues/1283)) ([03f24db](https://github.com/openai/openai-java/commit/03f24db45d69c3495b7259fabe2ff2e7dfcf5f31))
+
+
+### Chores
+
+* **api:** clarify Live Decision image inputs ([#1294](https://github.com/openai/openai-java/issues/1294)) ([4c7eba4](https://github.com/openai/openai-java/commit/4c7eba4493e4dbcd78967cbd57acf98b9c925d99))
+* **api:** document upcoming model shutdowns ([#1296](https://github.com/openai/openai-java/issues/1296)) ([4e642b0](https://github.com/openai/openai-java/commit/4e642b087648b0b0d08201e9cb3d8e216dee9247))
+* **api:** update image-model documentation ([#1290](https://github.com/openai/openai-java/issues/1290)) ([8e5cfd5](https://github.com/openai/openai-java/commit/8e5cfd5020c6fcf263b9dc78ef112883fc5bad9a))
+* enforce generated-file ownership ([#1284](https://github.com/openai/openai-java/issues/1284)) ([28dce99](https://github.com/openai/openai-java/commit/28dce9990cf1d360721bb5b50c5fc98de30111b3))
+
+## [4.94.0](https://github.com/openai/openai-java/compare/v4.93.0...v4.94.0) (2026-10-27)
+
+
+### Features
+
+* **api:** add prompt cache breakpoint TTL options ([#1282](https://github.com/openai/openai-java/issues/1282)) ([a565f6e](https://github.com/openai/openai-java/commit/a565f6e12496d129699f3732d3ead2b9f1d0691e))
+* support native OkHttp clients and interceptors ([#1280](https://github.com/openai/openai-java/issues/1280)) ([014f4a2](https://github.com/openai/openai-java/commit/014f4a2dbb1f2b13655589fe83ba6ef5af4e18b5))
+
+
+### Build System
+
+* bump actions/create-github-app-token from 3.2.0 to 3.3.0 ([#1275](https://github.com/openai/openai-java/issues/1275)) ([fafdc0c](https://github.com/openai/openai-java/commit/fafdc0cc51c7bc0e0a087cbcfdf038040f398708))
+* bump gradle/actions/setup-gradle from 6.3.0 to 6.4.0 ([#1230](https://github.com/openai/openai-java/issues/1230)) ([35de6f5](https://github.com/openai/openai-java/commit/35de6f5fdd56fb3afe0b0765e5e34557237e722b))
+* bump software.amazon.awssdk:bom in /openai-java-bedrock ([#1228](https://github.com/openai/openai-java/issues/1228)) ([e145766](https://github.com/openai/openai-java/commit/e145766b6813754c1b6ba528f93676759212cc9a))
+
+## [4.93.0](https://github.com/openai/openai-java/compare/v4.92.0...v4.93.0) (2026-10-26)
+
+
+### Features
+
+* **api:** add gpt-6.1-terra model identifier ([#1276](https://github.com/openai/openai-java/issues/1276)) ([763fb37](https://github.com/openai/openai-java/commit/763fb37cdd19f6e3a6252a271e41264919fc39cd))
+
+## [4.92.0](https://github.com/openai/openai-java/compare/v4.91.0...v4.92.0) (2026-10-26)
+
+
+### Features
+
+* **api:** add delegation controls and prompt cache lifetimes ([#1272](https://github.com/openai/openai-java/issues/1272)) ([2ddb859](https://github.com/openai/openai-java/commit/2ddb8597164e5e5b672fa79e01400eea92fc16cc))
+
+## [4.91.0](https://github.com/openai/openai-java/compare/v4.90.0...v4.91.0) (2026-10-23)
+
+
+### Features
+
+* **api:** Breaking change in a minor release. Live Decisions question `instructions()` now returns an `Instructions` union containing a string or a list of text, image, or JSON parts. Code such as `question.instructions().trim()` no longer compiles; check `instructions.isString()` and use `instructions.asString()`, or handle `instructions.asDecisionQuestionInputParts()`. String inputs still work with `instructions(String)`. Decisions request inputs also support additional message roles and tool-history items; update code that assumes a fixed set of input types. `DecisionInputMessage.builder()`, `DecisionInputMessage.Type`, and `DecisionInputMessage.Content` were removed. Build a role-specific message, wrap it with `DecisionInputMessage.ofUser(...)` for user messages, and pass it through `DecisionInputItem.ofDecisionInputMessage(...)`. ([f7607c8](https://github.com/openai/openai-java/commit/f7607c84edf39c5f962beb1b988b35207c46e289))
+
+
+### Chores
+
+* **api:** align initial policy-pin review with active main ([#1271](https://github.com/openai/openai-java/issues/1271)) ([1599b41](https://github.com/openai/openai-java/commit/1599b41cab0743a3543809cf3644678f570bd44a))
+* refresh custom-code enforcement tooling ([#1270](https://github.com/openai/openai-java/issues/1270)) ([d865378](https://github.com/openai/openai-java/commit/d8653786396518d29eaeb9ec112d5209ed148489))
+
+
+### Build System
+
+* bump actions/download-artifact from 8.0.1 to 8.0.2 ([#1232](https://github.com/openai/openai-java/issues/1232)) ([65bd9e4](https://github.com/openai/openai-java/commit/65bd9e403f8e7f576bf7de904ba7237b6142368f))
+
+## [4.90.0](https://github.com/openai/openai-java/compare/v4.89.0...v4.90.0) (2026-10-22)
+
+
+### Features
+
+* **api:** add voice deletion ([#1263](https://github.com/openai/openai-java/issues/1263)) ([dcc7b18](https://github.com/openai/openai-java/commit/dcc7b18a3ed1228b9806dbaed9ce0426a4c023c7))
+
+
+### Performance Improvements
+
+* reuse Kotlin compiler classloaders for in-process builds ([#1266](https://github.com/openai/openai-java/issues/1266)) ([8e52b99](https://github.com/openai/openai-java/commit/8e52b99c2a8e2c5c367d317f34b0072e8e858fa2))
+
+
+### Chores
+
+* **api:** clarify service-account API key deletion ([#1265](https://github.com/openai/openai-java/issues/1265)) ([c73a262](https://github.com/openai/openai-java/commit/c73a2625992791f1f2ce41ef25fdea4f5db045a3))
+
+
+### Build System
+
+* isolate authenticator changes from model compilation ([#1264](https://github.com/openai/openai-java/issues/1264)) ([6ab4a33](https://github.com/openai/openai-java/commit/6ab4a33a3afa819aeb05eb215f57c7df1e758e1a))
+
+## [4.89.0](https://github.com/openai/openai-java/compare/v4.88.0...v4.89.0) (2026-10-21)
+
+
+### Features
+
+* add Vertex AI support for the Responses API ([#1256](https://github.com/openai/openai-java/issues/1256)) ([dc3546f](https://github.com/openai/openai-java/commit/dc3546faa12de4aded643c90666f8ca379e75e5b))
+
+
+### Chores
+
+* **api:** preserve environment creation idempotency ([#1260](https://github.com/openai/openai-java/issues/1260)) ([da2a49c](https://github.com/openai/openai-java/commit/da2a49cd4edd9629012581946b9162dc7b2068a6))
+* **api:** preserve Java compatibility helpers ([#1257](https://github.com/openai/openai-java/issues/1257)) ([954cee7](https://github.com/openai/openai-java/commit/954cee79ff30d407ab02430c1a32f4e72a0a2efd))
+* **api:** preserve Java model compatibility ([#1259](https://github.com/openai/openai-java/issues/1259)) ([da98b6b](https://github.com/openai/openai-java/commit/da98b6bc444df53f8d817dbd8c0b007f6e97075f))
+
+## [4.88.0](https://github.com/openai/openai-java/compare/v4.87.1...v4.88.0) (2026-10-21)
+
+
+### Features
+
+* **api:** add custom voice consent management ([#1252](https://github.com/openai/openai-java/issues/1252)) ([bdce13f](https://github.com/openai/openai-java/commit/bdce13f5e0c273758472335592f06ddee9c6807b))
+
+
+### Chores
+
+* **api:** maintain voice consent compatibility ([#1254](https://github.com/openai/openai-java/issues/1254)) ([fc17079](https://github.com/openai/openai-java/commit/fc1707968412255545338722b4862c36d11e2444))
+* **api:** preserve Java runtime and model contracts ([#1255](https://github.com/openai/openai-java/issues/1255)) ([5e993ab](https://github.com/openai/openai-java/commit/5e993ab6dcf913f10a0efdbabd554752a8ea6960))
+
+## [4.87.1](https://github.com/openai/openai-java/compare/v4.87.0...v4.87.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* **auth:** recover after synchronous refresh startup failure ([#1246](https://github.com/openai/openai-java/issues/1246)) ([efe5b95](https://github.com/openai/openai-java/commit/efe5b95b0bece00ef33f17139c0b397bb28946d6))
+
+
+### Chores
+
+* **api:** clarify project API key update requirements ([#1244](https://github.com/openai/openai-java/issues/1244)) ([1e54d93](https://github.com/openai/openai-java/commit/1e54d93d6d1c68bbd8529b0327aa06bdea0abdb9))
+
+## [4.87.0](https://github.com/openai/openai-java/compare/v4.86.0...v4.87.0) (2026-10-20)
+
+
+### Features
+
+* **api:** add 30-minute cache-write usage counts ([#1233](https://github.com/openai/openai-java/issues/1233)) ([2f3608a](https://github.com/openai/openai-java/commit/2f3608a0282fd21e7e17644fdb2a25434c0caf27))
+* **api:** add compaction trigger IDs ([#1243](https://github.com/openai/openai-java/issues/1243)) ([623d448](https://github.com/openai/openai-java/commit/623d44830879212d06e0f93d709dbcef43fec540))
+* **api:** add complete JSON property access ([#1241](https://github.com/openai/openai-java/issues/1241)) ([98eacfb](https://github.com/openai/openai-java/commit/98eacfbff0ea959f36b0fdcdef39879972ed48c0))
+* **core:** add HTTP adapter headers and body accessors ([#1245](https://github.com/openai/openai-java/issues/1245)) ([04f464e](https://github.com/openai/openai-java/commit/04f464e58affd7066af228f72f276b2152c3d982))
+
+
+### Bug Fixes
+
+* **api:** accept canonical file batch discriminator ([#1224](https://github.com/openai/openai-java/issues/1224)) ([f886d7a](https://github.com/openai/openai-java/commit/f886d7a12fee9c3cedce9084dd692b9933a8f7ab))
+* **api:** accept compaction trigger payload fields ([#1226](https://github.com/openai/openai-java/issues/1226)) ([caa95e1](https://github.com/openai/openai-java/commit/caa95e12459e3cca6e85403dd3727f5eacd9a9d5))
+* **api:** close responses from void-returning calls ([#1242](https://github.com/openai/openai-java/issues/1242)) ([fc5b772](https://github.com/openai/openai-java/commit/fc5b772a597b32b4ef563820f72ea813a4a55b71))
+* complete WebSocket receives before closing failed transport ([#1240](https://github.com/openai/openai-java/issues/1240)) ([973fd4e](https://github.com/openai/openai-java/commit/973fd4e176ead42d46254b75213e8157ae496fb7))
+
+
+### Chores
+
+* restore generated budget-checker explanation ([#1235](https://github.com/openai/openai-java/issues/1235)) ([479972a](https://github.com/openai/openai-java/commit/479972a1ee2a7cd181f67f478c95aad9d1d1e261))
+
+
+### Documentation
+
+* checkpoint generated-code transition after initial merges ([#1238](https://github.com/openai/openai-java/issues/1238)) ([b79d85f](https://github.com/openai/openai-java/commit/b79d85f90c13c9cdc6d536b29704dfc50e8f9df8))
+* inventory Java custom patches and plan generated-code transition ([#1234](https://github.com/openai/openai-java/issues/1234)) ([1499ace](https://github.com/openai/openai-java/commit/1499ace53dda09c46af2feb693a876c7b6eed890))
+
+## [4.86.0](https://github.com/openai/openai-java/compare/v4.85.0...v4.86.0) (2026-10-19)
+
+
+### Features
+
+* **api:** add ultrafast service tier for Agents ([#1218](https://github.com/openai/openai-java/issues/1218)) ([5d6fc3c](https://github.com/openai/openai-java/commit/5d6fc3c5a58bf7ce1988f06ad3db770c61f469f8))
+* **realtime:** add opt-in bounded transport recovery ([#1221](https://github.com/openai/openai-java/issues/1221)) ([ef044b3](https://github.com/openai/openai-java/commit/ef044b33e7ad335dd28582c1dadd3bf7fbf9bd0b))
+
+
+### Chores
+
+* **api:** use neutral moderation examples ([#1222](https://github.com/openai/openai-java/issues/1222)) ([1a2fe5c](https://github.com/openai/openai-java/commit/1a2fe5c1742e0ee5f30b2f07859039b8c230d5c9))
+
+## [4.85.0](https://github.com/openai/openai-java/compare/v4.84.0...v4.85.0) (2026-10-17)
+
+
+### Features
+
+* **api:** add typed Live sideband events and beta connections ([#1216](https://github.com/openai/openai-java/issues/1216)) ([7a8ee6a](https://github.com/openai/openai-java/commit/7a8ee6ab1495eb26ad838f81e210fd203a5a145d))
+
+
+### Chores
+
+* **api:** clarify streaming response content types ([#1215](https://github.com/openai/openai-java/issues/1215)) ([6c1985b](https://github.com/openai/openai-java/commit/6c1985b6effe91f4f7ecb1498b8773acd4027867))
+
+## [4.84.0](https://github.com/openai/openai-java/compare/v4.83.0...v4.84.0) (2026-10-17)
+
+
+### Features
+
+* **api:** add degraded external storage status ([#1214](https://github.com/openai/openai-java/issues/1214)) ([91825de](https://github.com/openai/openai-java/commit/91825dedc6f14549d7101ef758c8455719faf251))
+* **api:** add Live events with compatible service and visitor defaults ([#1213](https://github.com/openai/openai-java/issues/1213)) ([71916f9](https://github.com/openai/openai-java/commit/71916f9f8a456f3055b56b6b12d4334479fdc280))
+* **api:** support Live sideband Decision commands ([#1193](https://github.com/openai/openai-java/issues/1193)) ([690835d](https://github.com/openai/openai-java/commit/690835d2b1ad8ca094d8a51052f47cac10cb54ff))
+
+
+### Chores
+
+* **api:** add Assistants model shutdown notices ([#1212](https://github.com/openai/openai-java/issues/1212)) ([224aec1](https://github.com/openai/openai-java/commit/224aec1fa1b57dbbc8938778e47e66cb8ea73ea8))
+* **api:** add shutdown notices for GPT-4 model aliases ([#1211](https://github.com/openai/openai-java/issues/1211)) ([ef1bcd5](https://github.com/openai/openai-java/commit/ef1bcd55ef8a6ac630547f940235d0a9827c2174))
+* clarify Live limits and refresh generated-file verification ([#1209](https://github.com/openai/openai-java/issues/1209)) ([9d1919c](https://github.com/openai/openai-java/commit/9d1919c5343d69d6bc8b14857a109c13be1670bf))
+
+## [4.83.0](https://github.com/openai/openai-java/compare/v4.82.0...v4.83.0) (2026-10-16)
+
+
+### Features
+
+* add client and JVM telemetry opt-out ([#1199](https://github.com/openai/openai-java/issues/1199)) ([e17430d](https://github.com/openai/openai-java/commit/e17430d5c3b04b1b81d34b4de250ae5e28fd4dd1))
+* **api:** add prompt-based voice creation ([#1205](https://github.com/openai/openai-java/issues/1205)) ([ffdc023](https://github.com/openai/openai-java/commit/ffdc02379cf629ea7c8c246606efdb8e935a85a9))
+* **api:** add safety identifiers to image requests and responses ([#1208](https://github.com/openai/openai-java/issues/1208)) ([f15a828](https://github.com/openai/openai-java/commit/f15a828c9a14a8f8b06d3ad3f13cfb825720affb))
+* **api:** support audio fixture playback in Live sessions ([#1185](https://github.com/openai/openai-java/issues/1185)) ([c36bc50](https://github.com/openai/openai-java/commit/c36bc50f4cb86bbf1fcbdc6a7f85f1a451319f1e))
+* **api:** support project API key scope updates ([#1180](https://github.com/openai/openai-java/issues/1180)) ([ee0cd94](https://github.com/openai/openai-java/commit/ee0cd94a3f2b7c6e89385a8287d997133843a098))
+
+
+### Bug Fixes
+
+* **core:** omit missing multipart values in JSON conversion ([#1207](https://github.com/openai/openai-java/issues/1207)) ([8a27c62](https://github.com/openai/openai-java/commit/8a27c62b9a0934e67d47d0834acd8055f6ccc00c))
+* **core:** retry synchronous async-transport failures ([#1200](https://github.com/openai/openai-java/issues/1200)) ([9185d8a](https://github.com/openai/openai-java/commit/9185d8ac9ecf1528c4314bcbb9debf3f81af0132))
+* **live:** avoid contextual transcript casing scans ([#1195](https://github.com/openai/openai-java/issues/1195)) ([169f511](https://github.com/openai/openai-java/commit/169f511e0a66678cbaf15ea8f559fac59e3c007c))
+* make phantom cleanup registration explicit and close once ([#1204](https://github.com/openai/openai-java/issues/1204)) ([b3b7ed6](https://github.com/openai/openai-java/commit/b3b7ed6acd4bd91f6131cc5536490b4fac02f8cc))
+* **responses:** defer repeated text-done metadata copies ([#1198](https://github.com/openai/openai-java/issues/1198)) ([9a4f6fc](https://github.com/openai/openai-java/commit/9a4f6fc32ef4177487d294e2dafea8a32e793c31))
+* settle async retry sleeps during shutdown ([#1201](https://github.com/openai/openai-java/issues/1201)) ([e26eb17](https://github.com/openai/openai-java/commit/e26eb17bcb5e9b4cdd13c7ecbde64617e7ff1e73))
+
+
+### Chores
+
+* strengthen generated file verification ([#1192](https://github.com/openai/openai-java/issues/1192)) ([812a4fb](https://github.com/openai/openai-java/commit/812a4fb74885f69b130c82d024f44541f73b8f5e))
+
+
+### Refactors
+
+* reuse Java WebSocket connection helpers ([#1194](https://github.com/openai/openai-java/issues/1194)) ([848ef53](https://github.com/openai/openai-java/commit/848ef53c94498e795587d571900202ea383601d4))
+
+## [4.82.0](https://github.com/openai/openai-java/compare/v4.81.0...v4.82.0) (2026-10-15)
+
+
+### Features
+
+* **api:** add regional processing residency options ([#1179](https://github.com/openai/openai-java/issues/1179)) ([fc93c4a](https://github.com/openai/openai-java/commit/fc93c4a512b12e364a53b4035879516f40903c95))
+* **api:** add response error diagnostics and model notices ([#1187](https://github.com/openai/openai-java/issues/1187)) ([43eb4aa](https://github.com/openai/openai-java/commit/43eb4aa67696c0bbbe29dcc7ea0661a30f7f1466))
+* **api:** expose image tool error and moderation details ([#1177](https://github.com/openai/openai-java/issues/1177)) ([7d9e8af](https://github.com/openai/openai-java/commit/7d9e8affcc7ec40553c9482ede8f63d529fead3e))
+
+
+### Bug Fixes
+
+* **api:** expose Realtime response error messages ([#1181](https://github.com/openai/openai-java/issues/1181)) ([34deb60](https://github.com/openai/openai-java/commit/34deb6073eae8124fd8b506946fc45e10bccf39b))
+* **core:** explain unsupported structured output maps ([#1188](https://github.com/openai/openai-java/issues/1188)) ([b83d170](https://github.com/openai/openai-java/commit/b83d170821a0809332697083de2cc6f315b08bb6))
+* **streaming:** settle rejected subscriber callbacks ([#1173](https://github.com/openai/openai-java/issues/1173)) ([d2b31a2](https://github.com/openai/openai-java/commit/d2b31a28c7bede2c7c8a792edfdb568351bd56ee))
+
+
+### Chores
+
+* **api:** clarify Decisions request and response fields ([#1178](https://github.com/openai/openai-java/issues/1178)) ([9fd36c0](https://github.com/openai/openai-java/commit/9fd36c0cf27e9646fbbfd924ba9462fafe760a0c))
+
+
+### Refactors
+
+* share WebSocket read and callback primitives ([#1186](https://github.com/openai/openai-java/issues/1186)) ([eae42df](https://github.com/openai/openai-java/commit/eae42df1f6c6487d2166a7e3217376372ed62b47))
+
+
+### Build System
+
+* **deps:** bump com.gradleup.shadow from 9.2.2 to 9.6.1 in /openai-java-proguard-test ([#1098](https://github.com/openai/openai-java/issues/1098)) ([f5cb67b](https://github.com/openai/openai-java/commit/f5cb67b01e43a8fb52158913041ac0471c866471))
+* isolate foundational model compilation ([#1182](https://github.com/openai/openai-java/issues/1182)) ([a31271d](https://github.com/openai/openai-java/commit/a31271d4d9c54f85d371407246fba1b4aa988a4a))
+* upgrade Gradle to 9.8.1 and fix JUnit test runtimes ([#1176](https://github.com/openai/openai-java/issues/1176)) ([6f1f1d4](https://github.com/openai/openai-java/commit/6f1f1d45b49f33b8b68863911d290eef32a6db73))
+* upgrade Maven Publish to 0.37.0 with explicit SDK publication ([#1139](https://github.com/openai/openai-java/issues/1139)) ([0b3dcaa](https://github.com/openai/openai-java/commit/0b3dcaaad10b6d303956e989f6a980de2bead5af))
+
+## [4.81.0](https://github.com/openai/openai-java/compare/v4.80.0...v4.81.0) (2026-10-13)
+
+
+### Features
+
+* **api:** add organization Decisions usage reporting ([#1165](https://github.com/openai/openai-java/issues/1165)) ([1b29d6e](https://github.com/openai/openai-java/commit/1b29d6e36695ed73ad06cb08bf1a0c4d2880d490))
+* **api:** add shida to named Live voices ([#1163](https://github.com/openai/openai-java/issues/1163)) ([22bd97e](https://github.com/openai/openai-java/commit/22bd97e2e62820dea1c5697cd75556623c5d2b9f))
+* **api:** share OCI external-storage response types ([#1164](https://github.com/openai/openai-java/issues/1164)) ([3efd4ca](https://github.com/openai/openai-java/commit/3efd4ca9009aadeeb24484216f76344baca1f303))
+* **api:** support updating project API key expiry ([#1167](https://github.com/openai/openai-java/issues/1167)) ([cefea29](https://github.com/openai/openai-java/commit/cefea29d6669c7b3c8fff14607905588ce698acf))
+
+
+### Bug Fixes
+
+* **auth:** close transport after workload cleanup failure ([#1146](https://github.com/openai/openai-java/issues/1146)) ([bdc31c7](https://github.com/openai/openai-java/commit/bdc31c787001c47fb4f5cbbd20d041607c03320c))
+
+
+### Chores
+
+* **api:** refresh API reference examples ([#1166](https://github.com/openai/openai-java/issues/1166)) ([df74d10](https://github.com/openai/openai-java/commit/df74d10a21c0c66a10316410261b1ad38df767fe))
+* **api:** retain existing vault update support ([#1161](https://github.com/openai/openai-java/issues/1161)) ([d3f1053](https://github.com/openai/openai-java/commit/d3f1053b905da920e69692ed3856e41bf10b3cd8))
+
+
+### Build System
+
+* **deps:** bump actions/cache/restore from 5.1.0 to 6.1.0 ([#1170](https://github.com/openai/openai-java/issues/1170)) ([101463a](https://github.com/openai/openai-java/commit/101463a8dbb3bb5de748c50e82690a7c483fece4))
+* **deps:** bump actions/cache/save from 5.1.0 to 6.1.0 ([#1171](https://github.com/openai/openai-java/issues/1171)) ([170bc2d](https://github.com/openai/openai-java/commit/170bc2de122e9929f5e5d7531933f89193d56e5c))
+* **deps:** bump graalvm/setup-graalvm from 1.6.6 to 1.6.7 ([#1172](https://github.com/openai/openai-java/issues/1172)) ([8edbcff](https://github.com/openai/openai-java/commit/8edbcffa43e27b71c3aa07f076769d63f31bcb1b))
+
+## [4.80.0](https://github.com/openai/openai-java/compare/v4.79.0...v4.80.0) (2026-10-09)
+
+
+### Features
+
+* **api:** add agent environment webhook events and vault updates ([#1159](https://github.com/openai/openai-java/issues/1159)) ([c577cc4](https://github.com/openai/openai-java/commit/c577cc470e3f98b383529a08f237541450e561ee))
+
+
+### Build System
+
+* **deps:** bump com.fasterxml.jackson.core:jackson-databind from 2.22.1 to 2.22.3 ([#1131](https://github.com/openai/openai-java/issues/1131)) ([a22dd21](https://github.com/openai/openai-java/commit/a22dd21ba519a6458881d8e7274fb431639d9755))
+
+## [4.79.0](https://github.com/openai/openai-java/compare/v4.78.1...v4.79.0) (2026-10-09)
+
+
+### Features
+
+* **api:** add prewarmed hosted environments ([#1155](https://github.com/openai/openai-java/issues/1155)) ([4264044](https://github.com/openai/openai-java/commit/4264044c3d5be0c3df61188feb3a5e57c5ff6ff9))
+
+## [4.78.1](https://github.com/openai/openai-java/compare/v4.78.0...v4.78.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **api:** correct custom voice creation parameters ([#1153](https://github.com/openai/openai-java/issues/1153)) ([43422a8](https://github.com/openai/openai-java/commit/43422a82de0ab4721ca0d3da8a59263fc107f0fe))
+* **ci:** reuse SDK compilation outputs across Java builds ([#1149](https://github.com/openai/openai-java/issues/1149)) ([a0dc1bc](https://github.com/openai/openai-java/commit/a0dc1bcfcfe0a3834bc85346e3f2e78ec2e74385))
+
+## [4.78.0](https://github.com/openai/openai-java/compare/v4.77.0...v4.78.0) (2026-10-06)
+
+
+### Features
+
+* **api:** add standalone Decisions support ([#1148](https://github.com/openai/openai-java/issues/1148)) ([4c3de8d](https://github.com/openai/openai-java/commit/4c3de8de48deecd36a7c2de60feeac80c7d37c1d))
+
+## [4.77.0](https://github.com/openai/openai-java/compare/v4.76.0...v4.77.0) (2026-10-06)
+
+
+### Features
+
+* **agents:** observe local tool failures ([#1142](https://github.com/openai/openai-java/issues/1142)) ([c50d94b](https://github.com/openai/openai-java/commit/c50d94b56e76317888b7018fd51c6704c89865b5))
+* **agents:** run local tools during session creation ([#1141](https://github.com/openai/openai-java/issues/1141)) ([bffddc4](https://github.com/openai/openai-java/commit/bffddc4fbf3c3cc748d3380799442e9f0418c313))
+* **api:** add agent turn items and usage source grouping ([#1147](https://github.com/openai/openai-java/issues/1147)) ([54c5e9d](https://github.com/openai/openai-java/commit/54c5e9d4a0479b41283195f7fe1ee3ffb092e8ed))
+
+## [4.76.0](https://github.com/openai/openai-java/compare/v4.75.1...v4.76.0) (2026-10-04)
+
+
+### Features
+
+* **api:** add custom voices and agent session webhook events ([#1135](https://github.com/openai/openai-java/issues/1135)) ([6a92077](https://github.com/openai/openai-java/commit/6a92077e25078d336964e5f42ba42886a64520d5))
+
+## [4.75.1](https://github.com/openai/openai-java/compare/v4.75.0...v4.75.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* **ci:** unblock Java releases during native-image tracing ([#1133](https://github.com/openai/openai-java/issues/1133)) ([a7fc8ba](https://github.com/openai/openai-java/commit/a7fc8bacefd5f1f7e075bb3200236bca9ae57539))
+
+## [4.75.0](https://github.com/openai/openai-java/compare/v4.74.0...v4.75.0) (2026-10-01)
+
+
+### Features
+
+* **agents:** Prepare hosted files and download turn artifacts ([47add84](https://github.com/openai/openai-java/commit/47add844df665a2dcbcedf745eb6f95dedcc4e9a))
+
+## [4.74.0](https://github.com/openai/openai-java/compare/v4.73.0...v4.74.0) (2026-10-01)
+
+
+### Features
+
+* **beta:** expose typed application actions as agent tools ([#1127](https://github.com/openai/openai-java/issues/1127)) ([36841ea](https://github.com/openai/openai-java/commit/36841eaa0534a932ef2f9674fb2299c7d75e8913))
+* **agents:** [1/n] Add typed final answers to beta Agents streams ([#1128](https://github.com/openai/openai-java/issues/1128)) ([b0b7b22](https://github.com/openai/openai-java/commit/b0b7b222db807bcf64004d43175f60af37b652d7))
+* **api:** add GCP external storage providers ([#1125](https://github.com/openai/openai-java/issues/1125)) ([5d7af58](https://github.com/openai/openai-java/commit/5d7af587352205e099eadceeecc09a584eaabcd5))
+* collect final output from beta Agents streams ([#1124](https://github.com/openai/openai-java/issues/1124)) ([328958a](https://github.com/openai/openai-java/commit/328958a26678492ff9dd9e1154ad6ad1fc7fddd8))
+
+
+### Bug Fixes
+
+* **api:** allow original image detail in Chat Completions ([#1126](https://github.com/openai/openai-java/issues/1126)) ([4ae27f8](https://github.com/openai/openai-java/commit/4ae27f8b63192ef6c5c2d4103cdba7395a06f3f7))
+* **api:** correct the eval run cancellation endpoint ([#1122](https://github.com/openai/openai-java/issues/1122)) ([ab795dd](https://github.com/openai/openai-java/commit/ab795dd6f95dc3d890ecfd262dd4dd9a3eea44ef))
+
+## [4.73.0](https://github.com/openai/openai-java/compare/v4.72.0...v4.73.0) (2026-09-30)
+
+
+### Features
+
+* **api:** add external storage provider callback handlers ([#1118](https://github.com/openai/openai-java/issues/1118)) ([eab351d](https://github.com/openai/openai-java/commit/eab351d9be2d94c7fc6c13c99859a731a27c60fb))
+* **api:** Add session traces and translation secrets ([#1117](https://github.com/openai/openai-java/issues/1117)) ([9d6bd03](https://github.com/openai/openai-java/commit/9d6bd037ac4a98917180686bd21707d2a5f40765))
+
+
+### Bug Fixes
+
+* **api:** Respect has_more when paginating list results ([#1112](https://github.com/openai/openai-java/issues/1112)) ([9f84f98](https://github.com/openai/openai-java/commit/9f84f98970dff3a7b1473c0a988c13eff837fb6f))
+* **azure:** resolve Responses deployment model names ([#1119](https://github.com/openai/openai-java/issues/1119)) ([4f5dddc](https://github.com/openai/openai-java/commit/4f5dddceb8d1e6d372a22c1fabb52f6604204491))
+* **build:** use package paths in the core sources JAR ([#1120](https://github.com/openai/openai-java/issues/1120)) ([cabb66e](https://github.com/openai/openai-java/commit/cabb66e814e5ae9a0530ee7c93bbab553d92c401))
+* **responses:** unblock calls and retire uncertain WebSocket sends ([#1116](https://github.com/openai/openai-java/issues/1116)) ([02fbaae](https://github.com/openai/openai-java/commit/02fbaae181a553b6133570234101b0f47d4d153e))
+
+
+### Documentation
+
+* add runnable Responses, Realtime and Live WebSocket examples ([#1106](https://github.com/openai/openai-java/issues/1106)) ([dd4a86e](https://github.com/openai/openai-java/commit/dd4a86eb8dc6845cd340a98a167c3bb83c7fd771))
+
+## [4.72.0](https://github.com/openai/openai-java/compare/v4.71.0...v4.72.0) (2026-09-29)
+
+
+### Features
+
+* **api:** add computer use to beta agents ([#1110](https://github.com/openai/openai-java/issues/1110)) ([a9fba09](https://github.com/openai/openai-java/commit/a9fba0977e3921e772da23ffaea5b33a39e2262b))
+* **api:** add GPT-6.1 Sol model identifier ([#1109](https://github.com/openai/openai-java/issues/1109)) ([084c233](https://github.com/openai/openai-java/commit/084c233c5699f0fa8097cb3eef4f736029960ef2))
+
+
+### Bug Fixes
+
+* close multipart inputs after construction failures ([#1107](https://github.com/openai/openai-java/issues/1107)) ([6cb0f38](https://github.com/openai/openai-java/commit/6cb0f38fbfbf76ba1b8949cccd537d06975a2d32))
+
+## [4.71.0](https://github.com/openai/openai-java/compare/v4.70.0...v4.71.0) (2026-09-29)
+
+
+### Features
+
+* **translation:** add opt-in send deadlines and capacity observation ([#1101](https://github.com/openai/openai-java/issues/1101)) ([900a553](https://github.com/openai/openai-java/commit/900a553b3245f787d77339b5d2352aae04e3674b))
+
+
+### Bug Fixes
+
+* cap server-directed retry delays at eight seconds ([#1104](https://github.com/openai/openai-java/issues/1104)) ([ea59064](https://github.com/openai/openai-java/commit/ea59064d5479f10086ba1af5a38ef4eba9dac638))
+* close non-success responses in error handler ([#1105](https://github.com/openai/openai-java/issues/1105)) ([9701a22](https://github.com/openai/openai-java/commit/9701a22c7d1b962e0dacdc3d267181010fd512b7))
+* **realtime:** unblock synchronous calls from async callbacks and preserve connection failures ([#1100](https://github.com/openai/openai-java/issues/1100)) ([8987843](https://github.com/openai/openai-java/commit/898784322b9d58e647c2c56679259416858e9f3d))
+
+## [4.70.0](https://github.com/openai/openai-java/compare/v4.69.3...v4.70.0) (2026-09-28)
+
+
+### Features
+
+* add typed Translation WebSocket connection and safe finish ([#1094](https://github.com/openai/openai-java/issues/1094)) ([e9f070f](https://github.com/openai/openai-java/commit/e9f070fa66bccde1b44be9a339532d9a95783963))
+* **api:** add access programs and credential metadata ([#1088](https://github.com/openai/openai-java/issues/1088)) ([c197342](https://github.com/openai/openai-java/commit/c1973427bddbab4d6bf8e1f91e9fe372415eadd1))
+* **live:** add managed primary WebSocket connections ([#1095](https://github.com/openai/openai-java/issues/1095)) ([56a2c4b](https://github.com/openai/openai-java/commit/56a2c4bed71e583c24391845fc94caf69ad505eb))
+* **live:** add typed WebSocket connections for stored session forks ([#1096](https://github.com/openai/openai-java/issues/1096)) ([16f53ca](https://github.com/openai/openai-java/commit/16f53caff29a9c0c912cd27cb864d2d71fdd9b24))
+* **live:** attach typed observers to eligible signaling sessions ([#1097](https://github.com/openai/openai-java/issues/1097)) ([aeae12d](https://github.com/openai/openai-java/commit/aeae12de892a159626efd7e74e2594e1cdcee248))
+* **live:** group typed transcript events into stable speaker turns ([#1092](https://github.com/openai/openai-java/issues/1092)) ([dd9c9a3](https://github.com/openai/openai-java/commit/dd9c9a35caae011e150299ed5960d41c7f4ff2be))
+* **realtime:** add optional managed GA WebSocket connections ([#1093](https://github.com/openai/openai-java/issues/1093)) ([80530c6](https://github.com/openai/openai-java/commit/80530c605b8679189cb3d1a3c839fa63a57ee7de))
+* **responses:** add opt-in incremental accumulator snapshots ([#1091](https://github.com/openai/openai-java/issues/1091)) ([c993f76](https://github.com/openai/openai-java/commit/c993f767ef922d765bc1c8945e92ab4905506fae))
+
+
+### Bug Fixes
+
+* **api:** correct file download response description ([#1090](https://github.com/openai/openai-java/issues/1090)) ([79c1a80](https://github.com/openai/openai-java/commit/79c1a80f8b85a34f1a62898e93eafb9fbed2ede3))
+* **api:** preserve plaintext and rich audio response models ([#1083](https://github.com/openai/openai-java/issues/1083)) ([59d019d](https://github.com/openai/openai-java/commit/59d019d42daf06d3369c76b7f98a00ee2c7c3d2f))
+
+
+### Chores
+
+* **api:** clarify documented API error responses ([#1089](https://github.com/openai/openai-java/issues/1089)) ([e929b50](https://github.com/openai/openai-java/commit/e929b504eb6314c33cebc15d206988bd79481797))
+* **api:** document batch error responses ([#1082](https://github.com/openai/openai-java/issues/1082)) ([840bb12](https://github.com/openai/openai-java/commit/840bb120c0d37313aa494ef2bd3a6981a2089341))
+* **api:** document fine-tuning and model errors ([#1087](https://github.com/openai/openai-java/issues/1087)) ([2bfb718](https://github.com/openai/openai-java/commit/2bfb7186eac7af18ba080eb3effd417a1ea44844))
+* **api:** document stored chat completion errors ([#1086](https://github.com/openai/openai-java/issues/1086)) ([20d1235](https://github.com/openai/openai-java/commit/20d1235befd2b4f9f2e8cd6923ca40c6801da126))
+
+## [4.69.3](https://github.com/openai/openai-java/compare/v4.69.2...v4.69.3) (2026-09-25)
+
+
+### Chores
+
+* **api:** document files and uploads error responses ([#1081](https://github.com/openai/openai-java/issues/1081)) ([69a4e21](https://github.com/openai/openai-java/commit/69a4e21ba3686e83b084901febeffb42b818460b))
+* **api:** document Responses not-found errors ([#1080](https://github.com/openai/openai-java/issues/1080)) ([e8cbf5d](https://github.com/openai/openai-java/commit/e8cbf5d732d4f5acf7cc455ff2dc75ce91377800))
+
+
+### Build System
+
+* **deps:** bump Maven Publish to 0.34.0 ([#910](https://github.com/openai/openai-java/issues/910)) ([2cbf22c](https://github.com/openai/openai-java/commit/2cbf22ca192670619bce0f04761813b814b758d5))
+* **deps:** bump Shadow to 9.2.2 ([#904](https://github.com/openai/openai-java/issues/904)) ([09b8c60](https://github.com/openai/openai-java/commit/09b8c60a86232d23c1c29e167a4233a154470924))
+* **deps:** upgrade Kotlin declarations together to 2.2.21 ([#1079](https://github.com/openai/openai-java/issues/1079)) ([465742d](https://github.com/openai/openai-java/commit/465742d697dd584f8012a1f56857fb97f3001b11))
+
+## [4.69.2](https://github.com/openai/openai-java/compare/v4.69.1...v4.69.2) (2026-09-24)
+
+
+### Bug Fixes
+
+* buffer completion text with linear accumulation ([#1051](https://github.com/openai/openai-java/issues/1051)) ([0971c87](https://github.com/openai/openai-java/commit/0971c8717c087eccb60e0ce94323f142794b6a58))
+
+
+### Build System
+
+* **deps:** bump com.fasterxml.jackson.core:jackson-databind in / ([#905](https://github.com/openai/openai-java/issues/905)) ([fc18819](https://github.com/openai/openai-java/commit/fc188194e7e016dfd8dd327d6f855dfe48c08b1c))
+* **deps:** bump gradle/actions/setup-gradle from 5.0.2 to 6.3.0 ([#932](https://github.com/openai/openai-java/issues/932)) ([3f00bce](https://github.com/openai/openai-java/commit/3f00bce4be75ba0791f926c13231b499704f9a95))
+
+## [4.69.1](https://github.com/openai/openai-java/compare/v4.69.0...v4.69.1) (2026-09-24)
+
+
+### Bug Fixes
+
+* buffer streamed tool arguments per tool ([#1070](https://github.com/openai/openai-java/issues/1070)) ([56ee772](https://github.com/openai/openai-java/commit/56ee772ff4734af8b5c0ac278fe2cfafbf90b09f))
+* **ci:** restrict legacy release guard to same-repository PRs ([#1058](https://github.com/openai/openai-java/issues/1058)) ([55de0fe](https://github.com/openai/openai-java/commit/55de0fef34190cd177a0e6c68b10cb22297d4cdf))
+* complete asynchronous pagers when first-page handling fails ([#1050](https://github.com/openai/openai-java/issues/1050)) ([bd5e5d2](https://github.com/openai/openai-java/commit/bd5e5d28f3f735bb3883b084151b16db3dcbf4f6))
+* disable compression for default WebSocket connections ([#1049](https://github.com/openai/openai-java/issues/1049)) ([8f7972a](https://github.com/openai/openai-java/commit/8f7972aee66dabddd61245c625e4acc21b9253b8))
+* match header hashing to case-insensitive equality ([#1052](https://github.com/openai/openai-java/issues/1052)) ([82440c9](https://github.com/openai/openai-java/commit/82440c9c05a0e2983c47d55dbcd9f4cf889bd9ec))
+* remove the unused asynchronous thread-owned lock helper ([#1072](https://github.com/openai/openai-java/issues/1072)) ([132f095](https://github.com/openai/openai-java/commit/132f0959016b9c680abc273407dfe7d85ca27081))
+* retain response ownership while consuming a stream ([#1073](https://github.com/openai/openai-java/issues/1073)) ([697c9d0](https://github.com/openai/openai-java/commit/697c9d0d47e1ff49ff73f087f786a1d4c9f205ef))
+
+
+### Chores
+
+* **api:** clarify approximate web search location defaults ([#1071](https://github.com/openai/openai-java/issues/1071)) ([39a920a](https://github.com/openai/openai-java/commit/39a920a1087b7798bd1728a3cc4e59688a7d0ab3))
+* **api:** clarify Realtime modality array definitions ([#1074](https://github.com/openai/openai-java/issues/1074)) ([66acb5d](https://github.com/openai/openai-java/commit/66acb5d73d2a8f3ffb0a6386ce5082d7944ac40f))
+* **api:** correct fine-tuning bounds and Realtime response reference ([#1068](https://github.com/openai/openai-java/issues/1068)) ([aa75cc5](https://github.com/openai/openai-java/commit/aa75cc55171484defe66fb9b8c26b8e8648bb7cc))
+
+
+### Documentation
+
+* clarify collaborator-only pull request policy ([#1066](https://github.com/openai/openai-java/issues/1066)) ([c9f222f](https://github.com/openai/openai-java/commit/c9f222f0daaaac679ff94d7407e8400aaf24eed4))
+
+## [4.69.0](https://github.com/openai/openai-java/compare/v4.68.0...v4.69.0) (2026-09-23)
+
+
+### Features
+
+* **api:** add GPT-Rosalind research model ([#1062](https://github.com/openai/openai-java/issues/1062)) ([374d7ef](https://github.com/openai/openai-java/commit/374d7ef1ffdb1ab3020efc4945b4dacb2c3f44c3))
+
+
+### Chores
+
+* **api:** clarify Chat Completions seed bounds ([#1065](https://github.com/openai/openai-java/issues/1065)) ([544e367](https://github.com/openai/openai-java/commit/544e3677ce82bdfa3b4fa3c960a883bde534727e))
+
+## [4.68.0](https://github.com/openai/openai-java/compare/v4.67.0...v4.68.0) (2026-09-22)
+
+
+### Features
+
+* **api:** add GPT-6 Sol and Luna model identifiers ([#1060](https://github.com/openai/openai-java/issues/1060)) ([234b977](https://github.com/openai/openai-java/commit/234b97788fe9a828d8f7fc4dc6c5fc2d6e188a4d))
+
+
+### Bug Fixes
+
+* preserve streams through multipart upload unions ([#1059](https://github.com/openai/openai-java/issues/1059)) ([e3eb1d4](https://github.com/openai/openai-java/commit/e3eb1d4cbe3f10cc63f34068927ed9ce75d9ddc5))
+
+## [4.67.0](https://github.com/openai/openai-java/compare/v4.66.1...v4.67.0) (2026-09-22)
+
+
+### Features
+
+* **api:** add session environment reset events ([#1055](https://github.com/openai/openai-java/issues/1055)) ([0956c64](https://github.com/openai/openai-java/commit/0956c641e7bff6e4aa9560af79d96be1eb813654))
+
+
+### Chores
+
+* **api:** clarify external storage deletion behavior ([#1057](https://github.com/openai/openai-java/issues/1057)) ([f511e47](https://github.com/openai/openai-java/commit/f511e47a06e6c3350132917f558cc7287f56fab0))
+
+## [4.66.1](https://github.com/openai/openai-java/compare/v4.66.0...v4.66.1) (2026-09-21)
+
+
+### Bug Fixes
+
+* **api:** restore legacy gpt-5.1-mini identifiers ([#1053](https://github.com/openai/openai-java/issues/1053)) ([f2cedb5](https://github.com/openai/openai-java/commit/f2cedb59de8cbbf585ebda888aeba021327ca82b))
+
+## [4.66.0](https://github.com/openai/openai-java/compare/v4.65.0...v4.66.0) (2026-09-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **api:** Removed the unsupported `gpt-5.1-mini` model's `GPT_5_1_MINI` constants and corresponding `Known`/`Value` enum cases from `ChatModel`, `BetaResponse.Model`, `BetaResponsesClientEvent.ResponseCreate.Model`, beta `ResponseCreateParams.Model`, and both beta and stable `ResponseCompactParams.Model` types. Code referencing any of these members must select an available model and be recompiled. This removal is covered by the SDK's minor-version compatibility exception.
+
+### Features
+
+* **api:** add external storage configuration management ([#1032](https://github.com/openai/openai-java/issues/1032)) ([f26dbfd](https://github.com/openai/openai-java/commit/f26dbfd284948aede893744b9245aac9809de30b))
+* **api:** add safety case retrieval ([#1033](https://github.com/openai/openai-java/issues/1033)) ([4c27852](https://github.com/openai/openai-java/commit/4c27852e6563b9dbafec5703448110741d8f1efd))
+* **api:** add safety warning and deactivation webhook events ([#1031](https://github.com/openai/openai-java/issues/1031)) ([143c540](https://github.com/openai/openai-java/commit/143c5404c2f4782cb4bc9bce4364849e911c0d06))
+* **api:** add SIP media security to incoming call events ([#1030](https://github.com/openai/openai-java/issues/1030)) ([3565b44](https://github.com/openai/openai-java/commit/3565b4480be4644bb1103726c6134509a89151c9))
+* **api:** support environment variable vault credentials ([#1029](https://github.com/openai/openai-java/issues/1029)) ([683bfed](https://github.com/openai/openai-java/commit/683bfeda61783a4532597934e6953b2cdd9cea41))
+
+
+### Bug Fixes
+
+* **api:** correct model types and network policy docs ([#1024](https://github.com/openai/openai-java/issues/1024)) ([f8cce9a](https://github.com/openai/openai-java/commit/f8cce9a5e1376e793aedbaf6f94d2a0789d858bf))
+* close SSE responses at the terminal event ([#1027](https://github.com/openai/openai-java/issues/1027)) ([1441ba1](https://github.com/openai/openai-java/commit/1441ba1eb7ff1a6889afbbc480681f4fb031a811))
+* handle extreme retry dates and close retry responses ([#1026](https://github.com/openai/openai-java/issues/1026)) ([18e36f8](https://github.com/openai/openai-java/commit/18e36f8f4ebc487bcadbcb3fd9739ab5ba2cf540))
+* preserve explicit security-header removal ([#1036](https://github.com/openai/openai-java/issues/1036)) ([5ac7585](https://github.com/openai/openai-java/commit/5ac7585d7a6506b8b05d850d3c703a5ec8155680))
+* reject line breaks in multipart content types ([#1025](https://github.com/openai/openai-java/issues/1025)) ([c3352aa](https://github.com/openai/openai-java/commit/c3352aaaac5c6ff0fd9559c1d1bcf4d17a31c172))
+
+
+### Chores
+
+* **api:** document response management resources ([#1034](https://github.com/openai/openai-java/issues/1034)) ([a363812](https://github.com/openai/openai-java/commit/a363812216605acd7ee60a1f5ca986e4905e0195))
+
+
+### Build System
+
+* **deps:** bump actions/setup-java from 5.7.0 to 6.0.1 ([#1047](https://github.com/openai/openai-java/issues/1047)) ([205976b](https://github.com/openai/openai-java/commit/205976b58a99ff15b259a9cd8be571c92a2ac6dd))
+* **deps:** bump org.junit.jupiter:junit-jupiter in / ([#955](https://github.com/openai/openai-java/issues/955)) ([d2969f8](https://github.com/openai/openai-java/commit/d2969f8efd588e492d97ec41e892cd91e9906c59))
+* **deps:** bump org.yaml:snakeyaml in / ([#1046](https://github.com/openai/openai-java/issues/1046)) ([b338b2a](https://github.com/openai/openai-java/commit/b338b2aba2d99bf327dade65211c09deb7a626d1))
+
+## [4.65.0](https://github.com/openai/openai-java/compare/v4.64.0...v4.65.0) (2026-09-18)
+
+
+### Features
+
+* **api:** add agent session model settings ([#1008](https://github.com/openai/openai-java/issues/1008)) ([fcedbfe](https://github.com/openai/openai-java/commit/fcedbfea2d10c115e1f4af34f0bd024bb5e51e14))
+* **api:** add audio-mini model choices ([#1011](https://github.com/openai/openai-java/issues/1011)) ([15d4081](https://github.com/openai/openai-java/commit/15d40814e0a7367fc3e26598de2a1b684ed79ce7))
+* **api:** add managed Responses WebSocket connections ([#1013](https://github.com/openai/openai-java/issues/1013)) ([a5c9165](https://github.com/openai/openai-java/commit/a5c91658583ab06fc6b3df7a9319586ad0d6e841))
+* **api:** add prompt-cache prewarming ([#1017](https://github.com/openai/openai-java/issues/1017)) ([b55e165](https://github.com/openai/openai-java/commit/b55e16579ca4d7fdae53c3e04fe302fdc0cef690))
+* **api:** add webhook endpoint management ([#1020](https://github.com/openai/openai-java/issues/1020)) ([7a9d90a](https://github.com/openai/openai-java/commit/7a9d90a6ed691f840b2b75f3540c33f71f034cb8))
+
+
+### Bug Fixes
+
+* keep API keys within the request origin ([#1021](https://github.com/openai/openai-java/issues/1021)) ([337efe5](https://github.com/openai/openai-java/commit/337efe5de15e7ce174bd9cc328891f708657b29e))
+
+
+### Chores
+
+* **api:** clarify incoming SIP call ID usage ([#1010](https://github.com/openai/openai-java/issues/1010)) ([e849eae](https://github.com/openai/openai-java/commit/e849eae37c470c14ef728f68f5db7e0d41591357))
+* **api:** update image request examples ([#1019](https://github.com/openai/openai-java/issues/1019)) ([81f7f83](https://github.com/openai/openai-java/commit/81f7f83c48cb8929ceabe9c09e080c30be8fb60b))
+
+
+### Build System
+
+* cache R8 compatibility transformations ([#1014](https://github.com/openai/openai-java/issues/1014)) ([44e42ae](https://github.com/openai/openai-java/commit/44e42aeb256f9abb643a2a940f19bef7930bc3b3))
+
+## [4.64.0](https://github.com/openai/openai-java/compare/v4.63.3...v4.64.0) (2026-09-17)
+
+
+### Features
+
+* **api:** add compaction progress events ([#1005](https://github.com/openai/openai-java/issues/1005)) ([5014c02](https://github.com/openai/openai-java/commit/5014c025f88086026b4b1d44dd79428117b19b69))
+* reject unsafe resource IDs before transport ([#1007](https://github.com/openai/openai-java/issues/1007)) ([d6409aa](https://github.com/openai/openai-java/commit/d6409aaaf55c65bbe260b2b73dbbe581a581fb17))
+
+## [4.63.3](https://github.com/openai/openai-java/compare/v4.63.2...v4.63.3) (2026-09-15)
+
+
+### Bug Fixes
+
+* correct Java formatter lint mode ([#1003](https://github.com/openai/openai-java/issues/1003)) ([2143367](https://github.com/openai/openai-java/commit/21433670486cdfda0a80256891ebf10d4089c9d0))
+
+## [4.63.2](https://github.com/openai/openai-java/compare/v4.63.1...v4.63.2) (2026-09-14)
+
+
+### Build System
+
+* **deps:** bump graalvm/setup-graalvm from 1.6.4 to 1.6.6 ([#1000](https://github.com/openai/openai-java/issues/1000)) ([6aedba1](https://github.com/openai/openai-java/commit/6aedba105c75f3166419112b359adea48f7f0844))
+
+## [4.63.1](https://github.com/openai/openai-java/compare/v4.63.0...v4.63.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* allow longer timeout for large Agents stream test ([#995](https://github.com/openai/openai-java/issues/995)) ([e2ac169](https://github.com/openai/openai-java/commit/e2ac1691d0b313582de19ca688822ef0e1ee31b0))
+
+## [4.63.0](https://github.com/openai/openai-java/compare/v4.62.0...v4.63.0) (2026-09-10)
+
+
+### Features
+
+* **api:** add Agents API ([#992](https://github.com/openai/openai-java/issues/992)) ([10027a0](https://github.com/openai/openai-java/commit/10027a0879c9599937f61e654d502eb722af2e3c))
+
+## [4.62.0](https://github.com/openai/openai-java/compare/v4.61.0...v4.62.0) (2026-09-10)
+
+
+### Features
+
+* **api:** Add Live API ([#991](https://github.com/openai/openai-java/issues/991)) ([b638bac](https://github.com/openai/openai-java/commit/b638bacaf35477ff09588636dc3c836728174a18))
+
+
+### Bug Fixes
+
+* clamp negative Retry-After delays before sleeping ([#855](https://github.com/openai/openai-java/issues/855)) ([0f9fe12](https://github.com/openai/openai-java/commit/0f9fe1281dcbafb45f7db91c9b8ff5d1ff3f0d4e))
+
+
+### Chores
+
+* raise custom-code budget to 3,000 lines ([#989](https://github.com/openai/openai-java/issues/989)) ([46bf1c1](https://github.com/openai/openai-java/commit/46bf1c16c3981504b1685bc3c266ec3423a83761))
+
+## [4.61.0](https://github.com/openai/openai-java/compare/v4.60.0...v4.61.0) (2026-09-09)
+
+
+### Features
+
+* **api:** Support API key expiration metadata ([#984](https://github.com/openai/openai-java/issues/984)) ([e8ca958](https://github.com/openai/openai-java/commit/e8ca958a72e92b96d15818bb0b08f7616b36d5cc))
+
+
+### Documentation
+
+* fix async pagination examples ([#848](https://github.com/openai/openai-java/issues/848)) ([ce3b151](https://github.com/openai/openai-java/commit/ce3b15102052d223af71ffd0291c0bbd1a7a42d0)), closes [#849](https://github.com/openai/openai-java/issues/849)
+* fix ResponseOutputItem typo in README ([#986](https://github.com/openai/openai-java/issues/986)) ([3ae2730](https://github.com/openai/openai-java/commit/3ae2730ac13f70aacdc32b4b7a1a4d621c2ef858))
+
+## [4.60.0](https://github.com/openai/openai-java/compare/v4.59.0...v4.60.0) (2026-09-08)
+
+
+### Features
+
+* **api:** add GPT Image 2.5 models and image options ([#982](https://github.com/openai/openai-java/issues/982)) ([279ec25](https://github.com/openai/openai-java/commit/279ec2586b5fe90349ac4a4ab7ec2a04c744f993))
+
+## [4.59.0](https://github.com/openai/openai-java/compare/v4.58.0...v4.59.0) (2026-09-08)
+
+
+### Features
+
+* **api:** Add prompt cache diagnostics ([#975](https://github.com/openai/openai-java/issues/975)) ([b9b9c85](https://github.com/openai/openai-java/commit/b9b9c851cf70331ee0aeb557a6ec38f3cb550bf7))
+* **api:** add service-account API key expiration fields ([#979](https://github.com/openai/openai-java/issues/979)) ([af2c32a](https://github.com/openai/openai-java/commit/af2c32a92c86ceddbfe704d1a192c1785cad1571))
+* **api:** correct function argument completion event fields (openapi-545) ([#978](https://github.com/openai/openai-java/issues/978)) ([198a7bd](https://github.com/openai/openai-java/commit/198a7bdf339d3180c11db70a7fd6ee0c96c79376))
+
+
+### Chores
+
+* **api:** document throttling and model overload responses — SDK-235 ([#980](https://github.com/openai/openai-java/issues/980)) ([5356310](https://github.com/openai/openai-java/commit/535631042faa338d7c8f1e88c44f68305ed1f632))
+
+## [4.58.0](https://github.com/openai/openai-java/compare/v4.57.0...v4.58.0) (2026-09-04)
+
+
+### Features
+
+* **api:** recognize incomplete web search call status ([#965](https://github.com/openai/openai-java/issues/965)) ([bbb465e](https://github.com/openai/openai-java/commit/bbb465e9c2a10143b47596d7d7de9d49b8f38195))
+
+
+### Chores
+
+* migrate to forked steady ([#971](https://github.com/openai/openai-java/issues/971)) ([fc35f09](https://github.com/openai/openai-java/commit/fc35f09a64af08331e7b51ae15891a1af35fc448))
+
+## [4.57.0](https://github.com/openai/openai-java/compare/v4.56.0...v4.57.0) (2026-09-03)
+
+
+### Features
+
+* **api:** add gpt-6-astra and related features ([#969](https://github.com/openai/openai-java/issues/969)) ([39f1715](https://github.com/openai/openai-java/commit/39f1715c67c0138727bfde55ddb02317b3784ad7))
+
+## [4.56.0](https://github.com/openai/openai-java/compare/v4.55.0...v4.56.0) (2026-09-02)
+
+
+### Features
+
+* **api:** update usage APIs and documentation ([#961](https://github.com/openai/openai-java/issues/961)) ([517d37f](https://github.com/openai/openai-java/commit/517d37f931f5d493298100b2e5c53f0fc17886a7))
+
+
+### Documentation
+
+* update OkHttp website links ([#957](https://github.com/openai/openai-java/issues/957)) ([fa040fd](https://github.com/openai/openai-java/commit/fa040fd637e6544cab26c62bee9f99113e050396))
+
+## [4.55.0](https://github.com/openai/openai-java/compare/v4.54.0...v4.55.0) (2026-08-31)
+
+
+### Features
+
+* **api:** add compute_units to Responses and Chat Completions usage ([#944](https://github.com/openai/openai-java/issues/944)) ([3e45ffb](https://github.com/openai/openai-java/commit/3e45ffb67e910495efb35f5452417b6efdc53015))
+* **auth:** add X.509 token exchange ([#940](https://github.com/openai/openai-java/issues/940)) ([df0c88d](https://github.com/openai/openai-java/commit/df0c88d923de5626ad9deb1ae667717b80bbe9f7))
+* integrate X.509 workload identity with OkHttp clients ([#948](https://github.com/openai/openai-java/issues/948)) ([9684d52](https://github.com/openai/openai-java/commit/9684d5255f5a6b52234ad4dee461300ac2bc9e5a))
+
+
+### Bug Fixes
+
+* **auth:** bind X.509 bearer attachment to its mTLS transport ([#949](https://github.com/openai/openai-java/issues/949)) ([5f3ab4a](https://github.com/openai/openai-java/commit/5f3ab4a3e839b30f0d22d4b036223c4f6f6fce4e))
+* bind X.509 transport clients to trusted origins ([#946](https://github.com/openai/openai-java/issues/946)) ([bccb100](https://github.com/openai/openai-java/commit/bccb1003c239ead5e815d01bf8ac99c0b8062c40))
+* **ci:** preserve release source in Maven provenance ([#951](https://github.com/openai/openai-java/issues/951)) ([0382c7c](https://github.com/openai/openai-java/commit/0382c7cfacf028de3f7b942ef6840edb9fa0cbfb)), closes [#950](https://github.com/openai/openai-java/issues/950)
+* **ci:** reduce Maven publish runner pressure ([#953](https://github.com/openai/openai-java/issues/953)) ([02b2d0d](https://github.com/openai/openai-java/commit/02b2d0dd1b8d2b9b2b80ab7fa36808fb639b9116))
+* fail closed when protected X.509 verification cannot run ([#945](https://github.com/openai/openai-java/issues/945)) ([24089bd](https://github.com/openai/openai-java/commit/24089bd23b830aeee724472a60f8927493c1fd6b))
+
+## [4.54.0](https://github.com/openai/openai-java/compare/v4.53.0...v4.54.0) (2026-08-27)
+
+
+### Features
+
+* **api:** make function call output call IDs optional ([#939](https://github.com/openai/openai-java/issues/939)) ([36e6e4c](https://github.com/openai/openai-java/commit/36e6e4caafc8b717bfc9c8c6f67e0e6724bca73d))
+
+## [4.53.0](https://github.com/openai/openai-java/compare/v4.52.0...v4.53.0) (2026-08-26)
+
+
+### Features
+
+* **api:** Add obfuscation to ChatCompletionChunk ([#902](https://github.com/openai/openai-java/issues/902)) ([9b1379b](https://github.com/openai/openai-java/commit/9b1379bfe7049d1ab4a6497ef0326b359891e208))
+* **api:** add project residency and usage quantity unit support ([#933](https://github.com/openai/openai-java/issues/933)) ([3c63360](https://github.com/openai/openai-java/commit/3c63360e04f6873a2386860ce0ac0ef3a783e955))
+* **api:** support backend-mediated Realtime WebRTC calls ([#937](https://github.com/openai/openai-java/issues/937)) ([e1b15f6](https://github.com/openai/openai-java/commit/e1b15f624a701d69a6ceba06fdaaf737ff6a6beb))
+* **auth:** add fixed-alias X.509 transport capability ([#934](https://github.com/openai/openai-java/issues/934)) ([2303825](https://github.com/openai/openai-java/commit/23038252822fb2b68e61ba230a8349869e1455d5))
+* support named data-residency endpoints ([#880](https://github.com/openai/openai-java/issues/880)) ([cf942a4](https://github.com/openai/openai-java/commit/cf942a40074291290634321ad9fe21e514030b4c))
+
+
+### Bug Fixes
+
+* **api:** preserve stream IDs for factory-created response errors ([#926](https://github.com/openai/openai-java/issues/926)) ([7f9f186](https://github.com/openai/openai-java/commit/7f9f186d0cc8b31cc17a5fdd6e924e0e7d1f706c))
+* **ci:** isolate trusted Gradle caches from pull requests ([#898](https://github.com/openai/openai-java/issues/898)) ([22d09f2](https://github.com/openai/openai-java/commit/22d09f2cb370bcf86871eadf508a55e48fab43c9))
+* prevent concurrent JSON deserialization failures ([#875](https://github.com/openai/openai-java/issues/875)) ([e0afe55](https://github.com/openai/openai-java/commit/e0afe55d49dfe040167c14d91f56a167f3215132))
+* upgrade Dokka's build-only jsoup dependency ([#895](https://github.com/openai/openai-java/issues/895)) ([81134d7](https://github.com/openai/openai-java/commit/81134d727946fb84cc48db98e6c8c53c8a8d22ab))
+* upgrade WireMock's test-only Apache HttpComponents dependencies ([#897](https://github.com/openai/openai-java/issues/897)) ([4736f7c](https://github.com/openai/openai-java/commit/4736f7c5128193014fb9c165b8d417a6ffa571af))
+
+
+### Chores
+
+* **api:** document supported image generation models ([#915](https://github.com/openai/openai-java/issues/915)) ([1b0ad3d](https://github.com/openai/openai-java/commit/1b0ad3d5016346feb09c0362f1334ef3f9a0224a))
+* configure Java SDK Dependabot updates ([#872](https://github.com/openai/openai-java/issues/872)) ([f043e8e](https://github.com/openai/openai-java/commit/f043e8e71a7f5f19d1cf089f7c2e2048f1fbfa0b))
+* set a 2,000-line custom-code budget ([#924](https://github.com/openai/openai-java/issues/924)) ([a5228db](https://github.com/openai/openai-java/commit/a5228db57265b92e8c7597fcd4c78cd968483c50))
+* update example Netty BOM to 4.1.137.Final ([#901](https://github.com/openai/openai-java/issues/901)) ([d451dbf](https://github.com/openai/openai-java/commit/d451dbfa995e5b415f17fa36137461387108f16c))
+
+
+### Documentation
+
+* clarify image transparency and Realtime audio delta behavior ([#918](https://github.com/openai/openai-java/issues/918)) ([085ea7d](https://github.com/openai/openai-java/commit/085ea7d5f9c863aaeb6698f2c5f7efdc283bc01e))
+* strengthen Java SDK security guidance ([#871](https://github.com/openai/openai-java/issues/871)) ([bbbe643](https://github.com/openai/openai-java/commit/bbbe6435093519b11ed83c3d5d35004741f65bde))
+
+
+### Refactors
+
+* isolate webhook signature verification ([#921](https://github.com/openai/openai-java/issues/921)) ([715a304](https://github.com/openai/openai-java/commit/715a30468d3232a5df4f6c6bec8b2175404eb8b9))
+* remove equivalent generated-source edits ([#919](https://github.com/openai/openai-java/issues/919)) ([a2f4dde](https://github.com/openai/openai-java/commit/a2f4ddefb7673cc5ba702c3256d3fa28a2518375))
+
+
+### Build System
+
+* **deps:** bump actions/checkout from 6.0.2 to 7.0.1 ([#917](https://github.com/openai/openai-java/issues/917)) ([de3e2f6](https://github.com/openai/openai-java/commit/de3e2f6eb039f66838a8ba0a6639df4f54311e5f))
+* **deps:** bump actions/github-script from 7.1.0 to 9.0.0 ([#931](https://github.com/openai/openai-java/issues/931)) ([63fb3e0](https://github.com/openai/openai-java/commit/63fb3e05a31f2163f697803ec4eda1d50f214bb5))
+* **deps:** bump actions/setup-java from 5.2.0 to 5.7.0 ([#911](https://github.com/openai/openai-java/issues/911)) ([dad38ae](https://github.com/openai/openai-java/commit/dad38aef8e60852d02ccd98f8a4c4a9055384e3e))
+* **deps:** bump graalvm/setup-graalvm from 03e8abf916fd0e281b2efe7b2da3378bb0a1d085 to 5298d94fb55a4f185c602eeac5de1b553882abe2 ([#908](https://github.com/openai/openai-java/issues/908)) ([4311982](https://github.com/openai/openai-java/commit/4311982527283109d4dedc755eb0fb3a11e17706))
+* **deps:** bump org.jetbrains.dokka in / ([#906](https://github.com/openai/openai-java/issues/906)) ([ca9c11d](https://github.com/openai/openai-java/commit/ca9c11dd90be5b10b67797a0af6e575ce776bb6a))
+* **deps:** bump org.junit.jupiter:junit-jupiter in / ([#912](https://github.com/openai/openai-java/issues/912)) ([36480c7](https://github.com/openai/openai-java/commit/36480c719bb2b6754628696b3228f756cb524f9f))
+
+## [4.52.0](https://github.com/openai/openai-java/compare/v4.51.0...v4.52.0) (2026-08-17)
+
+
+### Features
+
+* add first-class Bedrock Runtime support (SDK-290) ([#866](https://github.com/openai/openai-java/issues/866)) ([676b475](https://github.com/openai/openai-java/commit/676b475f0955a9a7ddcecf184f8913ec998840c4))
+* **api:** Add shell call streaming events and image partial fields ([#868](https://github.com/openai/openai-java/issues/868)) ([9d0c42d](https://github.com/openai/openai-java/commit/9d0c42db9fe9d5e8c061367f33fc5010865c41c1))
+
+
+### Bug Fixes
+
+* make Kotlin formatting consistent locally and in CI ([#867](https://github.com/openai/openai-java/issues/867)) ([0ede78d](https://github.com/openai/openai-java/commit/0ede78d9c813cf2fd086df96cbfa555440c83147))
+
+## [4.51.0](https://github.com/openai/openai-java/compare/v4.50.0...v4.51.0) (2026-08-14)
+
+
+### Features
+
+* **api:** Add GPT_DAYBREAK and GPT_5_6_CYBER model identifiers ([5b9ba3a](https://github.com/openai/openai-java/commit/5b9ba3a75cbbb77335408c92f02be6f7b8c406ac))
+* **api:** add WebSocket stream IDs ([#861](https://github.com/openai/openai-java/issues/861)) ([4936d0b](https://github.com/openai/openai-java/commit/4936d0befb937a6a53f209ca43786e54b151889b))
+* **api:** add workload identity access token issued event ([#859](https://github.com/openai/openai-java/issues/859)) ([2b763fe](https://github.com/openai/openai-java/commit/2b763fe6ffdce11b875513da81590931f28f335d))
+* **api:** deprecate Sora video APIs ([#860](https://github.com/openai/openai-java/issues/860)) ([a191575](https://github.com/openai/openai-java/commit/a191575f0c9ae1dd62e8abe803aa9f5f26acb833))
+* **api:** Ultrafast tier, structured MCP and websocket errors, separate websocket events ([#863](https://github.com/openai/openai-java/issues/863)) ([ec274a8](https://github.com/openai/openai-java/commit/ec274a87048efc4f32b1e9801e1e49ba086cc181))
+
+
+### Bug Fixes
+
+* **api:** Add GPT_DAYBREAK and GPT_5_6_CYBER model identifiers ([#856](https://github.com/openai/openai-java/issues/856)) ([5b9ba3a](https://github.com/openai/openai-java/commit/5b9ba3a75cbbb77335408c92f02be6f7b8c406ac))
+* **api:** clarify audio upload metadata requirements ([#857](https://github.com/openai/openai-java/issues/857)) ([593f04c](https://github.com/openai/openai-java/commit/593f04c912d9331cd83c71ba7a4f6846e2e02fcc))
+* restore ProGuard configuration caching ([#842](https://github.com/openai/openai-java/issues/842)) ([fb8daa4](https://github.com/openai/openai-java/commit/fb8daa45a0592f636732a74afc0df3a96fff3db5))
+
+
+### Chores
+
+* **api:** Update generated file header text ([#846](https://github.com/openai/openai-java/issues/846)) ([d11a357](https://github.com/openai/openai-java/commit/d11a357aea469a78400334beadeeac17ca24fd69))
+* remove Stainless attribution and infrastructure ([#858](https://github.com/openai/openai-java/issues/858)) ([942a097](https://github.com/openai/openai-java/commit/942a0979dfb895c13bc12745d69e006bc4f7ce2c))
+
+
+### Documentation
+
+* **api:** describe response stream event unions ([#862](https://github.com/openai/openai-java/issues/862)) ([73b39b8](https://github.com/openai/openai-java/commit/73b39b82618b98fe221bb27e76b51d96357366c1))
+* keep README badges on latest release ([#839](https://github.com/openai/openai-java/issues/839)) ([33c6b57](https://github.com/openai/openai-java/commit/33c6b57709af067148dea6026c0d160df3413635))
+
+## [4.50.0](https://github.com/openai/openai-java/compare/v4.49.0...v4.50.0) (2026-08-03)
+
+
+### Features
+
+* **api:** Add GPT-5.5 model and optional tool name/namespace fields ([#837](https://github.com/openai/openai-java/issues/837)) ([af860dc](https://github.com/openai/openai-java/commit/af860dc957fdb1d02acaf721ae7ace8fdf16dbf4))
+
+
+### Chores
+
+* remove retired Spring Boot 2 starter ([#827](https://github.com/openai/openai-java/issues/827)) ([52e3c64](https://github.com/openai/openai-java/commit/52e3c64215b647aeebe1e9123c1c857a7bbe95af))
+
+## 4.49.0 (2026-07-31)
+
+Full Changelog: [v4.48.0...v4.49.0](https://github.com/openai/openai-java/compare/v4.48.0...v4.49.0)
+
+### Features
+
+* **client:** add native mTLS transport recipe ([#828](https://github.com/openai/openai-java/issues/828)) ([b40ba7a](https://github.com/openai/openai-java/commit/b40ba7ad78835c92d5f15876dfaadc59235eb6cb))
+
+## 4.48.0 (2026-07-31)
+
+Full Changelog: [v4.47.0...v4.48.0](https://github.com/openai/openai-java/compare/v4.47.0...v4.48.0)
+
+### Features
+
+* **api:** content provenance checks ([b89a308](https://github.com/openai/openai-java/commit/b89a3082b84d68cd7003f53397fb56cdd3062bd6))
+* **api:** support the fast service tier for response compaction ([b89a308](https://github.com/openai/openai-java/commit/b89a3082b84d68cd7003f53397fb56cdd3062bd6))
+
+## 4.47.0 (2026-07-30)
+
+Full Changelog: [v4.46.0...v4.47.0](https://github.com/openai/openai-java/compare/v4.46.0...v4.47.0)
+
+### Features
+
+* **api:** fast tier ([5a139f4](https://github.com/openai/openai-java/commit/5a139f47a9d6482ef4759f14a81d03633861dc5c))
+
+## 4.46.0 (2026-07-28)
+
+Full Changelog: [v4.45.0...v4.46.0](https://github.com/openai/openai-java/compare/v4.45.0...v4.46.0)
+
+### Features
+
+* **api:** transcription model updates ([82b568b](https://github.com/openai/openai-java/commit/82b568bbd3e1bb5f2e80756a2f06284fbe28a192))
+* **support:** establish Java support policy and retire the Spring Boot 2 starter ([#820](https://github.com/openai/openai-java/issues/820)) ([f87609f](https://github.com/openai/openai-java/commit/f87609f0039f9dc4fc4b0e224f977c8ee1a86627))
+
+
+### Build System
+
+* **deps:** fix 27 consumer-isolated Dependabot alerts ([#810](https://github.com/openai/openai-java/issues/810)) ([d9eefdc](https://github.com/openai/openai-java/commit/d9eefdc7ede7b648894ca8f2aadd9626a38353c1))
+* **deps:** patch consumer-neutral dependencies ([#816](https://github.com/openai/openai-java/issues/816)) ([8b79573](https://github.com/openai/openai-java/commit/8b7957326f399314a0a40027865b01ae49f0c304))
+
+## 4.45.0 (2026-07-23)
+
+Full Changelog: [v4.44.0...v4.45.0](https://github.com/openai/openai-java/compare/v4.44.0...v4.45.0)
+
+### Features
+
+* **api:** accept `None` for prompt_cache_key/safety_identifier ([e9c054c](https://github.com/openai/openai-java/commit/e9c054c0537444218ba6dec14b788a12f063835b))
+* **api:** add support for `spend_limit` admin apis ([d2ddc33](https://github.com/openai/openai-java/commit/d2ddc33d2c83f693800be05c014593d73e1a9933))
+* **bedrock:** support AWS credentials files ([#761](https://github.com/openai/openai-java/issues/761)) ([a3fc7f6](https://github.com/openai/openai-java/commit/a3fc7f66c671f7cc1932d35203a86af022a77477))
+* **stlc:** configurable CI runner and private-production-repo support in workflow templates ([b435090](https://github.com/openai/openai-java/commit/b435090953e903bcf126cc3b8078fb85b62498d3))
+
+
+### Bug Fixes
+
+* **api:** align structured output builder optional fields ([8e03393](https://github.com/openai/openai-java/commit/8e03393b5391b4a68b4f898601e5f00a9cca24c6))
+* **core:** ignore metadata-only SSE blocks ([#805](https://github.com/openai/openai-java/issues/805)) ([c33e020](https://github.com/openai/openai-java/commit/c33e02091ee62f2b2f29cc87c1d148186d162243))
+
+
+### Build System
+
+* **deps:** migrate test WireMock to Jetty 12 ([#798](https://github.com/openai/openai-java/issues/798)) ([0522672](https://github.com/openai/openai-java/commit/0522672d4994092f6e9cd68fe78eb8bcd8bf3349))
+* **deps:** patch test Jackson dependencies ([#807](https://github.com/openai/openai-java/issues/807)) ([271d102](https://github.com/openai/openai-java/commit/271d102dabefdf86432ac8a958d6f33f37c9c074))
+* **deps:** patch test-only Logback dependencies ([#806](https://github.com/openai/openai-java/issues/806)) ([de56d63](https://github.com/openai/openai-java/commit/de56d63c2e1e159783b742f574f131ec22729b4c))
+* **deps:** remove vulnerable Logback from starter tests ([#808](https://github.com/openai/openai-java/issues/808)) ([1fe659e](https://github.com/openai/openai-java/commit/1fe659e3bab81d8974faeacf283b1dfbb812122d))
+* **deps:** update test Commons IO to 2.22.0 ([#788](https://github.com/openai/openai-java/issues/788)) ([f50d19b](https://github.com/openai/openai-java/commit/f50d19be803f055eb63d755844ac1d6e331964dc))
+* **deps:** update test commons-lang3 to 3.18.0 ([c3be8f9](https://github.com/openai/openai-java/commit/c3be8f9d60b242d55b0a9f1db57bb1e4e30df0a7))
+* **deps:** update test JSONPath to 2.10.0 ([#790](https://github.com/openai/openai-java/issues/790)) ([b2cf0ff](https://github.com/openai/openai-java/commit/b2cf0ff66e42cc8755e7e98948a41cdaab3aef1a))
+
+## 4.44.0 (2026-07-17)
+
+Full Changelog: [v4.43.0...v4.44.0](https://github.com/openai/openai-java/compare/v4.43.0...v4.44.0)
+
+### Features
+
+* **api:** /organization/projects/{project_id}/service_accounts/{service_account_id}/api_keys" endpoint ([2e1c539](https://github.com/openai/openai-java/commit/2e1c53912220bab9b4f5275dae37a55c0af1bc8e))
+* **api:** manual updates ([5c78d3e](https://github.com/openai/openai-java/commit/5c78d3e4d993261f5b48f6612ebf17d30bd7ce94))
+* **api:** manual updates ([ef9016c](https://github.com/openai/openai-java/commit/ef9016c3463e52f3be22c2bd435c4ebf53fd6e67))
+
+
+### Bug Fixes
+
+* **client:** handle response stream keepalive events ([#776](https://github.com/openai/openai-java/issues/776)) ([6eef965](https://github.com/openai/openai-java/commit/6eef9653f95a9be63436c11ced9c1f8f6c192f3b))
+* **deps:** update Azure Identity to 1.18.4 ([#779](https://github.com/openai/openai-java/issues/779)) ([d2b695c](https://github.com/openai/openai-java/commit/d2b695cbdff8d7ca6c1fe10ea3b0e7a64ec24edf))
+* **deps:** update Jackson to 2.18.9 ([#777](https://github.com/openai/openai-java/issues/777)) ([2935d47](https://github.com/openai/openai-java/commit/2935d47e753fcbef81a6a0d720eedb3ac559ac73))
+* **deps:** update plexus-utils to 4.0.3 ([#780](https://github.com/openai/openai-java/issues/780)) ([6e4e2a7](https://github.com/openai/openai-java/commit/6e4e2a78b2b021288d141ddbedd9fa3e5d592073))
+* **deps:** update test Handlebars to 4.5.3 ([#783](https://github.com/openai/openai-java/issues/783)) ([ae10648](https://github.com/openai/openai-java/commit/ae10648c9c50824bae1ba3c7ba0853b06b6bbb88))
+
+
+### Chores
+
+* **deps:** secure build-time Log4j ([#781](https://github.com/openai/openai-java/issues/781)) ([8735bf7](https://github.com/openai/openai-java/commit/8735bf71d18041f35087b6ec2c3fe8f3edcc903b))
+
+
+### Build System
+
+* **deps:** align Palantir Jackson to 2.21.5 ([#794](https://github.com/openai/openai-java/issues/794)) ([cc9af3d](https://github.com/openai/openai-java/commit/cc9af3dc63e40150b692243a691a441d37e5beae))
+* **deps:** secure Dokka Jackson classpath ([#795](https://github.com/openai/openai-java/issues/795)) ([8b72d57](https://github.com/openai/openai-java/commit/8b72d57c87cc80966f55c1b5f894532b462a1bf1))
+* **deps:** update Dokka to 2.1.0 ([#791](https://github.com/openai/openai-java/issues/791)) ([420f91d](https://github.com/openai/openai-java/commit/420f91da5b9bdd3c43130d4720f650d84f89d7d2))
+* **deps:** update palantir-java-format to 2.96.0 ([#784](https://github.com/openai/openai-java/issues/784)) ([243d996](https://github.com/openai/openai-java/commit/243d996e9d6efb292b4f1986882cca50b5a6b8b2))
+* **deps:** update ProGuard to 7.9.1 ([#782](https://github.com/openai/openai-java/issues/782)) ([845b2bc](https://github.com/openai/openai-java/commit/845b2bc87fb077f2ff1a0f81893cd4f4384214b4))
+* **deps:** update test commons-fileupload to 1.6.0 ([#787](https://github.com/openai/openai-java/issues/787)) ([5e5fabe](https://github.com/openai/openai-java/commit/5e5fabe7061dee5031e519b867cb874eebb8a69a))
+* **deps:** update test Guava to 33.6.0 ([#786](https://github.com/openai/openai-java/issues/786)) ([e2b4cf1](https://github.com/openai/openai-java/commit/e2b4cf15f75a9733f870b4a67aae8c6045ee83be))
+* **deps:** update test Jetty to 9.4.58 ([#785](https://github.com/openai/openai-java/issues/785)) ([fab7e44](https://github.com/openai/openai-java/commit/fab7e44a8dbdd2d4c819e940cb119ccc0a24342b))
+* **deps:** update test SnakeYAML to 2.6 ([#793](https://github.com/openai/openai-java/issues/793)) ([7cf5b73](https://github.com/openai/openai-java/commit/7cf5b737e442662b4ee9570caf14f322631d6e2f))
+* **deps:** update test XMLUnit to 2.11.0 ([#792](https://github.com/openai/openai-java/issues/792)) ([a30161d](https://github.com/openai/openai-java/commit/a30161d495ac25e6d865d0ddc8c7f02c05ac31fd))
+
+## 4.43.0 (2026-07-13)
+
+Full Changelog: [v4.42.0...v4.43.0](https://github.com/openai/openai-java/compare/v4.42.0...v4.43.0)
+
+### Features
+
+* **api:** add owner_project_access to APIKeyListParams ([b5c0fbc](https://github.com/openai/openai-java/commit/b5c0fbcf410a351988f117640bb1c9809775c4d1))
+
+## [4.42.0](https://github.com/openai/openai-java/compare/v4.41.0...v4.42.0) (2026-07-09)
+
+
+### Features
+
+* **api:** gpt-5.6-sol updates ([2ca768a](https://github.com/openai/openai-java/commit/2ca768ad80da1643680ce99fee977080e19f2e2b))
+
+
+### Bug Fixes
+
+* **api:** preserve deprecated beta realtime accessors ([a1cd1f1](https://github.com/openai/openai-java/commit/a1cd1f1ad58f7009073819765792d62995650da7))
+* **api:** restore beta responses custom code ([73f67f2](https://github.com/openai/openai-java/commit/73f67f286ef5147fc252090f9d3b8e44a857a208))
+
+
+### Chores
+
+* retrigger release automation ([a3006ee](https://github.com/openai/openai-java/commit/a3006ee468a3e4d4167368cf5a2e66590e4a65a0))
+
+## 4.41.0 (2026-06-17)
+
+Full Changelog: [v4.40.0...v4.41.0](https://github.com/openai/openai-java/compare/v4.40.0...v4.41.0)
+
+### Features
+
+* **api:** update OpenAPI spec or Stainless config ([ce1d334](https://github.com/openai/openai-java/commit/ce1d334a2856395d95491db52a26c15472598896))
+
+## 4.40.0 (2026-06-16)
+
+Full Changelog: [v4.39.1...v4.40.0](https://github.com/openai/openai-java/compare/v4.39.1...v4.40.0)
+
+### Features
+
+* **api:** admin spend_alerts ([512770c](https://github.com/openai/openai-java/commit/512770c119201347bfab9e68fec00e1cff5b2df8))
+* **api:** manual updates ([701ebe0](https://github.com/openai/openai-java/commit/701ebe011fa2ed05f80e51307bc7e9886bfb9d8b))
+* **api:** update OpenAPI spec or Stainless config ([94b7412](https://github.com/openai/openai-java/commit/94b7412a98fb60d6865d362c48526b4a6dd0896a))
+
+
+### Build System
+
+* Use CI environment for OpenAI API key workflow ([#756](https://github.com/openai/openai-java/issues/756)) ([27de5f5](https://github.com/openai/openai-java/commit/27de5f5b159394b7f29a31389854890460122c1a))
+* Use publish environment for release job ([#758](https://github.com/openai/openai-java/issues/758)) ([bbb66f8](https://github.com/openai/openai-java/commit/bbb66f870877a3e9e3f73c5c41eb4558f23a901a))
+
+## 4.39.1 (2026-06-04)
+
+Full Changelog: [v4.39.0...v4.39.1](https://github.com/openai/openai-java/compare/v4.39.0...v4.39.1)
+
+### Chores
+
+* **ci:** allow local testing to use incremental compilation + daemons ([a1c71e4](https://github.com/openai/openai-java/commit/a1c71e41471abcf75ae36a5821d6877a17b59958))
+
+## 4.39.0 (2026-06-03)
+
+Full Changelog: [v4.38.0...v4.39.0](https://github.com/openai/openai-java/compare/v4.38.0...v4.39.0)
+
+### Features
+
+* **api:** responses.moderation and chat_completions.moderation ([b8f8bdd](https://github.com/openai/openai-java/commit/b8f8bdd6834803fe49e17f00770fd3e56f25b9c0))
+
+## 4.38.0 (2026-06-01)
+
+Full Changelog: [v4.37.0...v4.38.0](https://github.com/openai/openai-java/compare/v4.37.0...v4.38.0)
+
+### Features
+
+* **api:** workload identity in audit logs, additional_tools item in responses, fix ActionSearch.query to be optional. ([76574c1](https://github.com/openai/openai-java/commit/76574c1d80aef8abeca6de1826c6479206899734))
+
+## 4.37.0 (2026-05-21)
+
+Full Changelog: [v4.36.0...v4.37.0](https://github.com/openai/openai-java/compare/v4.36.0...v4.37.0)
+
+### Features
+
+* **api:** manual updates ([751f476](https://github.com/openai/openai-java/commit/751f476ae83e88dcf122aa2d34bdc16983e800b4))
+* **api:** manual updates ([1a21364](https://github.com/openai/openai-java/commit/1a21364f95933116344b0ab703796fb559eb8735))
+* **api:** update OpenAPI spec or Stainless config ([33debac](https://github.com/openai/openai-java/commit/33debacb88320787265e083cbdb91ec6e3e812f5))
+
+
+### Chores
+
+* **api:** docs updates ([704032e](https://github.com/openai/openai-java/commit/704032ebbb3244054e5e8425c82dfe45562378e9))
+
+## 4.36.0 (2026-05-13)
+
+Full Changelog: [v4.35.0...v4.36.0](https://github.com/openai/openai-java/compare/v4.35.0...v4.36.0)
+
+### Features
+
+* **api:** add service_tier parameter to response compact method ([c72b807](https://github.com/openai/openai-java/commit/c72b807908abb11b86f782bf93bcd26e18d6ab06))
+* **api:** realtime 2 ([8057452](https://github.com/openai/openai-java/commit/80574522eec0c84dad8e4e0a2a1e582f9d962850))
+
+## 4.35.0 (2026-05-07)
+
+Full Changelog: [v4.34.0...v4.35.0](https://github.com/openai/openai-java/compare/v4.34.0...v4.35.0)
+
+### Features
+
+* **api:** add quantity field to organization usage responses, update topLogprobs docs ([d4686cc](https://github.com/openai/openai-java/commit/d4686cc7eb9bcd551282d421811341518ddc8584))
+* **api:** launch realtime translate + update image 2 ([28ad918](https://github.com/openai/openai-java/commit/28ad9189d7293388d043ed83496333132afc517f))
+* **api:** manual updates ([7905ef6](https://github.com/openai/openai-java/commit/7905ef6cc30852f0d80bd10c937d949028ff1303))
+* **api:** manual updates ([8328a1e](https://github.com/openai/openai-java/commit/8328a1eb51291dd0a317989e31e0989572bbfa0b))
+* **client:** improve logging ([6393b34](https://github.com/openai/openai-java/commit/6393b3431e87d15ad3ee23cc274161f8e00a87ec))
+* **client:** more robust error parsing ([5a1bfdc](https://github.com/openai/openai-java/commit/5a1bfdcb283dc6efc1ab5058ef96740087112288))
+* **client:** support proxy authentication ([97c8087](https://github.com/openai/openai-java/commit/97c808706c3684892d309245a205fcfcf90738cd))
+
+
+### Bug Fixes
+
+* **api:** fix imagegen `size` enum regression ([aacb886](https://github.com/openai/openai-java/commit/aacb886fd99a7571dabe5bc8f1086bef650c11fc))
+* **client:** match `JsonSchemaValidator` heading levels to API ([#733](https://github.com/openai/openai-java/issues/733)) ([fc57ef7](https://github.com/openai/openai-java/commit/fc57ef7963e6ebdfde0c716adc4f29d315dc9021))
+* **logging:** redact Azure api-key header in logging ([#717](https://github.com/openai/openai-java/issues/717)) ([157207f](https://github.com/openai/openai-java/commit/157207fefe59174141a5aec6a983c546def242b4))
+
+
+### Performance Improvements
+
+* **client:** create one json mapper ([6bdc12e](https://github.com/openai/openai-java/commit/6bdc12ed832827d3e9bdb9825898bfa5aee94d26))
+
+
+### Chores
+
+* fix build error ([82a8527](https://github.com/openai/openai-java/commit/82a85274f613aad7ae277765b12bc3469832e1b1))
+* redact api-key headers in debug logs ([73d01b0](https://github.com/openai/openai-java/commit/73d01b0a5a9af1e4722381701654ff5880ff8986))
+* remove duplicated dokka setup ([06e43e2](https://github.com/openai/openai-java/commit/06e43e2ca1a630dd8b4d38b151724d6b3fb5e014))
+* **tests:** update test fixtures to use valid example URLs ([021f44a](https://github.com/openai/openai-java/commit/021f44a12a39f7e1b8e405e4f309f1a4d0223ed6))
+
+
+### Documentation
+
+* **api:** document web_search_call.results in response includables ([18fe08a](https://github.com/openai/openai-java/commit/18fe08af6a53d6ef9b35e03190e137b02231608e))
+* clarify forwards compat behavior ([d44f466](https://github.com/openai/openai-java/commit/d44f4664a550f4d34b2d1b14c7f376d1047514e0))
+* clarify structured output map limitations ([#726](https://github.com/openai/openai-java/issues/726)) ([e1e1161](https://github.com/openai/openai-java/commit/e1e1161d69d30bd6639ada5ead3a30f14c68cf8d))
+* remove bad semicolon ([#725](https://github.com/openai/openai-java/issues/725)) ([b5dbd07](https://github.com/openai/openai-java/commit/b5dbd07e1147f5554509481798978717e22b03af))
+
+## 4.34.0 (2026-05-01)
+
+Full Changelog: [v4.33.0...v4.34.0](https://github.com/openai/openai-java/compare/v4.33.0...v4.34.0)
+
+### Features
+
+* **api:** add fields to groups/projects/users, remove enums, update types ([abda696](https://github.com/openai/openai-java/commit/abda69632b75ac30f6e89669bd7a04120748830f))
+* **api:** add support for Admin API Keys per endpoint ([52840e8](https://github.com/openai/openai-java/commit/52840e83e8f16eb7e9399386d1c9f94ea8d76419))
+* **api:** admin API updates ([ce01f2c](https://github.com/openai/openai-java/commit/ce01f2c9f2c49ae548804a76c219f3bfd1f8c4c3))
+* **api:** manual updates ([4ce7800](https://github.com/openai/openai-java/commit/4ce7800d39b240ef3792794c0bbf56ec071b22b2))
+* **api:** manual updates ([54bb616](https://github.com/openai/openai-java/commit/54bb6169b1d6294044d707e0c4f9592ed9396717))
+* support setting headers via env ([f37acbd](https://github.com/openai/openai-java/commit/f37acbd918c36fa77f135414aefd87dfe06d17bb))
+
+
+### Bug Fixes
+
+* **api:** allow admin api key credential auth ([d0ea12d](https://github.com/openai/openai-java/commit/d0ea12d06f4e193ac6321a93a3d93108ab630d6c))
+* **auth:** apply route-specific security options ([4203865](https://github.com/openai/openai-java/commit/4203865e860f7862ac3b009c36dfd51a990cd944))
+* ignore post-completion response stream events ([65ea33e](https://github.com/openai/openai-java/commit/65ea33e4617b9648106a47dde3277dd2022620be))
+* **types:** correct createdAt and completedAt to Double in Response model ([e591f78](https://github.com/openai/openai-java/commit/e591f7864c5ba92777a663a9c9914f046a6b4b55))
+* **types:** correct timestamp precision in transcriptions/realtime, unix timestamps in responses ([cc8d80f](https://github.com/openai/openai-java/commit/cc8d80fd791cc86ea60812f8195f8b3290916184))
+
+
+### Chores
+
+* **internal:** regenerate SDK with no functional changes ([0a4327c](https://github.com/openai/openai-java/commit/0a4327ce9d043913cb3c3ee330e9f562e6914bf8))
+
+
+### Documentation
+
+* **api:** update rate limit documentation for file upload endpoint ([f4eb157](https://github.com/openai/openai-java/commit/f4eb1572450bf7cebb1a6e5148f422f741d7db14))
+
+## 4.33.0 (2026-04-28)
+
+Full Changelog: [v4.32.0...v4.33.0](https://github.com/openai/openai-java/compare/v4.32.0...v4.33.0)
+
+### Features
+
+* **api:** api update ([059c9d4](https://github.com/openai/openai-java/commit/059c9d4bf7b78bdf14bc976aaf1e5df07d6c266c))
+
+
+### Bug Fixes
+
+* **types:** correct IN_MEMORY constant value in chat completions/responses ([7c39981](https://github.com/openai/openai-java/commit/7c39981b37c3a6d531667aa8519f2608f6058dc1))
+
+
+### Chores
+
+* **ci:** remove release-doctor workflow ([db2b3e3](https://github.com/openai/openai-java/commit/db2b3e350610bd3918ccb94dea12924811d4a414))
+* **tests:** bump steady to v0.22.1 ([4cc89dd](https://github.com/openai/openai-java/commit/4cc89dd91dcd6e4a7af6de613220eaa8422ba156))
+
+
+### Documentation
+
+* **api:** add rate limits and vector store guidance to file upload ([83f4731](https://github.com/openai/openai-java/commit/83f4731121e83b213b969ecf5e00b65bd0f95aa9))
+
+## 4.32.0 (2026-04-16)
+
+Full Changelog: [v4.31.0...v4.32.0](https://github.com/openai/openai-java/compare/v4.31.0...v4.32.0)
+
+### Features
+
+* **api:** Add detail to InputFileContent ([0c8418c](https://github.com/openai/openai-java/commit/0c8418cb584103e273b12f70b1cf535364d44bfd))
+* **api:** add OAuthErrorCode type ([09b41e1](https://github.com/openai/openai-java/commit/09b41e1d925371b6b6c94b8a147dce6264be6120))
+
+
+### Documentation
+
+* improve examples ([717a8d5](https://github.com/openai/openai-java/commit/717a8d5cc331c2746ed1548ef89418f70707d23a))
+
+## 4.31.0 (2026-04-08)
+
+Full Changelog: [v4.30.0...v4.31.0](https://github.com/openai/openai-java/compare/v4.30.0...v4.31.0)
+
+### Features
+
+* **api:** add phase field to conversations Message ([e562a17](https://github.com/openai/openai-java/commit/e562a1701cfb7c92aa308d80d7bfe8e99c6394c8))
+* **api:** add WEB_SEARCH_CALL_RESULTS to ResponseIncludable enum ([eda0a61](https://github.com/openai/openai-java/commit/eda0a61f837af3a0aba2851a23320aadfce82979))
+* **client:** add support for short-lived tokens ([#1185](https://github.com/openai/openai-java/issues/1185)) ([40e729d](https://github.com/openai/openai-java/commit/40e729ddc83f37dfe6429d257072cd39396fb104))
+
+
+### Bug Fixes
+
+* **api:** remove web_search_call.results from ResponseIncludable ([936b2ab](https://github.com/openai/openai-java/commit/936b2ab08e8641bd1d6a1b2432140762185e22eb))
+
+
+### Chores
+
+* **internal:** update multipart form array serialization ([240ca42](https://github.com/openai/openai-java/commit/240ca42401366b75cf70b0eb0ff9f63425c9b358))
+* **tests:** bump steady to v0.20.1 ([a3c95b0](https://github.com/openai/openai-java/commit/a3c95b073d7b10a13ce83865947ab4fbec5a95d0))
+* **tests:** bump steady to v0.20.2 ([78b1d56](https://github.com/openai/openai-java/commit/78b1d5629bf7d31173ec1cec50f3191959cdba9d))
+
+
+### Documentation
+
+* **api:** clarify file_batches usage in vector stores files and file batches ([9c56841](https://github.com/openai/openai-java/commit/9c56841ff2f052a7e54290b36c3f74528be3de19))
+* fix function arguments typo in README ([#713](https://github.com/openai/openai-java/issues/713)) ([36c4888](https://github.com/openai/openai-java/commit/36c48883fa898da1b41ccc03fe1682934079923c))
+
+## 4.30.0 (2026-03-25)
+
+Full Changelog: [v4.29.1...v4.30.0](https://github.com/openai/openai-java/compare/v4.29.1...v4.30.0)
+
+### Features
+
+* **api:** add keys field to computer action types in ComputerAction/ResponseComputerToolCall ([67e4a24](https://github.com/openai/openai-java/commit/67e4a24686d73de70335e169baba3c9b5774cf6d))
+
+
+### Bug Fixes
+
+* **api:** align SDK response types with expanded item schemas ([f05a663](https://github.com/openai/openai-java/commit/f05a6636cbf87672a6ba31004b8fdcee124994e1))
+
+
+### Chores
+
+* **ci:** skip lint on metadata-only changes ([ed9e951](https://github.com/openai/openai-java/commit/ed9e95194d3cf44c896f44b6d57f310c12fd39b9))
+* **tests:** bump steady to v0.19.7 ([924632a](https://github.com/openai/openai-java/commit/924632a2c973f7fac6e67cd063f906efbf7148f4))
+
+## 4.29.1 (2026-03-23)
+
+Full Changelog: [v4.29.0...v4.29.1](https://github.com/openai/openai-java/compare/v4.29.0...v4.29.1)
+
+### Bug Fixes
+
+* **client:** allow updating header/query affecting fields in `toBuilder()` ([fd3b67c](https://github.com/openai/openai-java/commit/fd3b67cef9c4457506a76b9e994210e512e0181f))
+* **client:** remove redundant apiKey override ([8383a7d](https://github.com/openai/openai-java/commit/8383a7de659aa6f17e1707614f5a246ced127532))
+* **core:** format StructuredOutputs ([256718e](https://github.com/openai/openai-java/commit/256718e5ac3f3bd821d97829c5af09b2db6f113d))
+* **types:** change type field to constant in ResponseInputMessageItem ([a8ae57f](https://github.com/openai/openai-java/commit/a8ae57f73a04878013869f75bc331fa60f02b979))
+
+
+### Chores
+
+* **internal:** update gitignore ([2663595](https://github.com/openai/openai-java/commit/26635957cbcfb2438bcece6476eea1e206d54115))
+* **tests:** bump steady to v0.19.4 ([f0d4ba8](https://github.com/openai/openai-java/commit/f0d4ba8685e6376e72a928da9aaf2bdc9e1655e5))
+* **tests:** bump steady to v0.19.5 ([cbd424e](https://github.com/openai/openai-java/commit/cbd424e5e2220cc8c88522b9850fe1a923a2e523))
+* **tests:** bump steady to v0.19.6 ([28a4c27](https://github.com/openai/openai-java/commit/28a4c278d4f81e61f732d1576e09b91e85e48ca8))
+
+
+### Refactors
+
+* **tests:** switch from prism to steady ([a8cb9e8](https://github.com/openai/openai-java/commit/a8cb9e8c62c492a6aeda6fcdd6e9b09afc4f71fa))
+
+## 4.29.0 (2026-03-17)
+
+Full Changelog: [v4.28.0...v4.29.0](https://github.com/openai/openai-java/compare/v4.28.0...v4.29.0)
+
+### Features
+
+* **api:** 5.4 nano and mini model slugs ([397027a](https://github.com/openai/openai-java/commit/397027a4117ab49e0a500b8dec8594ad34763011))
+* **api:** add defer_loading field to NamespaceTool.Tool.Function ([ff60586](https://github.com/openai/openai-java/commit/ff60586659f25204a545cb08623fe0a12810cbfa))
+* **api:** add IN and NIN filter types to ComparisonFilter ([6d0eac3](https://github.com/openai/openai-java/commit/6d0eac374f8eab9de341ae1a19c185512614893b))
+* **api:** add v1/videos endpoint to batch create ([421acd8](https://github.com/openai/openai-java/commit/421acd884ef736944c5368a7282fda8a890f0aed))
+
+
+### Chores
+
+* **internal:** tweak CI branches ([bfe3f0a](https://github.com/openai/openai-java/commit/bfe3f0ac8ac068443a40b4b7b23e7d179e8b4837))
+* **internal:** update retry delay tests ([dfcccf1](https://github.com/openai/openai-java/commit/dfcccf14f4f3a72e85db513955a3ede7bcdb1d6b))
+
+## 4.28.0 (2026-03-13)
+
+Full Changelog: [v4.27.0...v4.28.0](https://github.com/openai/openai-java/compare/v4.27.0...v4.28.0)
+
+### Features
+
+* **api:** custom voices ([e576130](https://github.com/openai/openai-java/commit/e57613014fa561418c77afb9cec87149f012bb67))
+
+## 4.27.0 (2026-03-13)
+
+Full Changelog: [v4.26.0...v4.27.0](https://github.com/openai/openai-java/compare/v4.26.0...v4.27.0)
+
+### Features
+
+* **api:** api update ([ce42160](https://github.com/openai/openai-java/commit/ce421607a7d839d4477217d7a35abc13ffd1c9fc))
+* **api:** manual updates ([39b947b](https://github.com/openai/openai-java/commit/39b947b75af1dbb9544c6c1db27dba1b995b2b52))
+* **api:** manual updates ([7b4fbeb](https://github.com/openai/openai-java/commit/7b4fbeb15137592fb75fbcd79c1b5f4d28cf7601))
+* **api:** sora api improvements: character api, video extensions/edits, higher resolution exports. ([54bf78f](https://github.com/openai/openai-java/commit/54bf78f851562794c679eb7126726629ec724314))
+
+
+### Bug Fixes
+
+* **client:** incorrect `Retry-After` parsing ([948b279](https://github.com/openai/openai-java/commit/948b279b6ccf1e39e201dc193bcfc3b66b4f7359))
+
+
+### Chores
+
+* **internal:** codegen related update ([0ea414d](https://github.com/openai/openai-java/commit/0ea414d19b78c438fe360f6b73fd42881be37d86))
+
+## 4.26.0 (2026-03-05)
+
+Full Changelog: [v4.25.0...v4.26.0](https://github.com/openai/openai-java/compare/v4.25.0...v4.26.0)
+
+### Features
+
+* **api:** The GA ComputerTool now uses the CompuerTool class. The 'computer_use_preview' tool is moved to ComputerUsePreview ([a8d8de8](https://github.com/openai/openai-java/commit/a8d8de803d9df873eb13ecd912cdea096532a062))
+
+
+### Bug Fixes
+
+* **api:** update structured response tool overloads ([5562fc1](https://github.com/openai/openai-java/commit/5562fc13a259d567aa03c59f36e74825effa53da))
+
+## 4.25.0 (2026-03-05)
+
+Full Changelog: [v4.24.1...v4.25.0](https://github.com/openai/openai-java/compare/v4.24.1...v4.25.0)
+
+### Features
+
+* **api:** gpt-5.4, tool search tool, and new computer tool ([18c8870](https://github.com/openai/openai-java/commit/18c8870b9f16b4fb2d87eb10d73797da3ecc6fdf))
+
+
+### Bug Fixes
+
+* **api:** allow unknown video seconds in responses ([82d67cb](https://github.com/openai/openai-java/commit/82d67cb396925dbe221cd9713afc414c0b9406ad))
+
+
+### Chores
+
+* **internal:** codegen related update ([42a435d](https://github.com/openai/openai-java/commit/42a435d6e939b6ecf1dc5866d5fce60f50b8b08b))
+
+## 4.24.1 (2026-03-04)
+
+Full Changelog: [v4.24.0...v4.24.1](https://github.com/openai/openai-java/compare/v4.24.0...v4.24.1)
+
+### Bug Fixes
+
+* **api:** internal schema fixes ([b4d6777](https://github.com/openai/openai-java/commit/b4d67776443c04d9283e9d349af237d047b9e5c9))
+* **api:** manual updates ([95d5732](https://github.com/openai/openai-java/commit/95d5732a7eaac2ba4708e3d9ab48433f64aa9d13))
+* **java:** add missing phase delegates to structured response output wrapper ([9c61370](https://github.com/openai/openai-java/commit/9c6137015ca7f95fb1144810986f2097e7f5d0ca))
+
+
+### Chores
+
+* **internal:** codegen related update ([e5c572f](https://github.com/openai/openai-java/commit/e5c572f40fce11d20f24de6afbeef6b69d4bc7bb))
+* **internal:** reduce warnings ([445d1ad](https://github.com/openai/openai-java/commit/445d1ad99e6a7745bf30c4ec4d8f9a9c02e7dab7))
+
+## 4.24.0 (2026-02-24)
+
+Full Changelog: [v4.23.0...v4.24.0](https://github.com/openai/openai-java/compare/v4.23.0...v4.24.0)
+
+### Features
+
+* **api:** add phase ([28dfb07](https://github.com/openai/openai-java/commit/28dfb07eea2195b13ab9bf4d47f40e3bbbe386f1))
+* **api:** remove phase from messages and promptCacheKey parameter ([6eb0909](https://github.com/openai/openai-java/commit/6eb09098f7509d17f83c2b92c86f43ed28d278e9))
+
+
+### Bug Fixes
+
+* **api:** fix phase enum ([9217829](https://github.com/openai/openai-java/commit/9217829f66334fba3323acd38369a81da39b19d3))
+* **api:** phase docs ([215079e](https://github.com/openai/openai-java/commit/215079e8e83b527a5480db9ebc7a4c43fbe01490))
+* **api:** readd phase ([9d234b2](https://github.com/openai/openai-java/commit/9d234b208b5e77b57665589a8881c8b4c8f3372e))
+
+
+### Chores
+
+* **internal:** expand imports ([73adcb9](https://github.com/openai/openai-java/commit/73adcb9d348bc2e51c98c4535f7f2373fcf782c9))
+
+## 4.23.0 (2026-02-23)
+
+Full Changelog: [v4.22.0...v4.23.0](https://github.com/openai/openai-java/compare/v4.22.0...v4.23.0)
+
+### Features
+
+* **api:** add gpt-realtime-1.5 and gpt-audio-1.5 models to realtime session ([b00b515](https://github.com/openai/openai-java/commit/b00b515f591c8651ab4d5d46606e31a69787eebf))
+
+
+### Bug Fixes
+
+* **api:** manual updates ([bd83804](https://github.com/openai/openai-java/commit/bd83804f76f2be62a2a09e4b9f2ed7832fdb740f))
+* set Accept header in more places ([9e2e714](https://github.com/openai/openai-java/commit/9e2e7145e357dfe6e8b3f8701df70a42e07a4f63))
+* **tests:** skip unsupported streaming tests ([24f9854](https://github.com/openai/openai-java/commit/24f9854de6299572a6b836059855218f68f2e412))
+
+
+### Chores
+
+* drop apache dependency ([37805bf](https://github.com/openai/openai-java/commit/37805bf5dad1f503cec009dfaca6c6b2b21fc279))
+* make `Properties` more resilient to `null` ([0039eb0](https://github.com/openai/openai-java/commit/0039eb008840c33d9f62d44999e4b4533a3a50d2))
+
+
+### Documentation
+
+* **api:** add batch size limit to file batch create parameters ([764fd86](https://github.com/openai/openai-java/commit/764fd868ab4d0f9642ae2facb6ca98ef3a491888))
+* **api:** clarify safety_identifier max length in chat completions and responses ([b2735b0](https://github.com/openai/openai-java/commit/b2735b002e3591513ea743062e36d6f965f1fd46))
+
+## 4.22.0 (2026-02-19)
+
+Full Changelog: [v4.21.0...v4.22.0](https://github.com/openai/openai-java/compare/v4.21.0...v4.22.0)
+
+### Features
+
+* **client:** add connection pooling option ([6b5fd77](https://github.com/openai/openai-java/commit/6b5fd77b364bd494b5630805f0cd62d5a381eceb))
+
+
+### Chores
+
+* **internal:** make `OkHttp` constructor internal ([a1e3ca6](https://github.com/openai/openai-java/commit/a1e3ca67621046ae0e2abe41e4a3f17c573c7ac1))
+* **internal:** remove unnecessary base URL ([360edde](https://github.com/openai/openai-java/commit/360edde0e5ea5d0ee30c926905a950db3e14b6fa))
+* **internal:** update `TestServerExtension` comment ([41182d1](https://github.com/openai/openai-java/commit/41182d164e3739af338ad8f6d17955792c3a48a5))
+* **internal:** update CI step name ([eeb51c6](https://github.com/openai/openai-java/commit/eeb51c61925e9e49ce1b2994f069d89068028e00))
+
+
+### Documentation
+
+* **api:** update docstrings across audio, chatkit, skills, videos, and other endpoints ([f5018f5](https://github.com/openai/openai-java/commit/f5018f5bfc839b22397d184c18fc5a359fabd430))
+
+## 4.21.0 (2026-02-13)
+
+Full Changelog: [v4.20.0...v4.21.0](https://github.com/openai/openai-java/compare/v4.20.0...v4.21.0)
+
+### Features
+
+* **api:** container network_policy and skills ([c248c52](https://github.com/openai/openai-java/commit/c248c522e1ef826aa28c1176dee234ba64bc0550))
+
+
+### Documentation
+
+* update comment ([6a1a02b](https://github.com/openai/openai-java/commit/6a1a02b54a87dc5ad846086f4ca0eda047928720))
+
+## 4.20.0 (2026-02-10)
+
+Full Changelog: [v4.19.0...v4.20.0](https://github.com/openai/openai-java/compare/v4.19.0...v4.20.0)
+
+### Features
+
+* **api:** skills and hosted shell ([fcd724d](https://github.com/openai/openai-java/commit/fcd724d2822b755ef44b9de8f9b5573d82271ce7))
+* **api:** support for images in batch api ([c73908a](https://github.com/openai/openai-java/commit/c73908a19f26fa12350f7a5880401bd260420216))
+
+## 4.19.0 (2026-02-09)
+
+Full Changelog: [v4.18.0...v4.19.0](https://github.com/openai/openai-java/compare/v4.18.0...v4.19.0)
+
+### Features
+
+* **api:** add context_management to responses ([da0fb59](https://github.com/openai/openai-java/commit/da0fb59b0e0362ee68353829c97ac8b2944cd49b))
+* **api:** add webhook signature verification ([1823eca](https://github.com/openai/openai-java/commit/1823ecab53fd72ef7f7fdc7776e6ecd631307f7c))
+* **api:** responses context_management ([c0f2cd1](https://github.com/openai/openai-java/commit/c0f2cd1c854d6fca90c9000de46f042e64a8cbf5))
+
+
+### Chores
+
+* **internal:** upgrade AssertJ ([5c01787](https://github.com/openai/openai-java/commit/5c017872b071272eff021318dab9a4a774cfcd4c))
+
+## 4.18.0 (2026-02-05)
+
+Full Changelog: [v4.17.0...v4.18.0](https://github.com/openai/openai-java/compare/v4.17.0...v4.18.0)
+
+### Features
+
+* **api:** image generation actions for responses; ResponseFunctionCallArgumentsDoneEvent.name ([a0cc1d8](https://github.com/openai/openai-java/commit/a0cc1d81ca67e8618f51df4359b2877d27cba572))
+
+
+### Bug Fixes
+
+* **client:** undo change to web search Find action ([7b2ebe5](https://github.com/openai/openai-java/commit/7b2ebe54b58b97fbc9ad1bba5cb54cb346606483))
+* **client:** update type for `find_in_page` action ([2cde783](https://github.com/openai/openai-java/commit/2cde783b5d33d7498548074ad45ee04d4d9d7c05))
+
+
+### Chores
+
+* **internal:** allow passing args to `./scripts/test` ([ce2c0ed](https://github.com/openai/openai-java/commit/ce2c0edb51c10779f3c7bb68aef8666057d4e400))
+
+## 4.17.0 (2026-01-30)
+
+Full Changelog: [v4.16.1...v4.17.0](https://github.com/openai/openai-java/compare/v4.16.1...v4.17.0)
+
+### Features
+
+* **api:** add shell_call_output status field ([1e8a078](https://github.com/openai/openai-java/commit/1e8a0786f54b7e618a93ce1eb7a42a9b851d1ad0))
+* **api:** api updates ([23a49f6](https://github.com/openai/openai-java/commit/23a49f68f655658c07bdd98f3d603d2aaf8f5812))
+
+
+### Bug Fixes
+
+* **api:** mark assistants as deprecated ([a21625e](https://github.com/openai/openai-java/commit/a21625e3378eb635a6045e59746a62ffc846ee6f))
+
+
+### Chores
+
+* **ci:** upgrade `actions/github-script` ([ddbc5a1](https://github.com/openai/openai-java/commit/ddbc5a161dd5b1760eae9f70e149b4360f1b9203))
+* **client:** improve example values ([f5941b5](https://github.com/openai/openai-java/commit/f5941b53a08e457368895735cc3f265fa09415cb))
+
+## 4.16.1 (2026-01-23)
+
+Full Changelog: [v4.16.0...v4.16.1](https://github.com/openai/openai-java/compare/v4.16.0...v4.16.1)
+
+### Bug Fixes
+
+* **client:** preserve time zone in lenient date-time parsing ([2dcc893](https://github.com/openai/openai-java/commit/2dcc893a155d1170f361ee7a64f79f75f88a10a1))
+
+
+### Chores
+
+* **internal:** correct cache invalidation for `SKIP_MOCK_TESTS` ([4f7b317](https://github.com/openai/openai-java/commit/4f7b317dcfb66644e58be5d056e058e8c8cb866a))
+
+
+### Documentation
+
+* add comment for arbitrary value fields ([2d87940](https://github.com/openai/openai-java/commit/2d87940031547ea6fe48a75f266f560297e210b9))
+
+## 4.16.0 (2026-01-21)
+
+Full Changelog: [v4.15.0...v4.16.0](https://github.com/openai/openai-java/compare/v4.15.0...v4.16.0)
+
+### Features
+
+* **api:** api update ([e5203e2](https://github.com/openai/openai-java/commit/e5203e29d3a2c8e74c976ecf3e1db93102953870))
+* **client:** send `X-Stainless-Kotlin-Version` header ([d77a171](https://github.com/openai/openai-java/commit/d77a1713511e9b30abd2df66a3ecc95ad811e276))
+
+
+### Bug Fixes
+
+* **client:** disallow coercion from float to int ([4332495](https://github.com/openai/openai-java/commit/4332495f9d237a854ef0fc64bfa523a342eb7d98))
+* **client:** fully respect max retries ([b2ac5ce](https://github.com/openai/openai-java/commit/b2ac5cecb0819e6e5165f727cc76551654c0d680))
+* **client:** send retry count header for max retries 0 ([b2ac5ce](https://github.com/openai/openai-java/commit/b2ac5cecb0819e6e5165f727cc76551654c0d680))
+* date time deserialization leniency ([35a4662](https://github.com/openai/openai-java/commit/35a4662ed2657f9a0b22487d1c5c4da8f27f0f96))
+* make ResponseAccumulator forwards compatible with new event types ([d9dc902](https://github.com/openai/openai-java/commit/d9dc902beb83a9b3ec8e6d6fdc6ec59be580ec39))
+
+
+### Chores
+
+* **ci:** upgrade `actions/setup-java` ([d739c6a](https://github.com/openai/openai-java/commit/d739c6ab75bc155fdb44f4a49be8cb61a2807888))
+* **internal:** clean up maven repo artifact script and add html documentation to repo root ([763df3f](https://github.com/openai/openai-java/commit/763df3fcd6c64ad48f8b1c2391fa22010ebfd9ec))
+* **internal:** depend on packages directly in example ([b2ac5ce](https://github.com/openai/openai-java/commit/b2ac5cecb0819e6e5165f727cc76551654c0d680))
+* **internal:** improve maven repo docs ([005acfc](https://github.com/openai/openai-java/commit/005acfc499a7c2d26926ec95a3f9b2a7ad7cff47))
+* **internal:** support uploading Maven repo artifacts to stainless package server ([24dd88f](https://github.com/openai/openai-java/commit/24dd88f2fba4594b1c317b9840ca24e5aa6379bb))
+* **internal:** update `actions/checkout` version ([64b074f](https://github.com/openai/openai-java/commit/64b074fe39e628ba11b4d36e182b4156e656566f))
+* **internal:** update maven repo doc to include authentication ([c00b703](https://github.com/openai/openai-java/commit/c00b70307b9bdd6a9f94cf63551a15352b58352e))
+* test on Jackson 2.14.0 to avoid encountering FasterXML/jackson-databind[#3240](https://github.com/openai/openai-java/issues/3240) in tests ([35a4662](https://github.com/openai/openai-java/commit/35a4662ed2657f9a0b22487d1c5c4da8f27f0f96))
+
+## 4.15.0 (2026-01-09)
+
+Full Changelog: [v4.14.0...v4.15.0](https://github.com/openai/openai-java/compare/v4.14.0...v4.15.0)
+
+### Features
+
+* **api:** add new Response completed_at prop ([703a651](https://github.com/openai/openai-java/commit/703a6511f98fd016a0a27e0694fccf1d81cc3280))
+* **client:** allow configuring dispatcher executor service ([8e579d9](https://github.com/openai/openai-java/commit/8e579d9db0c7fde0da3abb180f5bc72c2798ede4))
+
+
+### Bug Fixes
+
+* **client:** allow `withOptions` to modify credentials ([#674](https://github.com/openai/openai-java/issues/674)) ([1d5a8f9](https://github.com/openai/openai-java/commit/1d5a8f9dda2420d3dfe916bb90f07ee596886511))
+
+
+### Chores
+
+* **internal:** use different example values for some enums ([d8c6ed4](https://github.com/openai/openai-java/commit/d8c6ed431b65bbf6746731de3052a3a2f3a6aaa8))
+
+## 4.14.0 (2026-01-06)
+
+Full Changelog: [v4.13.0...v4.14.0](https://github.com/openai/openai-java/compare/v4.13.0...v4.14.0)
+
+### Features
+
+* **client:** add `HttpRequest#url()` method ([cf7d459](https://github.com/openai/openai-java/commit/cf7d459019625c6e08f376efb588c8aff332bf8c))
+
+## 4.13.0 (2025-12-19)
+
+Full Changelog: [v4.12.0...v4.13.0](https://github.com/openai/openai-java/compare/v4.12.0...v4.13.0)
+
+### Features
+
+* **api:** gpt-image-1.5 ([165b588](https://github.com/openai/openai-java/commit/165b588743c301493e0dc8126cfe32c549bdc4ad))
+* **api:** slugs for new audio models; make all `model` params accept strings ([cf46781](https://github.com/openai/openai-java/commit/cf4678180c4c2d4f79356a0dd5228db0a2e4cd84))
+
+## 4.12.0 (2025-12-15)
+
+Full Changelog: [v4.11.0...v4.12.0](https://github.com/openai/openai-java/compare/v4.11.0...v4.12.0)
+
+### Features
+
+* **api:** api update ([29174d7](https://github.com/openai/openai-java/commit/29174d7275d95ef5a6d4f88d4ebe2bcd178746b5))
+* **api:** fix grader input list, add dated slugs for sora-2 ([f75af83](https://github.com/openai/openai-java/commit/f75af830fdaf2874313c125a8de0aecde6f447b7))
+* **api:** manual updates for java ([ffd07a2](https://github.com/openai/openai-java/commit/ffd07a2ad1ae064e65f4564c663502fe3901c21e))
+
+## 4.11.0 (2025-12-12)
+
+Full Changelog: [v4.10.0...v4.11.0](https://github.com/openai/openai-java/compare/v4.10.0...v4.11.0)
+
+### Features
+
+* **api:** gpt 5.2 ([de55bd3](https://github.com/openai/openai-java/commit/de55bd3ecfcf1c325a6908b8521b4fc06ed6fc7c))
+
+## 4.10.0 (2025-12-10)
+
+Full Changelog: [v4.9.0...v4.10.0](https://github.com/openai/openai-java/compare/v4.9.0...v4.10.0)
+
+### Features
+
+* **api:** make model required for the responses/compact endpoint ([904f55a](https://github.com/openai/openai-java/commit/904f55aba8bacfbaa1bff9e1d96a747db2020775))
+
+## 4.9.0 (2025-12-04)
+
+Full Changelog: [v4.8.0...v4.9.0](https://github.com/openai/openai-java/compare/v4.8.0...v4.9.0)
+
+### Features
+
+* **api:** gpt-5.1-codex-max and responses/compact ([651c44f](https://github.com/openai/openai-java/commit/651c44f570ba07784d715a382d94b255fd3afa60))
+
+
+### Bug Fixes
+
+* **api:** align types of input items / output items for typescript ([9202c69](https://github.com/openai/openai-java/commit/9202c695d939def7c9598e9ee75999b8ebd87e32))
+* **client:** cancel okhttp call when future cancelled ([c665e21](https://github.com/openai/openai-java/commit/c665e21c83123931baed5b21b9bbaa96a4d77495))
+
+
+### Documentation
+
+* remove `$` for better copy-pasteabality ([66f7a4b](https://github.com/openai/openai-java/commit/66f7a4b3d2b88fc3e80c1552d0a0df86cd45c1ff))
+
+## 4.8.0 (2025-11-13)
+
+Full Changelog: [v4.7.2...v4.8.0](https://github.com/openai/openai-java/compare/v4.7.2...v4.8.0)
+
+### Features
+
+* **api:** gpt 5.1 ([bb89ad7](https://github.com/openai/openai-java/commit/bb89ad78b91643bb1bb1578894fd2b123a4c6dae))
+
+## 4.7.2 (2025-11-13)
+
+Full Changelog: [v4.7.1...v4.7.2](https://github.com/openai/openai-java/compare/v4.7.1...v4.7.2)
+
+### Bug Fixes
+
+* **client:** multi-value header serialization ([4a198b2](https://github.com/openai/openai-java/commit/4a198b2f0e2531295bb1bf9d4ca2fdbd74af64e5))
+
+## 4.7.1 (2025-11-04)
+
+Full Changelog: [v4.7.0...v4.7.1](https://github.com/openai/openai-java/compare/v4.7.0...v4.7.1)
+
+### Bug Fixes
+
+* **api:** fix nullability of logprobs ([f1733f8](https://github.com/openai/openai-java/commit/f1733f8e81580b4e6c1a29ea6913af5e98d41607))
+
+## 4.7.0 (2025-11-04)
+
+Full Changelog: [v4.6.1...v4.7.0](https://github.com/openai/openai-java/compare/v4.6.1...v4.7.0)
+
+### Features
+
+* **api:** Realtime API token_limits, Hybrid searching ranking options ([bd9bcfd](https://github.com/openai/openai-java/commit/bd9bcfdd560cfc8df2a9336d162a0ee1f6604b84))
+* **api:** remove InputAudio from ResponseInputContent ([630fecf](https://github.com/openai/openai-java/commit/630fecf8f0e04ce82ac0f0df9b5d60df4edd0655))
+
+
+### Bug Fixes
+
+* **api:** docs updates ([3e970ec](https://github.com/openai/openai-java/commit/3e970ec8c9b3895b087f5722a0bfae23ca9e4e2c))
+
+## 4.6.1 (2025-10-20)
+
+Full Changelog: [v4.6.0...v4.6.1](https://github.com/openai/openai-java/compare/v4.6.0...v4.6.1)
+
+### Bug Fixes
+
+* **api:** fix discriminator propertyName for ResponseFormatJsonSchema ([a54219b](https://github.com/openai/openai-java/commit/a54219baeeba6968a2645a4f6b1b24746f057401))
+
+## 4.6.0 (2025-10-20)
+
+Full Changelog: [v4.5.0...v4.6.0](https://github.com/openai/openai-java/compare/v4.5.0...v4.6.0)
+
+### Features
+
+* **api:** Add responses.input_tokens.count ([4cc3097](https://github.com/openai/openai-java/commit/4cc3097bbcc97071d41ba46d114ac24045e7e1f0))
+
+
+### Bug Fixes
+
+* **api:** internal openapi updates ([faead94](https://github.com/openai/openai-java/commit/faead94dc548f0ae623c6a132b84459d7fb4bb23))
+
+## 4.5.0 (2025-10-17)
+
+Full Changelog: [v4.4.0...v4.5.0](https://github.com/openai/openai-java/compare/v4.4.0...v4.5.0)
+
+### Features
+
+* **api:** api update ([09dd95f](https://github.com/openai/openai-java/commit/09dd95f948bca9e26597a9971d7799a1defb6a28))
+
+## 4.4.0 (2025-10-16)
+
+Full Changelog: [v4.3.0...v4.4.0](https://github.com/openai/openai-java/compare/v4.3.0...v4.4.0)
+
+### Features
+
+* **api:** Add support for gpt-4o-transcribe-diarize on audio/transcriptions endpoint ([dc2c297](https://github.com/openai/openai-java/commit/dc2c297526f2ebe4003642dfe8b1c2499d0a4b56))
+
+## 4.3.0 (2025-10-10)
+
+Full Changelog: [v4.2.0...v4.3.0](https://github.com/openai/openai-java/compare/v4.2.0...v4.3.0)
+
+### Features
+
+* add more helper methods to instantiate union objects ([e5e61b5](https://github.com/openai/openai-java/commit/e5e61b5a56e5eb6269a99171b8ce3bfe4e5bdc6f))
+* **api:** comparison filter in/not in ([29b6606](https://github.com/openai/openai-java/commit/29b66068d56cc7afb9485eed34a6744c47296785))
+
+
+### Bug Fixes
+
+* **api:** manual updates ([8d54d5d](https://github.com/openai/openai-java/commit/8d54d5d5bc0be0cda7648a28a2817d3cfaab2e6a))
+
+## 4.2.0 (2025-10-06)
+
+Full Changelog: [v4.1.0...v4.2.0](https://github.com/openai/openai-java/compare/v4.1.0...v4.2.0)
+
+### Features
+
+* **api:** dev day 2025 launches ([d4f0999](https://github.com/openai/openai-java/commit/d4f09991051ca1554f2452dd014941b3e5b77f73))
+
+## 4.1.0 (2025-10-02)
+
+Full Changelog: [v4.0.1...v4.1.0](https://github.com/openai/openai-java/compare/v4.0.1...v4.1.0)
+
+### Features
+
+* **api:** add support for realtime calls ([c4d224c](https://github.com/openai/openai-java/commit/c4d224cf9b37aa0535c2857f3159421898304ff6))
+
+## 4.0.1 (2025-10-01)
+
+Full Changelog: [v4.0.0...v4.0.1](https://github.com/openai/openai-java/compare/v4.0.0...v4.0.1)
+
+### Bug Fixes
+
+* **api:** add status, approval_request_id to MCP tool call ([56ed867](https://github.com/openai/openai-java/commit/56ed86777a63590b79559e850ce1c34d0c0b9af0))
+
+## 4.0.0 (2025-09-30)
+
+Full Changelog: [v3.7.1...v4.0.0](https://github.com/openai/openai-java/compare/v3.7.1...v4.0.0)
+
+### ⚠ BREAKING CHANGES
+
+* **api:** `ResponseFunctionToolCallOutputItem.output` and `ResponseCustomToolCallOutput.output` now return `string | Array<ResponseInputText | ResponseInputImage | ResponseInputFile>` instead of `string` only. This may break existing callsites that assume `output` is always a string.
+
+### Features
+
+* **api:** Support images and files for function call outputs in responses, BatchUsage ([de7a6c1](https://github.com/openai/openai-java/commit/de7a6c18862af4f94ce7bbc3a3ae447520be5880))
+
+
+### Bug Fixes
+
+* **client:** remove duplicate outputAsJson function ([4718871](https://github.com/openai/openai-java/commit/4718871e7e281b0a75c914d013e3b644340d5c4b))
+
+## 3.7.1 (2025-09-26)
+
+Full Changelog: [v3.7.0...v3.7.1](https://github.com/openai/openai-java/compare/v3.7.0...v3.7.1)
+
+### Bug Fixes
+
+* **client:** deserialization of empty objects ([9a1f927](https://github.com/openai/openai-java/commit/9a1f927f3f966ada762ba4764ba9fe448dd8edc7))
+
+
+### Chores
+
+* **internal:** change some comment formatting ([3ae2e58](https://github.com/openai/openai-java/commit/3ae2e58c926ea789e986a12d4644a06c01fe3f84))
+
+## 3.7.0 (2025-09-23)
+
+Full Changelog: [v3.6.1...v3.7.0](https://github.com/openai/openai-java/compare/v3.6.1...v3.7.0)
+
+### Features
+
+* **api:** gpt-5-codex ([cf7d02f](https://github.com/openai/openai-java/commit/cf7d02ff2624397628eefd5bdcd025b60980691c))
+
+## 3.6.1 (2025-09-22)
+
+Full Changelog: [v3.6.0...v3.6.1](https://github.com/openai/openai-java/compare/v3.6.0...v3.6.1)
+
+### Bug Fixes
+
+* **api:** fix mcp tool name ([d2e947d](https://github.com/openai/openai-java/commit/d2e947dc5a8585f0200c6ff96d093fa0997a39e7))
+
+
+### Chores
+
+* **api:** openapi updates for conversations ([0dbcc0a](https://github.com/openai/openai-java/commit/0dbcc0a4c7cdd514a3405213fc173708ca1b5013))
+* improve example values ([109a350](https://github.com/openai/openai-java/commit/109a350313bb39d7d62d56020fdc458d798924ee))
+* improve formatter performance ([3fce946](https://github.com/openai/openai-java/commit/3fce946567568c0dc92b247c984c4dfcb34f603d))
+
+## 3.6.0 (2025-09-19)
+
+Full Changelog: [v3.5.3...v3.6.0](https://github.com/openai/openai-java/compare/v3.5.3...v3.6.0)
+
+### Features
+
+* **api:** add reasoning_text ([2bde290](https://github.com/openai/openai-java/commit/2bde29036040664aa4ae54f6522e5e5336ed2c87))
+* **api:** type updates for conversations, reasoning_effort and results for evals ([364a176](https://github.com/openai/openai-java/commit/364a1766d34b6cc19fca81a445b287fc9ccefe2c))
+* **client:** expose sleeper option ([a5ffd57](https://github.com/openai/openai-java/commit/a5ffd57e75b6f0abe14d326c87f58abd2048cf73))
+
+
+### Bug Fixes
+
+* **client:** ensure single timer is created per client ([a5ffd57](https://github.com/openai/openai-java/commit/a5ffd57e75b6f0abe14d326c87f58abd2048cf73))
+
+## 3.5.3 (2025-09-15)
+
+Full Changelog: [v3.5.2...v3.5.3](https://github.com/openai/openai-java/compare/v3.5.2...v3.5.3)
+
+### Bug Fixes
+
+* **client:** incorrect `getPackageVersion` impl ([51a0e59](https://github.com/openai/openai-java/commit/51a0e594bc1a2b42f5e5fde308f8608eb65796df))
+
+
+### Chores
+
+* **api:** docs and spec refactoring ([02720cf](https://github.com/openai/openai-java/commit/02720cf00517f874eb76b5f3b31c040361da8720))
+
+## 3.5.2 (2025-09-12)
+
+Full Changelog: [v3.5.1...v3.5.2](https://github.com/openai/openai-java/compare/v3.5.1...v3.5.2)
+
+### Chores
+
+* **api:** Minor docs and type updates for realtime ([63ad148](https://github.com/openai/openai-java/commit/63ad148f1f998de1c9d66021037d7d5e04615022))
+* improve formatter performance ([be0acb7](https://github.com/openai/openai-java/commit/be0acb7a7779c4df1bf3e4678c40f4bd6d2b50d6))
+* **internal:** codegen related update ([18a0e64](https://github.com/openai/openai-java/commit/18a0e645fd3ea28957e55633f2a271287b56c312))
+* **internal:** codegen related update ([ab87009](https://github.com/openai/openai-java/commit/ab870095a749e00bcc2e864476553f782d098525))
+* **internal:** remove redundant deserializer symbols ([8c63a5b](https://github.com/openai/openai-java/commit/8c63a5b4983039ace361ab08b89a0c227a88cf90))
+
+## 3.5.1 (2025-09-10)
+
+Full Changelog: [v3.5.0...v3.5.1](https://github.com/openai/openai-java/compare/v3.5.0...v3.5.1)
+
+### Chores
+
+* **api:** fix realtime GA types ([10cd1c4](https://github.com/openai/openai-java/commit/10cd1c49b63b63aa7d3a357ab5b0e982628cd933))
+
+## 3.5.0 (2025-09-08)
+
+Full Changelog: [v3.4.1...v3.5.0](https://github.com/openai/openai-java/compare/v3.4.1...v3.5.0)
+
+### Features
+
+* **api:** ship the RealtimeGA API shape ([4eb0dfa](https://github.com/openai/openai-java/commit/4eb0dfa45278656462c69ea20573745d630b9559))
+
+## 3.4.1 (2025-09-03)
+
+Full Changelog: [v3.4.0...v3.4.1](https://github.com/openai/openai-java/compare/v3.4.0...v3.4.1)
+
+### Bug Fixes
+
+* **ci:** use java-version 21 for publish step ([db861bd](https://github.com/openai/openai-java/commit/db861bd0cd1b6c109b4bff081e89209eef2257e4))
+
+## 3.4.0 (2025-09-03)
+
+Full Changelog: [v3.3.0...v3.4.0](https://github.com/openai/openai-java/compare/v3.3.0...v3.4.0)
+
+### Features
+
+* **api:** Add gpt-realtime models ([37b8b69](https://github.com/openai/openai-java/commit/37b8b69cb027e9c9e3abd7d9d9ce211a2c6e165c))
+
+## 3.3.0 (2025-09-03)
+
+Full Changelog: [v3.2.1...v3.3.0](https://github.com/openai/openai-java/compare/v3.2.1...v3.3.0)
+
+### Features
+
+* **client:** support verbosity with structured outputs ([#603](https://github.com/openai/openai-java/issues/603)) ([2496464](https://github.com/openai/openai-java/commit/24964646ab02a3ff61efb9802facac66b204bdaf))
+
+## 3.2.1 (2025-09-02)
+
+Full Changelog: [v3.2.0...v3.2.1](https://github.com/openai/openai-java/compare/v3.2.0...v3.2.1)
+
+### Chores
+
+* **api:** manual updates for ResponseInputAudio ([d070eb7](https://github.com/openai/openai-java/commit/d070eb72346cfc57d3bf952ddb1f89c9a7b2d5c8))
+
+## 3.2.0 (2025-09-02)
+
+Full Changelog: [v3.1.2...v3.2.0](https://github.com/openai/openai-java/compare/v3.1.2...v3.2.0)
+
+### Features
+
+* **api:** Add connectors support for MCP tool ([ee175a9](https://github.com/openai/openai-java/commit/ee175a98a1ed4f1e939c301dd5bf62f10e367c6c))
+* **api:** add web search filters ([45c5856](https://github.com/openai/openai-java/commit/45c585612b161359b2055ddfa679debdba7986bb))
+* **api:** adding support for /v1/conversations to the API ([9d088c5](https://github.com/openai/openai-java/commit/9d088c5d77c450a2e1371a8293e9c05ebf102937))
+* **api:** realtime API updates ([0ea523e](https://github.com/openai/openai-java/commit/0ea523e383ca0384139d44da384b101bf74ef7c2))
+
+
+### Bug Fixes
+
+* fix casing issue ([201f54e](https://github.com/openai/openai-java/commit/201f54ea01817ebe7362e21e4e79c68a63eb3cb9))
+* update singularization rules ([7cbc830](https://github.com/openai/openai-java/commit/7cbc8305e4da79560969ba365f6f33427688bc50))
+
+
+### Chores
+
+* add missing delegate methods ([557e9ee](https://github.com/openai/openai-java/commit/557e9ee897e11c95788300922e8094383eb1dd97))
+* **ci:** reduce log noise ([9e91952](https://github.com/openai/openai-java/commit/9e9195269a225cdbaba81e2dd6ee26caba407d00))
+* **client:** refactor closing / shutdown ([94cdfcd](https://github.com/openai/openai-java/commit/94cdfcdf57225ee606acf51ffe3e0b6a4321f7e6))
+* **internal:** support running formatters directly ([6242da5](https://github.com/openai/openai-java/commit/6242da594134e736470c006bc1af6b38ce757705))
+* remove memory upper bound from publishing step ([fdc5fdd](https://github.com/openai/openai-java/commit/fdc5fdd3969d2ecc3d6df1546b34167b63074991))
+
+## 3.1.2 (2025-08-20)
+
+Full Changelog: [v3.1.1...v3.1.2](https://github.com/openai/openai-java/compare/v3.1.1...v3.1.2)
+
+### Bug Fixes
+
+* **client:** ensure correct binary content type ([86386c9](https://github.com/openai/openai-java/commit/86386c923fe1856c56ca501795857d1ab150f908))
+
+
+### Chores
+
+* **client:** rename parameter ([86386c9](https://github.com/openai/openai-java/commit/86386c923fe1856c56ca501795857d1ab150f908))
+* **internal:** fix multipart tests ([ea67d5d](https://github.com/openai/openai-java/commit/ea67d5df786add1c3d6549bcc94e835b795d3fca))
+
+## 3.1.1 (2025-08-20)
+
+Full Changelog: [v3.1.0...v3.1.1](https://github.com/openai/openai-java/compare/v3.1.0...v3.1.1)
+
+### Chores
+
+* **internal/ci:** setup breaking change detection ([2a18622](https://github.com/openai/openai-java/commit/2a1862218ccafea3a37801367aee303564b48ca3))
+
+## 3.1.0 (2025-08-19)
+
+Full Changelog: [v3.0.3...v3.1.0](https://github.com/openai/openai-java/compare/v3.0.3...v3.1.0)
+
+### Features
+
+* **api:** add new text parameters, expiration options ([658f053](https://github.com/openai/openai-java/commit/658f053bc5a50f100459377b225fd7059e037c02))
+
+
+### Performance Improvements
+
+* **internal:** make formatting faster ([d7909d9](https://github.com/openai/openai-java/commit/d7909d936ede0d49b0ea62eb6e13dfb559a3dd0c))
+
+
+### Chores
+
+* **api:** accurately represent shape for verbosity on Chat Completions ([d01f37f](https://github.com/openai/openai-java/commit/d01f37f4012c7f3135c65218eb4326ba2ee27f12))
+* **ci:** add build job ([7699c4f](https://github.com/openai/openai-java/commit/7699c4f97f0d6a9fb26381c9d60570d1f07d8359))
+* **internal:** dynamically determine included projects ([1342647](https://github.com/openai/openai-java/commit/13426472f96739de27f9e7baae3e7cde7e6bd7ac))
+* **internal:** support passing arguments to test script ([ac596c6](https://github.com/openai/openai-java/commit/ac596c66026d35e3a5a1094303c8ed15a7a96166))
+
+## 3.0.3 (2025-08-13)
+
+Full Changelog: [v3.0.2...v3.0.3](https://github.com/openai/openai-java/compare/v3.0.2...v3.0.3)
+
+### Bug Fixes
+
+* serialize dates correctly in structured outputs ([8cd3639](https://github.com/openai/openai-java/commit/8cd3639fb8027fbb4945ab0d984b0ef82fc9ea5c))
+
+
+### Chores
+
+* **internal:** format identity methods ([fd2661b](https://github.com/openai/openai-java/commit/fd2661b3ef67229394c80adeeba2377403d89d44))
+
+
+### Documentation
+
+* add response raw structured outputs ([e68d31e](https://github.com/openai/openai-java/commit/e68d31e6828fe9139e4720e12a12e028b11bb2fb))
+
+## 3.0.2 (2025-08-09)
+
+Full Changelog: [v3.0.1...v3.0.2](https://github.com/openai/openai-java/compare/v3.0.1...v3.0.2)
+
+### Chores
+
+* **internal:** update comment in script ([925656f](https://github.com/openai/openai-java/commit/925656f5693d7a50ca58e56468b9858a7c757db6))
+
+## 3.0.1 (2025-08-08)
+
+Full Changelog: [v3.0.0...v3.0.1](https://github.com/openai/openai-java/compare/v3.0.0...v3.0.1)
+
+### Bug Fixes
+
+* **client:** fix verbosity parameter location in Responses ([c4200c3](https://github.com/openai/openai-java/commit/c4200c3406be7a5726c0b66d077f8994bad1ab66))
+* **responses:** remove incorrect verbosity builder method ([76286de](https://github.com/openai/openai-java/commit/76286dea43fdde63aa2f25e14f0f65f362ae121c))
+* **responses:** remove more references to incorrect verbosity location ([1f56089](https://github.com/openai/openai-java/commit/1f56089d28ca7ef88c3ea632dc3757ccb596cae0))
+
+
+### Chores
+
+* update @stainless-api/prism-cli to v5.15.0 ([61263de](https://github.com/openai/openai-java/commit/61263de7d22b9b385be2bf3194a17767d64e1641))
+* update delegation tests ([060ec4c](https://github.com/openai/openai-java/commit/060ec4c77f9f9470ca13074815ba186ee47daeef))
+
+## 3.0.0 (2025-08-08)
+
+Full Changelog: [v2.20.1...v3.0.0](https://github.com/openai/openai-java/compare/v2.20.1...v3.0.0)
+
+### Features
+
+* **api:** adds GPT-5 and new API features: platform.openai.com/docs/guides/gpt-5 ([fa34d24](https://github.com/openai/openai-java/commit/fa34d242f44d2329c16cd0862c13f17a5764cace))
+* **api:** manual updates ([089a075](https://github.com/openai/openai-java/commit/089a075c2cc10469c8eb6714004e65e292b07267))
+* **client:** support new unified Azure URL scheme ([#554](https://github.com/openai/openai-java/issues/554)) ([9aacff0](https://github.com/openai/openai-java/commit/9aacff0ee4030250941b749cbffab683323b0e33))
+
+
+### Bug Fixes
+
+* **functions:** add accidentally removed arguments method ([696dfb1](https://github.com/openai/openai-java/commit/696dfb1da6a9ae7b962f5beeafd35c1cd74a6f11))
+
+
+### Chores
+
+* **example:** fix run example comment ([42fe3d9](https://github.com/openai/openai-java/commit/42fe3d965e6e6f0724c1a0d93101cac04902a547))
+* increase max gradle JVM heap to 8GB ([87afac0](https://github.com/openai/openai-java/commit/87afac0530148f22194721cc0a285bd41f817a57))
+* **internal:** add async lock helper ([1a75cea](https://github.com/openai/openai-java/commit/1a75ceaf7f526ddd7f1f14ff551939fec4242926))
+
+
+### Documentation
+
+* more prominently call out examples ([d601c1a](https://github.com/openai/openai-java/commit/d601c1a1942182fe6fa9ea052b0028654356e738))
+* multiple image editing ([a64f375](https://github.com/openai/openai-java/commit/a64f375dbfe11adf0119f55a70efd238693ffcdf))
+
+## 2.20.1 (2025-07-31)
+
+Full Changelog: [v2.20.0...v2.20.1](https://github.com/openai/openai-java/compare/v2.20.0...v2.20.1)
+
+### Bug Fixes
+
+* **client:** r8 support ([aa76f63](https://github.com/openai/openai-java/commit/aa76f638ca761ef63b336ee3e960f7302b4ec9dc))
+
+
+### Chores
+
+* **internal:** bump ci test timeout ([0ea80f0](https://github.com/openai/openai-java/commit/0ea80f0f4e914919e95c6914e907617bfadea369))
+* **internal:** reduce proguard ci logging ([876aa8f](https://github.com/openai/openai-java/commit/876aa8fa7b801ff0ed62ff933088bead3f7d5d66))
+
+## 2.20.0 (2025-07-30)
+
+Full Changelog: [v2.19.2...v2.20.0](https://github.com/openai/openai-java/compare/v2.19.2...v2.20.0)
+
+### Features
+
+* add retryable exception ([4916163](https://github.com/openai/openai-java/commit/4916163ef5e9d06b137341373ab3eb4cc7e3038b))
+* **api:** manual updates ([c4f9a92](https://github.com/openai/openai-java/commit/c4f9a921b63366b3abf3d502c895ec2bfed5329a))
+* **client:** ensure compat with proguard ([0d4db65](https://github.com/openai/openai-java/commit/0d4db656adbbdced4d7d9493cf176045e38d3b89))
+
+## 2.19.2 (2025-07-28)
+
+Full Changelog: [v2.19.1...v2.19.2](https://github.com/openai/openai-java/compare/v2.19.1...v2.19.2)
+
+### Bug Fixes
+
+* **client:** some bad `_additionalBodyProperties` serialization ([ae900c6](https://github.com/openai/openai-java/commit/ae900c6e6bd37de7ba084e753b38705baed9c56a))
+
+## 2.19.1 (2025-07-24)
+
+Full Changelog: [v2.19.0...v2.19.1](https://github.com/openai/openai-java/compare/v2.19.0...v2.19.1)
+
+### Bug Fixes
+
+* **client:** accidental mutability of some classes ([8f377c4](https://github.com/openai/openai-java/commit/8f377c400550b7f99f8b91b59caf92c9274f174f))
+
+
+### Chores
+
+* **internal:** remove unnecessary `[...]` in `[@see](https://github.com/see)` ([ba7945f](https://github.com/openai/openai-java/commit/ba7945f92514c41c5ebb367272082d6658f06ad4))
+* **internal:** simplify handling of deployment models ([#556](https://github.com/openai/openai-java/issues/556)) ([2c7e661](https://github.com/openai/openai-java/commit/2c7e661877d07372ad7e54f788d665a459b18fba))
+
+
+### Documentation
+
+* more code comments ([2110f40](https://github.com/openai/openai-java/commit/2110f40666a81e08ad2f493773fe1f2ca4a562b2))
+
+## 2.19.0 (2025-07-23)
+
+Full Changelog: [v2.18.2...v2.19.0](https://github.com/openai/openai-java/compare/v2.18.2...v2.19.0)
+
+### Features
+
+* **client:** support base64 embeddings and use as default ([#519](https://github.com/openai/openai-java/issues/519)) ([12b0ff7](https://github.com/openai/openai-java/commit/12b0ff75cf2a3bc93cf5c41adbbf2b5097a8e941))
+
+
+### Documentation
+
+* fix missing readme comment ([720ed2c](https://github.com/openai/openai-java/commit/720ed2cff555977efa00043b3f424920811ce339))
+
+## 2.18.2 (2025-07-22)
+
+Full Changelog: [v2.18.1...v2.18.2](https://github.com/openai/openai-java/compare/v2.18.1...v2.18.2)
+
+### Bug Fixes
+
+* **client:** support structured outputs in async requests ([#548](https://github.com/openai/openai-java/issues/548)). ([#550](https://github.com/openai/openai-java/issues/550)) ([b9d52cf](https://github.com/openai/openai-java/commit/b9d52cf6e03c886dcdd5e0da3f16ea436220f09c))
+
+## 2.18.1 (2025-07-22)
+
+Full Changelog: [v2.18.0...v2.18.1](https://github.com/openai/openai-java/compare/v2.18.0...v2.18.1)
+
+### Bug Fixes
+
+* actually add system properties ([09bb653](https://github.com/openai/openai-java/commit/09bb653a31e6cf89ddac952c776ded8f77903128))
+
+
+### Documentation
+
+* fix readme link ([d98571c](https://github.com/openai/openai-java/commit/d98571c70ebf646497dd1139b13848882261af8f))
+
+## 2.18.0 (2025-07-22)
+
+Full Changelog: [v2.17.0...v2.18.0](https://github.com/openai/openai-java/compare/v2.17.0...v2.18.0)
+
+### Features
+
+* **client:** add `{QueryParams,Headers}#put(String, JsonValue)` methods ([1973f9a](https://github.com/openai/openai-java/commit/1973f9a7049505a27a7ec908549254f192d74be0))
+* **client:** allow configuring env via system properties ([5f8deb3](https://github.com/openai/openai-java/commit/5f8deb34ebe2982dee1aa6fd1bb1a08122a80a8d))
+
+
+### Chores
+
+* **api:** event shapes more accurate ([b7ba592](https://github.com/openai/openai-java/commit/b7ba592a4b0ebdcf53719017afb064227136d59d))
+
+## 2.17.0 (2025-07-21)
+
+Full Changelog: [v2.16.0...v2.17.0](https://github.com/openai/openai-java/compare/v2.16.0...v2.17.0)
+
+### Features
+
+* **client:** add https config options ([3f74519](https://github.com/openai/openai-java/commit/3f745195fa5d72ee72653adbd8087915c0db2fa5))
+* **client:** allow setting additional multipart body props ([220503e](https://github.com/openai/openai-java/commit/220503efc745bd1c74c02f1d4d6d3305198bf942))
+
+
+### Chores
+
+* **internal:** refactor delegating from client to options ([e89596d](https://github.com/openai/openai-java/commit/e89596d624fd77fdef750fb65a9ca5c6497e76cb))
+
+## 2.16.0 (2025-07-17)
+
+Full Changelog: [v2.15.0...v2.16.0](https://github.com/openai/openai-java/compare/v2.15.0...v2.16.0)
+
+### Features
+
+* **client:** publish GraalVM metadata files ([#534](https://github.com/openai/openai-java/issues/534)) ([e6b4fe0](https://github.com/openai/openai-java/commit/e6b4fe0f8690d9b513ab2b33c7bec685397b5438))
+
+## 2.15.0 (2025-07-17)
+
+Full Changelog: [v2.14.0...v2.15.0](https://github.com/openai/openai-java/compare/v2.14.0...v2.15.0)
+
+### Features
+
+* **client:** add `ResponseAccumulator` ([#391](https://github.com/openai/openai-java/issues/391)) ([77f54fd](https://github.com/openai/openai-java/commit/77f54fdea8bf0a609f90ec511977531bffc1a9b1))
+
+
+### Bug Fixes
+
+* **client:** ensure error handling always occurs ([a00c39b](https://github.com/openai/openai-java/commit/a00c39b9b1e06a15fa3a0b2b495adfff86cddd10))
+
+
+### Chores
+
+* **client:** remove non-existent method ([2d185ba](https://github.com/openai/openai-java/commit/2d185ba387569d90ffffa07adf3337ffce918e3e))
+* **internal:** Add CONTRIBUTING.md for SDK developers ([608947c](https://github.com/openai/openai-java/commit/608947cd875167c5aa2beb65cf98f47050914b71))
+* **internal:** allow running specific example from cli ([3239c2d](https://github.com/openai/openai-java/commit/3239c2de360864456786043a2a3ffb1a71ac0a45))
+
+## 2.14.0 (2025-07-16)
+
+Full Changelog: [v2.13.1...v2.14.0](https://github.com/openai/openai-java/compare/v2.13.1...v2.14.0)
+
+### Features
+
+* **api:** manual updates ([d3dd5be](https://github.com/openai/openai-java/commit/d3dd5be0c6797f7f7fb7935df27b7ad67177f6ea))
+
+
+### Bug Fixes
+
+* **internal:** add back addAssistantMessage ([e27b476](https://github.com/openai/openai-java/commit/e27b476b2c4e8287407b40bc2e683c33af992c43))
+* **internal:** add back addAssistantMessage ([d363245](https://github.com/openai/openai-java/commit/d363245365a618bfd75e05f905af4eda90d24e96))
+
+
+### Chores
+
+* **api:** update realtime specs ([dd24c50](https://github.com/openai/openai-java/commit/dd24c500f029db5c1d38e9659eafb3bcd4d6fe99))
+* **ci:** bump `actions/setup-java` to v4 ([e5112cd](https://github.com/openai/openai-java/commit/e5112cdb3d411357886c334b15cc3de62e2fc9c3))
+
+## 2.13.1 (2025-07-15)
+
+Full Changelog: [v2.13.0...v2.13.1](https://github.com/openai/openai-java/compare/v2.13.0...v2.13.1)
+
+### Chores
+
+* **api:** update realtime specs, build config ([babbf87](https://github.com/openai/openai-java/commit/babbf8720e342239d176077eab554039446b30c9))
+
+## 2.13.0 (2025-07-15)
+
+Full Changelog: [v2.12.4...v2.13.0](https://github.com/openai/openai-java/compare/v2.12.4...v2.13.0)
+
+### Features
+
+* **client:** support completions streaming structured outputs ([#528](https://github.com/openai/openai-java/issues/528)) ([2c8917b](https://github.com/openai/openai-java/commit/2c8917bf8352fab263f736387890fd06c2af5c11))
+
+## 2.12.4 (2025-07-11)
+
+Full Changelog: [v2.12.3...v2.12.4](https://github.com/openai/openai-java/compare/v2.12.3...v2.12.4)
+
+### Chores
+
+* **api:** specification cleanup ([6fc0efd](https://github.com/openai/openai-java/commit/6fc0efdb8735f8bb4d51631f195634bbb14ea3c4))
+* **internal:** manual updates ([53059a7](https://github.com/openai/openai-java/commit/53059a72d301bc3bd7d65ab31609e8509505b2f7))
+
+## 2.12.3 (2025-07-11)
+
+Full Changelog: [v2.12.2...v2.12.3](https://github.com/openai/openai-java/compare/v2.12.2...v2.12.3)
+
+### Documentation
+
+* add file + completions example (closes [#483](https://github.com/openai/openai-java/issues/483)) ([4a826ec](https://github.com/openai/openai-java/commit/4a826ec0fbc1b520a0ffa1478ed41779fb0448fc))
+* add image editing examples (closes [#453](https://github.com/openai/openai-java/issues/453)) ([6fa09ce](https://github.com/openai/openai-java/commit/6fa09ce13b53ca5f242a5482e38cc9d5e8e2d633))
+
+## 2.12.2 (2025-07-10)
+
+Full Changelog: [v2.12.1...v2.12.2](https://github.com/openai/openai-java/compare/v2.12.1...v2.12.2)
+
+### Documentation
+
+* add batch processing examples ([#462](https://github.com/openai/openai-java/issues/462)) ([#476](https://github.com/openai/openai-java/issues/476)) ([d910267](https://github.com/openai/openai-java/commit/d910267a97748ce1a193712da03011a65e21277c))
+
+## 2.12.1 (2025-07-08)
+
+Full Changelog: [v2.12.0...v2.12.1](https://github.com/openai/openai-java/compare/v2.12.0...v2.12.1)
+
+### Chores
+
+* **ci:** ensure docs generation always succeeds ([54de202](https://github.com/openai/openai-java/commit/54de202443c8dd3c112bc0521a29649f87acb7c9))
+
+## 2.12.0 (2025-07-01)
+
+Full Changelog: [v2.11.0...v2.12.0](https://github.com/openai/openai-java/compare/v2.11.0...v2.12.0)
+
+### Features
+
+* support new schema constraints for structured outputs ([#520](https://github.com/openai/openai-java/issues/520)) ([5c41ac5](https://github.com/openai/openai-java/commit/5c41ac5f1c8ed986e887e06adc3da73ec7e6b5e5))
+
+
+### Bug Fixes
+
+* **ci:** correct conditional ([a8c7a16](https://github.com/openai/openai-java/commit/a8c7a16184376d0dcfc8dd6f954c303c02888b40))
+* **client:** don't close client on `withOptions` usage when original is gc'd ([e0890e3](https://github.com/openai/openai-java/commit/e0890e398aef9a8b6c14aba23b0b2a3d802ced8f))
+
+
+### Chores
+
+* **ci:** only run for pushes and fork pull requests ([8dc0179](https://github.com/openai/openai-java/commit/8dc0179eeb96772c73e035668904201a86e245c5))
+
+
+### Documentation
+
+* fix readme typoe ([#521](https://github.com/openai/openai-java/issues/521)) ([eb83a83](https://github.com/openai/openai-java/commit/eb83a83d5b32376497dbad8b74b15347a69ce1dd))
+
+
+### Refactors
+
+* **internal:** minor `ClientOptionsTest` change ([a7379a2](https://github.com/openai/openai-java/commit/a7379a239d4f93fe631224df81787fdec08d14bd))
+
+## 2.11.0 (2025-06-27)
+
+Full Changelog: [v2.10.0...v2.11.0](https://github.com/openai/openai-java/compare/v2.10.0...v2.11.0)
+
+### Features
+
+* **api:** add realtime data models ([38d8e89](https://github.com/openai/openai-java/commit/38d8e893a15a9d9c2619ed28ed83cf149a8203a8))
+
+
+### Chores
+
+* add deploymentModel ([60ffc59](https://github.com/openai/openai-java/commit/60ffc59870c76d72a75e16897146663c46c3d0c7))
+
+## 2.10.0 (2025-06-26)
+
+Full Changelog: [v2.9.1...v2.10.0](https://github.com/openai/openai-java/compare/v2.9.1...v2.10.0)
+
+### Features
+
+* **api:** webhook and deep research support ([79859a1](https://github.com/openai/openai-java/commit/79859a13346bceec6b6ebd9c32a984dcc0e7b2ed))
+
+
+### Bug Fixes
+
+* **ci:** release-doctor — report correct token name ([da7f492](https://github.com/openai/openai-java/commit/da7f492db2a39a7c025e3320bcf79fda6a0702bd))
+* **client:** fix webhooks errors ([8051535](https://github.com/openai/openai-java/commit/8051535acfe621614716bc874ae73c31df121b76))
+
+
+### Chores
+
+* **api:** remove unsupported property ([2102d96](https://github.com/openai/openai-java/commit/2102d962596fb31067aa85c88515c318448e42c0))
+* **client:** sync structured outputs features ([cb5c638](https://github.com/openai/openai-java/commit/cb5c638863d56577e6bae9e0787b7fc4633428cb))
+* **docs:** update README to include links to docs on Webhooks ([5698e53](https://github.com/openai/openai-java/commit/5698e53e9f5666036eab58811bffc97e357d9dcb))
+
+## 2.9.1 (2025-06-25)
+
+Full Changelog: [v2.9.0...v2.9.1](https://github.com/openai/openai-java/compare/v2.9.0...v2.9.1)
+
+### Chores
+
+* **internal:** add tests for breaking change detection ([b0a6eeb](https://github.com/openai/openai-java/commit/b0a6eebc67688d38769809efaef7ebc23f519969))
+* updated readme link ([c0992cd](https://github.com/openai/openai-java/commit/c0992cdf475ce4a7f5225d849affb1b449c37cf1))
+
+## 2.9.0 (2025-06-23)
+
+Full Changelog: [v2.8.1...v2.9.0](https://github.com/openai/openai-java/compare/v2.8.1...v2.9.0)
+
+### Features
+
+* **api:** make model and inputs not required to create response ([87dd646](https://github.com/openai/openai-java/commit/87dd64658da6cec7564f3b571e15ec0e2db0660b))
+* **api:** update api shapes for usage and code interpreter ([c003f8d](https://github.com/openai/openai-java/commit/c003f8d34388f2a78f60dd3daae63495650c3038))
+
+
+### Bug Fixes
+
+* **client:** bump max requests per host to max requests (5 -&gt; 64) ([a36d9f6](https://github.com/openai/openai-java/commit/a36d9f647dc82f8e39591179b87a128038ce7acb))
+
+## 2.8.1 (2025-06-18)
+
+Full Changelog: [v2.8.0...v2.8.1](https://github.com/openai/openai-java/compare/v2.8.0...v2.8.1)
+
+### Bug Fixes
+
+* **client:** consider cognitiveservices.azure.com as azure ([#470](https://github.com/openai/openai-java/issues/470)) ([551bfc2](https://github.com/openai/openai-java/commit/551bfc20022d13326da79a73a4ca71fa4bfff437))
+
+## 2.8.0 (2025-06-17)
+
+Full Changelog: [v2.7.0...v2.8.0](https://github.com/openai/openai-java/compare/v2.7.0...v2.8.0)
+
+### Features
+
+* **api:** add reusable prompt IDs ([0767a2b](https://github.com/openai/openai-java/commit/0767a2b50d853feff84748fed3eb6cf544bec6fb))
+* **api:** manual updates ([ec235f7](https://github.com/openai/openai-java/commit/ec235f7f311ca1866ae8a05e9a622ab588062071))
+* **client:** implement per-endpoint base URL support ([c87f1af](https://github.com/openai/openai-java/commit/c87f1af80b1f3d898a5a1553be48ee87ea4e7b4f))
+
+
+### Bug Fixes
+
+* **client:** update StructuredResponse with Prompt details ([a47219b](https://github.com/openai/openai-java/commit/a47219b0247dcb4d25b3bf0f33ba6b392c61cd38))
+* **internal:** run formatter ([5757aa6](https://github.com/openai/openai-java/commit/5757aa6af407d749a7bba6e1f0714eec850d4369))
+* **tests:** fix required prop in test ([e820c6f](https://github.com/openai/openai-java/commit/e820c6f115ff392b567abb355f11ce5acfcab537))
+
+
+### Chores
+
+* **ci:** enable for pull requests ([9c90b16](https://github.com/openai/openai-java/commit/9c90b16585ebe3ffc031e0df598a27b5b6a85bb8))
+* **internal:** codegen related update ([3597aee](https://github.com/openai/openai-java/commit/3597aee95ae1956afbe8bd62b5a6946dd62256b3))
+* run formatter ([426527b](https://github.com/openai/openai-java/commit/426527b76371e7e0a66e368b0ddbb8da806fae2b))
+* run formatter ([426527b](https://github.com/openai/openai-java/commit/426527b76371e7e0a66e368b0ddbb8da806fae2b))
+* run formatter ([899f79c](https://github.com/openai/openai-java/commit/899f79c88b9a79ada33982af0d2ee64f96445230))
+
+## 2.7.0 (2025-06-10)
+
+Full Changelog: [v2.6.0...v2.7.0](https://github.com/openai/openai-java/compare/v2.6.0...v2.7.0)
+
+### Features
+
+* **api:** Add o3-pro model IDs ([48a685f](https://github.com/openai/openai-java/commit/48a685f51f2db7499d9e47d6641b80acb14155a8))
+
+## 2.6.0 (2025-06-09)
+
+Full Changelog: [v2.5.0...v2.6.0](https://github.com/openai/openai-java/compare/v2.5.0...v2.6.0)
+
+### Features
+
+* **api:** Add tools and structured outputs to evals ([f9d593c](https://github.com/openai/openai-java/commit/f9d593c74e08686f28e99fe2b2cb033cc506e552))
+
+## 2.5.0 (2025-06-06)
+
+Full Changelog: [v2.4.0...v2.5.0](https://github.com/openai/openai-java/compare/v2.4.0...v2.5.0)
+
+### Features
+
+* **client:** automatic schema generation and arg parsing for function calling ([#497](https://github.com/openai/openai-java/issues/497)) ([800dc8f](https://github.com/openai/openai-java/commit/800dc8fcf1e7109c419fb6125f6ad2822b6d6748))
+
+## 2.4.0 (2025-06-03)
+
+Full Changelog: [v2.3.2...v2.4.0](https://github.com/openai/openai-java/compare/v2.3.2...v2.4.0)
+
+### Features
+
+* **api:** add new realtime and audio models, realtime session options ([898d2ad](https://github.com/openai/openai-java/commit/898d2ad33f780e060dff902b755f3456ae0c12ed))
+
+
+### Chores
+
+* **internal:** minor formatting change ([f68c491](https://github.com/openai/openai-java/commit/f68c491cb41e22a25d498b18919e8e7a657d753a))
+
+## 2.3.2 (2025-06-02)
+
+Full Changelog: [v2.3.1...v2.3.2](https://github.com/openai/openai-java/compare/v2.3.1...v2.3.2)
+
+### Bug Fixes
+
+* **api:** Fix evals and code interpreter interfaces ([d7e2747](https://github.com/openai/openai-java/commit/d7e27475e917613beda0022725a1d9551ed2a278))
+
+## 2.3.1 (2025-06-02)
+
+Full Changelog: [v2.3.0...v2.3.1](https://github.com/openai/openai-java/compare/v2.3.0...v2.3.1)
+
+### Bug Fixes
+
+* **client:** `hasNextPage` impl for some classes ([32e968f](https://github.com/openai/openai-java/commit/32e968f096ec8d16ef98f8152b729a5d82daea34))
+
+## 2.3.0 (2025-05-29)
+
+Full Changelog: [v2.2.1...v2.3.0](https://github.com/openai/openai-java/compare/v2.2.1...v2.3.0)
+
+### Features
+
+* **api:** Config update for pakrym-stream-param ([55ae767](https://github.com/openai/openai-java/commit/55ae767021a1d03a2c8bc4184163acd56ee64d41))
+
+
+### Bug Fixes
+
+* **client:** add missing deployment model param ([#704](https://github.com/openai/openai-java/issues/704)) ([37aa563](https://github.com/openai/openai-java/commit/37aa563789f34de917758519d859f17d9c1a98fc))
+* **client:** correctly send streaming discriminator param ([b27559f](https://github.com/openai/openai-java/commit/b27559fa7d1c097ada40da12e55d1def372f5dce))
+* **client:** optional image deployment model param ([a507f84](https://github.com/openai/openai-java/commit/a507f8446a2270ee3e9c5e5295a9a57b59c633eb))
+* **client:** remove `@MustBeClosed` for future returning methods ([2988157](https://github.com/openai/openai-java/commit/2988157933dfe2ec7f9f2b626d0fa9eb184db27d))
+* **client:** return binary content from `get /containers/{container_id}/files/{file_id}/content` ([787e12b](https://github.com/openai/openai-java/commit/787e12b4ac3d33f46aa31c165241c26f927e92dc))
+
+## 2.2.1 (2025-05-27)
+
+Full Changelog: [v2.2.0...v2.2.1](https://github.com/openai/openai-java/compare/v2.2.0...v2.2.1)
+
+### Bug Fixes
+
+* **client:** don't throw on absent error message ([0d1e325](https://github.com/openai/openai-java/commit/0d1e325ee02af89f713db9cc7fb360676d942d6d))
+
+## 2.2.0 (2025-05-23)
+
+Full Changelog: [v2.1.0...v2.2.0](https://github.com/openai/openai-java/compare/v2.1.0...v2.2.0)
+
+### Features
+
+* **api:** remove deprecated endpoints from Java client ([7b5acb5](https://github.com/openai/openai-java/commit/7b5acb54d52352521e86e7e0f6f878ca67a7b53e))
+
+
+### Bug Fixes
+
+* **examples:** remove old examples ([8fe838c](https://github.com/openai/openai-java/commit/8fe838cdade6fb04aba70ae82bab0e81d061ca43))
+
+
+### Chores
+
+* **internal:** fix release workflows ([c66f725](https://github.com/openai/openai-java/commit/c66f7258d8df4000b1013aa35140bef50de852fe))
+
+## 2.1.0 (2025-05-22)
+
+Full Changelog: [v2.0.0...v2.1.0](https://github.com/openai/openai-java/compare/v2.0.0...v2.1.0)
+
+### Features
+
+* **api:** new streaming helpers for background responses ([a82279d](https://github.com/openai/openai-java/commit/a82279dfafef8a6a6276de104a5b58cffac63559))
+
+
+### Bug Fixes
+
+* **internal:** fix issues with new items in structured responses ([931f7b8](https://github.com/openai/openai-java/commit/931f7b8ce3a83dfbbbd46d34bf99a66fa7e888e3))
+* **tests:** fix file test ([a82adfd](https://github.com/openai/openai-java/commit/a82adfd42bbb06da2c3c18f12cafd6b8ee38cc85))
+
+## 2.0.0 (2025-05-21)
+
+Full Changelog: [v1.6.1...v2.0.0](https://github.com/openai/openai-java/compare/v1.6.1...v2.0.0)
+
+### ⚠ BREAKING CHANGES
+
+* **client:** change precision of some numeric types
+* **client:** extract auto pagination to shared classes
+* **client:** **Migration:** - If you were referencing the `AutoPager` class on a specific `*Page` or `*PageAsync` type, then you should instead reference the shared `AutoPager` and `AutoPagerAsync` types, under the `core` package
+    - `AutoPagerAsync` now has different usage. You can call `.subscribe(...)` on the returned object instead to get called back each page item. You can also call `onCompleteFuture()` to get a future that completes when all items have been processed. Finally, you can call `.close()` on the returned object to stop auto-paginating early
+    - If you were referencing `getNextPage` or `getNextPageParams`:
+       - Swap to `nextPage()` and `nextPageParams()`
+       - Note that these both now return non-optional types (use `hasNextPage()` before calling these, since they will throw if it's impossible to get another page)
+
+### Features
+
+* **api:** Add reinforcement fine-tuning api support ([3a9fcbb](https://github.com/openai/openai-java/commit/3a9fcbb2d47a6b106d963a4243c255d55123ff9c))
+* **api:** further updates for evals API ([2b9d5bc](https://github.com/openai/openai-java/commit/2b9d5bc92d4e67cfc5b48343bd999ccbe87ca2e7))
+* **api:** manual updates ([005a643](https://github.com/openai/openai-java/commit/005a6439977311990dca20e75783657e90aa3898))
+* **api:** responses x eval api ([66327c5](https://github.com/openai/openai-java/commit/66327c540652f63147158fc9ae8ffdd5e75cbca4))
+* **api:** Updating Assistants and Evals API schemas ([02c6df6](https://github.com/openai/openai-java/commit/02c6df6457c3e03a8ae87d8b895a4838809947f3))
+* **client:** allow providing some params positionally ([1c6e875](https://github.com/openai/openai-java/commit/1c6e8759bf7e6b8a7e3b245c5a2365edf2388fca))
+* **client:** extract auto pagination to shared classes ([855d571](https://github.com/openai/openai-java/commit/855d571da1cc772b31493f6a36032934772c3757))
+* **client:** type safe structured outputs ([#463](https://github.com/openai/openai-java/issues/463)) ([e123fdd](https://github.com/openai/openai-java/commit/e123fdd3f75980b7edea84eaf6f6c101cb9a2ea2))
+
+
+### Bug Fixes
+
+* add missing `deploymentModel` params ([d9af1fb](https://github.com/openai/openai-java/commit/d9af1fbe5309ae7da0522895596573fc36162387))
+* **client:** properly support srt and vtt in audio transcriptions. ([#472](https://github.com/openai/openai-java/issues/472)) ([1e5bf3d](https://github.com/openai/openai-java/commit/1e5bf3d36cb100d1b1ad8ac328b99cc50d16e4da))
+* merge conflict ([bf7e961](https://github.com/openai/openai-java/commit/bf7e961819911f28f5ad0aaa03cda05ccfa5dbed))
+* missing validity ([301a38a](https://github.com/openai/openai-java/commit/301a38adfa5782238e407f9ea22dd9635baa4e4b))
+
+
+### Chores
+
+* **docs:** grammar improvements ([13b0fbc](https://github.com/openai/openai-java/commit/13b0fbc79ec365433ac33ccd7c5fef3e9b858fae))
+* **internal:** fix custom code ([567c86e](https://github.com/openai/openai-java/commit/567c86e958acf5898ee0be7547cfa0da34f07eb2))
+
+
+### Documentation
+
+* remove or fix invalid readme examples ([fa9f7fc](https://github.com/openai/openai-java/commit/fa9f7fc1e68b8754a50373c455cad45f59b9bda3))
+
+
+### Refactors
+
+* **client:** change precision of some numeric types ([291b0f4](https://github.com/openai/openai-java/commit/291b0f4ac12f61f31c40a80a46db2cffc9012a9a))
+
+## 1.6.1 (2025-05-08)
+
+Full Changelog: [v1.6.0...v1.6.1](https://github.com/openai/openai-java/compare/v1.6.0...v1.6.1)
+
+### Chores
+
+* **internal:** remove flaky `-Xbackend-threads=0` option ([1aec858](https://github.com/openai/openai-java/commit/1aec858db61e87065fa5d3f7fba94f601f71b3ac))
+
+## 1.6.0 (2025-05-02)
+
+Full Changelog: [v1.5.1...v1.6.0](https://github.com/openai/openai-java/compare/v1.5.1...v1.6.0)
+
+### Features
+
+* **api:** add image sizes, reasoning encryption ([a4a7d53](https://github.com/openai/openai-java/commit/a4a7d5390245ba11afe1cbd8665e0e39af3ca16f))
+
+
+### Chores
+
+* **internal:** update java toolchain ([eef415d](https://github.com/openai/openai-java/commit/eef415d067c9dd6ac6d4b8c825f4d068a6c4a63c))
+
+
+### Documentation
+
+* add `ImageGenerationExample` ([#457](https://github.com/openai/openai-java/issues/457)) ([286b7d5](https://github.com/openai/openai-java/commit/286b7d52d8cb917130579352a89afd5f8c839894))
+
+## 1.5.1 (2025-04-27)
+
+Full Changelog: [v1.5.0...v1.5.1](https://github.com/openai/openai-java/compare/v1.5.0...v1.5.1)
+
+### Bug Fixes
+
+* **client:** add missing convenience methods ([616d69a](https://github.com/openai/openai-java/commit/616d69a27a914e30d6cb2c4fa96613bf64488742))
+
+
+### Chores
+
+* **ci:** only use depot for staging repos ([7835140](https://github.com/openai/openai-java/commit/78351404be50f6e535028a98d14d64257eeb2002))
+* **ci:** run on more branches and use depot runners ([8b7a805](https://github.com/openai/openai-java/commit/8b7a805083123a222ebc623e4c405d2f1ccf228b))
+* **internal:** java 17 -&gt; 21 on ci ([9f690e4](https://github.com/openai/openai-java/commit/9f690e42c91642bcda690bd398803ba401958397))
+* **internal:** use `byteInputStream()` in tests ([616d69a](https://github.com/openai/openai-java/commit/616d69a27a914e30d6cb2c4fa96613bf64488742))
+* run formatter ([5e78fa5](https://github.com/openai/openai-java/commit/5e78fa544ddc7942795bf5055c2010f9b42b198e))
+
+
+### Documentation
+
+* add responses input file example ([#446](https://github.com/openai/openai-java/issues/446)) ([b94d404](https://github.com/openai/openai-java/commit/b94d4044ba764de789af3d19ac406ad8667c029d))
+
+## 1.5.0 (2025-04-23)
+
+Full Changelog: [v1.4.1...v1.5.0](https://github.com/openai/openai-java/compare/v1.4.1...v1.5.0)
+
+### Features
+
+* **api:** adding new image model support ([545b900](https://github.com/openai/openai-java/commit/545b9004c09de82f1aa1ee12333d5fa7bb67ecd5))
+
+
+### Chores
+
+* **ci:** add timeout thresholds for CI jobs ([579da9b](https://github.com/openai/openai-java/commit/579da9b321ee3a6360c0c7aca39fb4ffbd12fc3b))
+
+## 1.4.1 (2025-04-17)
+
+Full Changelog: [v1.4.0...v1.4.1](https://github.com/openai/openai-java/compare/v1.4.0...v1.4.1)
+
+### Bug Fixes
+
+* **internal:** release flow ([777a756](https://github.com/openai/openai-java/commit/777a7565f14d86c00611880ee143b522a9af2698))
+* **internal:** test compilation error ([544a4ce](https://github.com/openai/openai-java/commit/544a4cebb5b34a55354e06431dd4a966a5213aa2))
+
+## 1.4.0 (2025-04-17)
+
+Full Changelog: [v1.3.1...v1.4.0](https://github.com/openai/openai-java/compare/v1.3.1...v1.4.0)
+
+### Features
+
+* **api:** add o3 and o4-mini model IDs ([069db4f](https://github.com/openai/openai-java/commit/069db4f94021cfc2f8d3a5a969453efae5f126a1))
+
+
+### Performance Improvements
+
+* **internal:** improve compilation+test speed ([ef38b5b](https://github.com/openai/openai-java/commit/ef38b5bfd278774e056d21a795845fb5c3a99f0a))
+
+
+### Documentation
+
+* explain http client customization ([da22f7d](https://github.com/openai/openai-java/commit/da22f7d3f717882c555fbb6626ec842fc953def4))
+* explain jackson compat in readme ([6bc1dbd](https://github.com/openai/openai-java/commit/6bc1dbd2d95d2fb235bb9506a766b9f083017bc2))
+
+## 1.3.1 (2025-04-16)
+
+Full Changelog: [v1.3.0...v1.3.1](https://github.com/openai/openai-java/compare/v1.3.0...v1.3.1)
+
+### Documentation
+
+* **client:** update jackson compat error message ([e928c2d](https://github.com/openai/openai-java/commit/e928c2d9d607a40d363297e2b675a3ffc48a3cea))
+* update documentation links to be more uniform ([e9bb6bf](https://github.com/openai/openai-java/commit/e9bb6bf7b8f42e1bed10d6029d957b06a0c149e5))
+
+## 1.3.0 (2025-04-14)
+
+Full Changelog: [v1.2.0...v1.3.0](https://github.com/openai/openai-java/compare/v1.2.0...v1.3.0)
+
+### Features
+
+* **api:** adding gpt-4.1 family of model IDs ([cdddc6a](https://github.com/openai/openai-java/commit/cdddc6a4b7447a75983cd4eede5759f2594a4a59))
+
+
+### Chores
+
+* **internal:** reduce CI branch coverage ([ac1f4e9](https://github.com/openai/openai-java/commit/ac1f4e909381ac8d93256b90417d119d062c87c4))
+
+## 1.2.0 (2025-04-09)
+
+Full Changelog: [v1.1.1...v1.2.0](https://github.com/openai/openai-java/compare/v1.1.1...v1.2.0)
+
+### Features
+
+* **client:** make pagination robust to missing data ([cbccde5](https://github.com/openai/openai-java/commit/cbccde5bbbea40289a7143d40ce5e8c7ac7643ff))
+
+
+### Documentation
+
+* add comments for page methods ([cbccde5](https://github.com/openai/openai-java/commit/cbccde5bbbea40289a7143d40ce5e8c7ac7643ff))
+
+
+### Refactors
+
+* **client:** deduplicate page response classes ([#433](https://github.com/openai/openai-java/issues/433)) ([cbccde5](https://github.com/openai/openai-java/commit/cbccde5bbbea40289a7143d40ce5e8c7ac7643ff))
+* **client:** migrate pages to builder pattern ([#435](https://github.com/openai/openai-java/issues/435)) ([8cb8878](https://github.com/openai/openai-java/commit/8cb8878becd07e31844f981bafd147c630606c07))
+
+## 1.1.1 (2025-04-09)
+
+Full Changelog: [v1.1.0...v1.1.1](https://github.com/openai/openai-java/compare/v1.1.0...v1.1.1)
+
+### Bug Fixes
+
+* **client:** bump to better jackson version ([#432](https://github.com/openai/openai-java/issues/432)) ([b4ec1d1](https://github.com/openai/openai-java/commit/b4ec1d17e9cace4971d330b945925a299a04aa38))
+
+
+### Chores
+
+* **internal:** expand CI branch coverage ([#429](https://github.com/openai/openai-java/issues/429)) ([7ecece7](https://github.com/openai/openai-java/commit/7ecece7d4cd6ed495ca4fd2daa1f7d726954695a))
+
+## 1.1.0 (2025-04-09)
+
+Full Changelog: [v1.0.0...v1.1.0](https://github.com/openai/openai-java/compare/v1.0.0...v1.1.0)
+
+### Features
+
+* **client:** support setting base URL via env var ([#427](https://github.com/openai/openai-java/issues/427)) ([d462b34](https://github.com/openai/openai-java/commit/d462b3476e032ea02fa45c4afde19e1b62455224))
+
+## 1.0.0 (2025-04-09)
+
+Full Changelog: [v0.45.0...v1.0.0](https://github.com/openai/openai-java/compare/v0.45.0...v1.0.0)
+
+### Chores
+
+* workaround build errors ([6c6faa0](https://github.com/openai/openai-java/commit/6c6faa0e8273f10ed9d85378f4cb9d2ef8fc360c))
+
+
+### Documentation
+
+* remove beta readme note ([829fb0a](https://github.com/openai/openai-java/commit/829fb0a8a307659e00defc3a6c39e72b7cf4dab7))
+
+## 0.45.0 (2025-04-09)
+
+Full Changelog: [v0.44.5...v0.45.0](https://github.com/openai/openai-java/compare/v0.44.5...v0.45.0)
+
+### Features
+
+* **api:** Add evalapi to sdk ([b567998](https://github.com/openai/openai-java/commit/b56799843d71a81b8d99fae6fb04c0dff731afce))
+
+
+### Bug Fixes
+
+* **client:** trim '/' and empty character in base URL ([#424](https://github.com/openai/openai-java/issues/424)) ([37370df](https://github.com/openai/openai-java/commit/37370df673921c01a511dab2f87e0fe62107a151))
+
+
+### Chores
+
+* add missing `deploymentModel` ([acb132e](https://github.com/openai/openai-java/commit/acb132e45467fd74f5860c54d93a66ad8e1216a3))
+* **tests:** improve enum examples ([#416](https://github.com/openai/openai-java/issues/416)) ([a698758](https://github.com/openai/openai-java/commit/a69875817d67a60a612df14bf3ea06352e2fa265))
+
+## 0.44.5 (2025-04-08)
+
+Full Changelog: [v0.44.4...v0.44.5](https://github.com/openai/openai-java/compare/v0.44.4...v0.44.5)
+
+### Bug Fixes
+
+* **client:** fix some bad identifiers ([#413](https://github.com/openai/openai-java/issues/413)) ([e567213](https://github.com/openai/openai-java/commit/e56721365c94ae68daf307f49eeb00e151f67c94))
+
+## 0.44.4 (2025-04-07)
+
+Full Changelog: [v0.44.3...v0.44.4](https://github.com/openai/openai-java/compare/v0.44.3...v0.44.4)
+
+### Chores
+
+* **internal:** only run examples workflow in main repo ([#410](https://github.com/openai/openai-java/issues/410)) ([058008a](https://github.com/openai/openai-java/commit/058008a7901d476097bb93171c38924880024a25))
+
+## 0.44.3 (2025-04-06)
+
+Full Changelog: [v0.44.2...v0.44.3](https://github.com/openai/openai-java/compare/v0.44.2...v0.44.3)
+
+### Bug Fixes
+
+* **client:** return `Optional&lt;T&gt;` instead of `Optional<? extends T>` ([#407](https://github.com/openai/openai-java/issues/407)) ([73eee4f](https://github.com/openai/openai-java/commit/73eee4fcf4859a48bb16c02dbcbc46adb9c691b1))
+
+
+### Chores
+
+* **internal:** add more `streamHandler` tests ([#404](https://github.com/openai/openai-java/issues/404)) ([a29b341](https://github.com/openai/openai-java/commit/a29b341b228c8cb28c9cfc18521a15697ee18649))
+* **internal:** swap from `getNullable` to `getOptional` ([#406](https://github.com/openai/openai-java/issues/406)) ([32b54f9](https://github.com/openai/openai-java/commit/32b54f95a356922fa0b3f1c5bddfefab19dde7a7))
+
+
+### Documentation
+
+* add comments to `JsonField` classes ([73eee4f](https://github.com/openai/openai-java/commit/73eee4fcf4859a48bb16c02dbcbc46adb9c691b1))
+* document how to forcibly omit required field ([a51c184](https://github.com/openai/openai-java/commit/a51c1840dd41682a4f9e7025058e0b6a1b8e7205))
+* swap examples used in readme ([#408](https://github.com/openai/openai-java/issues/408)) ([a51c184](https://github.com/openai/openai-java/commit/a51c1840dd41682a4f9e7025058e0b6a1b8e7205))
+
+## 0.44.2 (2025-04-04)
+
+Full Changelog: [v0.44.1...v0.44.2](https://github.com/openai/openai-java/compare/v0.44.1...v0.44.2)
+
+### Bug Fixes
+
+* **client:** support responses API for Azure ([#387](https://github.com/openai/openai-java/issues/387)) ([f7f09aa](https://github.com/openai/openai-java/commit/f7f09aa1a3dd77f5565083ece85f8056b53e2e54))
+
+## 0.44.1 (2025-04-04)
+
+Full Changelog: [v0.44.0...v0.44.1](https://github.com/openai/openai-java/compare/v0.44.0...v0.44.1)
+
+### Bug Fixes
+
+* **client:** accumulation of tool call functions ([#382](https://github.com/openai/openai-java/issues/382)) ([#399](https://github.com/openai/openai-java/issues/399)) ([943e6fb](https://github.com/openai/openai-java/commit/943e6fbd65a5f318ebbb7895bdd8c68f6d8babe4))
+
+## 0.44.0 (2025-04-04)
+
+Full Changelog: [v0.43.0...v0.44.0](https://github.com/openai/openai-java/compare/v0.43.0...v0.44.0)
+
+### Features
+
+* **api:** manual updates ([331ec66](https://github.com/openai/openai-java/commit/331ec66baf6add46ec79ba56842f31065dffff33))
+
+
+### Bug Fixes
+
+* **client:** translate streaming `IOException` into custom exception ([#397](https://github.com/openai/openai-java/issues/397)) ([bc5c577](https://github.com/openai/openai-java/commit/bc5c57721fd7115800d7a9fd2e38631e695caa25))
+
+
+### Performance Improvements
+
+* **client:** cached parsed type in `HttpResponseFor` ([#395](https://github.com/openai/openai-java/issues/395)) ([259b75a](https://github.com/openai/openai-java/commit/259b75a9e3a3f6de2e123b171bd739facdecd819))
+
+## 0.43.0 (2025-04-02)
+
+Full Changelog: [v0.42.0...v0.43.0](https://github.com/openai/openai-java/compare/v0.42.0...v0.43.0)
+
+### Features
+
+* **api:** manual updates ([9679525](https://github.com/openai/openai-java/commit/967952553d5fd2e7f47cd7c82fac45cc9dcef43e))
+* **client:** expose request body setter and getter ([#392](https://github.com/openai/openai-java/issues/392)) ([eaa0bc9](https://github.com/openai/openai-java/commit/eaa0bc96ba8898e064709a571e97d6b99f478597))
+
+
+### Chores
+
+* **internal:** codegen related update ([#389](https://github.com/openai/openai-java/issues/389)) ([b0e9d31](https://github.com/openai/openai-java/commit/b0e9d316bde7866f0d6c9381a5bec5a6667f46f6))
+
+## 0.42.0 (2025-04-02)
+
+Full Changelog: [v0.41.1...v0.42.0](https://github.com/openai/openai-java/compare/v0.41.1...v0.42.0)
+
+### Features
+
+* **api:** manual updates ([0440105](https://github.com/openai/openai-java/commit/0440105162ce52cd187ce8ab8d5d1dc20682a4ed))
+* **client:** add enum validation method ([a641218](https://github.com/openai/openai-java/commit/a6412183ccea1ac3e9105793372693d5ec8c6d72))
+* **client:** make union deserialization more robust ([#385](https://github.com/openai/openai-java/issues/385)) ([a641218](https://github.com/openai/openai-java/commit/a6412183ccea1ac3e9105793372693d5ec8c6d72))
+
+
+### Chores
+
+* **client:** remove unnecessary json state from some query param classes ([a641218](https://github.com/openai/openai-java/commit/a6412183ccea1ac3e9105793372693d5ec8c6d72))
+* **internal:** add invalid json deserialization tests ([a641218](https://github.com/openai/openai-java/commit/a6412183ccea1ac3e9105793372693d5ec8c6d72))
+* **internal:** add json roundtripping tests ([a641218](https://github.com/openai/openai-java/commit/a6412183ccea1ac3e9105793372693d5ec8c6d72))
+
+## 0.41.1 (2025-04-01)
+
+Full Changelog: [v0.41.0...v0.41.1](https://github.com/openai/openai-java/compare/v0.41.0...v0.41.1)
+
+### Chores
+
+* Remove deprecated/unused remote spec feature ([4d3b56e](https://github.com/openai/openai-java/commit/4d3b56eb9f0e9f180c1304b66c3b8fe2e999e75f))
+
+## 0.41.0 (2025-03-31)
+
+Full Changelog: [v0.40.1...v0.41.0](https://github.com/openai/openai-java/compare/v0.40.1...v0.41.0)
+
+### Features
+
+* **client:** improve some method names ([#379](https://github.com/openai/openai-java/issues/379)) ([895f99a](https://github.com/openai/openai-java/commit/895f99acaee6f8e38165c72da1de18e3d7682321))
+
+
+### Bug Fixes
+
+* **client:** limit json deserialization coercion ([#377](https://github.com/openai/openai-java/issues/377)) ([5234cf9](https://github.com/openai/openai-java/commit/5234cf94a540191ae051e3123b7d1be088655100))
+
+## 0.40.1 (2025-03-28)
+
+Full Changelog: [v0.40.0...v0.40.1](https://github.com/openai/openai-java/compare/v0.40.0...v0.40.1)
+
+### Bug Fixes
+
+* **client:** don't call `validate()` during deserialization if we don't have to ([#372](https://github.com/openai/openai-java/issues/372)) ([1dae9bf](https://github.com/openai/openai-java/commit/1dae9bfe33d1cdd78bf47d47c62c1db0c4e5ca53))
+
+
+### Documentation
+
+* add comment on response header methods ([#374](https://github.com/openai/openai-java/issues/374)) ([80bba20](https://github.com/openai/openai-java/commit/80bba200247fa7620cbd63a44f452c2ad3d83a87))
+* document request IDs ([3e2fec3](https://github.com/openai/openai-java/commit/3e2fec36597a15ab56960f4f40096dc779013cca))
+
+## 0.40.0 (2025-03-27)
+
+Full Changelog: [v0.39.0...v0.40.0](https://github.com/openai/openai-java/compare/v0.39.0...v0.40.0)
+
+### Features
+
+* **api:** add `get /responses/{response_id}/input_items` endpoint ([#367](https://github.com/openai/openai-java/issues/367)) ([c569175](https://github.com/openai/openai-java/commit/c569175e0427273707d0bee2535da0bf616e9b7c))
+* **client:** add new responses endpoint ([#369](https://github.com/openai/openai-java/issues/369)) ([f15b5ee](https://github.com/openai/openai-java/commit/f15b5eeb2bab3534daa41b56c2f7b05cd5791c97))
+
+
+### Bug Fixes
+
+* deploymentModel arg ([139c062](https://github.com/openai/openai-java/commit/139c06287a82a80a06968b0b8826d9c2c5116dde))
+
+## 0.39.0 (2025-03-27)
+
+Full Changelog: [v0.38.0...v0.39.0](https://github.com/openai/openai-java/compare/v0.38.0...v0.39.0)
+
+### Features
+
+* **api:** add `get /chat/completions` endpoint ([#364](https://github.com/openai/openai-java/issues/364)) ([8591689](https://github.com/openai/openai-java/commit/85916892043caeb1cca862d18820aaaae0788514))
+
+
+### Bug Fixes
+
+* add missing `deploymentModel` ([40c568f](https://github.com/openai/openai-java/commit/40c568f3113553c91ab85d911b5340aa28e41a91))
+
+## 0.38.0 (2025-03-27)
+
+Full Changelog: [v0.37.0...v0.38.0](https://github.com/openai/openai-java/compare/v0.37.0...v0.38.0)
+
+### Features
+
+* **client:** add chat completion streaming helper ([#354](https://github.com/openai/openai-java/issues/354)) ([561c085](https://github.com/openai/openai-java/commit/561c0853b8a06814dba873e942629dff050b325d))
+
+
+### Bug Fixes
+
+* **client:** map deserialization bug ([caa79a2](https://github.com/openai/openai-java/commit/caa79a267a79845eee3a49b22bcbe66849d9cf4e))
+
+
+### Chores
+
+* add hash of OpenAPI spec/config inputs to .stats.yml ([d27646c](https://github.com/openai/openai-java/commit/d27646c179082f6bcba9b5df6b333134968adc95))
+* **api:** updates to supported Voice IDs ([#361](https://github.com/openai/openai-java/issues/361)) ([fd0d45a](https://github.com/openai/openai-java/commit/fd0d45a6f74e6571f1553231a69621db5720580f))
+* **internal:** delete unused methods and annotations ([#362](https://github.com/openai/openai-java/issues/362)) ([caa79a2](https://github.com/openai/openai-java/commit/caa79a267a79845eee3a49b22bcbe66849d9cf4e))
+
+## 0.37.0 (2025-03-25)
+
+Full Changelog: [v0.36.0...v0.37.0](https://github.com/openai/openai-java/compare/v0.36.0...v0.37.0)
+
+### Features
+
+* **client:** support a lower jackson version ([#357](https://github.com/openai/openai-java/issues/357)) ([13a3c67](https://github.com/openai/openai-java/commit/13a3c672ef093f4a0e9110ce716086f4a3ea4329))
+* **client:** throw on incompatible jackson version ([13a3c67](https://github.com/openai/openai-java/commit/13a3c672ef093f4a0e9110ce716086f4a3ea4329))
+
+
+### Chores
+
+* **internal:** fix example formatting ([#348](https://github.com/openai/openai-java/issues/348)) ([44a7df9](https://github.com/openai/openai-java/commit/44a7df9af13ab14947fd50b37a7d26b1d9c5d0df))
+* **internal:** remove unnecessary import ([#349](https://github.com/openai/openai-java/issues/349)) ([661a906](https://github.com/openai/openai-java/commit/661a9060183a645b9ec7f9687fa0786adb224283))
+
+
+### Documentation
+
+* minor readme tweak ([#351](https://github.com/openai/openai-java/issues/351)) ([28a1116](https://github.com/openai/openai-java/commit/28a111615345011335e73f2894f1f54672493cdf))
+* responses image url example ([d84abd4](https://github.com/openai/openai-java/commit/d84abd426d220b1c248bc31cf9f47dfeb9e25509))
+* update readme exception docs ([#350](https://github.com/openai/openai-java/issues/350)) ([b441223](https://github.com/openai/openai-java/commit/b441223dc8c26d7fc023614f6b15610b8f7af35d))
+
+## 0.36.0 (2025-03-21)
+
+Full Changelog: [v0.35.1...v0.36.0](https://github.com/openai/openai-java/compare/v0.35.1...v0.36.0)
+
+### ⚠ BREAKING CHANGES
+
+* **client:** refactor exception structure and methods ([#336](https://github.com/openai/openai-java/issues/336))
+
+### Features
+
+* **api:** new models for TTS, STT, + new audio features for Realtime ([#340](https://github.com/openai/openai-java/issues/340)) ([630d63c](https://github.com/openai/openai-java/commit/630d63c5751dee259e2263e57deed3780e363234))
+* **api:** o1-pro now available through the API ([#337](https://github.com/openai/openai-java/issues/337)) ([93a7949](https://github.com/openai/openai-java/commit/93a79492bb960cbf0691a4139cf9acadafb8a7a2))
+
+
+### Bug Fixes
+
+* add missing deployment models ([0f5c072](https://github.com/openai/openai-java/commit/0f5c0727d9507c2103cd3c0fcfffd1032219448a))
+* **client:** compilation error in adding streaming discriminator ([#342](https://github.com/openai/openai-java/issues/342)) ([f26276e](https://github.com/openai/openai-java/commit/f26276eb97cf36dad03c6782ad8f1bb5f5434384))
+* **client:** remove duplicate types ([#341](https://github.com/openai/openai-java/issues/341)) ([e6b3e76](https://github.com/openai/openai-java/commit/e6b3e766b5e10117adae557e162b9daa3cf0a50f))
+
+
+### Chores
+
+* **client:** refactor exception structure and methods ([#336](https://github.com/openai/openai-java/issues/336)) ([552fcf2](https://github.com/openai/openai-java/commit/552fcf26b56912c6322319de0673d13c2885ae4d))
+* **internal:** add missing release please block ([#335](https://github.com/openai/openai-java/issues/335)) ([3312a39](https://github.com/openai/openai-java/commit/3312a3945e4c34b4073b7c5a0735a61baf22f8af))
+* **internal:** make multipart assertions more robust ([badd931](https://github.com/openai/openai-java/commit/badd931f4b959905ca81c816cf91e030c56ea842))
+* **internal:** remove unnecessary `assertNotNull` calls ([badd931](https://github.com/openai/openai-java/commit/badd931f4b959905ca81c816cf91e030c56ea842))
+* **internal:** version bump ([#333](https://github.com/openai/openai-java/issues/333)) ([7f09373](https://github.com/openai/openai-java/commit/7f0937367f01b10ee0eaa18e66c238b484b80608))
+
+
+### Documentation
+
+* refine comments on multipart params ([#343](https://github.com/openai/openai-java/issues/343)) ([badd931](https://github.com/openai/openai-java/commit/badd931f4b959905ca81c816cf91e030c56ea842))
+
+## 0.35.1 (2025-03-18)
+
+Full Changelog: [v0.35.0...v0.35.1](https://github.com/openai/openai-java/compare/v0.35.0...v0.35.1)
+
+### Bug Fixes
+
+* **api:** correct some Responses types ([#328](https://github.com/openai/openai-java/issues/328)) ([efc79c0](https://github.com/openai/openai-java/commit/efc79c002003f3beaf74c2c3d13aada6235481e2))
+* **client:** support kotlin 1.8 runtime ([#330](https://github.com/openai/openai-java/issues/330)) ([5179a4e](https://github.com/openai/openai-java/commit/5179a4e4ea67797477cfdb9141e6d39eab9abd6a))
+* **types:** improve responses type names ([#332](https://github.com/openai/openai-java/issues/332)) ([517c500](https://github.com/openai/openai-java/commit/517c500d74e7d8c0f340b2607a574d8096390877))
+
+
+### Chores
+
+* **internal:** add back release workflow ([7893465](https://github.com/openai/openai-java/commit/7893465dbd929e290a2e46dfc877c3ef8a889056))
+* **internal:** codegen related update ([#327](https://github.com/openai/openai-java/issues/327)) ([7030355](https://github.com/openai/openai-java/commit/7030355dc8e511647e7a6221143ca94426ac24bf))
+* **internal:** refactor enum query param serialization ([#331](https://github.com/openai/openai-java/issues/331)) ([c5ef44d](https://github.com/openai/openai-java/commit/c5ef44dbf1c894f63bf213db391d09f5a800f825))
+
+
+### Documentation
+
+* responses conversation example ([fde5110](https://github.com/openai/openai-java/commit/fde5110a014a73e6e5e98fdb49e82506f04c4463))
+* show function calling conversation ([#227](https://github.com/openai/openai-java/issues/227)) ([ff7905a](https://github.com/openai/openai-java/commit/ff7905a22b217b370452e7a978b9153ae7487ebd))
+
+## 0.35.0 (2025-03-18)
+
+Full Changelog: [v0.34.1...v0.35.0](https://github.com/openai/openai-java/compare/v0.34.1...v0.35.0)
+
+### Features
+
+* **client:** don't require params for some service methods ([#325](https://github.com/openai/openai-java/issues/325)) ([3ed7cf8](https://github.com/openai/openai-java/commit/3ed7cf88c11b95003b5962f94f848af3511f0525))
+
+
+### Chores
+
+* **internal:** add generated comment ([#318](https://github.com/openai/openai-java/issues/318)) ([44a46b5](https://github.com/openai/openai-java/commit/44a46b5e6651a3cf38f4b5321020a9fa52c5976c))
+* **internal:** add some tests for union classes ([#326](https://github.com/openai/openai-java/issues/326)) ([bd92f57](https://github.com/openai/openai-java/commit/bd92f577231430115d4976a3f4740ef8f09baa07))
+* **internal:** delete duplicate tests ([f95f8bc](https://github.com/openai/openai-java/commit/f95f8bc083cebbfeef127b62d8c5dbaffa2083ed))
+* **internal:** generate more tests ([a05b899](https://github.com/openai/openai-java/commit/a05b899d056538f47a238cac0e6357ce2688861a))
+* **internal:** make test classes internal ([#317](https://github.com/openai/openai-java/issues/317)) ([f9a25b4](https://github.com/openai/openai-java/commit/f9a25b4be4daa5184b9d19896f4e2009285759be))
+* **internal:** refactor query param serialization impl and tests ([#322](https://github.com/openai/openai-java/issues/322)) ([93558fc](https://github.com/openai/openai-java/commit/93558fcecc463b7d6a4f976c2a7889b1c691dc52))
+* **internal:** refactor some test assertions ([f95f8bc](https://github.com/openai/openai-java/commit/f95f8bc083cebbfeef127b62d8c5dbaffa2083ed))
+* **internal:** reformat some tests ([#324](https://github.com/openai/openai-java/issues/324)) ([a05b899](https://github.com/openai/openai-java/commit/a05b899d056538f47a238cac0e6357ce2688861a))
+* **internal:** remove CI condition ([#310](https://github.com/openai/openai-java/issues/310)) ([1cb3294](https://github.com/openai/openai-java/commit/1cb3294f74fa75bca443aaa6f0f3d9127ed7ea14))
+* **internal:** rename `getPathParam` ([#323](https://github.com/openai/openai-java/issues/323)) ([f95f8bc](https://github.com/openai/openai-java/commit/f95f8bc083cebbfeef127b62d8c5dbaffa2083ed))
+* **internal:** reorder some params methodsc ([f95f8bc](https://github.com/openai/openai-java/commit/f95f8bc083cebbfeef127b62d8c5dbaffa2083ed))
+* **internal:** update release workflows ([2b0d392](https://github.com/openai/openai-java/commit/2b0d392b57acc03b393c1052e39326606d9ad2b0))
+
+
+### Documentation
+
+* add `build` method comments ([#321](https://github.com/openai/openai-java/issues/321)) ([31a8e9e](https://github.com/openai/openai-java/commit/31a8e9e507d0242098fc280ad03cb40ab92dcf83))
+* deduplicate and refine comments ([#313](https://github.com/openai/openai-java/issues/313)) ([3e0b2f5](https://github.com/openai/openai-java/commit/3e0b2f5ebea908879f2215bb648027d60e491374))
+* image url example ([39695e4](https://github.com/openai/openai-java/commit/39695e4702c10171e02fb426bc66db61599c365a))
+
+## 0.34.1 (2025-03-11)
+
+Full Changelog: [v0.34.0...v0.34.1](https://github.com/openai/openai-java/compare/v0.34.0...v0.34.1)
+
+### Bug Fixes
+
+* **responses:** correct computer use enum value ([#298](https://github.com/openai/openai-java/issues/298)) ([5ad3f2a](https://github.com/openai/openai-java/commit/5ad3f2a947bd67ce9260b0f25afa4c675d91ebdd))
+* **responses:** correct reasoning output type ([#300](https://github.com/openai/openai-java/issues/300)) ([77572c6](https://github.com/openai/openai-java/commit/77572c64b8712ea61f789fd42fb51a535a1512d0))
+
+## 0.34.0 (2025-03-11)
+
+Full Changelog: [v0.33.0...v0.34.0](https://github.com/openai/openai-java/compare/v0.33.0...v0.34.0)
+
+### ⚠ BREAKING CHANGES
+
+* **client:** move classes into subpackages and shorten names ([#294](https://github.com/openai/openai-java/issues/294))
+
+### Features
+
+* **api:** add /v1/responses and built-in tools ([#296](https://github.com/openai/openai-java/issues/296)) ([3216ffa](https://github.com/openai/openai-java/commit/3216ffa635b2d5ee337a9e62abef88f3faf3735e))
+
+
+### Chores
+
+* add `deploymentModel` to new endpoints ([2d98165](https://github.com/openai/openai-java/commit/2d981657dca3782cd03f2b19118ec01835dd6490))
+* **client:** move classes into subpackages and shorten names ([#294](https://github.com/openai/openai-java/issues/294)) ([1a65445](https://github.com/openai/openai-java/commit/1a65445fbed70d1f1cde1d5e6e9db299fff3dbb3))
+* **internal:** add `.kotlin` to `.gitignore` ([#285](https://github.com/openai/openai-java/issues/285)) ([46c9b3a](https://github.com/openai/openai-java/commit/46c9b3af9d2593b679fa359df4123516a36f5c25))
+* **internal:** don't use `JvmOverloads` in interfaces ([9b04bb9](https://github.com/openai/openai-java/commit/9b04bb90bdacc38e926560e72244a677ced99991))
+* **internal:** reenable warnings as errors ([#288](https://github.com/openai/openai-java/issues/288)) ([9b04bb9](https://github.com/openai/openai-java/commit/9b04bb90bdacc38e926560e72244a677ced99991))
+* **internal:** use `getOrNull` instead of `orElse(null)` ([#287](https://github.com/openai/openai-java/issues/287)) ([8eeec84](https://github.com/openai/openai-java/commit/8eeec8405630759ffd7c02b30d4dd78b0d7df4d7))
+
+
+### Documentation
+
+* document `JsonValue` construction in readme ([#292](https://github.com/openai/openai-java/issues/292)) ([4453173](https://github.com/openai/openai-java/commit/4453173cf4916bd880be12b20bfbba23cd2370d2))
+* fix examples ([0dfd4b1](https://github.com/openai/openai-java/commit/0dfd4b17e36ab12c9b37cc0a2f45170a89cea8ea))
+* make URL purpose clearer in readme ([#289](https://github.com/openai/openai-java/issues/289)) ([88df036](https://github.com/openai/openai-java/commit/88df03664adae72f9d1fb9318a11ce73aa2c7b1e))
+* responses examples ([589ea32](https://github.com/openai/openai-java/commit/589ea32fcdd3b1effcf3860d005987415eaab48e))
+* revise readme docs about nested params ([#291](https://github.com/openai/openai-java/issues/291)) ([d3df21f](https://github.com/openai/openai-java/commit/d3df21f3f9dac58e896817c9619ab0c6e83419b7))
+
+## 0.33.0 (2025-03-06)
+
+Full Changelog: [v0.32.0...v0.33.0](https://github.com/openai/openai-java/compare/v0.32.0...v0.33.0)
+
+### Features
+
+* **client:** detect binary incompatible jackson versions ([#282](https://github.com/openai/openai-java/issues/282)) ([10eca3f](https://github.com/openai/openai-java/commit/10eca3f728726b0022d7f851a3784548764ede6c))
+
+
+### Chores
+
+* **ci:** run more examples ([4815776](https://github.com/openai/openai-java/commit/48157762da46b6bca6169a79adbfd7c07a701496))
+
+## 0.32.0 (2025-03-06)
+
+Full Changelog: [v0.31.1...v0.32.0](https://github.com/openai/openai-java/compare/v0.31.1...v0.32.0)
+
+### Features
+
+* **client:** accept `InputStream` and `Path` for file params ([3fda365](https://github.com/openai/openai-java/commit/3fda365a9d1b228ec4799a57137a288c25441dc7))
+* **client:** accept `InputStream` and `Path` for file params ([#277](https://github.com/openai/openai-java/issues/277)) ([04f2d3c](https://github.com/openai/openai-java/commit/04f2d3c1042187fe2b52ec132ff3a0529f5b1316))
+
+
+### Documentation
+
+* document file uploads in readme ([#279](https://github.com/openai/openai-java/issues/279)) ([96e4969](https://github.com/openai/openai-java/commit/96e4969a322da35f6ac13324f69d9170c7280aff))
+
+## 0.31.1 (2025-03-05)
+
+Full Changelog: [v0.31.0...v0.31.1](https://github.com/openai/openai-java/compare/v0.31.0...v0.31.1)
+
+### Bug Fixes
+
+* **api:** add missing file rank enum + more metadata ([#276](https://github.com/openai/openai-java/issues/276)) ([e92512f](https://github.com/openai/openai-java/commit/e92512f551df43f994ec6a29cfb7ef918e203324))
+
+
+### Chores
+
+* **client:** expose `Optional`, not nullable, from `ClientOptions` ([#274](https://github.com/openai/openai-java/issues/274)) ([c029310](https://github.com/openai/openai-java/commit/c029310f6f31d5a78767585a9f4ece4ba076fe2e))
+
+
+### Documentation
+
+* add audio transcription example ([2c6a1aa](https://github.com/openai/openai-java/commit/2c6a1aa334dec5625a771ddd40452a7ffe32439b))
+* embeddings example ([#263](https://github.com/openai/openai-java/issues/263)) ([e1b68de](https://github.com/openai/openai-java/commit/e1b68de090359c4272435b2236fd021d616331a2))
+* note required fields in `builder` javadoc ([#272](https://github.com/openai/openai-java/issues/272)) ([603b5c9](https://github.com/openai/openai-java/commit/603b5c955ad383fa3ec358c91ce034cbbf7d1446))
+
+## 0.31.0 (2025-03-04)
+
+Full Changelog: [v0.30.0...v0.31.0](https://github.com/openai/openai-java/compare/v0.30.0...v0.31.0)
+
+### Features
+
+* **client:** add file upload endpoints ([#268](https://github.com/openai/openai-java/issues/268)) ([456274d](https://github.com/openai/openai-java/commit/456274d2dc572ad4711d2fc3640c7e01aa08f4b8))
+* **client:** allow configuring timeouts granularly ([#266](https://github.com/openai/openai-java/issues/266)) ([c3bc6e4](https://github.com/openai/openai-java/commit/c3bc6e4fb9717c7f6146f864ce3cc2451619c9f0))
+
+
+### Chores
+
+* **internal:** refactor `ErrorHandlingTest` ([#264](https://github.com/openai/openai-java/issues/264)) ([2472f85](https://github.com/openai/openai-java/commit/2472f859b49f49cf14539e787cf15e8f863f5dac))
+* **internal:** run example files in CI ([#271](https://github.com/openai/openai-java/issues/271)) ([8da7851](https://github.com/openai/openai-java/commit/8da785184c3e039ea4b9d2b26c6d14b607291750))
+
+
+### Documentation
+
+* add raw response readme documentation ([#269](https://github.com/openai/openai-java/issues/269)) ([2839903](https://github.com/openai/openai-java/commit/28399031c60eed8899475c5d1d38677c2eaa2284))
+* update URLs from stainlessapi.com to stainless.com ([#259](https://github.com/openai/openai-java/issues/259)) ([b824bf3](https://github.com/openai/openai-java/commit/b824bf39a44251e15c7c8b5b14bc6cbf9133dff5))
+
+## 0.30.0 (2025-02-27)
+
+Full Changelog: [v0.29.0...v0.30.0](https://github.com/openai/openai-java/compare/v0.29.0...v0.30.0)
+
+### Features
+
+* **api:** add gpt-4.5-preview ([#258](https://github.com/openai/openai-java/issues/258)) ([27d1e7f](https://github.com/openai/openai-java/commit/27d1e7f6565ab00161d322bf04a8cb1e70c31694))
+
+
+### Chores
+
+* **client:** use deep identity methods for primitive array types ([#255](https://github.com/openai/openai-java/issues/255)) ([fac8678](https://github.com/openai/openai-java/commit/fac86783373355488b81a7a1452bc8ba2a74066f))
+* **internal:** add async service tests ([#253](https://github.com/openai/openai-java/issues/253)) ([147872a](https://github.com/openai/openai-java/commit/147872a570403c78059fb785d9860003a5187583))
+* **internal:** improve sync service tests ([147872a](https://github.com/openai/openai-java/commit/147872a570403c78059fb785d9860003a5187583))
+* **internal:** refactor `ServiceParamsTest` ([#257](https://github.com/openai/openai-java/issues/257)) ([9cb1929](https://github.com/openai/openai-java/commit/9cb19297c372976fa331d5945c028017392b2d5d))
+
+
+### Documentation
+
+* readme parameter tweaks ([147872a](https://github.com/openai/openai-java/commit/147872a570403c78059fb785d9860003a5187583))
+
+## 0.29.0 (2025-02-26)
+
+Full Changelog: [v0.28.0...v0.29.0](https://github.com/openai/openai-java/compare/v0.28.0...v0.29.0)
+
+### Features
+
+* **client:** allow omitting params object when none required ([#249](https://github.com/openai/openai-java/issues/249)) ([e77a6c3](https://github.com/openai/openai-java/commit/e77a6c35a1940bd6f1ef37f08a524974b28f17ac))
+
+
+### Bug Fixes
+
+* **client:** add missing `@JvmStatic` ([#252](https://github.com/openai/openai-java/issues/252)) ([06231c2](https://github.com/openai/openai-java/commit/06231c26727f09fd2065f2ebe9670b8149fcee84))
+
+
+### Chores
+
+* **internal:** remove unused variable ([#251](https://github.com/openai/openai-java/issues/251)) ([b41bc4e](https://github.com/openai/openai-java/commit/b41bc4ebbe38a216e1276e0b15fd3fe54fe37353))
+
+
+### Documentation
+
+* switch to `.list()` without arguments in examples ([d1480f1](https://github.com/openai/openai-java/commit/d1480f1c85c0e2704c2095298525401b76cec2e5))
+
+## 0.28.0 (2025-02-24)
+
+Full Changelog: [v0.27.0...v0.28.0](https://github.com/openai/openai-java/compare/v0.27.0...v0.28.0)
+
+### Features
+
+* **api:** add latest stable/preview version helper methods ([#226](https://github.com/openai/openai-java/issues/226)) ([9766b7c](https://github.com/openai/openai-java/commit/9766b7c93928c9837fa13cbab5969a883ccec22a))
+
+
+### Documentation
+
+* add source file links to readme ([#247](https://github.com/openai/openai-java/issues/247)) ([d9b67d7](https://github.com/openai/openai-java/commit/d9b67d7ef7552112774039acf951a582c3eeefea))
+
+## 0.27.0 (2025-02-24)
+
+Full Changelog: [v0.26.1...v0.27.0](https://github.com/openai/openai-java/compare/v0.26.1...v0.27.0)
+
+### Features
+
+* docs: moderations example ([#245](https://github.com/openai/openai-java/issues/245)) ([3108fee](https://github.com/openai/openai-java/commit/3108feeb0fd17cce70d77fb3c6e858ea53f465e6))
+
+## 0.26.1 (2025-02-21)
+
+Full Changelog: [v0.26.0...v0.26.1](https://github.com/openai/openai-java/compare/v0.26.0...v0.26.1)
+
+### Documentation
+
+* add immutability explanation to readme ([#243](https://github.com/openai/openai-java/issues/243)) ([5826fb0](https://github.com/openai/openai-java/commit/5826fb0fafa06c647a520f82847319a32ddcbbbb))
+
+## 0.26.0 (2025-02-20)
+
+Full Changelog: [v0.25.0...v0.26.0](https://github.com/openai/openai-java/compare/v0.25.0...v0.26.0)
+
+### Features
+
+* **client:** add an `AsyncStreamResponse#onCompleteFuture()` method ([#239](https://github.com/openai/openai-java/issues/239)) ([9aeddf8](https://github.com/openai/openai-java/commit/9aeddf88f724c3f6dbb648f539d4daaa82f3fa8f))
+
+
+### Bug Fixes
+
+* **client:** mark some request bodies as optional ([#242](https://github.com/openai/openai-java/issues/242)) ([e3c5d67](https://github.com/openai/openai-java/commit/e3c5d679a1be7f5857ad321eb23fc566759e3083))
+* **client:** prevent `IOException` when closing stream early ([#241](https://github.com/openai/openai-java/issues/241)) ([1e174e3](https://github.com/openai/openai-java/commit/1e174e3e255f679ec4785c1fe0a2b5794e99c802))
+
+
+### Chores
+
+* **docs:** add faq to readme ([#240](https://github.com/openai/openai-java/issues/240)) ([6bb4122](https://github.com/openai/openai-java/commit/6bb4122014424d9efaf1b0b7628495bf17ec22e6))
+* **internal:** remove unnecessary non-null asserts in tests ([e3c5d67](https://github.com/openai/openai-java/commit/e3c5d679a1be7f5857ad321eb23fc566759e3083))
+* **internal:** use `assertNotNull` in tests for type narrowing ([e3c5d67](https://github.com/openai/openai-java/commit/e3c5d679a1be7f5857ad321eb23fc566759e3083))
+
+
+### Documentation
+
+* add more documentation to `AsyncStreamResponse` ([9aeddf8](https://github.com/openai/openai-java/commit/9aeddf88f724c3f6dbb648f539d4daaa82f3fa8f))
+* add stream cancellation example ([ddeabe0](https://github.com/openai/openai-java/commit/ddeabe054d02ade542a2555f45b819b090ce1a08))
+* remove unnecessary catch clauses in readme ([#238](https://github.com/openai/openai-java/issues/238)) ([8c86b99](https://github.com/openai/openai-java/commit/8c86b997c5a84d74a71df7f7c5c4a863718f779a))
+* remove unnecessary checked exception signatures ([e26ee05](https://github.com/openai/openai-java/commit/e26ee0569c6cb7289d35b920695b12e9826d8f93))
+* use `onCompleteFuture()` in examples ([c244f17](https://github.com/openai/openai-java/commit/c244f17207f48414437d0558255a91af40f9a647))
+
+## 0.25.0 (2025-02-20)
+
+Full Changelog: [v0.24.1...v0.25.0](https://github.com/openai/openai-java/compare/v0.24.1...v0.25.0)
+
+### Features
+
+* **client:** get rid of annoying checked exceptions ([#236](https://github.com/openai/openai-java/issues/236)) ([4c60942](https://github.com/openai/openai-java/commit/4c6094218ed32bc8fc669703e2f1d94b318c7307))
+
+
+### Chores
+
+* **ci:** update gradle actions to v4 ([#234](https://github.com/openai/openai-java/issues/234)) ([fbcf865](https://github.com/openai/openai-java/commit/fbcf865056c37a022fd905147e1763b96d2ec26a))
+
+## 0.24.1 (2025-02-20)
+
+Full Changelog: [v0.24.0...v0.24.1](https://github.com/openai/openai-java/compare/v0.24.0...v0.24.1)
+
+### Bug Fixes
+
+* **client:** add missing `streamHandlerExecutor` method ([#230](https://github.com/openai/openai-java/issues/230)) ([d53a08a](https://github.com/openai/openai-java/commit/d53a08a02d256b702b53734e99d25c7394a8f5db))
+
+
+### Chores
+
+* **docs:** add binary responses info to readme ([#231](https://github.com/openai/openai-java/issues/231)) ([6ae25b4](https://github.com/openai/openai-java/commit/6ae25b4c6e7ee2186b905fb68ee05cb5ad470174))
+* **docs:** add streaming info to readme ([d53a08a](https://github.com/openai/openai-java/commit/d53a08a02d256b702b53734e99d25c7394a8f5db))
+* **docs:** reorganize readme ([#228](https://github.com/openai/openai-java/issues/228)) ([7d92206](https://github.com/openai/openai-java/commit/7d92206374def33c43591e59f33ecc558e4ecf2f))
+* **internal:** get rid of configuration cache ([#233](https://github.com/openai/openai-java/issues/233)) ([d95c380](https://github.com/openai/openai-java/commit/d95c380af1cb3cdb1a94fbd2c65bfaf4d0bf5805))
+
+## 0.24.0 (2025-02-18)
+
+Full Changelog: [v0.23.1...v0.24.0](https://github.com/openai/openai-java/compare/v0.23.1...v0.24.0)
+
+### Features
+
+* **client:** support `JsonField#asX()` for known values ([#225](https://github.com/openai/openai-java/issues/225)) ([31c0663](https://github.com/openai/openai-java/commit/31c06634ead5ffcd54e0a9208e39ac9880df6574))
+* **client:** update enum `asX` methods ([#224](https://github.com/openai/openai-java/issues/224)) ([b06a749](https://github.com/openai/openai-java/commit/b06a7496f016b3e7541d9f4e5082ada4a1a5b39d))
+
+
+### Chores
+
+* **internal:** make body class constructors private ([7c6739c](https://github.com/openai/openai-java/commit/7c6739c254ef5a06020fbdbfb6b1d470377e34fc))
+* **internal:** make body classes for multipart requests ([7c6739c](https://github.com/openai/openai-java/commit/7c6739c254ef5a06020fbdbfb6b1d470377e34fc))
+* **internal:** misc formatting changes ([7c6739c](https://github.com/openai/openai-java/commit/7c6739c254ef5a06020fbdbfb6b1d470377e34fc))
+* **internal:** optimize build and test perf ([fc6bcd7](https://github.com/openai/openai-java/commit/fc6bcd742b042e9e8338cc7c8bceb6b1e3be6b38))
+* **internal:** rename internal body classes ([7c6739c](https://github.com/openai/openai-java/commit/7c6739c254ef5a06020fbdbfb6b1d470377e34fc))
+* **internal:** update formatter ([#220](https://github.com/openai/openai-java/issues/220)) ([fc6bcd7](https://github.com/openai/openai-java/commit/fc6bcd742b042e9e8338cc7c8bceb6b1e3be6b38))
+* **internal:** update some formatting in `Values.kt` ([31c0663](https://github.com/openai/openai-java/commit/31c06634ead5ffcd54e0a9208e39ac9880df6574))
+* **internal:** use better test example values ([#222](https://github.com/openai/openai-java/issues/222)) ([7c6739c](https://github.com/openai/openai-java/commit/7c6739c254ef5a06020fbdbfb6b1d470377e34fc))
+
+## 0.23.1 (2025-02-15)
+
+Full Changelog: [v0.23.0...v0.23.1](https://github.com/openai/openai-java/compare/v0.23.0...v0.23.1)
+
+### Bug Fixes
+
+* add missing argument ([5a6d2a2](https://github.com/openai/openai-java/commit/5a6d2a21be7bffabe335da4d13b6d2813c17ba7b))
+
+## 0.23.0 (2025-02-14)
+
+Full Changelog: [v0.22.1...v0.23.0](https://github.com/openai/openai-java/compare/v0.22.1...v0.23.0)
+
+### Features
+
+* **api:** add support for storing chat completions ([#216](https://github.com/openai/openai-java/issues/216)) ([68a7883](https://github.com/openai/openai-java/commit/68a7883782574f1af0d724c1d838fd70a99f2958))
+
+## 0.22.1 (2025-02-12)
+
+Full Changelog: [v0.22.0...v0.22.1](https://github.com/openai/openai-java/compare/v0.22.0...v0.22.1)
+
+### Documentation
+
+* function calling example ([#213](https://github.com/openai/openai-java/issues/213)) ([89700ec](https://github.com/openai/openai-java/commit/89700ecff1ec8e0d952bc7c77fcc3e2dd20b8a63))
+
+## 0.22.0 (2025-02-06)
+
+Full Changelog: [v0.21.1...v0.22.0](https://github.com/openai/openai-java/compare/v0.21.1...v0.22.0)
+
+### Features
+
+* **api:** Add more new Azure service versions ([#208](https://github.com/openai/openai-java/issues/208)) ([a117892](https://github.com/openai/openai-java/commit/a11789220599540173f09d6cc9583365abe5f4e0))
+* **pagination:** avoid fetching when has_more: false ([#209](https://github.com/openai/openai-java/issues/209)) ([183b132](https://github.com/openai/openai-java/commit/183b132bba24beb90168fa77df84a93f0ea92fbe))
+
+
+### Bug Fixes
+
+* **api:** add missing `@MustBeClosed` annotations ([#205](https://github.com/openai/openai-java/issues/205)) ([0a60b9a](https://github.com/openai/openai-java/commit/0a60b9a40ad7f97ed51be3f6a70d674a6a9f1854))
+* **api:** add missing reasoning effort + model enums ([#207](https://github.com/openai/openai-java/issues/207)) ([8eb2394](https://github.com/openai/openai-java/commit/8eb2394b4ea937b19720d97dae84ed56660845c0))
+* **api:** switch `CompletableFuture&lt;Void&gt;` to `CompletableFuture<Void?>` ([0a60b9a](https://github.com/openai/openai-java/commit/0a60b9a40ad7f97ed51be3f6a70d674a6a9f1854))
+* **client:** add missing validation calls on response ([0a60b9a](https://github.com/openai/openai-java/commit/0a60b9a40ad7f97ed51be3f6a70d674a6a9f1854))
+* **client:** always provide a body for `PATCH` methods ([0a60b9a](https://github.com/openai/openai-java/commit/0a60b9a40ad7f97ed51be3f6a70d674a6a9f1854))
+* deploymentModel arg ([3ab4110](https://github.com/openai/openai-java/commit/3ab41105d8b3fbb3db24ee96e825611f27713bb2))
+
+
+### Chores
+
+* **internal:** minor formatting/style changes ([0a60b9a](https://github.com/openai/openai-java/commit/0a60b9a40ad7f97ed51be3f6a70d674a6a9f1854))
+* **internal:** rename some tests ([0a60b9a](https://github.com/openai/openai-java/commit/0a60b9a40ad7f97ed51be3f6a70d674a6a9f1854))
+
+## 0.21.1 (2025-02-05)
+
+Full Changelog: [v0.21.0...v0.21.1](https://github.com/openai/openai-java/compare/v0.21.0...v0.21.1)
+
+### Bug Fixes
+
+* **api/types:** correct audio duration & role types ([#199](https://github.com/openai/openai-java/issues/199)) ([5b57a0d](https://github.com/openai/openai-java/commit/5b57a0df88804deed4486d0271f0e62c1ea8c130))
+
+## 0.21.0 (2025-02-05)
+
+Full Changelog: [v0.20.0...v0.21.0](https://github.com/openai/openai-java/compare/v0.20.0...v0.21.0)
+
+### Features
+
+* **api:** add file content endpoint ([#198](https://github.com/openai/openai-java/issues/198)) ([3dd469f](https://github.com/openai/openai-java/commit/3dd469f393b1c33348e6e709687d328154d0aa84))
+* **client:** send client-side timeout headers ([#196](https://github.com/openai/openai-java/issues/196)) ([03706d4](https://github.com/openai/openai-java/commit/03706d4a1f37936e83cb97dd53d815ce12933061))
+
+
+### Bug Fixes
+
+* add deploymentModel ([38e173d](https://github.com/openai/openai-java/commit/38e173d262dae86658355c69052a135398192d80))
+
+## 0.20.0 (2025-01-31)
+
+Full Changelog: [v0.19.0...v0.20.0](https://github.com/openai/openai-java/compare/v0.19.0...v0.20.0)
+
+### Features
+
+* **api:** add o3-mini ([#192](https://github.com/openai/openai-java/issues/192)) ([e10c532](https://github.com/openai/openai-java/commit/e10c532340e9d1022db2927678a5223d1d8c6f5b))
+
+
+### Bug Fixes
+
+* **types:** correct metadata type + other fixes ([e10c532](https://github.com/openai/openai-java/commit/e10c532340e9d1022db2927678a5223d1d8c6f5b))
+
+## 0.19.0 (2025-01-30)
+
+Full Changelog: [v0.18.1...v0.19.0](https://github.com/openai/openai-java/compare/v0.18.1...v0.19.0)
+
+### Features
+
+* **client:** helpers for discriminated classes with one required prop ([#189](https://github.com/openai/openai-java/issues/189)) ([adbf4b0](https://github.com/openai/openai-java/commit/adbf4b0dd8d978586842e97ba628f8cf4e3484de))
+
+
+### Documentation
+
+* fix incorrect additional properties info ([#190](https://github.com/openai/openai-java/issues/190)) ([3d443f7](https://github.com/openai/openai-java/commit/3d443f7e545036484b571f1893aa058725ca57f6))
+* update breaking change expectations ([ee4ee2b](https://github.com/openai/openai-java/commit/ee4ee2b876ac5e956fbd35a4e10ed4f21668ae03))
+
+## 0.18.1 (2025-01-29)
+
+Full Changelog: [v0.18.0...v0.18.1](https://github.com/openai/openai-java/compare/v0.18.0...v0.18.1)
+
+### Bug Fixes
+
+* **client:** don't leak responses when retrying ([#185](https://github.com/openai/openai-java/issues/185)) ([a13f967](https://github.com/openai/openai-java/commit/a13f967d4406cb447b14260c5435f77d91b6b1be))
+
+## 0.18.0 (2025-01-29)
+
+Full Changelog: [v0.17.0...v0.18.0](https://github.com/openai/openai-java/compare/v0.17.0...v0.18.0)
+
+### Features
+
+* **client:** helpers for discriminated union variants with one required prop ([#182](https://github.com/openai/openai-java/issues/182)) ([ec756b9](https://github.com/openai/openai-java/commit/ec756b9788629dfc36bb56d59d9f17f4d0d8cc35))
+
+
+### Chores
+
+* **internal:** improve `RetryingHttpClientTest` ([#180](https://github.com/openai/openai-java/issues/180)) ([b7ebe5d](https://github.com/openai/openai-java/commit/b7ebe5d44b2797618905614b51a27b73906e4271))
+* **internal:** simplify object construction ([#183](https://github.com/openai/openai-java/issues/183)) ([3d5a59d](https://github.com/openai/openai-java/commit/3d5a59dccc425e351a365f9dbdf2ae52244086ae))
+
+
+### Documentation
+
+* simpliy param construction ([2c2ccbc](https://github.com/openai/openai-java/commit/2c2ccbc83a053e525ad0d8df1506de5be4fda46c))
+
+## 0.17.0 (2025-01-29)
+
+Full Changelog: [v0.16.0...v0.17.0](https://github.com/openai/openai-java/compare/v0.16.0...v0.17.0)
+
+### Features
+
+* **client:** add `_queryParams` and `_headers` methods ([#177](https://github.com/openai/openai-java/issues/177)) ([2d67005](https://github.com/openai/openai-java/commit/2d67005735b554440ed0578de6a182a73b129ffa))
+
+
+### Refactors
+
+* **internal:** extract request preparation logic ([2d67005](https://github.com/openai/openai-java/commit/2d67005735b554440ed0578de6a182a73b129ffa))
+
+## 0.16.0 (2025-01-28)
+
+Full Changelog: [v0.15.1...v0.16.0](https://github.com/openai/openai-java/compare/v0.15.1...v0.16.0)
+
+### Features
+
+* **client:** add some more builder helpers ([#173](https://github.com/openai/openai-java/issues/173)) ([f314e68](https://github.com/openai/openai-java/commit/f314e68915560703970c9acc16e96030202de9d1))
+
+
+### Chores
+
+* **internal:** shorten `model` method impl ([f314e68](https://github.com/openai/openai-java/commit/f314e68915560703970c9acc16e96030202de9d1))
+
+
+### Documentation
+
+* mark more methods as deprecated ([f314e68](https://github.com/openai/openai-java/commit/f314e68915560703970c9acc16e96030202de9d1))
+* more examples and cleanup ([#159](https://github.com/openai/openai-java/issues/159)) ([fa2a1fc](https://github.com/openai/openai-java/commit/fa2a1fc2983131bac40988049dd3b0e7c730442c))
+
+## 0.15.1 (2025-01-27)
+
+Full Changelog: [v0.15.0...v0.15.1](https://github.com/openai/openai-java/compare/v0.15.0...v0.15.1)
+
+### Documentation
+
+* builder, enum, and union comments ([#171](https://github.com/openai/openai-java/issues/171)) ([37acbbd](https://github.com/openai/openai-java/commit/37acbbd239d6b540a461084240bc266ad0491e9c))
+
+## 0.15.0 (2025-01-27)
+
+Full Changelog: [v0.14.1...v0.15.0](https://github.com/openai/openai-java/compare/v0.14.1...v0.15.0)
+
+### Features
+
+* **client:** add `close` method ([#164](https://github.com/openai/openai-java/issues/164)) ([f32975f](https://github.com/openai/openai-java/commit/f32975f523bcab55faa54568982b884ba7d1d381))
+
+
+### Bug Fixes
+
+* **client:** make some classes and constructors non-public ([#169](https://github.com/openai/openai-java/issues/169)) ([20fb5a1](https://github.com/openai/openai-java/commit/20fb5a1eef19b59c9dd152f132e2a980d20b039d))
+
+
+### Chores
+
+* **internal:** remove some unnecessary `constructor` keywords ([20fb5a1](https://github.com/openai/openai-java/commit/20fb5a1eef19b59c9dd152f132e2a980d20b039d))
+
+
+### Documentation
+
+* `async` and `sync` method comments ([#167](https://github.com/openai/openai-java/issues/167)) ([6f11e5d](https://github.com/openai/openai-java/commit/6f11e5d88a70631f18b86c7f24e91042330f39ec))
+* add client documentation ([#166](https://github.com/openai/openai-java/issues/166)) ([4344883](https://github.com/openai/openai-java/commit/434488395fb95e59933242113b5d14b610ef5ec5))
+
+## 0.14.1 (2025-01-25)
+
+Full Changelog: [v0.14.0...v0.14.1](https://github.com/openai/openai-java/compare/v0.14.0...v0.14.1)
+
+### Bug Fixes
+
+* **client:** async streaming flakiness ([#162](https://github.com/openai/openai-java/issues/162)) ([247c05a](https://github.com/openai/openai-java/commit/247c05a70fecad0bc1498d5aa56e13310f36eb96))
+
+
+### Chores
+
+* add max retries to test ([#160](https://github.com/openai/openai-java/issues/160)) ([7c4a4e0](https://github.com/openai/openai-java/commit/7c4a4e034c5edaea804435972f558df6a9326220))
+* **internal:** fix release ([#163](https://github.com/openai/openai-java/issues/163)) ([987fa44](https://github.com/openai/openai-java/commit/987fa4409a86636bbe87fee77522a1659e263f3b))
+
+## 0.14.0 (2025-01-24)
+
+Full Changelog: [v0.13.0...v0.14.0](https://github.com/openai/openai-java/compare/v0.13.0...v0.14.0)
+
+### ⚠ BREAKING CHANGES
+
+* **client:** better union variant method and variable names ([#157](https://github.com/openai/openai-java/issues/157))
+
+### Features
+
+* **client:** better union variant method and variable names ([#157](https://github.com/openai/openai-java/issues/157)) ([da5bce5](https://github.com/openai/openai-java/commit/da5bce5d00af53d7297133af09352a7176c2f83e))
+
+
+### Bug Fixes
+
+* examples ([3473781](https://github.com/openai/openai-java/commit/3473781ca26d25531f368485291f9972e600631b))
+
+
+### Chores
+
+* **internal:** swap `checkNotNull` to `checkRequired` ([#156](https://github.com/openai/openai-java/issues/156)) ([d6f65f7](https://github.com/openai/openai-java/commit/d6f65f7c0e25adbce97b22f7a649f6c3eaeb61ed))
+
+
+### Documentation
+
+* move up requirements section ([#154](https://github.com/openai/openai-java/issues/154)) ([48fc646](https://github.com/openai/openai-java/commit/48fc646957ad4ff69c93b40d59ea9d5e8a22eece))
+* update readme ([#152](https://github.com/openai/openai-java/issues/152)) ([293dc47](https://github.com/openai/openai-java/commit/293dc47b242e204b6c6e419002dbb560cb455169))
+
+## 0.13.0 (2025-01-22)
+
+Full Changelog: [v0.12.0...v0.13.0](https://github.com/openai/openai-java/compare/v0.12.0...v0.13.0)
+
+### Features
+
+* **api:** update enum values, comments, examples, and constants ([#149](https://github.com/openai/openai-java/issues/149)) ([4bfa305](https://github.com/openai/openai-java/commit/4bfa3055d017aa23cc8cc41827012dc773cbf508))
+
+
+### Bug Fixes
+
+* **examples:** remove now unneeded role param ([045f141](https://github.com/openai/openai-java/commit/045f141a7956d13a2ac35af30e64c5160252ee6b))
+
+## 0.12.0 (2025-01-22)
+
+Full Changelog: [v0.11.10...v0.12.0](https://github.com/openai/openai-java/compare/v0.11.10...v0.12.0)
+
+### Features
+
+* **client:** make it easy to roundtrip messages ([#148](https://github.com/openai/openai-java/issues/148)) ([f4a1617](https://github.com/openai/openai-java/commit/f4a1617148ffc276a324ed9a59654091f57222d2))
+
+
+### Bug Fixes
+
+* **client:** bad assistants v2 deserialization ([#146](https://github.com/openai/openai-java/issues/146)) ([59d6de8](https://github.com/openai/openai-java/commit/59d6de8cf5857a4b46eeece4f3c8d930d67103d6))
+
+## 0.11.10 (2025-01-21)
+
+Full Changelog: [v0.11.9...v0.11.10](https://github.com/openai/openai-java/compare/v0.11.9...v0.11.10)
+
+### Bug Fixes
+
+* **client:** add missing default headers ([#145](https://github.com/openai/openai-java/issues/145)) ([18d5270](https://github.com/openai/openai-java/commit/18d5270326561ca8e5f10b5a671da1d30ced5993))
+
+## 0.11.9 (2025-01-21)
+
+Full Changelog: [v0.11.8...v0.11.9](https://github.com/openai/openai-java/compare/v0.11.8...v0.11.9)
+
+### Bug Fixes
+
+* **client:** make service impl constructors internal ([#141](https://github.com/openai/openai-java/issues/141)) ([da35557](https://github.com/openai/openai-java/commit/da35557895e233dd5e490e139043faad92173782))
+
+## 0.11.8 (2025-01-17)
+
+Full Changelog: [v0.11.7...v0.11.8](https://github.com/openai/openai-java/compare/v0.11.7...v0.11.8)
+
+### Documentation
+
+* fix javadoc.io link ([ba07770](https://github.com/openai/openai-java/commit/ba07770369a44a7487a7a7fae9e85da6600204ce))
+* fix javadoc.io link again ([0d2b8ce](https://github.com/openai/openai-java/commit/0d2b8ce0894ae592047e6014ff82876060152ee7))
+
+## 0.11.7 (2025-01-17)
+
+Full Changelog: [v0.11.6...v0.11.7](https://github.com/openai/openai-java/compare/v0.11.6...v0.11.7)
+
+### Chores
+
+* **internal:** upgrade kotlin compiler and gradle ([#132](https://github.com/openai/openai-java/issues/132)) ([61a0b0d](https://github.com/openai/openai-java/commit/61a0b0debfd50646fc9fe310b5decc2e891f48d0))
+
+
+### Documentation
+
+* add javadoc.io badge ([#135](https://github.com/openai/openai-java/issues/135)) ([e905ce5](https://github.com/openai/openai-java/commit/e905ce509aabe1b9db9519b6ff77a79fc95434e1))
+* add more documentation ([#134](https://github.com/openai/openai-java/issues/134)) ([893eafc](https://github.com/openai/openai-java/commit/893eafcb367b4ea96331c6deccb71c865eb67d4b))
+
+## 0.11.6 (2025-01-17)
+
+Full Changelog: [v0.11.5...v0.11.6](https://github.com/openai/openai-java/compare/v0.11.5...v0.11.6)
+
+### Chores
+
+* **internal:** move `StreamResponse` method ([#131](https://github.com/openai/openai-java/issues/131)) ([5888e39](https://github.com/openai/openai-java/commit/5888e398597b68a520b4bb3953d96403023331fd))
+* **internal:** refactor streaming implementation ([#129](https://github.com/openai/openai-java/issues/129)) ([d2831ec](https://github.com/openai/openai-java/commit/d2831ec587d37a2c2d51332f5f2f62ba3dd1181d))
+
+## 0.11.5 (2025-01-16)
+
+Full Changelog: [v0.11.4...v0.11.5](https://github.com/openai/openai-java/compare/v0.11.4...v0.11.5)
+
+### Bug Fixes
+
+* **internal:** publishing error ([73e22ea](https://github.com/openai/openai-java/commit/73e22eae2e905919172ab4d7e3b18b44d435205e))
+
+## 0.11.4 (2025-01-16)
+
+Full Changelog: [v0.11.3...v0.11.4](https://github.com/openai/openai-java/compare/v0.11.3...v0.11.4)
+
+### Chores
+
+* **internal:** add and tweak check functions ([#117](https://github.com/openai/openai-java/issues/117)) ([627cb56](https://github.com/openai/openai-java/commit/627cb568af9ff28a570de4d9ebae04a2ba5c46d7))
+* **internal:** extract a `checkRequired` function ([#113](https://github.com/openai/openai-java/issues/113)) ([b63b2b1](https://github.com/openai/openai-java/commit/b63b2b159bd6c9d01d22a64980a13bfcc3f64863))
+* **internal:** fix tests ([61ada05](https://github.com/openai/openai-java/commit/61ada05fe8d4a3509fc59c6626611e5dbc308aff))
+* **internal:** remove space ([#125](https://github.com/openai/openai-java/issues/125)) ([27bfcec](https://github.com/openai/openai-java/commit/27bfcec6deccf7d000a305e630b4eda012154222))
+* **internal:** remove unused gradle task ([#121](https://github.com/openai/openai-java/issues/121)) ([0b4e59a](https://github.com/openai/openai-java/commit/0b4e59abac5343abe8cda697864fe8afa9fe1774))
+* **internal:** tweak client options nullability handling ([627cb56](https://github.com/openai/openai-java/commit/627cb568af9ff28a570de4d9ebae04a2ba5c46d7))
+* simplify examples involving lists ([#118](https://github.com/openai/openai-java/issues/118)) ([557c071](https://github.com/openai/openai-java/commit/557c0713590c7e0556dd68e77e4179fde8923c86))
+* simplify examples involving unions ([#119](https://github.com/openai/openai-java/issues/119)) ([7c7795c](https://github.com/openai/openai-java/commit/7c7795c852c09bca6ab23b22435fd7846730e95c))
+* **types:** rename vector store chunking strategy ([#116](https://github.com/openai/openai-java/issues/116)) ([387935f](https://github.com/openai/openai-java/commit/387935fa16873ae252522aa926d3ed701186a292))
+
+
+### Documentation
+
+* don't mention a non-existent SDK ([#120](https://github.com/openai/openai-java/issues/120)) ([23eb658](https://github.com/openai/openai-java/commit/23eb6584b4ba7dfd8e5a9147d815ab01e364726e))
+
+## 0.11.3 (2025-01-14)
+
+Full Changelog: [v0.11.2...v0.11.3](https://github.com/openai/openai-java/compare/v0.11.2...v0.11.3)
+
+### Bug Fixes
+
+* **streaming:** support assistants ([#106](https://github.com/openai/openai-java/issues/106)) ([bebfa9c](https://github.com/openai/openai-java/commit/bebfa9c39172655e76c7c3fea45757eef705e931))
+
+
+### Chores
+
+* **internal:** fix up root `build.gradle.kts` formatting ([#109](https://github.com/openai/openai-java/issues/109)) ([54a806f](https://github.com/openai/openai-java/commit/54a806fa6bdd9ff4ef0957324cc36380241c6b82))
+* **internal:** remove unused Gradle imports ([#110](https://github.com/openai/openai-java/issues/110)) ([22502eb](https://github.com/openai/openai-java/commit/22502eb53d52a35237ea364d5d8c89bc1ced62bd))
+* **internal:** remove unused or unnecessary Gradle imports ([#111](https://github.com/openai/openai-java/issues/111)) ([8d95893](https://github.com/openai/openai-java/commit/8d95893e22b7f55bc65bad3cafcb0bf78569fd83))
+* **tests:** add more tests for streaming ([#108](https://github.com/openai/openai-java/issues/108)) ([5dec143](https://github.com/openai/openai-java/commit/5dec143db64f4efd3c1f3f1cd55d1fdee280d695))
+
+
+### Documentation
+
+* publish dokka javadoc ([#112](https://github.com/openai/openai-java/issues/112)) ([5521ffc](https://github.com/openai/openai-java/commit/5521ffc83b4a2adae49e9a226c5c745e64bbbc56))
+
+## 0.11.2 (2025-01-10)
+
+Full Changelog: [v0.11.1...v0.11.2](https://github.com/openai/openai-java/compare/v0.11.1...v0.11.2)
+
+### Bug Fixes
+
+* **client:** add some missing `validate()` calls ([#101](https://github.com/openai/openai-java/issues/101)) ([dec2d6b](https://github.com/openai/openai-java/commit/dec2d6b25cccc2547e576c8658116d2bba12f100))
+
+
+### Chores
+
+* **internal:** refactor `validate` methods ([dec2d6b](https://github.com/openai/openai-java/commit/dec2d6b25cccc2547e576c8658116d2bba12f100))
+
+## 0.11.1 (2025-01-09)
+
+Full Changelog: [v0.11.0...v0.11.1](https://github.com/openai/openai-java/compare/v0.11.0...v0.11.1)
+
+### Chores
+
+* **internal:** add some missing newlines between methods ([#100](https://github.com/openai/openai-java/issues/100)) ([afc2998](https://github.com/openai/openai-java/commit/afc2998ac124a26fe3ec92207f5ff4c9614ff673))
+* **internal:** spec update ([#97](https://github.com/openai/openai-java/issues/97)) ([0cff792](https://github.com/openai/openai-java/commit/0cff79271c63be46f5502a138ce1ad67a146724f))
+
+
+### Documentation
+
+* update some builder method javadocs ([#99](https://github.com/openai/openai-java/issues/99)) ([192965a](https://github.com/openai/openai-java/commit/192965abf73b9868d808c407bfc9fb73a507def7))
+
+## 0.11.0 (2025-01-08)
+
+Full Changelog: [v0.10.0...v0.11.0](https://github.com/openai/openai-java/compare/v0.10.0...v0.11.0)
+
+### Features
+
+* **client:** add more builder convenience methods for lists ([#96](https://github.com/openai/openai-java/issues/96)) ([9ee703b](https://github.com/openai/openai-java/commit/9ee703b13e8c467a71e7787d420a131bc1910e4f))
+
+
+### Documentation
+
+* **readme:** fix misplaced period ([#94](https://github.com/openai/openai-java/issues/94)) ([c6242ba](https://github.com/openai/openai-java/commit/c6242bad2b917fb419d9a69ad65cebbda9b56b51))
+
+## 0.10.0 (2025-01-08)
+
+Full Changelog: [v0.9.1...v0.10.0](https://github.com/openai/openai-java/compare/v0.9.1...v0.10.0)
+
+### Features
+
+* **client:** add various convenience setters to models ([#91](https://github.com/openai/openai-java/issues/91)) ([9b3eb17](https://github.com/openai/openai-java/commit/9b3eb17270075587ac9c2701b0e41a7debf17bec))
+* **client:** allow passing null or optional for nullable fields ([#84](https://github.com/openai/openai-java/issues/84)) ([8a8f2f9](https://github.com/openai/openai-java/commit/8a8f2f9ac5f6555c372a81acc196b3ab04fd9555))
+* **client:** allow setting arbitrary JSON for top-level body params ([9b3eb17](https://github.com/openai/openai-java/commit/9b3eb17270075587ac9c2701b0e41a7debf17bec))
+* **client:** expose getters for `JsonField` of body params ([9b3eb17](https://github.com/openai/openai-java/commit/9b3eb17270075587ac9c2701b0e41a7debf17bec))
+
+
+### Bug Fixes
+
+* **client:** consistently throw on omitting required fields ([9b3eb17](https://github.com/openai/openai-java/commit/9b3eb17270075587ac9c2701b0e41a7debf17bec))
+* **client:** convert `JsonField` containing list type to mutable in builder ([9b3eb17](https://github.com/openai/openai-java/commit/9b3eb17270075587ac9c2701b0e41a7debf17bec))
+
+
+### Documentation
+
+* add params class javadocs ([#90](https://github.com/openai/openai-java/issues/90)) ([9a33c1c](https://github.com/openai/openai-java/commit/9a33c1cf22e30e1878d739acfab4258321c6a9f8))
+
+
+### Styles
+
+* **internal:** explicitly add some method return types ([9b3eb17](https://github.com/openai/openai-java/commit/9b3eb17270075587ac9c2701b0e41a7debf17bec))
+* **internal:** move headers and query params setters below others ([9b3eb17](https://github.com/openai/openai-java/commit/9b3eb17270075587ac9c2701b0e41a7debf17bec))
+* **internal:** simplify existing convenience setters on params ([9b3eb17](https://github.com/openai/openai-java/commit/9b3eb17270075587ac9c2701b0e41a7debf17bec))
+
+## 0.9.1 (2025-01-06)
+
+Full Changelog: [v0.9.0...v0.9.1](https://github.com/openai/openai-java/compare/v0.9.0...v0.9.1)
+
+### Styles
+
+* **internal:** sort fields ([#82](https://github.com/openai/openai-java/issues/82)) ([219b48f](https://github.com/openai/openai-java/commit/219b48f7c6ff25eae8a9a082f8193c41aa18d0ac))
+
+## 0.9.0 (2025-01-03)
+
+Full Changelog: [v0.8.1...v0.9.0](https://github.com/openai/openai-java/compare/v0.8.1...v0.9.0)
+
+### ⚠ BREAKING CHANGES
+
+* **client:** switch query params objects to use `QueryParams` ([#64](https://github.com/openai/openai-java/issues/64))
+
+### Features
+
+* **client:** add beta endpoints ([#79](https://github.com/openai/openai-java/issues/79)) ([8584a20](https://github.com/openai/openai-java/commit/8584a2029ec5402b205ce485e96702da0a692b76))
+* **client:** put body field in params, add more convenience methods, and add missing docs ([#77](https://github.com/openai/openai-java/issues/77)) ([0c74350](https://github.com/openai/openai-java/commit/0c74350f0e5d1f0a30ae9b27c50a306ca081b1a7))
+
+
+### Chores
+
+* bump license year ([#74](https://github.com/openai/openai-java/issues/74)) ([769175d](https://github.com/openai/openai-java/commit/769175d3c42b6679e8ea91847e1fba32ab76d9a6))
+
+
+### Documentation
+
+* add some missing javadocs ([#78](https://github.com/openai/openai-java/issues/78)) ([d153ef9](https://github.com/openai/openai-java/commit/d153ef99dff3a201bf5674ee4154f3a3d276f608))
+
+
+### Refactors
+
+* **client:** switch query params objects to use `QueryParams` ([#64](https://github.com/openai/openai-java/issues/64)) ([4e9c3eb](https://github.com/openai/openai-java/commit/4e9c3eb9351f308ed3d842bd4aa2d860c23d568e))
+* **internal:** use constructor to deserialize json ([#66](https://github.com/openai/openai-java/issues/66)) ([27389cd](https://github.com/openai/openai-java/commit/27389cd377ce9a109a4aa25f78f70c36ca62de14))
+
+## 0.8.1 (2024-12-21)
+
+Full Changelog: [v0.8.0...v0.8.1](https://github.com/openai/openai-java/compare/v0.8.0...v0.8.1)
+
+### Chores
+
+* **docs:** add example project ([#59](https://github.com/openai/openai-java/issues/59)) ([045c7ba](https://github.com/openai/openai-java/commit/045c7badc319be2df3fac123df3daafc61b40473))
+* **docs:** fix code block language ([#61](https://github.com/openai/openai-java/issues/61)) ([4301693](https://github.com/openai/openai-java/commit/4301693dac3c53e80225a91087ddb890e1419f76))
+* **docs:** update readme ([#58](https://github.com/openai/openai-java/issues/58)) ([ef3dcd5](https://github.com/openai/openai-java/commit/ef3dcd543892f092899dcc57b1788ea8d07f6de4))
+* format example ([892bb69](https://github.com/openai/openai-java/commit/892bb697138f56c2e9783c1a413db5873385cc9b))
+* **internal:** spec update ([#55](https://github.com/openai/openai-java/issues/55)) ([768138f](https://github.com/openai/openai-java/commit/768138fcc6d6101efc08b8ebc001d45f8d6a96a1))
+* update parameter examples in tests and docs ([#57](https://github.com/openai/openai-java/issues/57)) ([afe3e0e](https://github.com/openai/openai-java/commit/afe3e0e2591818bcc8cfb14bb6a956a0d1d3fff0))
+
+
+### Documentation
+
+* add note about feedback ([1a5517f](https://github.com/openai/openai-java/commit/1a5517f823a04e4523c0a4b45482f223048e0c31))
+
+## 0.8.0 (2024-12-17)
+
+Full Changelog: [v0.7.5...v0.8.0](https://github.com/openai/openai-java/compare/v0.7.5...v0.8.0)
+
+### Features
+
+* **api:** new o1 and GPT-4o models + preference fine-tuning ([#46](https://github.com/openai/openai-java/issues/46)) ([4f2fac5](https://github.com/openai/openai-java/commit/4f2fac59587836e6a34ed4b313589abbf8153963))
+
+
+### Chores
+
+* **internal:** spec update ([#48](https://github.com/openai/openai-java/issues/48)) ([777165c](https://github.com/openai/openai-java/commit/777165c5344891ae7816be6606d9413550a578b5))
+
+## 0.7.5 (2024-12-13)
+
+Full Changelog: [v0.7.4...v0.7.5](https://github.com/openai/openai-java/compare/v0.7.4...v0.7.5)
+
+### Chores
+
+* **internal:** remove unused and expand used wildcard imports ([#43](https://github.com/openai/openai-java/issues/43)) ([39bfc4e](https://github.com/openai/openai-java/commit/39bfc4e4a15ce52c029ed31253afff9d9de36cc1))
+* **internal:** remove unused and expand used wildcard imports ([#44](https://github.com/openai/openai-java/issues/44)) ([7f7e131](https://github.com/openai/openai-java/commit/7f7e1313bde6827cd9067b712f3d7992ddeeaa6f))
+* **test:** use `JsonValue` instead of `JsonString` ([#41](https://github.com/openai/openai-java/issues/41)) ([8d2dd03](https://github.com/openai/openai-java/commit/8d2dd030899ad807a4712e00a33426c7484bcab5))
+
+## 0.7.4 (2024-12-12)
+
+Full Changelog: [v0.7.3...v0.7.4](https://github.com/openai/openai-java/compare/v0.7.3...v0.7.4)
+
+### Chores
+
+* **test:** remove unused imports ([#39](https://github.com/openai/openai-java/issues/39)) ([1ce3035](https://github.com/openai/openai-java/commit/1ce303537ed133fea41a7d4dbd2ebf9e53c8f594))
+
+## 0.7.3 (2024-12-11)
+
+Full Changelog: [v0.7.2...v0.7.3](https://github.com/openai/openai-java/compare/v0.7.2...v0.7.3)
+
+### Chores
+
+* **internal:** remove unused imports ([#38](https://github.com/openai/openai-java/issues/38)) ([021177f](https://github.com/openai/openai-java/commit/021177f995fb11e9a17ebf3950e0d46591e3c354))
+
+
+### Styles
+
+* **internal:** make enum value definitions less verbose ([#35](https://github.com/openai/openai-java/issues/35)) ([1effd49](https://github.com/openai/openai-java/commit/1effd49f5c1585c54e46454945df3fe2314ef05d))
+* **internal:** move enum identity methods to bottom of class ([#37](https://github.com/openai/openai-java/issues/37)) ([7a9d27a](https://github.com/openai/openai-java/commit/7a9d27a7ef5d59f78479e1af83a980eb52097fcc))
+
+## 0.7.2 (2024-12-11)
+
+Full Changelog: [v0.7.1...v0.7.2](https://github.com/openai/openai-java/compare/v0.7.1...v0.7.2)
+
+### Chores
+
+* update example values in tests and docs ([#33](https://github.com/openai/openai-java/issues/33)) ([e74f2b5](https://github.com/openai/openai-java/commit/e74f2b571857879b6a40351c572ab063eb1f18f5))
+
+## 0.7.1 (2024-12-09)
+
+Full Changelog: [v0.7.0...v0.7.1](https://github.com/openai/openai-java/compare/v0.7.0...v0.7.1)
+
+### Chores
+
+* **internal:** configure sonatype ([#30](https://github.com/openai/openai-java/issues/30)) ([5d7816a](https://github.com/openai/openai-java/commit/5d7816afb9cf70189aa04dfd18a8f77f25094dcf))
+
+## 0.7.0 (2024-12-04)
+
+Full Changelog: [v0.6.0...v0.7.0](https://github.com/openai/openai-java/compare/v0.6.0...v0.7.0)
+
+### Features
+
+* **api:** updates ([#29](https://github.com/openai/openai-java/issues/29)) ([a3122af](https://github.com/openai/openai-java/commit/a3122af22767760b4f73880815d138e7493e381c))
+
+
+### Chores
+
+* bump openapi url ([#28](https://github.com/openai/openai-java/issues/28)) ([24d8461](https://github.com/openai/openai-java/commit/24d8461a14cb0a5b831cd821a129f995a3988856))
+
+
+### Documentation
+
+* add missing parameter to code snippet ([#26](https://github.com/openai/openai-java/issues/26)) ([8e7421f](https://github.com/openai/openai-java/commit/8e7421faa2ef8a6fd17757080f49bb5e1c0606c3))
+
+## 0.6.0 (2024-11-27)
+
+Full Changelog: [v0.5.1...v0.6.0](https://github.com/openai/openai-java/compare/v0.5.1...v0.6.0)
+
+### ⚠ BREAKING CHANGES
+
+* **client:** remove duplicated classes
+
+### Features
+
+* derive gpg release key's id via gpg itself ([#25](https://github.com/openai/openai-java/issues/25)) ([6aad041](https://github.com/openai/openai-java/commit/6aad041b56bc39ee8e9c48e48738081652bf4ed2))
+
+
+### Bug Fixes
+
+* **client:** remove duplicated classes ([8a8f11f](https://github.com/openai/openai-java/commit/8a8f11fc20c415877f1f673ec0be3948126d1c11))
+
+## 0.5.1 (2024-11-26)
+
+Full Changelog: [v0.5.0...v0.5.1](https://github.com/openai/openai-java/compare/v0.5.0...v0.5.1)
+
+### Chores
+
+* **internal:** update example values ([#21](https://github.com/openai/openai-java/issues/21)) ([2270e67](https://github.com/openai/openai-java/commit/2270e676a013d9c00012757b86d9d86010c09a20))
+
+## 0.5.0 (2024-11-25)
+
+Full Changelog: [v0.4.0...v0.5.0](https://github.com/openai/openai-java/compare/v0.4.0...v0.5.0)
+
+### Features
+
+* **client:** add logging when debug env is set ([#18](https://github.com/openai/openai-java/issues/18)) ([017aae7](https://github.com/openai/openai-java/commit/017aae7a1795fe933e0ea9e8ee2c8d059c6746f4))
+
+
+### Documentation
+
+* add note that we're in alpha ([#19](https://github.com/openai/openai-java/issues/19)) ([d49cc28](https://github.com/openai/openai-java/commit/d49cc28f0a621df658a3c83a880735ebd7cc1acc))
+* **readme:** add Microsoft Azure section ([#17](https://github.com/openai/openai-java/issues/17)) ([8f8165f](https://github.com/openai/openai-java/commit/8f8165fd33780e3ee0609df7e7e171c8e7f10029))
+* swap example from `.completions()` to `.chat().completions()` ([#20](https://github.com/openai/openai-java/issues/20)) ([f0423a7](https://github.com/openai/openai-java/commit/f0423a7e9e20d5c1e528077fbb4e87baa822079a))
+
+
+### Styles
+
+* **internal:** reorder some params methods and improve consistency of implementations ([#15](https://github.com/openai/openai-java/issues/15)) ([8592cda](https://github.com/openai/openai-java/commit/8592cdad178325e3a8994ef44e854ee5b4853c45))
+
+## 0.4.0 (2024-11-21)
+
+Full Changelog: [v0.3.0...v0.4.0](https://github.com/openai/openai-java/compare/v0.3.0...v0.4.0)
+
+### Features
+
+* **azure:** Add HttpRequest.Builder extension methods ([#9](https://github.com/openai/openai-java/issues/9)) ([097c7c9](https://github.com/openai/openai-java/commit/097c7c91d23ff3bafdb4c01baea0df9beeadcd74))
+
+
+### Bug Fixes
+
+* **azure:** add missing azure changes ([656d3b5](https://github.com/openai/openai-java/commit/656d3b5a6d1c2d68733d5139d3a2982b04009f2a))
+
+## 0.3.0 (2024-11-20)
+
+Full Changelog: [v0.2.0...v0.3.0](https://github.com/openai/openai-java/compare/v0.2.0...v0.3.0)
+
+### Features
+
+* **api:** add gpt-4o-2024-11-20 model ([#13](https://github.com/openai/openai-java/issues/13)) ([3263126](https://github.com/openai/openai-java/commit/3263126a59cb63be0b6842fa16b0466feb71d44b))
+
+
+### Styles
+
+* **internal:** move identity methods to bottom of error class ([#12](https://github.com/openai/openai-java/issues/12)) ([f3ff42a](https://github.com/openai/openai-java/commit/f3ff42a3c4d3821949af7ad43e03dac8b061825b))
+* **internal:** reduce verbosity of identity methods ([#10](https://github.com/openai/openai-java/issues/10)) ([9ef03ed](https://github.com/openai/openai-java/commit/9ef03eda541a878b4ef9df0c3845a63e1f9cc44d))
+
+## 0.2.0 (2024-11-20)
+
+Full Changelog: [v0.1.0...v0.2.0](https://github.com/openai/openai-java/compare/v0.1.0...v0.2.0)
+
+### Features
+
+* **client:** add async streaming methods ([#6](https://github.com/openai/openai-java/issues/6)) ([f805972](https://github.com/openai/openai-java/commit/f805972d9cafdf3ad8a974e660c62587e2b65c06))
+* initial commit ([fa016ee](https://github.com/openai/openai-java/commit/fa016ee58dba10add81cefddbdf1483bfa24d058))
+
+
+### Performance Improvements
+
+* **tests:** remove unused dependencies ([#3](https://github.com/openai/openai-java/issues/3)) ([4c94984](https://github.com/openai/openai-java/commit/4c949841e4eed67b82bfe1f40370a0a3db8f2d43))
+
+
+### Chores
+
+* **deps:** bump jackson to 2.18.1 ([#7](https://github.com/openai/openai-java/issues/7)) ([9262ca7](https://github.com/openai/openai-java/commit/9262ca7a55c2bdb3dff69f9df328376e23bb11df))
+* **internal:** spec update ([#5](https://github.com/openai/openai-java/issues/5)) ([0df36a4](https://github.com/openai/openai-java/commit/0df36a497f88407e35ca79bacb72f30f2d1350da))
+
+
+### Documentation
+
+* bump models in example snippets to gpt-4o ([#4](https://github.com/openai/openai-java/issues/4)) ([359c100](https://github.com/openai/openai-java/commit/359c10065f9615a73e30573b1dea80d5027288a6))
+
+## 0.1.0 (2024-11-08)
+
+Full Changelog: [v0.0.1...v0.1.0](https://github.com/openai/openai-java/compare/v0.0.1...v0.1.0)
+
+### ⚠ BREAKING CHANGES
+
+* **client:** simplify structure of strings with presets
+* **client:** replace multimaps with custom types
+* **client:** add/rename methods for headers/query params
+* **client:** rename header and query params builder methods
+* **client:** union and builder method naming conflicts
+* **client:** don't generate default variant field/method names with underscores
+
+### Features
+
+* add example ([ff05dec](https://github.com/openai/openai-java/commit/ff05dec4c50a23498218ad1b3f7850aaf59e3998))
+* add SSE and many other major updates ([6eb3f62](https://github.com/openai/openai-java/commit/6eb3f62e530d5b98e1a46164a680798d1c4299db))
+* **api:** add chatgpt-4o-latest model ([f0d7c9a](https://github.com/openai/openai-java/commit/f0d7c9ae3c51c85ede0b34b59c5f43270b4d907b))
+* **api:** add file search result details to run steps ([9ec089e](https://github.com/openai/openai-java/commit/9ec089e418ab71c19368c70a671fbef7fd3a9365))
+* **api:** add gpt-4o-audio-preview model for chat completions ([e81ac84](https://github.com/openai/openai-java/commit/e81ac8426a0d84fa52028bd6ee3daa54695945e5))
+* **api:** add new gpt-4o-mini models ([a5a855e](https://github.com/openai/openai-java/commit/a5a855e85ded4f483506f4d35aeef8aee43a3adc))
+* **api:** add new, expressive voices for Realtime and Audio in Chat Completions ([c4d5fbd](https://github.com/openai/openai-java/commit/c4d5fbd7707d1b1cd13a72b13c48a767f0fd95b1))
+* **api:** add o1 models ([b9db26a](https://github.com/openai/openai-java/commit/b9db26a0d021be09a4b201ba15570e049cb2939f))
+* **api:** add omni-moderation model ([5935c8c](https://github.com/openai/openai-java/commit/5935c8c91cfdb22f0d204f4a11541201657bcf65))
+* **api:** add support for predicted outputs ([a72d1ea](https://github.com/openai/openai-java/commit/a72d1eacfdd66d2e7ae43d345fc6d5c08ed45bcf))
+* **api:** add uploads endpoints ([9963139](https://github.com/openai/openai-java/commit/996313982969078f06f9af393dfb4c2f28dced76))
+* **api:** support storing chat completions, enabling evals and model distillation in the dashboard ([670e73f](https://github.com/openai/openai-java/commit/670e73f06813b9b56e424dafb98fec6d3a5249d2))
+* **api:** updates ([c818fda](https://github.com/openai/openai-java/commit/c818fda81b7919c6f253046252913920d827c2c3))
+* **client:** add `Headers` class ([339e93c](https://github.com/openai/openai-java/commit/339e93c34e573b114f2eee15f57b1baa42987d89))
+* **client:** add `Headers` class ([02b56b3](https://github.com/openai/openai-java/commit/02b56b36df73fe9678453af31fbd75e02f7d59bc))
+* **client:** add `QueryParams` class ([bf7b4a2](https://github.com/openai/openai-java/commit/bf7b4a2115acac93c0b13b0d85187ef06179263a))
+* **client:** add `User-Agent` header ([5bab5cc](https://github.com/openai/openai-java/commit/5bab5cc526b2781d1a4c6775803fc9ebe83e4ced))
+* **client:** add more endpoints ([48a86ca](https://github.com/openai/openai-java/commit/48a86caae55cafff11f162c0aef66801b04c6036))
+* **client:** add streaming ([e8fc6aa](https://github.com/openai/openai-java/commit/e8fc6aa620dddcde92a5aaedb7aa90ae1b3ac852))
+* **client:** add/rename methods for headers/query params ([80ca5d9](https://github.com/openai/openai-java/commit/80ca5d90b7295388a1e9db40b9dd57ceaca2e579))
+* **client:** added structured fields to errors ([ffc1d7a](https://github.com/openai/openai-java/commit/ffc1d7aff146e486fa307e60b39fe38f26cb6a57))
+* **client:** clean up resource leaks when the resource becomes phantom reachable ([3ab123c](https://github.com/openai/openai-java/commit/3ab123c55f24d59174f89ec5e2d3fc05656ae574))
+* **client:** improve binary return values ([40e6b7c](https://github.com/openai/openai-java/commit/40e6b7cd2576956d802422f052b7acf038134d27))
+* **client:** more additional body param setters ([07262da](https://github.com/openai/openai-java/commit/07262daa6840d39e87fd83e71fa95a89830175f1))
+* **client:** propagate headers/query params methods to client builders ([ed455e3](https://github.com/openai/openai-java/commit/ed455e353ac3b6b8fbedffeb3f6d9bc0521b2d81))
+* **client:** replace multimaps with custom types ([c92580f](https://github.com/openai/openai-java/commit/c92580fdee8777878f7cfa39aabfa91cfdd6d123))
+* **client:** send retry count header ([8058647](https://github.com/openai/openai-java/commit/8058647cf019c5c8721cdc11e482990d54a27d29))
+* **client:** set `X-Stainless-Runtime` header ([1576020](https://github.com/openai/openai-java/commit/157602059951cb48b1a8128650d6d47135a221c0))
+* **client:** simplify structure of strings with presets ([c6f3499](https://github.com/openai/openai-java/commit/c6f349985ec2e9a4e50d558aa0dc9e286beec606))
+* **client:** support error property ([aef3473](https://github.com/openai/openai-java/commit/aef347380dcd087c9186751d0cb85075d557bb81))
+* **client:** support union discriminators in deserialization ([fd0e4bd](https://github.com/openai/openai-java/commit/fd0e4bddc34d7f8080d58b6b184876defe43295e))
+* extract out `ImageModel`, `AudioModel`, `SpeechModel` ([7c23848](https://github.com/openai/openai-java/commit/7c23848e3b1b6ad8285a2681690463c96ccbd568))
+* make enums not nominal ([dce0b9e](https://github.com/openai/openai-java/commit/dce0b9e8e306d67d4dd80f96c9a5ae49c0490eb2))
+* updates ([4fbb12b](https://github.com/openai/openai-java/commit/4fbb12ba26202ec7ce987cc6e526ae37ad317e7d))
+* updates ([303b5f2](https://github.com/openai/openai-java/commit/303b5f2597ec12e3d42d5d2e99a8dd6cebe1e443))
+* updates ([#4](https://github.com/openai/openai-java/issues/4)) ([af9f9a2](https://github.com/openai/openai-java/commit/af9f9a2718b2710e0a0e0c514600e3833c1274d3))
+* **vector store:** improve chunking strategy type names ([1e5d0cd](https://github.com/openai/openai-java/commit/1e5d0cd558b977710779816931c0ebe73630c7cc))
+
+
+### Bug Fixes
+
+* **audio:** correct response_format translations type ([f84b960](https://github.com/openai/openai-java/commit/f84b960b3f16381339d9f0aea31efcae7967743c))
+* **client:** accidental double-wrapping with `RetryingHttpClient` ([c96911b](https://github.com/openai/openai-java/commit/c96911bcf018c6092e8418f004eaae7edceb7373))
+* **client:** add `@JvmOverloads` to `HttpClient` methods ([95344ef](https://github.com/openai/openai-java/commit/95344ef8e6a2cc4ebe66ad055cd40d5a626ea122))
+* **client:** correct types for transcriptions / translations ([5207123](https://github.com/openai/openai-java/commit/520712379713a5584b1e1e19ed1f558e11296c8c))
+* **client:** disallow reusing stream response ([6eb1979](https://github.com/openai/openai-java/commit/6eb197996ddf43c8c83178a9991e179f4dd6ffb3))
+* **client:** don't generate default variant field/method names with underscores ([c49334f](https://github.com/openai/openai-java/commit/c49334f0afe7dd14294057ab89caee5a6033a24d))
+* **client:** ensure constructed objects are immutable ([ef4d884](https://github.com/openai/openai-java/commit/ef4d884b2a588ef4783715f9892e166884de2b98))
+* **client:** ensure SSE `BufferedReader` gets closed ([685553f](https://github.com/openai/openai-java/commit/685553fe2baeb2aa5910420f91e52dd7f1d2ca43))
+* **client:** error class `toBuilder` not copying fields ([92b5889](https://github.com/openai/openai-java/commit/92b5889eae621f3a0631baf267728bea6f76ebb8))
+* **client:** escape keywords reserved in java, but not in kotlin, for the java sdk ([12e0cc6](https://github.com/openai/openai-java/commit/12e0cc6779a068ff4ebddd9c24b61ee4c4e2e6d3))
+* **client:** implement `hashCode` for `IsMissing` ([b841254](https://github.com/openai/openai-java/commit/b84125494eaddec9be09fb99565e08a37e642ae5))
+* **client:** naming of some variants ([3a764f2](https://github.com/openai/openai-java/commit/3a764f217901daff48327bbc420a3240b89c58ed))
+* **client:** naming of some variants ([881affb](https://github.com/openai/openai-java/commit/881affb889a401935e654c21b58fbf32623c4aca))
+* **client:** union and builder method naming conflicts ([3566be1](https://github.com/openai/openai-java/commit/3566be107efe17b175078a8263323e8fda46f77f))
+* **docs:** use correct putAdditionalProperty value ([babeb82](https://github.com/openai/openai-java/commit/babeb8279765a9cb723504bb7fa90cf3583e8574))
+* example for preset simplification ([#150](https://github.com/openai/openai-java/issues/150)) ([1c63b4b](https://github.com/openai/openai-java/commit/1c63b4bfeef3ee7da7503b90695c925268b055f0))
+* improve schema definitions ([6beee8a](https://github.com/openai/openai-java/commit/6beee8a45a0a4d223a79d65f9109a85717c62509))
+* **internal:** remove unnecessary error handler in client ([fe5be51](https://github.com/openai/openai-java/commit/fe5be514a8376791f845135cdd0ba8f3526c6056))
+* **internal:** remove unnecessary error handlers ([205ee00](https://github.com/openai/openai-java/commit/205ee00386acea1d9d3fea5ca8daadaa7d1fb153))
+* remove additionalBodyProperties from methods that don't support request bodies ([df81636](https://github.com/openai/openai-java/commit/df81636724f6cc92415ea6943f488e1f6e0c56af))
+
+
+### Chores
+
+* **ci:** bump prism mock server version ([16fcad2](https://github.com/openai/openai-java/commit/16fcad24cc484d1547c9d2bb94a77deb61b623ed))
+* **ci:** codeowners file ([0e29d12](https://github.com/openai/openai-java/commit/0e29d123be1658404828bbffa7b35a1501031f6d))
+* **ci:** run tests in CI ([7a8cd60](https://github.com/openai/openai-java/commit/7a8cd60add562cc099d4c44ea22f512d60a9ffd6))
+* **docs:** fix maxium typo ([c6258a2](https://github.com/openai/openai-java/commit/c6258a2f74aefbd97a0c43f5ca8fd4999d6c3475))
+* **internal:** delete unused function ([54eb041](https://github.com/openai/openai-java/commit/54eb0415e37598ed9b17f0d6fd3ec8d51f330b9e))
+* **internal:** omit unnecessary code ([e87d4ec](https://github.com/openai/openai-java/commit/e87d4eca8b4de770f7055ee6242666c32421ab3f))
+* **internal:** remove unnecessary `.buffered()` call ([2e43707](https://github.com/openai/openai-java/commit/2e4370738232c796d370988e95ed6a99e5fe1ad3))
+* **internal:** remove unnecessary `[@file](https://github.com/file):Suppress("OVERLOADS_INTERFACE")` ([0c219ed](https://github.com/openai/openai-java/commit/0c219edda523212d2460df8360ccd79763442e0d))
+* **internal:** remove unnecessary `[@file](https://github.com/file):Suppress("OVERLOADS_INTERFACE")` ([fbf13e1](https://github.com/openai/openai-java/commit/fbf13e114830c38de0652db237066ea9f9923fa9))
+* **internal:** remove unnecessary `[@file](https://github.com/file):Suppress("OVERLOADS_INTERFACE")` ([b8ab775](https://github.com/openai/openai-java/commit/b8ab7759736a611eceb0717e7a459386a9246d5e))
+* **internal:** remove unused test file ([24d08bb](https://github.com/openai/openai-java/commit/24d08bb4e10bce76c9b9cc2dd69a2acf89ee1335))
+* **internal:** remove useless `[@file](https://github.com/file):JvmSynthetic` ([046092d](https://github.com/openai/openai-java/commit/046092d8b8fc67bf2a2c267b9559be767174c0af))
+* **internal:** update spec link ([a3b99f8](https://github.com/openai/openai-java/commit/a3b99f80f03d2b262e0a2d466c9ceef1efbe5cbe))
+* **internal:** update spec url ([6d8a32d](https://github.com/openai/openai-java/commit/6d8a32d32396bec8941a8f4a021d593a9bf6613e))
+* sync openapi url ([1868ddd](https://github.com/openai/openai-java/commit/1868ddd67b3735fd46d9c236e468771532d9865d))
+* **tests:** add tests for services ([c58ba71](https://github.com/openai/openai-java/commit/c58ba718a77ab92724ee1e30576fe045b264925a))
+* **tests:** update prism version ([f7cb198](https://github.com/openai/openai-java/commit/f7cb19834c7fb1a89d1a5a34241037f95433d683))
+* **types:** define FilePurpose enum ([e2c15b1](https://github.com/openai/openai-java/commit/e2c15b12f2c0e3bb91b0cc4287676c4223980514))
+* unknown commit message ([6eb1979](https://github.com/openai/openai-java/commit/6eb197996ddf43c8c83178a9991e179f4dd6ffb3))
+* unknown commit message ([c6f3499](https://github.com/openai/openai-java/commit/c6f349985ec2e9a4e50d558aa0dc9e286beec606))
+* unknown commit message ([92b5889](https://github.com/openai/openai-java/commit/92b5889eae621f3a0631baf267728bea6f76ebb8))
+* unknown commit message ([07262da](https://github.com/openai/openai-java/commit/07262daa6840d39e87fd83e71fa95a89830175f1))
+* unknown commit message ([c92580f](https://github.com/openai/openai-java/commit/c92580fdee8777878f7cfa39aabfa91cfdd6d123))
+* unknown commit message ([c6089f1](https://github.com/openai/openai-java/commit/c6089f14f4317f224de4996d0e0c59042c733738))
+* unknown commit message ([a72d1ea](https://github.com/openai/openai-java/commit/a72d1eacfdd66d2e7ae43d345fc6d5c08ed45bcf))
+* unknown commit message ([80ca5d9](https://github.com/openai/openai-java/commit/80ca5d90b7295388a1e9db40b9dd57ceaca2e579))
+* unknown commit message ([4fd6c23](https://github.com/openai/openai-java/commit/4fd6c23c05fe8f16bd9648f2bb2db81e4ffa7b7c))
+* unknown commit message ([ed455e3](https://github.com/openai/openai-java/commit/ed455e353ac3b6b8fbedffeb3f6d9bc0521b2d81))
+* unknown commit message ([bf7b4a2](https://github.com/openai/openai-java/commit/bf7b4a2115acac93c0b13b0d85187ef06179263a))
+* unknown commit message ([02b56b3](https://github.com/openai/openai-java/commit/02b56b36df73fe9678453af31fbd75e02f7d59bc))
+* unknown commit message ([93141d4](https://github.com/openai/openai-java/commit/93141d47a05c71148459877d0baee76ae1a6e2f8))
+* unknown commit message ([ef4d884](https://github.com/openai/openai-java/commit/ef4d884b2a588ef4783715f9892e166884de2b98))
+* unknown commit message ([505c349](https://github.com/openai/openai-java/commit/505c349f3aa299235437ce1e836ce7249db3e082))
+* unknown commit message ([54eb041](https://github.com/openai/openai-java/commit/54eb0415e37598ed9b17f0d6fd3ec8d51f330b9e))
+* unknown commit message ([44ab47a](https://github.com/openai/openai-java/commit/44ab47af71058241516a6998c0fcfc9e84db7074))
+* unknown commit message ([c4d5fbd](https://github.com/openai/openai-java/commit/c4d5fbd7707d1b1cd13a72b13c48a767f0fd95b1))
+* unknown commit message ([3ab123c](https://github.com/openai/openai-java/commit/3ab123c55f24d59174f89ec5e2d3fc05656ae574))
+* unknown commit message ([685553f](https://github.com/openai/openai-java/commit/685553fe2baeb2aa5910420f91e52dd7f1d2ca43))
+* unknown commit message ([d86694a](https://github.com/openai/openai-java/commit/d86694a85e2afb3179970e8e269f4e8c5c4f4801))
+* unknown commit message ([2e43707](https://github.com/openai/openai-java/commit/2e4370738232c796d370988e95ed6a99e5fe1ad3))
+* unknown commit message ([c96911b](https://github.com/openai/openai-java/commit/c96911bcf018c6092e8418f004eaae7edceb7373))
+* unknown commit message ([5bab5cc](https://github.com/openai/openai-java/commit/5bab5cc526b2781d1a4c6775803fc9ebe83e4ced))
+* unknown commit message ([1576020](https://github.com/openai/openai-java/commit/157602059951cb48b1a8128650d6d47135a221c0))
+* unknown commit message ([48a86ca](https://github.com/openai/openai-java/commit/48a86caae55cafff11f162c0aef66801b04c6036))
+* unknown commit message ([b841254](https://github.com/openai/openai-java/commit/b84125494eaddec9be09fb99565e08a37e642ae5))
+* unknown commit message ([aef3473](https://github.com/openai/openai-java/commit/aef347380dcd087c9186751d0cb85075d557bb81))
+* unknown commit message ([734939c](https://github.com/openai/openai-java/commit/734939c9668d8a431d1554752e1fe48a77180166))
+* unknown commit message ([95344ef](https://github.com/openai/openai-java/commit/95344ef8e6a2cc4ebe66ad055cd40d5a626ea122))
+* unknown commit message ([0c219ed](https://github.com/openai/openai-java/commit/0c219edda523212d2460df8360ccd79763442e0d))
+* unknown commit message ([046092d](https://github.com/openai/openai-java/commit/046092d8b8fc67bf2a2c267b9559be767174c0af))
+* unknown commit message ([f0bc243](https://github.com/openai/openai-java/commit/f0bc243a7836cdf17c479ac569c102fbc361de6d))
+* unknown commit message ([86e3988](https://github.com/openai/openai-java/commit/86e39880b82056625a3b91a5412b7b298777a54f))
+* unknown commit message ([b8ab775](https://github.com/openai/openai-java/commit/b8ab7759736a611eceb0717e7a459386a9246d5e))
+* unknown commit message ([2d98a2c](https://github.com/openai/openai-java/commit/2d98a2cc9298d35195569b391e6bead608cf9ad6))
+* unknown commit message ([c58ba71](https://github.com/openai/openai-java/commit/c58ba718a77ab92724ee1e30576fe045b264925a))
+* unknown commit message ([881affb](https://github.com/openai/openai-java/commit/881affb889a401935e654c21b58fbf32623c4aca))
+* unknown commit message ([0b8b5a8](https://github.com/openai/openai-java/commit/0b8b5a8d01b40eab8c4ad106fa921011490fc1a0))
+* unknown commit message ([a804776](https://github.com/openai/openai-java/commit/a804776306e32cea48ac739506d5abfa940fb528))
+* unknown commit message ([e8fc6aa](https://github.com/openai/openai-java/commit/e8fc6aa620dddcde92a5aaedb7aa90ae1b3ac852))
+* unknown commit message ([fd0e4bd](https://github.com/openai/openai-java/commit/fd0e4bddc34d7f8080d58b6b184876defe43295e))
+* unknown commit message ([3566be1](https://github.com/openai/openai-java/commit/3566be107efe17b175078a8263323e8fda46f77f))
+* unknown commit message ([fe5be51](https://github.com/openai/openai-java/commit/fe5be514a8376791f845135cdd0ba8f3526c6056))
+* unknown commit message ([205ee00](https://github.com/openai/openai-java/commit/205ee00386acea1d9d3fea5ca8daadaa7d1fb153))
+* unknown commit message ([e87d4ec](https://github.com/openai/openai-java/commit/e87d4eca8b4de770f7055ee6242666c32421ab3f))
+* unknown commit message ([b8509fb](https://github.com/openai/openai-java/commit/b8509fb3e890fb04169e38eed53ae53e065e285c))
+* unknown commit message ([f8eceaa](https://github.com/openai/openai-java/commit/f8eceaac33a5e7ff8c1b6709a340cdfd4340f7b9))
+* unknown commit message ([3989402](https://github.com/openai/openai-java/commit/3989402436c2861ff3bfeba3ca9acb42dbabf97c))
+* unknown commit message ([c49334f](https://github.com/openai/openai-java/commit/c49334f0afe7dd14294057ab89caee5a6033a24d))
+* unknown commit message ([c6e40de](https://github.com/openai/openai-java/commit/c6e40de655bd30d0b1f14e3af1fd1ff1dfed89ae))
+* unknown commit message ([12e0cc6](https://github.com/openai/openai-java/commit/12e0cc6779a068ff4ebddd9c24b61ee4c4e2e6d3))
+* unknown commit message ([9ec34a8](https://github.com/openai/openai-java/commit/9ec34a8db82f710beff43591dbf1e6e74b87346e))
+* unknown commit message ([670e73f](https://github.com/openai/openai-java/commit/670e73f06813b9b56e424dafb98fec6d3a5249d2))
+* unknown commit message ([5207123](https://github.com/openai/openai-java/commit/520712379713a5584b1e1e19ed1f558e11296c8c))
+* unknown commit message ([8058647](https://github.com/openai/openai-java/commit/8058647cf019c5c8721cdc11e482990d54a27d29))
+* unknown commit message ([6d8a32d](https://github.com/openai/openai-java/commit/6d8a32d32396bec8941a8f4a021d593a9bf6613e))
+* unknown commit message ([b9db26a](https://github.com/openai/openai-java/commit/b9db26a0d021be09a4b201ba15570e049cb2939f))
+* unknown commit message ([ffc1d7a](https://github.com/openai/openai-java/commit/ffc1d7aff146e486fa307e60b39fe38f26cb6a57))
+* unknown commit message ([5d05171](https://github.com/openai/openai-java/commit/5d0517135e5d2b404e81fad598865df188aaed57))
+* unknown commit message ([1e5d0cd](https://github.com/openai/openai-java/commit/1e5d0cd558b977710779816931c0ebe73630c7cc))
+* unknown commit message ([b72a723](https://github.com/openai/openai-java/commit/b72a7235865640e600ebaa3c8a739392c24c944d))
+* unknown commit message ([df81636](https://github.com/openai/openai-java/commit/df81636724f6cc92415ea6943f488e1f6e0c56af))
+* unknown commit message ([babeb82](https://github.com/openai/openai-java/commit/babeb8279765a9cb723504bb7fa90cf3583e8574))
+* unknown commit message ([e2c15b1](https://github.com/openai/openai-java/commit/e2c15b12f2c0e3bb91b0cc4287676c4223980514))
+* unknown commit message ([1868ddd](https://github.com/openai/openai-java/commit/1868ddd67b3735fd46d9c236e468771532d9865d))
+* unknown commit message ([16fcad2](https://github.com/openai/openai-java/commit/16fcad24cc484d1547c9d2bb94a77deb61b623ed))
+* unknown commit message ([0e29d12](https://github.com/openai/openai-java/commit/0e29d123be1658404828bbffa7b35a1501031f6d))
+* unknown commit message ([c818fda](https://github.com/openai/openai-java/commit/c818fda81b7919c6f253046252913920d827c2c3))
+* unknown commit message ([dce0b9e](https://github.com/openai/openai-java/commit/dce0b9e8e306d67d4dd80f96c9a5ae49c0490eb2))
+* unknown commit message ([7c23848](https://github.com/openai/openai-java/commit/7c23848e3b1b6ad8285a2681690463c96ccbd568))
+* unknown commit message ([7a8cd60](https://github.com/openai/openai-java/commit/7a8cd60add562cc099d4c44ea22f512d60a9ffd6))
+* unknown commit message ([40e6b7c](https://github.com/openai/openai-java/commit/40e6b7cd2576956d802422f052b7acf038134d27))
+* unknown commit message ([24d08bb](https://github.com/openai/openai-java/commit/24d08bb4e10bce76c9b9cc2dd69a2acf89ee1335))
+* unknown commit message ([f7cb198](https://github.com/openai/openai-java/commit/f7cb19834c7fb1a89d1a5a34241037f95433d683))
+* unknown commit message ([a5a855e](https://github.com/openai/openai-java/commit/a5a855e85ded4f483506f4d35aeef8aee43a3adc))
+* unknown commit message ([303b5f2](https://github.com/openai/openai-java/commit/303b5f2597ec12e3d42d5d2e99a8dd6cebe1e443))
+* update repo name ([11c62f2](https://github.com/openai/openai-java/commit/11c62f225705c5314cb4044f9a0ac2dfa878ee14))
+* use headless jdk for containers ([b72a723](https://github.com/openai/openai-java/commit/b72a7235865640e600ebaa3c8a739392c24c944d))
+
+
+### Documentation
+
+* adjust additional properties example ([5d05171](https://github.com/openai/openai-java/commit/5d0517135e5d2b404e81fad598865df188aaed57))
+
+
+### Styles
+
+* **client:** disable formatting for java boilerplate ([c6e40de](https://github.com/openai/openai-java/commit/c6e40de655bd30d0b1f14e3af1fd1ff1dfed89ae))
+* **client:** make toString methods consistent ([0b8b5a8](https://github.com/openai/openai-java/commit/0b8b5a8d01b40eab8c4ad106fa921011490fc1a0))
+* **client:** move equals, hashCode, and toString to the bottom of entity files ([9ec34a8](https://github.com/openai/openai-java/commit/9ec34a8db82f710beff43591dbf1e6e74b87346e))
+* **internal:** improve `OkHttpClient` formatting ([70f673c](https://github.com/openai/openai-java/commit/70f673cc64082ee7218377dc3439cc1aef404aa3))
+* **internal:** improve `OkHttpClient` formatting ([86e3988](https://github.com/openai/openai-java/commit/86e39880b82056625a3b91a5412b7b298777a54f))
+* **internal:** improve `RetryingHttpClient` formatting ([734939c](https://github.com/openai/openai-java/commit/734939c9668d8a431d1554752e1fe48a77180166))
+* **internal:** improve terseness of handlers ([3989402](https://github.com/openai/openai-java/commit/3989402436c2861ff3bfeba3ca9acb42dbabf97c))
+* **internal:** improve terseness of Properties.kt ([f8eceaa](https://github.com/openai/openai-java/commit/f8eceaac33a5e7ff8c1b6709a340cdfd4340f7b9))
+* **internal:** make `getOrThrow` terse and consistent ([44ab47a](https://github.com/openai/openai-java/commit/44ab47af71058241516a6998c0fcfc9e84db7074))
+* **internal:** move Handlers.kt and HttpRequestBodies.kt to core ([b8509fb](https://github.com/openai/openai-java/commit/b8509fb3e890fb04169e38eed53ae53e065e285c))
+* **internal:** rename `streamingResponse` to `streamResponse` ([d86694a](https://github.com/openai/openai-java/commit/d86694a85e2afb3179970e8e269f4e8c5c4f4801))
+* **internal:** simplify client build method ([f0bc243](https://github.com/openai/openai-java/commit/f0bc243a7836cdf17c479ac569c102fbc361de6d))
+* **internal:** update comment formatting ([2d98a2c](https://github.com/openai/openai-java/commit/2d98a2cc9298d35195569b391e6bead608cf9ad6))
+* **internal:** use `if` and `if-else` instead of `when` idiomatically ([a804776](https://github.com/openai/openai-java/commit/a804776306e32cea48ac739506d5abfa940fb528))
+
+
+### Refactors
+
+* **client:** http request methods ([c6089f1](https://github.com/openai/openai-java/commit/c6089f14f4317f224de4996d0e0c59042c733738))
+* **client:** rename header and query params builder methods ([4fd6c23](https://github.com/openai/openai-java/commit/4fd6c23c05fe8f16bd9648f2bb2db81e4ffa7b7c))
+* **internal:** inline `MoreExecutors` usage ([505c349](https://github.com/openai/openai-java/commit/505c349f3aa299235437ce1e836ce7249db3e082))
+* **internal:** polish `ClientOptions` ([13c9038](https://github.com/openai/openai-java/commit/13c90382eb033c19724039f8bf143757f38f5df0))
+* **internal:** polish `ClientOptions` ([93141d4](https://github.com/openai/openai-java/commit/93141d47a05c71148459877d0baee76ae1a6e2f8))

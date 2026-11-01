@@ -1,0 +1,38 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.responses
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class EasyInputMessageTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val easyInputMessage =
+            EasyInputMessage.builder()
+                .content("string")
+                .role(EasyInputMessage.Role.USER)
+                .phase(EasyInputMessage.Phase.COMMENTARY)
+                .type(EasyInputMessage.Type.MESSAGE)
+                .build()
+
+        assertThat(easyInputMessage.content())
+            .isEqualTo(EasyInputMessage.Content.ofTextInput("string"))
+        assertThat(easyInputMessage.role()).isEqualTo(EasyInputMessage.Role.USER)
+        assertThat(easyInputMessage.phase()).contains(EasyInputMessage.Phase.COMMENTARY)
+        assertThat(easyInputMessage.type()).contains(EasyInputMessage.Type.MESSAGE)
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedEasyInputMessage =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(easyInputMessage),
+                jacksonTypeRef<EasyInputMessage>(),
+            )
+
+        assertThat(roundtrippedEasyInputMessage).isEqualTo(easyInputMessage)
+    }
+}

@@ -1,0 +1,30 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.chat.completions
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class ChatCompletionContentPartRefusalTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val chatCompletionContentPartRefusal =
+            ChatCompletionContentPartRefusal.builder().refusal("refusal").build()
+
+        assertThat(chatCompletionContentPartRefusal.refusal()).isEqualTo("refusal")
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedChatCompletionContentPartRefusal =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(chatCompletionContentPartRefusal),
+                jacksonTypeRef<ChatCompletionContentPartRefusal>(),
+            )
+
+        assertThat(roundtrippedChatCompletionContentPartRefusal)
+            .isEqualTo(chatCompletionContentPartRefusal)
+    }
+}

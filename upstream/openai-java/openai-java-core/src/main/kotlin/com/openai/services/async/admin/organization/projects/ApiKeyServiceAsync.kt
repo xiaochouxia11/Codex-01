@@ -1,0 +1,306 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.services.async.admin.organization.projects
+
+import com.openai.core.ClientOptions
+import com.openai.core.RequestOptions
+import com.openai.core.http.HttpResponseFor
+import com.openai.models.admin.organization.projects.apikeys.ApiKeyDeleteParams
+import com.openai.models.admin.organization.projects.apikeys.ApiKeyDeleteResponse
+import com.openai.models.admin.organization.projects.apikeys.ApiKeyListPageAsync
+import com.openai.models.admin.organization.projects.apikeys.ApiKeyListParams
+import com.openai.models.admin.organization.projects.apikeys.ApiKeyRetrieveParams
+import com.openai.models.admin.organization.projects.apikeys.ApiKeyUpdateParams
+import com.openai.models.admin.organization.projects.apikeys.ProjectApiKey
+import java.util.concurrent.CompletableFuture
+import java.util.function.Consumer
+
+interface ApiKeyServiceAsync {
+
+    /**
+     * Returns a view of this service that provides access to raw HTTP responses for each method.
+     */
+    fun withRawResponse(): WithRawResponse
+
+    /**
+     * Returns a view of this service with the given option modifications applied.
+     *
+     * The original service is not modified.
+     */
+    fun withOptions(modifier: Consumer<ClientOptions.Builder>): ApiKeyServiceAsync
+
+    /** Retrieves an API key in the project. */
+    fun retrieve(apiKeyId: String, params: ApiKeyRetrieveParams): CompletableFuture<ProjectApiKey> =
+        retrieve(apiKeyId, params, RequestOptions.none())
+
+    /** @see retrieve */
+    fun retrieve(
+        apiKeyId: String,
+        params: ApiKeyRetrieveParams,
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<ProjectApiKey> =
+        retrieve(params.toBuilder().apiKeyId(apiKeyId).build(), requestOptions)
+
+    /** @see retrieve */
+    fun retrieve(params: ApiKeyRetrieveParams): CompletableFuture<ProjectApiKey> =
+        retrieve(params, RequestOptions.none())
+
+    /** @see retrieve */
+    fun retrieve(
+        params: ApiKeyRetrieveParams,
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<ProjectApiKey>
+
+    /**
+     * Updates the scopes and/or expiration of an existing API key in the project, including a
+     * service-account-owned key. Requires permission to write project API keys.
+     *
+     * Provide at least one of `scopes` or `expires_in_seconds`. Omitted fields stay unchanged;
+     * neither field accepts `null`. Both changes are saved together.
+     *
+     * `scopes` replaces the key's scope restrictions using the same scope identifiers as the
+     * dashboard. An empty array means All permissions, subject to the owner's effective access; it
+     * does not mean no access. Use `["api.all.read"]` for read-only access or specific scopes such
+     * as `["api.files.read"]` for restricted access. This does not change user or service-account
+     * roles or grant admin permissions. Scope changes follow the same authentication-cache
+     * propagation as dashboard edits.
+     *
+     * Provide `expires_in_seconds` to set the expiration relative to this request. The value must
+     * satisfy the organization's and project's expiry policies. Expired keys cannot be updated.
+     * Retrying resets the expiration relative to the new request. The response contains only the
+     * redacted key, not its secret.
+     */
+    fun update(apiKeyId: String, params: ApiKeyUpdateParams): CompletableFuture<ProjectApiKey> =
+        update(apiKeyId, params, RequestOptions.none())
+
+    /** @see update */
+    fun update(
+        apiKeyId: String,
+        params: ApiKeyUpdateParams,
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<ProjectApiKey> =
+        update(params.toBuilder().apiKeyId(apiKeyId).build(), requestOptions)
+
+    /** @see update */
+    fun update(params: ApiKeyUpdateParams): CompletableFuture<ProjectApiKey> =
+        update(params, RequestOptions.none())
+
+    /** @see update */
+    fun update(
+        params: ApiKeyUpdateParams,
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<ProjectApiKey>
+
+    /** Returns a list of API keys in the project. */
+    fun list(projectId: String): CompletableFuture<ApiKeyListPageAsync> =
+        list(projectId, ApiKeyListParams.none())
+
+    /** @see list */
+    fun list(
+        projectId: String,
+        params: ApiKeyListParams = ApiKeyListParams.none(),
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<ApiKeyListPageAsync> =
+        list(params.toBuilder().projectId(projectId).build(), requestOptions)
+
+    /** @see list */
+    fun list(
+        projectId: String,
+        params: ApiKeyListParams = ApiKeyListParams.none(),
+    ): CompletableFuture<ApiKeyListPageAsync> = list(projectId, params, RequestOptions.none())
+
+    /** @see list */
+    fun list(
+        params: ApiKeyListParams,
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<ApiKeyListPageAsync>
+
+    /** @see list */
+    fun list(params: ApiKeyListParams): CompletableFuture<ApiKeyListPageAsync> =
+        list(params, RequestOptions.none())
+
+    /** @see list */
+    fun list(
+        projectId: String,
+        requestOptions: RequestOptions,
+    ): CompletableFuture<ApiKeyListPageAsync> =
+        list(projectId, ApiKeyListParams.none(), requestOptions)
+
+    /**
+     * Deletes an API key from the project, including keys owned by service accounts.
+     *
+     * Requires permission to write project API keys. Deleting a service-account key does not delete
+     * the service account or its other keys.
+     *
+     * Returns confirmation of the key deletion.
+     */
+    fun delete(
+        apiKeyId: String,
+        params: ApiKeyDeleteParams,
+    ): CompletableFuture<ApiKeyDeleteResponse> = delete(apiKeyId, params, RequestOptions.none())
+
+    /** @see delete */
+    fun delete(
+        apiKeyId: String,
+        params: ApiKeyDeleteParams,
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<ApiKeyDeleteResponse> =
+        delete(params.toBuilder().apiKeyId(apiKeyId).build(), requestOptions)
+
+    /** @see delete */
+    fun delete(params: ApiKeyDeleteParams): CompletableFuture<ApiKeyDeleteResponse> =
+        delete(params, RequestOptions.none())
+
+    /** @see delete */
+    fun delete(
+        params: ApiKeyDeleteParams,
+        requestOptions: RequestOptions = RequestOptions.none(),
+    ): CompletableFuture<ApiKeyDeleteResponse>
+
+    /**
+     * A view of [ApiKeyServiceAsync] that provides access to raw HTTP responses for each method.
+     */
+    interface WithRawResponse {
+
+        /**
+         * Returns a view of this service with the given option modifications applied.
+         *
+         * The original service is not modified.
+         */
+        fun withOptions(
+            modifier: Consumer<ClientOptions.Builder>
+        ): ApiKeyServiceAsync.WithRawResponse
+
+        /**
+         * Returns a raw HTTP response for `get
+         * /organization/projects/{project_id}/api_keys/{api_key_id}`, but is otherwise the same as
+         * [ApiKeyServiceAsync.retrieve].
+         */
+        fun retrieve(
+            apiKeyId: String,
+            params: ApiKeyRetrieveParams,
+        ): CompletableFuture<HttpResponseFor<ProjectApiKey>> =
+            retrieve(apiKeyId, params, RequestOptions.none())
+
+        /** @see retrieve */
+        fun retrieve(
+            apiKeyId: String,
+            params: ApiKeyRetrieveParams,
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<ProjectApiKey>> =
+            retrieve(params.toBuilder().apiKeyId(apiKeyId).build(), requestOptions)
+
+        /** @see retrieve */
+        fun retrieve(
+            params: ApiKeyRetrieveParams
+        ): CompletableFuture<HttpResponseFor<ProjectApiKey>> =
+            retrieve(params, RequestOptions.none())
+
+        /** @see retrieve */
+        fun retrieve(
+            params: ApiKeyRetrieveParams,
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<ProjectApiKey>>
+
+        /**
+         * Returns a raw HTTP response for `post
+         * /organization/projects/{project_id}/api_keys/{api_key_id}`, but is otherwise the same as
+         * [ApiKeyServiceAsync.update].
+         */
+        fun update(
+            apiKeyId: String,
+            params: ApiKeyUpdateParams,
+        ): CompletableFuture<HttpResponseFor<ProjectApiKey>> =
+            update(apiKeyId, params, RequestOptions.none())
+
+        /** @see update */
+        fun update(
+            apiKeyId: String,
+            params: ApiKeyUpdateParams,
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<ProjectApiKey>> =
+            update(params.toBuilder().apiKeyId(apiKeyId).build(), requestOptions)
+
+        /** @see update */
+        fun update(params: ApiKeyUpdateParams): CompletableFuture<HttpResponseFor<ProjectApiKey>> =
+            update(params, RequestOptions.none())
+
+        /** @see update */
+        fun update(
+            params: ApiKeyUpdateParams,
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<ProjectApiKey>>
+
+        /**
+         * Returns a raw HTTP response for `get /organization/projects/{project_id}/api_keys`, but
+         * is otherwise the same as [ApiKeyServiceAsync.list].
+         */
+        fun list(projectId: String): CompletableFuture<HttpResponseFor<ApiKeyListPageAsync>> =
+            list(projectId, ApiKeyListParams.none())
+
+        /** @see list */
+        fun list(
+            projectId: String,
+            params: ApiKeyListParams = ApiKeyListParams.none(),
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<ApiKeyListPageAsync>> =
+            list(params.toBuilder().projectId(projectId).build(), requestOptions)
+
+        /** @see list */
+        fun list(
+            projectId: String,
+            params: ApiKeyListParams = ApiKeyListParams.none(),
+        ): CompletableFuture<HttpResponseFor<ApiKeyListPageAsync>> =
+            list(projectId, params, RequestOptions.none())
+
+        /** @see list */
+        fun list(
+            params: ApiKeyListParams,
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<ApiKeyListPageAsync>>
+
+        /** @see list */
+        fun list(
+            params: ApiKeyListParams
+        ): CompletableFuture<HttpResponseFor<ApiKeyListPageAsync>> =
+            list(params, RequestOptions.none())
+
+        /** @see list */
+        fun list(
+            projectId: String,
+            requestOptions: RequestOptions,
+        ): CompletableFuture<HttpResponseFor<ApiKeyListPageAsync>> =
+            list(projectId, ApiKeyListParams.none(), requestOptions)
+
+        /**
+         * Returns a raw HTTP response for `delete
+         * /organization/projects/{project_id}/api_keys/{api_key_id}`, but is otherwise the same as
+         * [ApiKeyServiceAsync.delete].
+         */
+        fun delete(
+            apiKeyId: String,
+            params: ApiKeyDeleteParams,
+        ): CompletableFuture<HttpResponseFor<ApiKeyDeleteResponse>> =
+            delete(apiKeyId, params, RequestOptions.none())
+
+        /** @see delete */
+        fun delete(
+            apiKeyId: String,
+            params: ApiKeyDeleteParams,
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<ApiKeyDeleteResponse>> =
+            delete(params.toBuilder().apiKeyId(apiKeyId).build(), requestOptions)
+
+        /** @see delete */
+        fun delete(
+            params: ApiKeyDeleteParams
+        ): CompletableFuture<HttpResponseFor<ApiKeyDeleteResponse>> =
+            delete(params, RequestOptions.none())
+
+        /** @see delete */
+        fun delete(
+            params: ApiKeyDeleteParams,
+            requestOptions: RequestOptions = RequestOptions.none(),
+        ): CompletableFuture<HttpResponseFor<ApiKeyDeleteResponse>>
+    }
+}

@@ -1,0 +1,30 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.realtime
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class McpListToolsInProgressTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val mcpListToolsInProgress =
+            McpListToolsInProgress.builder().eventId("event_id").itemId("item_id").build()
+
+        assertThat(mcpListToolsInProgress.eventId()).isEqualTo("event_id")
+        assertThat(mcpListToolsInProgress.itemId()).isEqualTo("item_id")
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedMcpListToolsInProgress =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(mcpListToolsInProgress),
+                jacksonTypeRef<McpListToolsInProgress>(),
+            )
+
+        assertThat(roundtrippedMcpListToolsInProgress).isEqualTo(mcpListToolsInProgress)
+    }
+}

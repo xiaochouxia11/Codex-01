@@ -1,0 +1,169 @@
+package com.openai.core
+
+import com.openai.core.http.Headers
+import com.openai.core.http.QueryParams
+import com.openai.models.ChatModel
+import com.openai.models.ResponsesModel
+import com.openai.models.chat.completions.ChatCompletionListParams
+import com.openai.models.embeddings.EmbeddingCreateParams
+import com.openai.models.embeddings.EmbeddingModel
+import com.openai.models.responses.ResponseCreateParams
+import com.openai.models.uploads.UploadCancelParams
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatNoException
+import org.junit.jupiter.api.Test
+
+internal class PrepareRequestTest {
+    @Test
+    fun noModelFunction() {
+        val params = UploadCancelParams.builder().uploadId("my-upload-id").build()
+
+        assertThat(params.modelNameOrNull()).isNull()
+    }
+
+    @Test
+    fun modelLiteralNotNull() {
+        val params =
+            EmbeddingCreateParams.builder().model("my-model").input("Hello, world!").build()
+
+        assertThat(params.modelNameOrNull()).isNotNull()
+        assertThat(params.modelNameOrNull()).isEqualTo("my-model")
+    }
+
+    @Test
+    fun modelEnumNotNull() {
+        val params =
+            EmbeddingCreateParams.builder()
+                .model(EmbeddingModel.TEXT_EMBEDDING_3_LARGE)
+                .input("Hello, world!")
+                .build()
+
+        assertThat(params.modelNameOrNull()).isNotNull()
+        assertThat(params.modelNameOrNull()).isEqualTo("text-embedding-3-large")
+    }
+
+    @Test
+    fun modelNull() {
+        // There are no instances where a `Params.model()` returns a nullable value. If a model can
+        // be `null`, it is always returned in a non-nullable `Optional`.
+    }
+
+    @Test
+    fun modelOptionalNotNull() {
+        val params = ChatCompletionListParams.builder().model("my-model-id").build()
+
+        assertThat(params.modelNameOrNull()).isNotNull()
+        assertThat(params.modelNameOrNull()).isEqualTo("my-model-id")
+    }
+
+    @Test
+    fun modelOptionalNull() {
+        // Test the same type of `Params` with and without `null`, to ensure `model()` is being
+        // detected, but its `null` value is correctly returned when set. (Rather than `model()`
+        // not being detected, which would also return `null`.)
+        val params1 = ChatCompletionListParams.builder().model("my-model-id").build()
+        val params2 = ChatCompletionListParams.builder().model(null).build()
+
+        assertThat(params1.modelNameOrNull()).isNotNull()
+        assertThat(params1.modelNameOrNull()).isEqualTo("my-model-id")
+
+        assertThat(params2.modelNameOrNull()).isNull()
+    }
+
+    @Test
+    fun modelCannotBeCalledIfPrivate() {
+        class X : Params {
+            private fun model(): String = "my-model-id"
+
+            override fun _headers(): Headers {
+                throw RuntimeException()
+            }
+
+            override fun _queryParams(): QueryParams {
+                throw RuntimeException()
+            }
+        }
+
+        val params = X()
+
+        assertThatNoException().isThrownBy { params.modelNameOrNull() }
+        assertThat(params.modelNameOrNull()).isNull()
+    }
+
+    @Test
+    fun modelCannotBeCalledIfHasParameters() {
+        class X : Params {
+            private fun model(s: String): String = "my-model-id"
+
+            override fun _headers(): Headers {
+                throw RuntimeException()
+            }
+
+            override fun _queryParams(): QueryParams {
+                throw RuntimeException()
+            }
+        }
+
+        val params = X()
+
+        assertThatNoException().isThrownBy { params.modelNameOrNull() }
+        assertThat(params.modelNameOrNull()).isNull()
+    }
+
+    @Test
+    fun modelUnionStringNotNull() {
+        val params = ResponseCreateParams.builder().model("my-model").input("Hello, world!").build()
+
+        assertThat(params.modelNameOrNull()).isEqualTo("my-model")
+    }
+
+    @Test
+    fun modelUnionChatNotNull() {
+        val params =
+            ResponseCreateParams.builder().model(ChatModel.GPT_4O).input("Hello, world!").build()
+
+        assertThat(params.modelNameOrNull()).isEqualTo("gpt-4o")
+    }
+
+    @Test
+    fun modelUnionOnlyNotNull() {
+        val params =
+            ResponseCreateParams.builder()
+                .model(ResponsesModel.ResponsesOnlyModel.O1_PRO)
+                .input("Hello, world!")
+                .build()
+
+        assertThat(params.modelNameOrNull()).isEqualTo("o1-pro")
+    }
+
+    @Test
+    fun modelUnionNonStringIsNull() {
+        val mapper = jsonMapper()
+        for (json in listOf("123", """{"future":"model"}""")) {
+            // Enum branches retain unrecognized JSON, so cover both arms explicitly as well as
+            // the union deserializer's preferred match.
+            for (model in
+                listOf(
+                    mapper.readValue(json, ResponsesModel::class.java),
+                    ResponsesModel.ofChat(mapper.readValue(json, ChatModel::class.java)),
+                    ResponsesModel.ofOnly(
+                        mapper.readValue(json, ResponsesModel.ResponsesOnlyModel::class.java)
+                    ),
+                )) {
+                val params = ResponseCreateParams.builder().model(model).input("Hello").build()
+
+                assertThat(params.model()).contains(model)
+                assertThat(params.modelNameOrNull()).isNull()
+            }
+        }
+    }
+
+    @Test
+    fun modelUnknownFieldIsNull() {
+        for (json in listOf(JsonValue.from(123), JsonValue.from(mapOf("future" to "model")))) {
+            val params = ResponseCreateParams.builder().model(json).input("Hello").build()
+
+            assertThat(params.modelNameOrNull()).isNull()
+        }
+    }
+}

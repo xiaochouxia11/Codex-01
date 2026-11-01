@@ -1,0 +1,45 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.chat.completions
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class ChatCompletionMessageFunctionToolCallTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val chatCompletionMessageFunctionToolCall =
+            ChatCompletionMessageFunctionToolCall.builder()
+                .id("id")
+                .function(
+                    ChatCompletionMessageFunctionToolCall.Function.builder()
+                        .arguments("arguments")
+                        .name("name")
+                        .build()
+                )
+                .build()
+
+        assertThat(chatCompletionMessageFunctionToolCall.id()).isEqualTo("id")
+        assertThat(chatCompletionMessageFunctionToolCall.function())
+            .isEqualTo(
+                ChatCompletionMessageFunctionToolCall.Function.builder()
+                    .arguments("arguments")
+                    .name("name")
+                    .build()
+            )
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedChatCompletionMessageFunctionToolCall =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(chatCompletionMessageFunctionToolCall),
+                jacksonTypeRef<ChatCompletionMessageFunctionToolCall>(),
+            )
+
+        assertThat(roundtrippedChatCompletionMessageFunctionToolCall)
+            .isEqualTo(chatCompletionMessageFunctionToolCall)
+    }
+}

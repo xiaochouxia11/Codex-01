@@ -1,0 +1,48 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.responses
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import com.openai.models.PromptCacheBreakpointTtl
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class ResponseInputImageContentTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val responseInputImageContent =
+            ResponseInputImageContent.builder()
+                .detail(ResponseInputImageContent.Detail.LOW)
+                .fileId("file-123")
+                .imageUrl("https://example.com")
+                .promptCacheBreakpoint(
+                    ResponseInputImageContent.PromptCacheBreakpoint.builder()
+                        .ttl(PromptCacheBreakpointTtl._30M)
+                        .build()
+                )
+                .build()
+
+        assertThat(responseInputImageContent.detail())
+            .contains(ResponseInputImageContent.Detail.LOW)
+        assertThat(responseInputImageContent.fileId()).contains("file-123")
+        assertThat(responseInputImageContent.imageUrl()).contains("https://example.com")
+        assertThat(responseInputImageContent.promptCacheBreakpoint())
+            .contains(
+                ResponseInputImageContent.PromptCacheBreakpoint.builder()
+                    .ttl(PromptCacheBreakpointTtl._30M)
+                    .build()
+            )
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedResponseInputImageContent =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(responseInputImageContent),
+                jacksonTypeRef<ResponseInputImageContent>(),
+            )
+
+        assertThat(roundtrippedResponseInputImageContent).isEqualTo(responseInputImageContent)
+    }
+}

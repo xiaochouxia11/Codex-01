@@ -1,0 +1,64 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.responses
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class ResponseFunctionShellToolCallTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val responseFunctionShellToolCall =
+            ResponseFunctionShellToolCall.builder()
+                .id("id")
+                .action(
+                    ResponseFunctionShellToolCall.Action.builder()
+                        .addCommand("string")
+                        .maxOutputLength(0L)
+                        .timeoutMs(0L)
+                        .build()
+                )
+                .callId("call_id")
+                .environment(ResponseLocalEnvironment.builder().build())
+                .status(ResponseFunctionShellToolCall.Status.IN_PROGRESS)
+                .callerDirect()
+                .createdBy("created_by")
+                .build()
+
+        assertThat(responseFunctionShellToolCall.id()).isEqualTo("id")
+        assertThat(responseFunctionShellToolCall.action())
+            .isEqualTo(
+                ResponseFunctionShellToolCall.Action.builder()
+                    .addCommand("string")
+                    .maxOutputLength(0L)
+                    .timeoutMs(0L)
+                    .build()
+            )
+        assertThat(responseFunctionShellToolCall.callId()).isEqualTo("call_id")
+        assertThat(responseFunctionShellToolCall.environment())
+            .contains(
+                ResponseFunctionShellToolCall.Environment.ofLocal(
+                    ResponseLocalEnvironment.builder().build()
+                )
+            )
+        assertThat(responseFunctionShellToolCall.status())
+            .isEqualTo(ResponseFunctionShellToolCall.Status.IN_PROGRESS)
+        assertThat(responseFunctionShellToolCall.caller())
+            .contains(ResponseFunctionShellToolCall.Caller.ofDirect())
+        assertThat(responseFunctionShellToolCall.createdBy()).contains("created_by")
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedResponseFunctionShellToolCall =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(responseFunctionShellToolCall),
+                jacksonTypeRef<ResponseFunctionShellToolCall>(),
+            )
+
+        assertThat(roundtrippedResponseFunctionShellToolCall)
+            .isEqualTo(responseFunctionShellToolCall)
+    }
+}

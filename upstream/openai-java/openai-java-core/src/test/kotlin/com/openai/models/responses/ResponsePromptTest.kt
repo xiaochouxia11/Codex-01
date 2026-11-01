@@ -1,0 +1,45 @@
+// File generated from our OpenAPI spec by Castiron. See CONTRIBUTING.md for details.
+
+package com.openai.models.responses
+
+import com.fasterxml.jackson.module.kotlin.jacksonTypeRef
+import com.openai.core.JsonValue
+import com.openai.core.jsonMapper
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+
+internal class ResponsePromptTest {
+
+    @Test
+    fun createAndRoundtrip() {
+        val responsePrompt =
+            ResponsePrompt.builder()
+                .id("id")
+                .variables(
+                    ResponsePrompt.Variables.builder()
+                        .putAdditionalProperty("foo", JsonValue.from("string"))
+                        .build()
+                )
+                .version("version")
+                .build()
+
+        assertThat(responsePrompt.id()).isEqualTo("id")
+        assertThat(responsePrompt.variables())
+            .contains(
+                ResponsePrompt.Variables.builder()
+                    .putAdditionalProperty("foo", JsonValue.from("string"))
+                    .build()
+            )
+        assertThat(responsePrompt.version()).contains("version")
+
+        val jsonMapper = jsonMapper()
+
+        val roundtrippedResponsePrompt =
+            jsonMapper.readValue(
+                jsonMapper.writeValueAsString(responsePrompt),
+                jacksonTypeRef<ResponsePrompt>(),
+            )
+
+        assertThat(roundtrippedResponsePrompt).isEqualTo(responsePrompt)
+    }
+}
