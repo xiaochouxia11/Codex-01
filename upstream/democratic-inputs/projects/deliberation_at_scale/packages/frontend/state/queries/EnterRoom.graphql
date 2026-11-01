@@ -1,0 +1,18 @@
+mutation EnterRoom($participantId: UUID!) {
+    updateparticipantsCollection(
+        filter: {
+            id: { eq: $participantId },
+            status: { eq: waiting_for_confirmation }
+        },
+        set: {
+            status: in_room
+        }
+    ) {
+        affectedCount
+        records {
+            id
+            status
+            room_id
+        }
+    }
+}

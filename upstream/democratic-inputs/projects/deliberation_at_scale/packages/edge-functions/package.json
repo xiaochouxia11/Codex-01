@@ -1,0 +1,21 @@
+{
+  "name": "@deliberation-at-scale/edge-functions",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "supabase start",
+    "serve": "supabase functions serve",
+    "set-secrets": "dotenv -e .env -- sh -c 'supabase secrets set --env-file ./.env --project-ref \"$PROJECT_ID\"'",
+    "deploy": "npm run deploy:login-anonymous && npm run deploy:transcribe",
+    "deploy:transcribe": "npm run set-secrets && dotenv -e .env -- sh -c 'supabase functions deploy transcribe --project-ref \"$PROJECT_ID\"'",
+    "deploy:login-anonymous": "npm run set-secrets && dotenv -e .env -- sh -c 'supabase functions deploy login-anonymous --project-ref \"$PROJECT_ID\"'"
+  },
+  "keywords": [],
+  "author": "Pepijn Verburg <pepijn@bmd.studio>, Lei Nelissen <lei@bmd.studio>, Jorim Theuns <jorim@dembrane.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "dotenv-cli": "7.3.0",
+    "supabase": "1.99.5"
+  }
+}

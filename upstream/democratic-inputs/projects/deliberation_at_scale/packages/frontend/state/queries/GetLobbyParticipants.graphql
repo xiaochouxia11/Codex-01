@@ -1,0 +1,17 @@
+query GetLobbyParticipants($userId: UUID!) {
+    participantsCollection(
+        filter: {
+            user_id: { eq: $userId },
+            active: { eq: true },
+        },
+        orderBy: {
+            created_at: DescNullsLast,
+        },
+    )  {
+        edges {
+            node {
+                ...FullParticipant
+            }
+        }
+    }
+}

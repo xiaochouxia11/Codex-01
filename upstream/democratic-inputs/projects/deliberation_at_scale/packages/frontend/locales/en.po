@@ -1,0 +1,548 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2023-09-13 11:22+0200\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: en\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
+
+#: app/[lang]/page.tsx:49
+msgid "<0><1>Join a conversation</1> with two fellow participants</0>"
+msgstr "<0><1>Join a conversation</1> with two fellow participants</0>"
+
+#: app/[lang]/page.tsx:57
+msgid "<0><1>Learn</1> from eachother and <2>contribute</2>!</0>"
+msgstr "<0><1>Learn</1> from eachother and <2>contribute</2>!</0>"
+
+#: app/[lang]/page.tsx:45
+msgid "<0><1>Setup your profile</1> via email in one minute</0>"
+msgstr "<0><1>Setup your profile</1> via email in one minute</0>"
+
+#: app/[lang]/page.tsx:53
+msgid "<0>An AI moderator may <1>help you in your conversation</1></0>"
+msgstr "<0>An AI moderator may <1>help you in your conversation</1></0>"
+
+#: components/ChatFlow/LoginChatFlow.tsx:47
+#: components/ChatFlow/RegisterChatFlow.tsx:43
+msgid "After you click on this link, you will be redirected back to this application to be ready to start finding common ground."
+msgstr "After you click on this link, you will be redirected back to this application to be ready to start finding common ground."
+
+#: components/RoomOutcome.tsx:67
+msgid "Agree"
+msgstr "Agree"
+
+#: components/ChatFlow/index.tsx:38
+#: hooks/useRoomMessages.ts:56
+msgid "AI Moderator"
+msgstr "AI Moderator"
+
+#: components/RoomMenu.tsx:39
+msgid "Assistant"
+msgstr "Assistant"
+
+#: components/ChatFlow/LobbyChatFlow.tsx:24
+msgid "Before joining the conversation, let's pick a nickname and configure your camera and microphone."
+msgstr "Before joining the conversation, let's pick a nickname and configure your camera and microphone."
+
+#: components/ChatInput.tsx:152
+msgid "Call a Facilitator"
+msgstr "Call a Facilitator"
+
+#: components/ChatFlow/ProfileChatFlow.tsx:83
+msgid "Change my profile"
+msgstr "Change my profile"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:23
+msgid "Check device permissions now"
+msgstr "Check device permissions now"
+
+#: app/[lang]/room/[roomId]/layout.tsx:46
+msgid "Connecting to video call..."
+msgstr "Connecting to video call..."
+
+#: components/RoomOutcome.tsx:43
+msgid "Consensus Proposal"
+msgstr "Consensus Proposal"
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:70
+msgid "Continue"
+msgstr "Continue"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:103
+msgid "Continue to room"
+msgstr "Continue to room"
+
+#: components/ChatMessage.tsx:76
+#: hooks/useRoomMessages.ts:56
+msgid "Contributor"
+msgstr "Contributor"
+
+#: components/RoomMenu.tsx:53
+#: components/RoomTopic.tsx:43
+msgid "Conversation"
+msgstr "Conversation"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:152
+msgid "Conversation partners have been found. Dive right in!"
+msgstr "Conversation partners have been found. Dive right in!"
+
+#: components/RoomParticipants/controls.tsx:65
+msgid "Disable audio"
+msgstr "Disable audio"
+
+#: components/RoomParticipants/controls.tsx:80
+msgid "Disable video"
+msgstr "Disable video"
+
+#: components/RoomOutcome.tsx:72
+msgid "Disagree"
+msgstr "Disagree"
+
+#: components/RoomParticipants/controls.tsx:65
+msgid "Enable audio"
+msgstr "Enable audio"
+
+#: components/RoomParticipants/controls.tsx:80
+msgid "Enable video"
+msgstr "Enable video"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:76
+msgid "Everything seems to be working fine. Let's get started!"
+msgstr "Everything seems to be working fine. Let's get started!"
+
+#: app/[lang]/page.tsx:32
+msgid "Experience and influence AI! Welcome to a conversation about AI in your city."
+msgstr "Experience and influence AI! Welcome to a conversation about AI in your city."
+
+#: components/ChatInput.tsx:133
+msgid "Facilitator on the way!"
+msgstr "Facilitator on the way!"
+
+#: app/[lang]/room/[roomId]/layout.tsx:34
+msgid "Finding room..."
+msgstr "Finding room..."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:170
+msgid "Go back to home"
+msgstr "Go back to home"
+
+#: components/ChatFlow/IdleChatFlow.tsx:32
+#: components/ChatFlow/InvalidChatFlow.tsx:32
+msgid "Go back to profile page"
+msgstr "Go back to profile page"
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:99
+msgid "Go back to the profile page"
+msgstr "Go back to the profile page"
+
+#: app/[lang]/page.tsx:70
+msgid "Go to profile"
+msgstr "Go to profile"
+
+#: hooks/useRoomActions.ts:56
+msgid "Go to voting"
+msgstr "Go to voting"
+
+#: components/ChatFlow/ProfileChatFlow.tsx:55
+msgid "Great! Moving you to the waiting lobby... Hold on tight!"
+msgstr "Great! Moving you to the waiting lobby... Hold on tight!"
+
+#: components/ChatFlow/IdleChatFlow.tsx:17
+msgid "Hello [nickName]. You have been idle for a while. Would you still like to join a conversation?"
+msgstr "Hello [nickName]. You have been idle for a while. Would you still like to join a conversation?"
+
+#: components/ChatFlow/RegisterChatFlow.tsx:24
+msgid "Hey, welcome to Common Ground. We appreciate you taking the time to contribute."
+msgstr "Hey, welcome to Common Ground. We appreciate you taking the time to contribute."
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:41
+msgid "Hi [nickName]! Hopefully you enjoyed the conversation you had with the group."
+msgstr "Hi [nickName]! Hopefully you enjoyed the conversation you had with the group."
+
+#: components/ChatFlow/LoginChatFlow.tsx:25
+msgid "Hi, welcome back to Common Ground. We appreciate you taking the time to contribute."
+msgstr "Hi, welcome back to Common Ground. We appreciate you taking the time to contribute."
+
+#: components/ChatFlow/AnonymousLoginChatFlow.tsx:24
+msgid "Hi, welcome to Common Ground. We appreciate you taking the time to contribute."
+msgstr "Hi, welcome to Common Ground. We appreciate you taking the time to contribute."
+
+#: components/ChatFlow/InvalidChatFlow.tsx:17
+msgid "Hmmm, it appears the conversation could not be joined or the other participants took too long to join. Sorry about that!"
+msgstr "Hmmm, it appears the conversation could not be joined or the other participants took too long to join. Sorry about that!"
+
+#: hooks/useRoomActions.ts:82
+msgid "I would like to move on to the next statement."
+msgstr "I would like to move on to the next statement."
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:47
+msgid "If you have another 15 - 20 minutes, please join another conversation."
+msgstr "If you have another 15 - 20 minutes, please join another conversation."
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:59
+msgid "In case the button does not work: [{prolificSurveyUrl}]({prolificSurveyUrl})"
+msgstr "In case the button does not work: [{prolificSurveyUrl}]({prolificSurveyUrl})"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:123
+msgid "It appears that you have not enabled the use of your microphone and camera, or they may be disabled. Please click the button below to try again or enable them using the buttons above."
+msgstr "It appears that you have not enabled the use of your microphone and camera, or they may be disabled. Please click the button below to try again or enable them using the buttons above."
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:133
+msgid "It was bad."
+msgstr "It was bad."
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:113
+msgid "It was great!"
+msgstr "It was great!"
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:123
+msgid "It was okay."
+msgstr "It was okay."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:165
+msgid "It's happening now! Enjoy!"
+msgstr "It's happening now! Enjoy!"
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:91
+msgid "Join another conversation"
+msgstr "Join another conversation"
+
+#: components/RoomParticipants/controls.tsx:92
+#: hooks/useRoomActions.ts:99
+msgid "Leave conversation"
+msgstr "Leave conversation"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:55
+msgid "Leave the queue."
+msgstr "Leave the queue."
+
+#: app/[lang]/room/[roomId]/layout.tsx:42
+msgid "Loading media..."
+msgstr "Loading media..."
+
+#: app/[lang]/room/[roomId]/layout.tsx:38
+msgid "Loading room..."
+msgstr "Loading room..."
+
+#: app/[lang]/page.tsx:71
+msgid "Log out"
+msgstr "Log out"
+
+#: components/ChatFlow/AnonymousLoginChatFlow.tsx:46
+msgid "Logging you in..."
+msgstr "Logging you in..."
+
+#: components/ChatFlow/ProfileChatFlow.tsx:65
+msgid "Logging you out..."
+msgstr "Logging you out..."
+
+#: app/[lang]/page.tsx:76
+msgid "Login"
+msgstr "Login"
+
+#: components/ChatFlow/ProfileChatFlow.tsx:63
+msgid "Logout"
+msgstr "Logout"
+
+#: components/ChatInput.tsx:132
+msgid "Looking for facilitator"
+msgstr "Looking for facilitator"
+
+#: components/RoomOutcome.tsx:44
+msgid "Milestone"
+msgstr "Milestone"
+
+#: components/ChatFlow/InvalidChatFlow.tsx:24
+msgid "Moving you to the lobby again, one moment please..."
+msgstr "Moving you to the lobby again, one moment please..."
+
+#: hooks/useRoomActions.ts:67
+msgid "Next statement"
+msgstr "Next statement"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:38
+msgid "Note: If you are in **a call with less than three people, the system won't work**. Leave the conversation by clicking the red door next to your video feed and join a new one."
+msgstr "Note: If you are in **a call with less than three people, the system won't work**. Leave the conversation by clicking the red door next to your video feed and join a new one."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:34
+msgid "Note: Our AI is not listening in, it only understands what you type and send in the chat."
+msgstr "Note: Our AI is not listening in, it only understands what you type and send in the chat."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:36
+msgid "Note: This may take a few minutes - don't leave the page!"
+msgstr "Note: This may take a few minutes - don't leave the page!"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:32
+msgid "Note: We do not record your video or audio."
+msgstr "Note: We do not record your video or audio."
+
+#: components/ChatFlow/LobbyChatFlow.tsx:72
+msgid "Now your camera and microphone need to be configured."
+msgstr "Now your camera and microphone need to be configured."
+
+#: components/RoomOutcome.tsx:45
+msgid "Off Topic"
+msgstr "Off Topic"
+
+#: components/ChatFlow/LobbyChatFlow.tsx:67
+msgid "Okay, from now on your nickname will be \"[nickName]\"."
+msgstr "Okay, from now on your nickname will be \"[nickName]\"."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:58
+msgid "Okay, leaving the queue..."
+msgstr "Okay, leaving the queue..."
+
+#: components/ChatFlow/LobbyChatFlow.tsx:59
+msgid "Okay, your nickname will be \"[nickName]\"."
+msgstr "Okay, your nickname will be \"[nickName]\"."
+
+#: components/ChatFlow/IdleChatFlow.tsx:24
+msgid "Okay! Moving you to the lobby."
+msgstr "Okay! Moving you to the lobby."
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:62
+msgid "Open final evaluation"
+msgstr "Open final evaluation"
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:53
+msgid "Otherwise, click the button below to progress to the final evaluation and recieve your completion code."
+msgstr "Otherwise, click the button below to progress to the final evaluation and recieve your completion code."
+
+#: components/ChatFlow/ProfileChatFlow.tsx:53
+msgid "Participate in a new conversation"
+msgstr "Participate in a new conversation"
+
+#: components/RoomOutcome.tsx:77
+msgid "Pass"
+msgstr "Pass"
+
+#: components/ChatFlow/AnonymousLoginChatFlow.tsx:37
+msgid "Please enter your Prolific ID below:"
+msgstr "Please enter your Prolific ID below:"
+
+#: app/[lang]/page.tsx:75
+msgid "Register"
+msgstr "Register"
+
+#: components/ChatFlow/ProfileChatFlow.tsx:43
+msgid "Rejoin your last conversation"
+msgstr "Rejoin your last conversation"
+
+#: components/ChatFlow/ProfileChatFlow.tsx:45
+msgid "Rejoining your last conversation..."
+msgstr "Rejoining your last conversation..."
+
+#: components/ChatFlow/InvalidChatFlow.tsx:22
+msgid "Retry joining a conversation"
+msgstr "Retry joining a conversation"
+
+#: components/ChatFlow/index.tsx:77
+msgid "Select a button above..."
+msgstr "Select a button above..."
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:83
+msgid "Share your feedback"
+msgstr "Share your feedback"
+
+#: components/ChatFlow/index.tsx:208
+#: components/ChatFlow/index.tsx:330
+msgid "Something went wrong! Please try again."
+msgstr "Something went wrong! Please try again."
+
+#: hooks/useQuickReplies.tsx:12
+msgid "Start over"
+msgstr "Start over"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:91
+msgid "Start searching for a conversation"
+msgstr "Start searching for a conversation"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:156
+msgid "Start the conversation"
+msgstr "Start the conversation"
+
+#: components/RoomOutcome.tsx:46
+#: components/RoomOutcome.tsx:47
+#: components/RoomOutcome.tsx:48
+msgid "Statement"
+msgstr "Statement"
+
+#: components/ChatFlow/LobbyChatFlow.tsx:76
+msgid "Sure!"
+msgstr "Sure!"
+
+#: components/ChatInput.tsx:46
+msgid "Tap to type"
+msgstr "Tap to type"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:42
+msgid "Thank you for participating in this test!"
+msgstr "Thank you for participating in this test!"
+
+#: components/ChatFlow/LoginChatFlow.tsx:40
+#: components/ChatFlow/RegisterChatFlow.tsx:36
+msgid "Thank you! You will find an email with a login link in your inbox. Be sure to check your SPAM folder as well!"
+msgstr "Thank you! You will find an email with a login link in your inbox. Be sure to check your SPAM folder as well!"
+
+#: components/ChatFlow/AnonymousLoginChatFlow.tsx:43
+msgid "Thank you. Getting login details..."
+msgstr "Thank you. Getting login details..."
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:146
+msgid "Thanks for the feedback [nickName]!"
+msgstr "Thanks for the feedback [nickName]!"
+
+#: hooks/useFlowSteps.tsx:23
+msgid "That is not a valid email address!"
+msgstr "That is not a valid email address!"
+
+#: hooks/useFlowSteps.tsx:27
+msgid "That looks like a valid e-mail. We're sending you an email now..."
+msgstr "That looks like a valid e-mail. We're sending you an email now..."
+
+#: components/ChatFlow/AnonymousLoginChatFlow.tsx:57
+msgid "There was an error getting the login details. Please try again!"
+msgstr "There was an error getting the login details. Please try again!"
+
+#: hooks/useFlowSteps.tsx:32
+msgid "There was an error sending you an email. Please try again!"
+msgstr "There was an error sending you an email. Please try again!"
+
+#: components/ChatInput.tsx:134
+msgid "This just happened: {0}"
+msgstr "This just happened: {0}"
+
+#: hooks/useRoomMessages.ts:66
+msgid "This message has been flagged as difficult to understand."
+msgstr "This message has been flagged as difficult to understand."
+
+#: hooks/useRoomMessages.ts:64
+msgid "This message has been flagged as inappropriate."
+msgstr "This message has been flagged as inappropriate."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:45
+msgid "Tip: Found a bug? Tell us in the evaluation form."
+msgstr "Tip: Found a bug? Tell us in the evaluation form."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:40
+msgid "Tip: Is anything stuck or broken? Try refreshing the page."
+msgstr "Tip: Is anything stuck or broken? Try refreshing the page."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:44
+msgid "Tip: Meeting new people can be hard: that's okay!"
+msgstr "Tip: Meeting new people can be hard: that's okay!"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:41
+msgid "Tip: Progressing after a conversation? Press 'next statement'."
+msgstr "Tip: Progressing after a conversation? Press 'next statement'."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:39
+msgid "Tip: Share your opinions first. Then vote."
+msgstr "Tip: Share your opinions first. Then vote."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:33
+msgid "Tip: Want create a new statement? Just type and send your thoughts into the chat."
+msgstr "Tip: Want create a new statement? Just type and send your thoughts into the chat."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:35
+msgid "Tip: We really care about what you care about! Type your thoughts into the chat to share them with us."
+msgstr "Tip: We really care about what you care about! Type your thoughts into the chat to share them with us."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:43
+msgid "Tip: You can actually share what you really think!"
+msgstr "Tip: You can actually share what you really think!"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:37
+msgid "Tip: Your vote is important. It will be registered."
+msgstr "Tip: Your vote is important. It will be registered."
+
+#: components/ChatFlow/RegisterChatFlow.tsx:29
+msgid "To get started, a registration link will be send to your email."
+msgstr "To get started, a registration link will be send to your email."
+
+#: app/[lang]/page.tsx:61
+msgid "To get started, click 'Register' below:"
+msgstr "To get started, click 'Register' below:"
+
+#: components/ChatFlow/LoginChatFlow.tsx:32
+msgid "To join conversations again, we need your e-mail address once more."
+msgstr "To join conversations again, we need your e-mail address once more."
+
+#: components/ChatFlow/AnonymousLoginChatFlow.tsx:31
+msgid "To join conversations, we need your Prolific ID to verify that you are a Prolific user."
+msgstr "To join conversations, we need your Prolific ID to verify that you are a Prolific user."
+
+#: components/ChatFlow/IdleChatFlow.tsx:22
+msgid "Try joining a conversation again"
+msgstr "Try joining a conversation again"
+
+#: components/ChatFlow/LobbyChatFlow.tsx:33
+msgid "Use my current nickname: \"[nickName]\"."
+msgstr "Use my current nickname: \"[nickName]\"."
+
+#: components/ChatFlow/ProfileChatFlow.tsx:74
+msgid "View results of previous conversations"
+msgstr "View results of previous conversations"
+
+#: app/[lang]/room/[roomId]/layout.tsx:50
+msgid "Waiting for all participants to join..."
+msgstr "Waiting for all participants to join..."
+
+#: components/ChatFlow/PermissionChatFlow.tsx:141
+msgid "Waiting for two other participants..."
+msgstr "Waiting for two other participants..."
+
+#: components/ChatFlow/index.tsx:77
+msgid "Waiting..."
+msgstr "Waiting..."
+
+#: app/[lang]/page.tsx:34
+msgid "We all want the <0>best for the places where we live</0>. This is why we want to figure how AI can help. We believe it is important that <1>people steer</1> this development. Thank you for being part of this effort!"
+msgstr "We all want the <0>best for the places where we live</0>. This is why we want to figure how AI can help. We believe it is important that <1>people steer</1> this development. Thank you for being part of this effort!"
+
+#: components/ChatFlow/ProfileChatFlow.tsx:27
+msgid ""
+"Welcome to Common Ground!\n"
+"Dive into our conversation about the future of AI.\n"
+"Remember, your unique perspective enriches the conversation.\n"
+"Let's get started!"
+msgstr ""
+"Welcome to Common Ground!\n"
+"Dive into our conversation about the future of AI.\n"
+"Remember, your unique perspective enriches the conversation.\n"
+"Let's get started!"
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:78
+msgid "What do you want to do next?"
+msgstr "What do you want to do next?"
+
+#: components/ChatFlow/LobbyChatFlow.tsx:29
+msgid "What nickname would you like to use?"
+msgstr "What nickname would you like to use?"
+
+#: components/ChatFlow/EvaluateChatFlow.tsx:109
+msgid "What was your general impression of the conversation?"
+msgstr "What was your general impression of the conversation?"
+
+#: hooks/useFlowSteps.tsx:12
+msgid "Will you please enter your e-mail address below?"
+msgstr "Will you please enter your e-mail address below?"
+
+#: hooks/useProfile.ts:45
+msgid "You"
+msgstr "You"
+
+#: components/ChatFlow/PermissionChatFlow.tsx:70
+msgid "You need to give permission to use your camera and microphone. The video feed is not recorded. In this current test your audio will not be transcribed."
+msgstr "You need to give permission to use your camera and microphone. The video feed is not recorded. In this current test your audio will not be transcribed."
+
+#: app/[lang]/page.tsx:41
+msgid "Your experience on Common Ground will look like:"
+msgstr "Your experience on Common Ground will look like:"

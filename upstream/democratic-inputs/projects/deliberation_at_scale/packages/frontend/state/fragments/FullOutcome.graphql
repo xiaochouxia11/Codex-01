@@ -1,0 +1,19 @@
+fragment FullOutcome on outcomes {
+  id
+  active
+  type
+  room_id
+  topic_id
+  original_outcome_id
+  content
+  created_at
+  updated_at
+
+  opinionsCollection(orderBy: { created_at: DescNullsLast }, filter: { active: { eq: true } }) {
+    edges {
+        node {
+            ...FullOpinion
+        }
+    }
+  }
+}

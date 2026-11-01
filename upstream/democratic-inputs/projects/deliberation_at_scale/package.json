@@ -1,0 +1,31 @@
+{
+  "name": "@deliberation-at-scale/mono-repo",
+  "version": "0.0.1",
+  "description": "Mono-repository for the Deliberation at Scale project.",
+  "private": true,
+  "scripts": {
+    "setup": "npm install && nx run-many -t setup",
+    "test": "nx run-many -t test",
+    "start": "nx run-many --targets=start",
+    "clean": "nx run-many -t clean && rimraf ./node_modules",
+    "codegen": "nx run-many -t codegen && nx run-many -t db:generate-types",
+    "lint": "nx run-many -t lint",
+    "build": "nx run-many -t build"
+  },
+  "keywords": [],
+  "author": "Pepijn Verburg <pepijn@bmd.studio>, Lei Nelissen <lei@bmd.studio>, Jorim Theuns <jorim@dembrane.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "6.6.0",
+    "@typescript-eslint/parser": "6.6.0",
+    "eslint": "8.48.0",
+    "eslint-import-resolver-typescript": "3.6.0",
+    "eslint-plugin-import": "2.28.1",
+    "npm-run-all": "4.1.5",
+    "nx": "16.7.4",
+    "rimraf": "5.0.1"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}

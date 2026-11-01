@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --coloured-header-height: 10vh;
+}
+
+html, body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: var(--font-inter);
+}
+
+h1,h2,h3,h4 {
+    font-family: var(--font-red-hat-display);
+}
+
+h1{
+    font-weight: bold;
+}
+
+* {
+    outline-color: #ddd;
+}
+
+/* #messages-scroll-container::-webkit-scrollbar,
+#main-scroll-container::-webkit-scrollbar {
+    display: none;
+} */
