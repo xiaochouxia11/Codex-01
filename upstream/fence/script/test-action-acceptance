@@ -1,0 +1,612 @@
+#! /usr/bin/env bash
+
+set -euo pipefail
+
+source script/env "$@"
+
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+  die "usage: script/test-action-acceptance <prepare-regular-resolver|standard|standard-opt-out|unsafe-preserve|wildcard-docker|github-artifacts|audit> [invocation-id]"
+fi
+
+scenario="$1"
+case "$scenario" in
+  prepare-regular-resolver|standard|standard-opt-out|unsafe-preserve|wildcard-docker|github-artifacts|audit) ;;
+  *) die "unknown Action acceptance scenario: $scenario" ;;
+esac
+
+if [[ "${CI:-}" != "true" || "${GITHUB_ACTIONS:-}" != "true" ]]; then
+  die "Action acceptance runs only on disposable GitHub Actions runners"
+fi
+if [[ "$PLATFORM" != "linux" || "$ARCH" != "x86_64" ]]; then
+  die "Action acceptance requires Linux x86_64"
+fi
+
+if [[ "$scenario" == "prepare-regular-resolver" ]]; then
+  [[ "${RUNNER_ENVIRONMENT:-}" == "github-hosted" ]] || die "regular resolver fixture requires a disposable GitHub-hosted runner"
+  resolver=/etc/resolv.conf
+  target="$(realpath --canonicalize-existing -- "$resolver")"
+  case "$target" in
+    "$resolver"|/run/systemd/resolve/stub-resolv.conf|/run/systemd/resolve/resolv.conf) ;;
+    *) die "regular resolver fixture requires a reviewed initial resolver target" ;;
+  esac
+  if [[ "$target" != "$resolver" ]]; then
+    # Preserve working DNS and replace the symlink, not its target.
+    fixture="$(sudo --non-interactive mktemp /etc/fence-test-resolv.XXXXXXXX)"
+    sudo --non-interactive install --mode=0644 --owner=root --group=root -- "$target" "$fixture"
+    sudo --non-interactive mv --no-target-directory -- "$fixture" "$resolver"
+  fi
+  [[ -f "$resolver" && ! -L "$resolver" && ! -w "$resolver" && "$(stat --format='%u:%g' -- "$resolver")" == "0:0" ]] || die "expected a root-owned regular resolver the runner cannot write"
+  exit 0
+fi
+
+if [[ "$scenario" != "standard" && "$scenario" != "audit" ]]; then
+  require_cmd docker
+fi
+require_cmd curl
+require_cmd findmnt
+require_cmd python3
+require_cmd sudo
+
+invocation="${2:-action-$scenario}"
+directory="/run/fence/$invocation"
+ready="$directory/ready.json"
+report="$directory/report.json"
+dns_report="$directory/dns-report.json"
+launcher_directory="/run/fence-launcher/$invocation"
+launcher_integrity="$launcher_directory/integrity.json"
+docker_lifecycle_start_sequence=0
+
+probe_https_once() {
+  local url="$1"
+  curl --head --silent --show-error --max-time 10 --retry 0 --output /dev/null "$url"
+}
+
+assert_block_evidence_drains() {
+  python3 -E - "$report" <<'PY'
+import sys
+
+if sys.flags.optimize != 0:
+    raise SystemExit("Python optimization must be disabled")
+
+from pathlib import Path
+
+sys.path.insert(0, "script/lib")
+from block_evidence import assert_block_evidence_drains
+
+assert_block_evidence_drains(Path(sys.argv[1]))
+PY
+}
+
+exercise_docker_lifecycle() {
+  local rootfs
+  local library
+  local image
+  local container
+  local deadline
+  local iteration=0
+
+  require_cmd ldd
+  rootfs="$(make_temp_dir fence-docker-lifecycle "$RUNNER_TEMP")"
+  mkdir -p "$rootfs/bin"
+  cp -L /bin/sh "$rootfs/bin/sh"
+  cp -L /bin/sleep "$rootfs/bin/sleep"
+  while IFS= read -r library; do
+    [[ -n "$library" ]] || continue
+    mkdir -p "$rootfs$(dirname "$library")"
+    cp -L "$library" "$rootfs$library"
+  done < <(
+    ldd /bin/sh /bin/sleep |
+      awk '$2 == "=>" && $3 ~ /^\// { print $3; next } $1 ~ /^\// && $1 !~ /:$/ { print $1 }' |
+      sort -u
+  )
+
+  image="fence-local-lifecycle:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${invocation}"
+  docker build --network none --pull=false --tag "$image" --file - "$rootfs" <<'DOCKERFILE'
+FROM scratch
+COPY . /
+ENTRYPOINT ["/bin/sh", "-c", "/bin/sleep 30"]
+DOCKERFILE
+
+  docker_lifecycle_start_sequence="$(python3 -E - "$report" <<'PY'
+import json
+import pathlib
+import sys
+
+print(json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))["resident_health"]["verification_sequence"])
+PY
+  )"
+  deadline=$((SECONDS + 20))
+  while (( SECONDS < deadline )); do
+    iteration=$((iteration + 1))
+    container="fence-local-lifecycle-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${iteration}"
+    docker create --network none --pull never --name "$container" "$image" >/dev/null
+    docker start "$container" >/dev/null
+    sleep 1
+    docker stop --time 1 "$container" >/dev/null
+    docker rm "$container" >/dev/null
+  done
+  docker image rm "$image" >/dev/null
+  remove_generated_path "$rootfs" "Docker lifecycle fixture"
+}
+
+assert_action_runtime_immutable() {
+  local action_root="$DIR/action"
+  local replacement="$RUNNER_TEMP/fence-action-replacement-$invocation"
+  local options
+  local target
+
+  printf '%s\n' 'replacement' >"$replacement"
+  options="$(findmnt --noheadings --mountpoint "$action_root" --output OPTIONS)"
+  for required in ro nodev nosuid; do
+    if [[ ",$options," != *",$required,"* ]]; then
+      die "Fence Action runtime mount is missing $required"
+    fi
+  done
+  for relative in main.cts post.cts lib.cts log.cts bundle-manifest.json bin/fence; do
+    target="$action_root/$relative"
+    if printf '%s\n' 'tamper' >>"$target" 2>/dev/null; then
+      die "Fence Action runtime allowed overwrite: $relative"
+    fi
+    if rm -f "$target" 2>/dev/null; then
+      die "Fence Action runtime allowed unlink: $relative"
+    fi
+    if chmod u+w "$target" 2>/dev/null; then
+      die "Fence Action runtime allowed chmod: $relative"
+    fi
+    if mv "$target" "$target.moved" 2>/dev/null; then
+      die "Fence Action runtime allowed rename: $relative"
+    fi
+    if cp "$replacement" "$target" 2>/dev/null; then
+      die "Fence Action runtime allowed replacement: $relative"
+    fi
+  done
+  rm -f "$replacement"
+  python3 -E - "$launcher_integrity" <<'PY'
+import sys
+
+if sys.flags.optimize != 0:
+    raise SystemExit("Python optimization must be disabled")
+
+def require(condition, message="evidence validation failed"):
+    if not condition:
+        raise SystemExit(message)
+
+import json
+import pathlib
+import stat
+import sys
+
+integrity_path = pathlib.Path(sys.argv[1])
+metadata = integrity_path.stat()
+require(stat.S_IMODE(metadata.st_mode) == 0o444)
+require(metadata.st_uid == 0)
+integrity = json.loads(integrity_path.read_text(encoding="utf-8"))
+require(integrity["schema_version"] == 2)
+require(len(integrity["files"]) == 6)
+require(1 <= len(integrity["path_guards"]) <= 16)
+for guard in integrity["path_guards"]:
+    require(set(guard) == {"path", "device", "inode"})
+    require(guard["device"].isdigit())
+    require(guard["inode"].isdigit())
+PY
+}
+
+python3 -E - "$scenario" "$report" "$dns_report" "$ready" "action/bundle-manifest.json" <<'PY'
+import sys
+
+if sys.flags.optimize != 0:
+    raise SystemExit("Python optimization must be disabled")
+
+def require(condition, message="evidence validation failed"):
+    if not condition:
+        raise SystemExit(message)
+
+import json
+import os
+import pathlib
+import re
+import sys
+import time
+
+expected_workers = [
+    {"name": "host_tcp_dns", "status": "running"},
+    {"name": "host_udp_dns", "status": "running"},
+    {"name": "process_attribution", "status": "running"},
+]
+
+
+def assert_resident_health(document, expected_pid=None, minimum_sequence=1):
+    health = document["resident_health"]
+    require(health["status"] == "healthy")
+    require(isinstance(health["resident_pid"], int) and health["resident_pid"] > 0)
+    if expected_pid is not None:
+        require(health["resident_pid"] == expected_pid)
+    require(health["verification_sequence"] >= minimum_sequence)
+    require(health["verification_interval_seconds"] == 5)
+    verified_at = health["last_successful_verification_unix_milliseconds"]
+    now = int(time.time() * 1000)
+    require(now - 20_000 <= verified_at <= now + 5_000)
+    require(health["workers"] == expected_workers)
+    return health["resident_pid"]
+
+scenario = sys.argv[1]
+report_path, dns_path, ready_path, manifest_path = (pathlib.Path(item) for item in sys.argv[2:])
+expected = {
+    "standard": ("block", "protected_host_block", "resident_protected", "ready", True, "disabled_verified", "disabled_verified"),
+    "standard-opt-out": ("block", "protected_host_block", "resident_protected", "ready", True, "disabled_verified", "disabled_verified"),
+    "unsafe-preserve": ("block", "protected_host_block_degraded", "resident_degraded", "ready_degraded", False, "disabled_verified", "preserved_unsafe"),
+    "wildcard-docker": ("block", "protected_host_block_degraded", "resident_degraded", "ready_degraded", False, "disabled_verified", "preserved_unsafe"),
+    "github-artifacts": ("block", "protected_host_block", "resident_protected", "ready", True, "disabled_verified", "disabled_verified"),
+    "audit": ("audit", "protected_host_audit_observation", "resident_observation_only", "ready_observation_only", False, "preserved_verified", "preserved_verified"),
+}[scenario]
+mode, status, resident, readiness, protection, sudo_status, container_status = expected
+if mode == "block":
+    expected_workers.insert(-1, {"name": "hostname_refresh", "status": "running"})
+allow_github_artifacts = scenario == "github-artifacts"
+report = json.loads(report_path.read_text(encoding="utf-8"))
+dns = json.loads(dns_path.read_text(encoding="utf-8"))
+ready = json.loads(ready_path.read_text(encoding="utf-8"))
+manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+docker_routing = dns.get("docker_dns_routing")
+if container_status == "disabled_verified":
+    require(docker_routing == "not_configured_standard_block")
+elif docker_routing == "local_root_resident_mediator":
+    expected_workers[:0] = [
+        {"name": "docker_tcp_dns", "status": "running"},
+        {"name": "docker_udp_dns", "status": "running"},
+    ]
+else:
+    require(scenario == "audit" and docker_routing == "not_present")
+require(manifest["schema_version"] == 4)
+require(manifest["source_ref"] == "refs/heads/main")
+require(manifest["signer_digest"] == manifest["source_commit"])
+expected_release_channel = "prerelease" if "-" in manifest["release_tag"] else "stable"
+require(manifest["release_channel"] == expected_release_channel)
+require(report["mode"] == mode)
+require(report["status"] == status)
+require(report["setup_status"] == resident)
+require(report["readiness_status"] == readiness)
+require(report["protection_available"] is protection)
+require(report["sudo_status"] == sudo_status)
+require(report["container_status"] == container_status)
+require(report["allow_github_artifacts"] is allow_github_artifacts)
+require(report["network_verification_status"] == "verified")
+require(report["critical_findings"] == [])
+require(ready["status"] == readiness)
+require(ready["allow_github_artifacts"] is allow_github_artifacts)
+require(dns["routing_status"] == "active")
+require(dns["allow_github_artifacts"] is allow_github_artifacts)
+require(dns["hostname_policy"]["allow_github_artifacts"] is allow_github_artifacts)
+require(report["runtime_evidence_schema_version"] == 5)
+require(report["policy_hash_schema_version"] == 9)
+require(report["platform_profile_id"] == "github_hosted_workflow_bootstrap_v5")
+require(report["profile_realization_id"] == "github_hosted_workflow_bootstrap_dns_provenance_v5")
+require(ready["runtime_evidence_schema_version"] == 5)
+require(ready["policy_hash_schema_version"] == 9)
+require(ready["platform_profile_id"] == "github_hosted_workflow_bootstrap_v5")
+require(ready["profile_realization_id"] == "github_hosted_workflow_bootstrap_dns_provenance_v5")
+require(dns["runtime_evidence_schema_version"] == 5)
+require(dns["platform_profile_id"] == "github_hosted_workflow_bootstrap_v5")
+require(dns["profile_realization_id"] == "github_hosted_workflow_bootstrap_dns_provenance_v5")
+require(dns["host_dns_routing"] == "direct_client_to_root_resident_mediator")
+expected_proxy_policy = (
+    "audit_forwards_while_simulating_name_authorization"
+    if mode == "audit"
+    else "block_forwards_exact_roots_bounded_user_wildcard_names_actions_suffix_names_githubapp_suffix_names_results_storage_and_bounded_cname_descendants"
+)
+require(dns["proxy_policy_status"] == expected_proxy_policy)
+wildcard_authorizations = dns["bounded_user_wildcard_authorizations"]
+require(isinstance(wildcard_authorizations, list))
+require(len(wildcard_authorizations) <= 8)
+require(wildcard_authorizations == sorted(set(wildcard_authorizations)))
+require(all(
+    isinstance(hostname, str)
+    and "*" not in hostname
+    and re.fullmatch(r"(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", hostname)
+    for hostname in wildcard_authorizations
+))
+require(dns["bounded_user_wildcard_authorizations_truncated"] is False)
+require(dns["user_wildcard_request_rejections"] == 0)
+require(all("*" not in item["hostname"] for item in dns["observations"]))
+wildcard_policy = dns["hostname_policy"]["user_wildcards"]
+if scenario == "wildcard-docker":
+    require(wildcard_policy == [{
+        "pattern": "*.docker.io",
+        "suffix": "docker.io",
+        "prefix_labels": 1,
+        "transports": [{"protocol": "tcp", "port": 443}],
+    }])
+    require(wildcard_authorizations == [])
+    require("bounded_user_wildcard_dns_authorization_remains_an_egress_limitation" in report["limitations"])
+else:
+    require(wildcard_policy == [])
+    require(wildcard_authorizations == [])
+require(len(dns["runner_authorized_results_storage"]) <= 4)
+require(dns["results_storage_authorization_count"] == len(dns["runner_authorized_results_storage"]))
+require(dns["results_storage_attribution_failures"] == 0)
+require(dns["results_storage_request_rejections"] == 0)
+require(dns["runner_authorized_results_storage_truncated"] is False)
+allowed_results_storage_origins = {"pinned_runner_worker_dns"}
+artifact_limitations = {
+    "github_artifact_compatibility_explicitly_enabled",
+    "runner_owned_workflow_processes_can_authorize_bounded_results_storage",
+    "github_artifact_uploads_remain_an_intentional_data_egress_channel",
+}
+if allow_github_artifacts:
+    allowed_results_storage_origins.add("opt_in_github_artifact_dns")
+require(all(
+    re.fullmatch(
+        r"productionresultssa[0-9]{1,5}\.blob\.core\.windows\.net",
+        item["hostname"],
+    )
+    and item["authorization_origin"] in allowed_results_storage_origins
+    for item in dns["runner_authorized_results_storage"]
+))
+if allow_github_artifacts:
+    require(artifact_limitations.issubset(report["limitations"]))
+    require(artifact_limitations.issubset(dns["limitations"]))
+    require(re.fullmatch(
+        r"[1-9][0-9]{0,19}",
+        os.environ.get("FENCE_GITHUB_ARTIFACT_ID", ""),
+    ))
+    require(re.fullmatch(
+        r"[0-9a-f]{64}",
+        os.environ.get("FENCE_GITHUB_ARTIFACT_DIGEST", ""),
+    ))
+    artifact_hostnames = {
+        item["hostname"]
+        for item in dns["runner_authorized_results_storage"]
+        if item["authorization_origin"] == "opt_in_github_artifact_dns"
+    }
+    artifact_fixture_hostname = "productionresultssa8.blob.core.windows.net"
+    require(
+        artifact_fixture_hostname in artifact_hostnames,
+        "GitHub artifact fixture must prove opt-in results-storage authorization",
+    )
+    require(
+        any(
+            item.get("hostname") == artifact_fixture_hostname
+            and item.get("query_type") == "a"
+            and item.get("policy_classification") == "artifact_authorized_results_storage"
+            for item in dns["observations"]
+        ),
+        "GitHub artifact fixture must prove an observed opt-in DNS query",
+    )
+    artifact_materializations = [
+        item for item in report["materialized_allowances"]
+        if item.get("source_hostname") in artifact_hostnames
+    ]
+    require(
+        any(
+            item.get("source_hostname") == artifact_fixture_hostname
+            for item in artifact_materializations
+        ),
+        "GitHub artifact fixture must prove verified firewall materialization",
+    )
+    require(all(
+        item["protocol"] == "tcp" and item["port"] == 443
+        for item in artifact_materializations
+    ))
+else:
+    require(artifact_limitations.isdisjoint(report["limitations"]))
+    require(artifact_limitations.isdisjoint(dns["limitations"]))
+resident_pid = assert_resident_health(report)
+assert_resident_health(ready, resident_pid)
+assert_resident_health(dns, resident_pid)
+broad_roots = {"github.com", "api.github.com", "release-assets.githubusercontent.com"}
+bootstrap_roots = set(dns["bootstrap_hostnames"])
+if scenario == "standard-opt-out":
+    require(broad_roots.isdisjoint(bootstrap_roots))
+else:
+    require(broad_roots.issubset(bootstrap_roots))
+PY
+
+docker_routing="$(python3 -E - "$dns_report" <<'PY'
+import json
+import pathlib
+import sys
+
+print(json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))["docker_dns_routing"])
+PY
+)"
+if [[ "$docker_routing" == "local_root_resident_mediator" ]]; then
+  require_cmd docker
+fi
+
+case "$scenario" in
+  standard|standard-opt-out|unsafe-preserve|wildcard-docker|github-artifacts)
+    if sudo --non-interactive /usr/bin/true >/dev/null 2>&1; then
+      die "Fence Action did not disable runner passwordless sudo"
+    fi
+    ;;
+  audit)
+    sudo --non-interactive /usr/bin/true >/dev/null
+    ;;
+esac
+case "$scenario" in
+  standard|standard-opt-out|github-artifacts)
+    if command -v docker >/dev/null && docker ps --quiet >/dev/null 2>&1; then
+      die "Fence Action standard block did not disable Docker access"
+    fi
+    ;;
+  unsafe-preserve|wildcard-docker)
+    docker ps --quiet >/dev/null
+    ;;
+  audit)
+    if [[ "$docker_routing" == "local_root_resident_mediator" ]]; then
+      docker ps --quiet >/dev/null
+    fi
+    ;;
+esac
+
+if [[ "$scenario" != "audit" ]]; then
+  if [[ "$scenario" == "standard-opt-out" ]]; then
+    probe_https_once https://productionresultssa19.blob.core.windows.net
+  else
+    probe_https_once https://github.com
+  fi
+  python3 -E - "$scenario" <<'PY'
+import random
+import socket
+import struct
+import sys
+
+hostnames = ["outside-policy.fence.invalid"]
+if sys.argv[1] == "standard-opt-out":
+    hostnames.append("github.com")
+for hostname in hostnames:
+    identifier = random.randrange(65536)
+    question = b"".join(bytes([len(label)]) + label for label in hostname.encode("ascii").split(b"."))
+    question += b"\x00" + struct.pack("!HH", 1, 1)
+    packet = struct.pack("!HHHHHH", identifier, 0x0100, 1, 0, 0, 0) + question
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connection:
+        connection.settimeout(2)
+        connection.connect(("127.0.0.1", 53))
+        connection.send(packet)
+        response = connection.recv(4096)
+    if len(response) < 12:
+        raise SystemExit(f"Fence DNS refusal was incomplete: {hostname}")
+    observed_id, flags, questions, answers, authority, additional = struct.unpack("!HHHHHH", response[:12])
+    if not (
+        observed_id == identifier
+        and flags & 0x8000
+        and flags & 0x000F == 5
+        and (questions, answers, authority, additional) == (1, 0, 0, 0)
+        and response[12:] == question
+    ):
+        raise SystemExit(f"Fence did not refuse the outside-policy DNS request: {hostname}")
+PY
+fi
+
+if [[ "$scenario" == "wildcard-docker" ]]; then
+  probe_https_once https://auth.docker.io
+  probe_https_once https://registry-1.docker.io
+  exercise_docker_lifecycle
+fi
+
+if [[ "$scenario" == "audit" ]]; then
+  python3 -E <<'PY'
+import socket
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.sendto(b"fence-action-audit-probe", ("192.0.2.10", 443))
+PY
+  probe_https_once https://github.com
+  probe_https_once https://www.google.com
+fi
+
+if [[ "$scenario" == "standard" ]]; then
+  assert_action_runtime_immutable
+fi
+
+python3 -E - "$scenario" "$report" "$dns_report" "$docker_lifecycle_start_sequence" "$docker_routing" <<'PY'
+import sys
+
+if sys.flags.optimize != 0:
+    raise SystemExit("Python optimization must be disabled")
+
+def require(condition, message="evidence validation failed"):
+    if not condition:
+        raise SystemExit(message)
+
+import json
+import pathlib
+import sys
+import time
+
+sys.path.insert(0, "script/lib")
+from dns_evidence import validate_materialization_rejections, wait_for_audit_probe_evidence
+
+expected_workers = [
+    {"name": "host_tcp_dns", "status": "running"},
+    {"name": "host_udp_dns", "status": "running"},
+    {"name": "process_attribution", "status": "running"},
+]
+
+scenario = sys.argv[1]
+report_path, dns_path = (pathlib.Path(item) for item in sys.argv[2:4])
+docker_lifecycle_start_sequence = int(sys.argv[4])
+if scenario == "audit":
+    report, dns = wait_for_audit_probe_evidence(report_path, dns_path)
+else:
+    time.sleep(6)
+    expected_workers.insert(-1, {"name": "hostname_refresh", "status": "running"})
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    dns = json.loads(dns_path.read_text(encoding="utf-8"))
+docker_routing = sys.argv[5]
+require(dns.get("docker_dns_routing") == docker_routing)
+if docker_routing == "local_root_resident_mediator":
+    expected_workers[:0] = [
+        {"name": "docker_tcp_dns", "status": "running"},
+        {"name": "docker_udp_dns", "status": "running"},
+    ]
+require(report["runtime_evidence_schema_version"] == 5)
+require(report["policy_hash_schema_version"] == 9)
+require(report["network_verification_status"] == "verified")
+require(report["critical_findings"] == [])
+resident = report["resident_health"]
+require(resident["status"] == "healthy")
+require(resident["verification_sequence"] >= 2)
+require(resident["verification_interval_seconds"] == 5)
+require(resident["workers"] == expected_workers)
+verified_at = resident["last_successful_verification_unix_milliseconds"]
+now = int(time.time() * 1000)
+require(now - 20_000 <= verified_at <= now + 5_000)
+require(dns["runtime_evidence_schema_version"] == 5)
+require(dns["resident_health"]["resident_pid"] == resident["resident_pid"])
+require(dns["resident_health"]["workers"] == expected_workers)
+require(dns["resident_health"]["verification_sequence"] >= 2)
+require(report["allow_github_artifacts"] is (scenario == "github-artifacts"))
+require(dns["allow_github_artifacts"] is (scenario == "github-artifacts"))
+require(dns["hostname_policy"]["allow_github_artifacts"] is (scenario == "github-artifacts"))
+require("fence-action-audit-probe" not in json.dumps(report, sort_keys=True))
+require("fence-action-audit-probe" not in json.dumps(dns, sort_keys=True))
+validate_materialization_rejections(dns)
+require(dns["user_wildcard_request_rejections"] == 0)
+require(dns["bounded_user_wildcard_authorizations_truncated"] is False)
+wildcard_authorizations = dns["bounded_user_wildcard_authorizations"]
+require(wildcard_authorizations == sorted(set(wildcard_authorizations)))
+require(len(wildcard_authorizations) <= 8)
+require(all("*" not in hostname for hostname in wildcard_authorizations))
+if scenario == "wildcard-docker":
+    require(resident["verification_sequence"] >= docker_lifecycle_start_sequence + 3)
+    require({"auth.docker.io", "registry-1.docker.io"}.issubset(wildcard_authorizations))
+    wildcard_materializations = [
+        item for item in report["materialized_allowances"]
+        if item.get("source_hostname") in {"auth.docker.io", "registry-1.docker.io"}
+    ]
+    require(wildcard_materializations)
+    require(all(
+        item["protocol"] == "tcp"
+        and item["port"] == 443
+        and "user" in item["origins"]
+        for item in wildcard_materializations
+    ))
+    wildcard_observations = [
+        item for item in dns["observations"]
+        if item.get("hostname") in {"auth.docker.io", "registry-1.docker.io"}
+    ]
+    require(wildcard_observations)
+    require(all(
+        item["policy_classification"] == "user_wildcard_allowlist"
+        for item in wildcard_observations
+    ))
+else:
+    require(wildcard_authorizations == [])
+if scenario == "audit":
+    require(report["counters"]["total_violations"] >= 1)
+    require(report["counters"]["sampled_violations"] >= 1)
+    require(dns["excluded_unretained_query_count"] == 0)
+PY
+
+if [[ "$scenario" == "standard" ]]; then
+  assert_block_evidence_drains
+fi
+
+if [[ "${FENCE_EXPECT_REGULAR_RESOLVER:-}" == "true" ]]; then
+  resolver=/etc/resolv.conf
+  [[ ! -L "$resolver" && "$resolver" -ef "$directory/resolv.conf" ]] || die "Fence did not mount its resolver directly on the regular file"
+  findmnt --noheadings --mountpoint "$resolver" --options ro >/dev/null || die "regular resolver mount is not read-only"
+fi
+
+echo -e "${GREEN}Action acceptance verified:${OFF} $scenario"

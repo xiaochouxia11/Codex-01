@@ -1,0 +1,220 @@
+"use strict";
+
+const { MAX_STRUCTURED_REPORT_BYTES } = require("./lib.cts");
+
+const MAX_LOG_LINE_BYTES = 2048;
+const MAX_DEBUG_LINE_BYTES = 4096;
+const STRUCTURED_REPORT_PREFIX = "FENCE_REPORT_JSON=";
+
+type LogEnvironment = Record<string, string | undefined>;
+type ColorName = "highlight" | "info" | "success" | "warning" | "error";
+type ConfigLogDetails = {
+  mode: string;
+  source: string;
+  containerPolicy: string;
+  platformProfile: string;
+  disableBroadGithubDomains: boolean;
+  allowGithubArtifacts: boolean;
+  allowlistCount: number;
+  allowlistDestinations: string[];
+};
+
+const COLORS: Record<ColorName, string> = {
+  highlight: "\u001b[35m",
+  info: "\u001b[34m",
+  success: "\u001b[32m",
+  warning: "\u001b[33m",
+  error: "\u001b[31m",
+};
+const RESET = "\u001b[0m";
+
+function truncateUtf8(value: string, maximumBytes: number): string {
+  if (Buffer.byteLength(value, "utf8") <= maximumBytes) {
+    return value;
+  }
+  let truncated = value;
+  const marker = "...[truncated]";
+  while (truncated.length > 0 && Buffer.byteLength(`${truncated}${marker}`, "utf8") > maximumBytes) {
+    truncated = truncated.slice(0, -1);
+  }
+  return `${truncated}${marker}`;
+}
+
+function sanitizeLogText(value: unknown, maximumBytes = MAX_LOG_LINE_BYTES): string {
+  const sanitized = String(value)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u2028\u2029]/gu, "_")
+    .replace(/[\r\n]+/g, " ");
+  return truncateUtf8(sanitized.startsWith("::") ? `_${sanitized}` : sanitized, maximumBytes);
+}
+
+function workflowEscape(value: unknown): string {
+  const escaped = sanitizeLogText(value, MAX_DEBUG_LINE_BYTES)
+    .replace(/%/g, "%25")
+    .replace(/\r/g, "%0D")
+    .replace(/\n/g, "%0A");
+  return truncateUtf8(escaped, MAX_DEBUG_LINE_BYTES);
+}
+
+function colorize(value: string, color: ColorName, environment: LogEnvironment = process.env): string {
+  if (environment.NO_COLOR !== undefined && environment.NO_COLOR !== "") {
+    return value;
+  }
+  return `${COLORS[color]}${value}${RESET}`;
+}
+
+function debugEnabled(environment: LogEnvironment = process.env): boolean {
+  return environment.RUNNER_DEBUG === "1" || environment.ACTIONS_STEP_DEBUG === "true";
+}
+
+function info(message: string): void {
+  process.stdout.write(`${sanitizeLogText(message)}\n`);
+}
+
+function structuredRecord(line: unknown): void {
+  if (typeof line !== "string" || !line.startsWith(STRUCTURED_REPORT_PREFIX)) {
+    throw new Error("Fence structured report must start with FENCE_REPORT_JSON=");
+  }
+  if (/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/u.test(line)) {
+    throw new Error("Fence structured report must be a single line without control characters");
+  }
+  if (Buffer.byteLength(line, "utf8") > MAX_STRUCTURED_REPORT_BYTES) {
+    throw new Error("Fence structured report exceeds its 16 KiB limit");
+  }
+
+  let record: any;
+  try {
+    record = JSON.parse(line.slice(STRUCTURED_REPORT_PREFIX.length));
+  } catch {
+    throw new Error("Fence structured report must contain valid JSON");
+  }
+  if (
+    record === null ||
+    Array.isArray(record) ||
+    typeof record !== "object" ||
+    record.schema_version !== 1 ||
+    `${STRUCTURED_REPORT_PREFIX}${JSON.stringify(record)}` !== line
+  ) {
+    throw new Error("Fence structured report must contain canonical schema-version-1 JSON");
+  }
+
+  process.stdout.write(`${line}\n`);
+}
+
+function success(message: string, environment: LogEnvironment = process.env): void {
+  process.stdout.write(`${colorize(sanitizeLogText(message), "success", environment)}\n`);
+}
+
+function warning(message: string): void {
+  process.stdout.write(`::warning::${workflowEscape(message)}\n`);
+}
+
+function error(message: string): void {
+  process.stderr.write(`::error::${workflowEscape(message)}\n`);
+}
+
+function debug(message: string, environment: LogEnvironment = process.env): void {
+  if (!debugEnabled(environment)) {
+    return;
+  }
+  process.stdout.write(`::debug::${workflowEscape(message)}\n`);
+}
+
+function debugGroup(title: string, lines: unknown[], environment: LogEnvironment = process.env): void {
+  if (!debugEnabled(environment)) {
+    return;
+  }
+  process.stdout.write(`::group::${workflowEscape(title)}\n`);
+  for (const line of lines) {
+    process.stdout.write(`${sanitizeLogText(line, MAX_DEBUG_LINE_BYTES)}\n`);
+  }
+  process.stdout.write("::endgroup::\n");
+}
+
+function formatAllowlistEntry(entry: any): string | undefined {
+  if (entry === null || Array.isArray(entry) || typeof entry !== "object") {
+    return undefined;
+  }
+  const destinationType = typeof entry.destination_type === "string" ? entry.destination_type : "unknown";
+  const destination = typeof entry.destination === "string" ? entry.destination : "unknown";
+  const protocol = typeof entry.protocol === "string" ? entry.protocol : "unknown";
+  const port = typeof entry.port === "number" ? String(entry.port) : "unknown";
+  return `${destinationType}:${destination}:${protocol}:${port}`;
+}
+
+function configLogDetails(rawConfig: string, usingDefault: boolean): ConfigLogDetails {
+  const parsed = JSON.parse(rawConfig);
+  const allowlist = Array.isArray(parsed.allowlist) ? parsed.allowlist : [];
+  const mode = typeof parsed.mode === "string" ? parsed.mode : "unknown";
+  return {
+    mode,
+    source: usingDefault ? "native inputs" : "raw config",
+    containerPolicy: typeof parsed.container_policy === "string"
+      ? parsed.container_policy
+      : mode === "audit"
+        ? "not used"
+        : "disable",
+    platformProfile: typeof parsed.platform_profile === "string"
+      ? parsed.platform_profile
+      : "github_hosted_workflow_bootstrap_v5",
+    disableBroadGithubDomains: parsed.disable_broad_github_domains === true,
+    allowGithubArtifacts: parsed.allow_github_artifacts === true,
+    allowlistCount: allowlist.length,
+    allowlistDestinations: allowlist.map(formatAllowlistEntry).filter((value: unknown) => typeof value === "string"),
+  };
+}
+
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return count === 1 ? singular : plural;
+}
+
+function setupLines(manifest: any, details: ConfigLogDetails): string[] {
+  const version = typeof manifest.release_tag === "string" ? manifest.release_tag : "unknown";
+  const modeIcon = details.mode === "audit" ? "👀" : "🔒";
+  const policyPrefix = details.mode === "audit" ? "observing GitHub workflow traffic" : "GitHub workflow traffic";
+  return [
+    `🛡️ Fence ${version}`,
+    `${modeIcon} Mode: ${details.mode}`,
+    `🌐 Policy: ${policyPrefix} + ${details.allowlistCount} ${pluralize(details.allowlistCount, "allowlist entry", "allowlist entries")}`,
+    ...(details.allowGithubArtifacts
+      ? ["⚠️ GitHub artifact uploads: enabled; uploaded artifacts can send data outside the job"]
+      : []),
+  ];
+}
+
+function ready(report: any, environment: LogEnvironment = process.env): void {
+  if (report.status === "protected_host_audit_observation") {
+    success("✅ Fence ready: audit mode is observing traffic, not blocking it", environment);
+  } else if (report.status === "protected_host_block_degraded") {
+    warning("⚠️ Fence ready: network rules installed; passwordless sudo disabled; later steps can use Docker to bypass Fence");
+  } else {
+    success("✅ Fence ready: network restrictions active; passwordless sudo and Docker/container access locked down", environment);
+  }
+}
+
+function postEvidenceLine(report: any): string | undefined {
+  if (report.mode === "audit") {
+    return "👀 Audit complete; see the Fence report for network activity and allowlist suggestions";
+  }
+  if (report.status === "protected_host_block_degraded") {
+    return "⚠️ Docker was kept available; later steps could use it to gain root access and bypass Fence";
+  }
+  return undefined;
+}
+
+module.exports = {
+  colorize,
+  configLogDetails,
+  debug,
+  debugEnabled,
+  debugGroup,
+  error,
+  info,
+  postEvidenceLine,
+  ready,
+  sanitizeLogText,
+  setupLines,
+  structuredRecord,
+  success,
+  warning,
+  workflowEscape,
+};

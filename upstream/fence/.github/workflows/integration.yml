@@ -1,0 +1,226 @@
+name: integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  # A stranded host-block evidence job may be unable to receive cancellation.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    name: integration preflight
+    timeout-minutes: 5
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: validate locks
+        run: script/validate-locks --ci
+
+  lockdown:
+    name: lockdown ${{ matrix.scenario }} evidence
+    needs: preflight
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [acl-reject, audit, local-control-reject, rollback, standard, unsafe-preserve]
+    timeout-minutes: 8
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: observe hosted runner fingerprint candidate
+        run: script/observe-hosted-runner
+
+      - name: prepare rust
+        run: script/prepare-rust
+
+      - name: bootstrap
+        run: script/bootstrap
+
+      - name: test resident lifecycle evidence
+        if: ${{ matrix.scenario == 'standard' }}
+        run: script/test-privileged
+
+      - name: test lockdown evidence
+        run: script/test-lockdown "${{ matrix.scenario }}"
+
+  selected-profile-runtime:
+    name: selected profile runtime ${{ matrix.scenario }}
+    needs: preflight
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [healthy, local-control-drift, worker-failure]
+    timeout-minutes: 8
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: observe hosted runner fingerprint candidate
+        run: script/observe-hosted-runner
+
+      - name: prepare rust
+        run: script/prepare-rust
+
+      - name: bootstrap
+        run: script/bootstrap
+
+      - name: run selected profile runtime evidence
+        env:
+          SELECTED_PROFILE_RUNTIME_REPLICA: ${{ matrix.scenario }}
+        run: script/test-selected-profile-runtime "${{ matrix.scenario }}"
+
+      - name: emit bounded late selected profile evidence
+        if: ${{ matrix.scenario == 'healthy' }}
+        env:
+          SELECTED_PROFILE_RUNTIME_REPLICA: ${{ matrix.scenario }}
+        run: script/report-selected-profile-runtime
+
+  protected-run:
+    name: protected ${{ matrix.scenario }} ${{ matrix.replica }}
+    needs: preflight
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - scenario: standard
+            replica: first-connect-1
+          - scenario: standard
+            replica: first-connect-2
+          - scenario: standard
+            replica: first-connect-3
+          - scenario: standard-opt-out
+            replica: required
+          - scenario: unsafe-preserve
+            replica: required
+          - scenario: wildcard-docker
+            replica: required
+          - scenario: malformed-wildcard
+            replica: pre-mutation
+          - scenario: audit
+            replica: required
+    timeout-minutes: 8
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: observe hosted runner fingerprint candidate
+        run: script/observe-hosted-runner
+
+      - name: prepare rust
+        run: script/prepare-rust
+
+      - name: bootstrap
+        run: script/bootstrap
+
+      - name: run packaged trusted-launcher block
+        run: script/test-protected-run "${{ matrix.scenario }}"
+
+  protected-finalization:
+    name: protected finalization ${{ matrix.replica }}
+    needs: preflight
+    strategy:
+      fail-fast: false
+      matrix:
+        replica: [quiet-1, quiet-2, quiet-3]
+    timeout-minutes: 8
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: observe hosted runner fingerprint candidate
+        run: script/observe-hosted-runner
+
+      - name: prepare rust
+        run: script/prepare-rust
+
+      - name: bootstrap
+        run: script/bootstrap
+
+      - name: run quiet packaged trusted-launcher block
+        timeout-minutes: 3
+        run: script/test-protected-run standard-finalization
+
+  integration:
+    name: integration
+    needs: [preflight, lockdown, selected-profile-runtime, protected-run, protected-finalization]
+    if: ${{ always() }}
+    timeout-minutes: 5
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: checkout
+        id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: verify terminal jobs and downloadable logs
+        id: verify-finalization
+        if: ${{ always() && steps.checkout.outcome == 'success' && needs.protected-run.result == 'success' && needs.protected-finalization.result == 'success' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: script/verify-protected-finalization
+
+      - name: require prerequisite evidence
+        if: ${{ always() }}
+        env:
+          PREFLIGHT_RESULT: ${{ needs.preflight.result }}
+          LOCKDOWN_RESULT: ${{ needs.lockdown.result }}
+          PROFILE_RESULT: ${{ needs.selected-profile-runtime.result }}
+          PROTECTED_RESULT: ${{ needs.protected-run.result }}
+          FINALIZATION_RESULT: ${{ needs.protected-finalization.result }}
+          FINALIZATION_VERIFIER_OUTCOME: ${{ steps.verify-finalization.outcome }}
+        run: |
+          for result in \
+            "$PREFLIGHT_RESULT" \
+            "$LOCKDOWN_RESULT" \
+            "$PROFILE_RESULT" \
+            "$PROTECTED_RESULT" \
+            "$FINALIZATION_RESULT" \
+            "$FINALIZATION_VERIFIER_OUTCOME"
+          do
+            if [[ "$result" != "success" ]]; then
+              echo "required integration evidence did not succeed" >&2
+              exit 1
+            fi
+          done
+          echo "integration evidence passed"

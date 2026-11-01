@@ -1,0 +1,372 @@
+#! /usr/bin/env bash
+
+set -euo pipefail
+
+source script/env "$@"
+
+if [[ "${CI:-}" != "true" || "${GITHUB_ACTIONS:-}" != "true" ]]; then
+  die "Action tamper evidence runs only on disposable GitHub Actions runners"
+fi
+if [[ "$PLATFORM" != "linux" || "$ARCH" != "x86_64" ]]; then
+  die "Action tamper evidence requires Linux x86_64"
+fi
+
+require_cmd node
+require_cmd python3
+require_cmd sleep
+require_cmd sudo
+require_cmd findmnt
+if [[ ! -x /usr/bin/systemctl || ! -x /usr/sbin/nft ]]; then
+  die "Action tamper evidence requires systemctl and /usr/sbin/nft"
+fi
+
+temporary_directory="$(make_temp_dir fence-action-tamper "$RUNNER_TEMP")"
+trap 'remove_generated_path "$temporary_directory" "Action tamper scratch directory"' EXIT
+
+invocation="action-tamper"
+directory="/run/fence/$invocation"
+report="$directory/report.json"
+launcher_integrity="/run/fence-launcher/$invocation/integrity.json"
+path_guard_record="$temporary_directory/path-guard"
+state="$temporary_directory/state"
+summary="$temporary_directory/summary"
+post_stdout="$temporary_directory/post-stdout"
+post_stderr="$temporary_directory/post-stderr"
+: >"$state"
+: >"$summary"
+
+if [[ -e "$directory" ]]; then
+  die "Action tamper evidence requires no preexisting runtime directory"
+fi
+if sudo --non-interactive /usr/sbin/nft list table inet fence_v0 >/dev/null 2>&1; then
+  die "Action tamper evidence requires no preexisting inet fence_v0 table"
+fi
+
+launch_audit() {
+  INPUT_MODE=audit \
+    INPUT_INVOCATION_ID="$1" \
+    GITHUB_STATE="$2" \
+    GITHUB_STEP_SUMMARY="$summary" \
+    node action/main.cts
+}
+launch_audit "$invocation" "$state"
+
+grep -Fxq "invocation_id=$invocation" "$state"
+grep -Fxq "report_path=$report" "$state"
+grep -Fxq "launcher_integrity_path=$launcher_integrity" "$state"
+
+# A rejected duplicate must not unmount the original Action or remove its evidence.
+active_launch_identity() {
+  sha256sum "$directory/ready.json" "$launcher_integrity" &&
+    stat --format='%d:%i:%u:%a' /run/fence-launcher/.active "$directory/dns-routing-owned" &&
+    findmnt --noheadings --mountpoint "$DIR/action" --output ID &&
+    systemctl show "fence-$invocation.service" --property=MainPID --value
+}
+original_identity="$(active_launch_identity)"
+duplicate_log="$temporary_directory/duplicate-log"
+for second_id in "$invocation" "$invocation-overlap"; do
+  if launch_audit "$second_id" "$temporary_directory/duplicate-state" >"$duplicate_log" 2>&1; then
+    die "Action tamper evidence unexpectedly accepted an overlapping launch"
+  fi
+  grep -Fq "Fence already owns this runner" "$duplicate_log"
+  surviving_identity="$(active_launch_identity)"
+  [[ "$surviving_identity" == "$original_identity" ]] || die "overlapping launch changed the active Fence"
+done
+sudo --non-interactive /usr/bin/systemctl is-active --quiet "fence-$invocation.service"
+sudo --non-interactive /usr/sbin/nft list table inet fence_v0 >/dev/null
+
+mount_options="$(findmnt --noheadings --mountpoint "$DIR/action" --output OPTIONS)"
+for required in ro nodev nosuid; do
+  if [[ ",$mount_options," != *",$required,"* ]]; then
+    die "Action tamper evidence found an unsafe Action runtime mount"
+  fi
+done
+if printf '%s\n' 'tamper' >>action/post.cts 2>/dev/null; then
+  die "Action tamper evidence overwrote the registered post hook"
+fi
+if rm -f action/post.cts 2>/dev/null; then
+  die "Action tamper evidence unlinked the registered post hook"
+fi
+
+python3 -E - "$launcher_integrity" >"$path_guard_record" <<'PY'
+import json
+import os
+import pathlib
+import stat
+import sys
+
+if sys.flags.optimize != 0:
+    raise SystemExit("Python optimization must be disabled")
+
+def require(condition, message):
+    if not condition:
+        raise SystemExit(message)
+
+integrity = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+require(integrity.get("schema_version") == 2, "launcher integrity schema mismatch")
+guards = integrity.get("path_guards")
+require(isinstance(guards, list) and guards, "registered Action path guard evidence is missing")
+guard = guards[-1]
+require(set(guard) == {"path", "device", "inode"}, "registered Action path guard evidence is malformed")
+require(
+    pathlib.Path(integrity["action_runtime_path"]).parent == pathlib.Path(guard["path"]),
+    "registered Action path guard does not protect the closest ancestor",
+)
+metadata = os.lstat(guard["path"])
+require(stat.S_ISDIR(metadata.st_mode), "registered Action path guard is not a directory")
+require(str(metadata.st_dev) == guard["device"], "registered Action path guard device changed")
+require(str(metadata.st_ino) == guard["inode"], "registered Action path guard inode changed")
+print(f'{guard["path"]}\t{guard["device"]}\t{guard["inode"]}')
+PY
+
+IFS=$'\t' read -r path_guard path_guard_device path_guard_inode <"$path_guard_record"
+[[ "$path_guard_device" =~ ^[0-9]+$ ]] || die "Action path guard device evidence is invalid"
+[[ "$path_guard_inode" =~ ^[0-9]+$ ]] || die "Action path guard inode evidence is invalid"
+mapfile -t guard_mounts < <(
+  findmnt --raw --noheadings --mountpoint "$path_guard" --output TARGET,OPTIONS
+)
+guard_mount_count="${#guard_mounts[@]}"
+(( guard_mount_count > 0 && guard_mount_count <= 16 )) ||
+  die "Action path guard mount evidence is incomplete"
+guard_mount_writable=false
+for guard_mount in "${guard_mounts[@]}"; do
+  read -r guard_target guard_options <<<"$guard_mount"
+  [[ "$guard_target" == "$path_guard" && -n "$guard_options" ]] ||
+    die "Action path guard mount target changed"
+  if [[ ",$guard_options," == *,rw,* && ",$guard_options," != *,ro,* ]]; then
+    guard_mount_writable=true
+  fi
+done
+[[ "$guard_mount_writable" == "true" ]] || die "Action path guard mount is not writable"
+
+guard_parent="${path_guard%/*}"
+moved_guard="$guard_parent/.fence-action-path-tamper"
+if [[ -e "$moved_guard" || -L "$moved_guard" ]]; then
+  die "Action path guard tamper destination already exists"
+fi
+if /usr/bin/mv -- "$path_guard" "$moved_guard" 2>/dev/null; then
+  /usr/bin/mkdir -p "$DIR/action"
+  printf '%s\n' '// synthetic replacement marker' >"$DIR/action/post.cts"
+  echo "registered_action_path_rename=unexpectedly_permitted"
+  die "Action path guard allowed registered runtime replacement"
+fi
+echo "registered_action_path_rename=denied"
+
+first_scan="$(
+  sudo --non-interactive /usr/bin/python3 -I -B - <<'PY'
+import sys
+
+if sys.flags.optimize != 0:
+    raise SystemExit("Python optimization must be disabled")
+
+def require(condition, message="evidence validation failed"):
+    if not condition:
+        raise SystemExit(message)
+
+import json
+import pathlib
+import socket
+import subprocess
+import time
+
+directory = pathlib.Path("/run/fence/action-tamper")
+report_path = directory / "report.json"
+ready = json.loads((directory / "ready.json").read_bytes())
+require(ready["status"] == "ready_observation_only" and ready["resident_health"]["status"] == "healthy")
+
+# Start both probes just after a healthy heartbeat so the fresh post-hook check
+# measures these failures, not time spent on the preceding path-guard tests.
+report = json.loads(report_path.read_bytes())
+sequence = report["resident_health"]["verification_sequence"]
+deadline = time.monotonic() + 15
+while True:
+    require(report["resident_health"]["status"] == "healthy" and "first_failed_local_control_scan" not in report)
+    if report["resident_health"]["verification_sequence"] > sequence:
+        break
+    require(time.monotonic() < deadline, "resident did not publish a healthy heartbeat before tampering")
+    time.sleep(0.1)
+    report = json.loads(report_path.read_bytes())
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(1)
+    subprocess.run(["/usr/sbin/nft", "delete", "table", "inet", "fence_v0"], check=True, timeout=5)
+    deadline = time.monotonic() + 15
+    while True:
+        report = json.loads(report_path.read_bytes())
+        if "first_failed_local_control_scan" in report and report["network_verification_status"] == "critical_drift":
+            break
+        require(time.monotonic() < deadline, "resident did not report both the listener and the removed firewall")
+        time.sleep(0.1)
+require(report["status"] == "protected_host_audit_observation")
+require(report["readiness_status"] == "ready_observation_only")
+require(report["network_verification_status"] == "critical_drift")
+require(report["resident_health"]["status"] == "critical")
+require(report["critical_findings_truncated"] is False)
+require(any(item["code"] == "dns_audit_network_drift" for item in report["critical_findings"]))
+require(any(item["code"] == "local_control_inventory_unavailable" for item in report["critical_findings"]))
+scan = report["first_failed_local_control_scan"]
+attempts = scan.get("attempts")
+require(type(attempts) is int and 1 <= attempts <= 3)
+require(scan == {"status": "unavailable", "attempts": attempts, "unavailable_inputs": ["socket_ownership"], "bounds_exceeded": []})
+print(json.dumps(scan))
+PY
+)"
+
+require_listener_diagnostic() {
+  python3 -E - "$post_stdout" "$first_scan" <<'PY'
+import json
+import pathlib
+import sys
+
+with pathlib.Path(sys.argv[1]).open("rb") as stream:
+    output = stream.read(256 * 1024 + 1)
+prefix = b"Fence failure diagnostic (unverified): "
+records = [json.loads(line[len(prefix):]) for line in output.splitlines() if line.startswith(prefix)]
+resident = [record for record in records if record.get("source") == "resident"]
+if len(output) > 256 * 1024 or len(resident) != 1 or resident[0].get("first_failed_local_control_scan") != json.loads(sys.argv[2]):
+    raise SystemExit("Action post hook did not preserve the first failed listener scan")
+PY
+}
+
+if sudo --non-interactive /usr/sbin/nft list table inet fence_v0 >/dev/null 2>&1; then
+  die "Action tamper evidence unexpectedly restored inet fence_v0"
+fi
+sudo --non-interactive /usr/bin/systemctl is-active --quiet "fence-$invocation.service"
+
+if STATE_invocation_id="$invocation" \
+  STATE_report_path="$report" \
+  STATE_launcher_integrity_path="$launcher_integrity" \
+  GITHUB_STEP_SUMMARY="$summary" \
+  node action/post.cts >"$post_stdout" 2>"$post_stderr"; then
+  die "Action post hook unexpectedly accepted critical resident drift"
+fi
+grep -q "Fence report contains critical resident findings" "$post_stderr"
+require_listener_diagnostic
+
+python3 -E - "$post_stdout" <<'PY'
+import json
+import pathlib
+import sys
+
+if sys.flags.optimize != 0:
+    raise SystemExit("Python optimization must be disabled")
+
+
+def require(condition, message):
+    if not condition:
+        raise SystemExit(message)
+
+
+def unique_object(pairs):
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError("Fence structured report contains duplicate JSON fields")
+        value[key] = item
+    return value
+
+
+prefix = b"FENCE_REPORT_JSON="
+with pathlib.Path(sys.argv[1]).open("rb") as stream:
+    output = stream.read(256 * 1024 + 1)
+require(len(output) <= 256 * 1024, "Action post hook output exceeded its fixed bound")
+records = [line for line in output.splitlines() if line.startswith(prefix)]
+require(len(records) == 1, "Action post hook must emit exactly one structured critical report")
+record = records[0]
+require(len(record) <= 16 * 1024, "Action structured critical report exceeded 16 KiB")
+try:
+    report = json.loads(record[len(prefix):].decode("utf-8"), object_pairs_hook=unique_object)
+except (UnicodeError, ValueError, json.JSONDecodeError) as error:
+    raise SystemExit("Action structured critical report is not valid unique-field JSON") from error
+
+expected_fields = {
+    "schema_version",
+    "mode",
+    "result",
+    "controls",
+    "network",
+    "warnings",
+    "omissions",
+    "suggested_allowlist",
+}
+require(isinstance(report, dict) and set(report) == expected_fields, "Action structured critical report has an invalid schema")
+require(type(report["schema_version"]) is int and report["schema_version"] == 1, "Action structured critical report schema version is invalid")
+require(report["mode"] == "audit", "Action structured critical report has the wrong mode")
+require(report["result"] == "critical", "Action structured critical report concealed resident drift")
+controls = report["controls"]
+require(
+    isinstance(controls, dict)
+    and controls.get("network") == "critical_drift"
+    and controls.get("sudo") == "preserved_verified"
+    and controls.get("containers") == "preserved_verified"
+    and controls.get("protection_available") is False
+    and controls.get("readiness") == "ready_observation_only"
+    and controls.get("resident_health") == "critical",
+    "Action structured critical report misrepresented the drifted audit controls",
+)
+require(
+    isinstance(report["network"], list)
+    and len(report["network"]) <= 20
+    and all(isinstance(row, dict) for row in report["network"]),
+    "Action structured critical report contains invalid network evidence",
+)
+require(isinstance(report["warnings"], dict), "Action structured critical report warnings are invalid")
+require(isinstance(report["omissions"], dict), "Action structured critical report omissions are invalid")
+require(
+    isinstance(report["suggested_allowlist"], list)
+    and len(report["suggested_allowlist"]) <= 20,
+    "Action structured critical report allowlist suggestions are invalid",
+)
+PY
+
+# Critical health never advances its successful heartbeat. Wait only until it
+# crosses the freshness limit, with a separate monotonic test deadline.
+python3 -E - "$report" "$first_scan" <<'PYWAIT'
+import json
+import pathlib
+import sys
+import time
+
+report_path = pathlib.Path(sys.argv[1])
+first_scan = json.loads(sys.argv[2])
+initial_mtime = report_path.stat().st_mtime_ns
+deadline = time.monotonic() + 25
+while time.monotonic() < deadline:
+    evidence = json.loads(report_path.read_text(encoding="utf-8"))
+    health = evidence["resident_health"]
+    if health["status"] != "critical":
+        raise SystemExit("Tamper evidence lost critical resident status")
+    if evidence.get("first_failed_local_control_scan") != first_scan:
+        raise SystemExit("First failed scan changed after the unexpected listener closed")
+    age = time.time() * 1000 - health["last_successful_verification_unix_milliseconds"]
+    if age > 21_000 and report_path.stat().st_mtime_ns != initial_mtime:
+        break
+    time.sleep(0.1)
+else:
+    raise SystemExit("Critical resident heartbeat did not become stale")
+PYWAIT
+
+if STATE_invocation_id="$invocation" \
+  STATE_report_path="$report" \
+  STATE_launcher_integrity_path="$launcher_integrity" \
+  GITHUB_STEP_SUMMARY="$summary" \
+  node action/post.cts >"$post_stdout" 2>"$post_stderr"; then
+  die "Action post hook unexpectedly accepted stale critical evidence"
+fi
+grep -q "Fence resident health evidence is stale or has an invalid timestamp" "$post_stderr"
+grep -q 'Fence failure diagnostic (unverified): .*"reported_resident_status":"critical".*dns_audit_network_drift' "$post_stdout"
+require_listener_diagnostic
+if grep -q 'FENCE_REPORT_JSON=\|Fence evidence verified' "$post_stdout"; then
+  die "Stale critical evidence produced a verified report"
+fi
+
+if sudo --non-interactive /usr/sbin/nft list table inet fence_v0 >/dev/null 2>&1; then
+  die "Action post hook unexpectedly restored inet fence_v0"
+fi
+if ! sudo --non-interactive /usr/bin/true; then
+  die "Action post hook unexpectedly changed audit-mode passwordless sudo"
+fi
+sudo --non-interactive /usr/bin/systemctl is-active --quiet "fence-$invocation.service"
+
+echo -e "${GREEN}Action tamper evidence verified:${OFF} registered path remained stable and post hook reported critical drift without restoring access"

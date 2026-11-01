@@ -1,0 +1,775 @@
+#! /usr/bin/env bash
+
+set -euo pipefail
+
+source script/env "$@"
+
+if [[ $# -ne 0 ]]; then
+  die "usage: script/observe-hosted-runner"
+fi
+
+require_cmd sudo
+require_cmd python3
+
+if [[ "$PLATFORM" != "linux" || "$ARCH" != "x86_64" ]]; then
+  die "hosted-runner observation requires Linux x86_64"
+fi
+if [[ "${CI:-}" != "true" || "${GITHUB_ACTIONS:-}" != "true" ]]; then
+  die "hosted-runner observation runs only on disposable GitHub Actions runners"
+fi
+
+runner_principal="$(/usr/bin/id -un)"
+if ! [[ "$runner_principal" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]]; then
+  die "hosted-runner observation encountered an invalid caller principal"
+fi
+
+# Observe only fixed security-relevant surfaces. Do not emit file contents,
+# environment values, process arguments, workload identifiers, raw socket
+# names, or local listener addresses.
+# The only mutations are an exclusive empty-file create/delete probe in the
+# enumerated command and sudo-policy ancestor directories plus one bounded
+# runner-readable evidence file under the runner-provided temporary root.
+observation_path="$RUNNER_TEMP/fence-hosted-runner-observation.json"
+if [[ -e "$observation_path" ]]; then
+  die "hosted-runner observation requires an absent evidence path"
+fi
+sudo --non-interactive /usr/bin/python3 -B -E - \
+  "$runner_principal" \
+  "$observation_path" \
+  "$DIR/script/lib/host_observation.py" <<'PY'
+import grp
+import hashlib
+import importlib.util
+import json
+import os
+import pathlib
+import platform
+import pwd
+import re
+import secrets
+import stat
+import sys
+
+helper_path = pathlib.Path(sys.argv[3])
+helper_spec = importlib.util.spec_from_file_location(
+    "fence_host_observation", helper_path
+)
+if helper_spec is None or helper_spec.loader is None:
+    raise SystemExit("hosted-runner observation helper is unavailable")
+helper = importlib.util.module_from_spec(helper_spec)
+helper_spec.loader.exec_module(helper)
+observe_local_control_inventory = helper.observe_local_control_inventory
+validate_local_control_inventory = helper.validate_local_control_inventory
+validate_schema4_observation = helper.validate_schema4_observation
+bounded_command_output = helper.bounded_command_output
+bounded_directory_entries = helper.bounded_directory_entries
+bounded_file_lines = helper.bounded_file_lines
+bounded_read = helper._bounded_read
+bounded_waitpid = helper.bounded_waitpid
+canonical_sudo_sources = helper.canonical_sudo_sources
+public_fixed_canonical_target = helper.public_fixed_canonical_target
+public_host_identity = helper.public_host_identity
+public_resolver_target = helper.public_resolver_target
+public_runner_group_name = helper.public_runner_group_name
+public_socket_identity = helper.public_socket_identity
+public_sudo_source_name = helper.public_sudo_source_name
+public_sudo_source_target = helper.public_sudo_source_target
+public_unit_state = helper.public_unit_state
+sudo_policy_sha256 = helper.sudo_policy_sha256
+
+MAX_OUTPUT_BYTES = helper.MAX_SCHEMA4_OUTPUT_BYTES
+MAX_POLICY_SOURCE_BYTES = 256 * 1024
+MAX_CGROUP_PROCS_BYTES = 16 * 1024
+MAX_OS_RELEASE_BYTES = 4096
+MAX_POLICY_SOURCES = helper.MAX_SCHEMA4_POLICY_SOURCES
+MAX_AZURE_PLATFORM_AGENT_PROCESSES = helper.MAX_SCHEMA4_AZURE_PROCESSES
+FIXED_PATHS = list(helper.SCHEMA4_REQUIRED_PATHS)
+FIXED_ANCESTOR_DIRECTORIES = list(helper.SCHEMA4_ANCESTOR_DIRECTORIES)
+FIXED_UNITS = list(helper.SCHEMA4_FIXED_UNITS)
+FIXED_SOCKETS = list(helper.SCHEMA4_FIXED_SOCKETS)
+PROBE_RESULTS = helper.SCHEMA4_PROBE_RESULTS
+
+
+def fail(message):
+    raise SystemExit(message)
+
+
+def command_output(args):
+    return bounded_command_output(args, maximum=4096, timeout=5)
+
+
+def metadata_type(mode):
+    if stat.S_ISREG(mode):
+        return "regular"
+    if stat.S_ISDIR(mode):
+        return "directory"
+    if stat.S_ISLNK(mode):
+        return "symlink"
+    if stat.S_ISSOCK(mode):
+        return "socket"
+    if stat.S_ISCHR(mode):
+        return "character_device"
+    if stat.S_ISBLK(mode):
+        return "block_device"
+    if stat.S_ISFIFO(mode):
+        return "fifo"
+    return "other"
+
+
+def runner_identity(principal):
+    try:
+        account = pwd.getpwnam(principal)
+        group_ids = sorted(set(os.getgrouplist(principal, account.pw_gid)))
+    except KeyError:
+        fail("hosted-runner observation could not resolve the runner identity")
+    group_names = []
+    for identifier in group_ids:
+        try:
+            group_names.append(grp.getgrgid(identifier).gr_name[:64])
+        except KeyError:
+            group_names.append(str(identifier))
+    return {
+        "uid": account.pw_uid,
+        "gid": account.pw_gid,
+        "group_ids": group_ids,
+        "group_names": group_names[:64],
+    }
+
+
+def owner_class(identifier, identity):
+    if identifier == 0:
+        return "root"
+    if identifier == identity["uid"]:
+        return "runner"
+    return "other"
+
+
+def group_class(identifier, identity):
+    if identifier == 0:
+        return "root"
+    if identifier == identity["gid"]:
+        return "runner_primary"
+    if identifier in identity["group_ids"]:
+        return "runner_member"
+    return "other"
+
+
+def drop_to_runner(identity):
+    os.setgroups(identity["group_ids"])
+    os.setresgid(identity["gid"], identity["gid"], identity["gid"])
+    os.setresuid(identity["uid"], identity["uid"], identity["uid"])
+
+
+def runner_access(path, mode, identity):
+    pid = os.fork()
+    if pid == 0:
+        try:
+            drop_to_runner(identity)
+            allowed = os.access(path, mode)
+        except OSError:
+            os._exit(2)
+        os._exit(0 if allowed else 1)
+    status = bounded_waitpid(pid, timeout=5)
+    if status is None:
+        return None
+    if not os.WIFEXITED(status):
+        return None
+    code = os.WEXITSTATUS(status)
+    if code == 0:
+        return True
+    if code == 1:
+        return False
+    return None
+
+
+def metadata_observation(path, identity):
+    candidate = pathlib.Path(path)
+    try:
+        path_metadata = candidate.lstat()
+        canonical = candidate.resolve(strict=True)
+        target_metadata = canonical.stat()
+    except (FileNotFoundError, OSError):
+        return {"path": path, "present": False}
+    return {
+        "path": path,
+        "present": True,
+        "path_type": metadata_type(path_metadata.st_mode),
+        "canonical_target": public_fixed_canonical_target(canonical, path),
+        "target_type": metadata_type(target_metadata.st_mode),
+        "owner_class": owner_class(target_metadata.st_uid, identity),
+        "group_class": group_class(target_metadata.st_gid, identity),
+        "mode": format(stat.S_IMODE(target_metadata.st_mode), "04o"),
+        "device": target_metadata.st_dev,
+        "inode": target_metadata.st_ino,
+        "runner_writable": runner_access(path, os.W_OK, identity),
+    }
+
+
+def command_path_observation(path, identity):
+    observation = metadata_observation(path, identity)
+    if not observation["present"]:
+        observation["executable"] = False
+        observation["runner_executable"] = False
+        return observation
+    observation["executable"] = (
+        observation["target_type"] == "regular"
+        and int(observation["mode"], 8) & 0o111 != 0
+    )
+    observation["runner_executable"] = runner_access(path, os.X_OK, identity)
+    return observation
+
+
+def synthetic_create_delete_probe(directory, identity):
+    flags = os.O_RDONLY | os.O_CLOEXEC | os.O_DIRECTORY | os.O_NOFOLLOW
+    try:
+        directory_fd = os.open(directory, flags)
+    except OSError:
+        return "unavailable"
+
+    probe_name = f".fence-observer-{secrets.token_hex(16)}"
+    try:
+        try:
+            os.stat(probe_name, dir_fd=directory_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            pass
+        else:
+            return "unavailable"
+
+        root_removed = False
+        try:
+            pid = os.fork()
+            if pid == 0:
+                created = False
+                try:
+                    drop_to_runner(identity)
+                    probe_fd = os.open(
+                        probe_name,
+                        os.O_WRONLY
+                        | os.O_CREAT
+                        | os.O_EXCL
+                        | os.O_CLOEXEC
+                        | os.O_NOFOLLOW,
+                        0o600,
+                        dir_fd=directory_fd,
+                    )
+                    created = True
+                    os.close(probe_fd)
+                    os.unlink(probe_name, dir_fd=directory_fd)
+                except PermissionError:
+                    os._exit(12 if created else 10)
+                except OSError:
+                    os._exit(12 if created else 11)
+                os._exit(0)
+
+            status = bounded_waitpid(pid, timeout=5)
+            code = (
+                os.WEXITSTATUS(status)
+                if status is not None and os.WIFEXITED(status)
+                else 11
+            )
+        finally:
+            try:
+                os.unlink(probe_name, dir_fd=directory_fd)
+                root_removed = True
+            except FileNotFoundError:
+                pass
+            except OSError:
+                fail(
+                    "hosted-runner observation could not remove its synthetic probe"
+                )
+
+        if root_removed:
+            return "created_and_root_removed"
+        if code == 0:
+            return "created_and_removed"
+        if code == 10:
+            return "denied"
+        return "unavailable"
+    finally:
+        os.close(directory_fd)
+
+
+def ancestor_directory_observation(path, identity):
+    observation = metadata_observation(path, identity)
+    if not observation["present"] or observation.get("target_type") != "directory":
+        observation["runner_searchable"] = False
+        observation["synthetic_create_delete_probe"] = "unavailable"
+        return observation
+    observation["runner_searchable"] = runner_access(path, os.X_OK, identity)
+    observation["synthetic_create_delete_probe"] = synthetic_create_delete_probe(path, identity)
+    return observation
+
+
+def runner_nopasswd_markers(contents, principal, groups):
+    text = contents.decode("utf-8", errors="ignore").replace("\\\n", " ")
+    accepted_subjects = {principal: "principal"}
+    accepted_subjects.update({f"%{group}": "group" for group in groups})
+    markers = []
+    for original_line in text.splitlines():
+        line = original_line.split("#", 1)[0].strip()
+        if "NOPASSWD:" not in line:
+            continue
+        subject = line.split(None, 1)[0] if line else ""
+        marker = accepted_subjects.get(subject)
+        if marker is not None and marker not in markers:
+            markers.append(marker)
+    return sorted(markers)
+
+
+def regular_file_observation(path, principal, identity):
+    candidate = pathlib.Path(path)
+    try:
+        descriptor = os.open(
+            candidate,
+            os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW,
+        )
+    except OSError:
+        return None
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            return None
+        canonical = candidate.resolve(strict=True)
+        common = {
+            "name": public_sudo_source_name(candidate.name),
+            "canonical_target": public_sudo_source_target(canonical),
+            "target_type": "regular",
+            "owner_class": owner_class(metadata.st_uid, identity),
+            "group_class": group_class(metadata.st_gid, identity),
+            "mode": format(stat.S_IMODE(metadata.st_mode), "04o"),
+            "device": metadata.st_dev,
+            "inode": metadata.st_ino,
+            "runner_writable": runner_access(str(candidate), os.W_OK, identity),
+        }
+        if metadata.st_size > MAX_POLICY_SOURCE_BYTES:
+            return {**common, "status": "oversized"}
+        with os.fdopen(descriptor, "rb", closefd=False) as source:
+            contents = source.read(MAX_POLICY_SOURCE_BYTES + 1)
+        if len(contents) > MAX_POLICY_SOURCE_BYTES:
+            return {**common, "status": "oversized"}
+        return {
+            **common,
+            "sha256": sudo_policy_sha256(candidate.name, contents),
+            "contains_nopasswd_directive": b"NOPASSWD:" in contents,
+            "runner_nopasswd_markers": runner_nopasswd_markers(
+                contents,
+                principal,
+                identity["group_names"],
+            ),
+        }
+    finally:
+        os.close(descriptor)
+
+
+def unit_state(unit):
+    output = command_output(
+        [
+            "/usr/bin/systemctl",
+            "show",
+            "--no-pager",
+            "--property=LoadState",
+            "--property=ActiveState",
+            "--property=UnitFileState",
+            unit,
+        ]
+    )
+    values = {
+        "name": unit,
+        "load_state": public_unit_state(unit, "load_state", "unobserved"),
+        "active_state": public_unit_state(unit, "active_state", "unobserved"),
+        "unit_file_state": public_unit_state(
+            unit, "unit_file_state", "unobserved"
+        ),
+    }
+    if output is not None:
+        for line in output.splitlines():
+            key, _, value = line.partition("=")
+            output_key = {
+                "LoadState": "load_state",
+                "ActiveState": "active_state",
+                "UnitFileState": "unit_file_state",
+            }.get(key)
+            if output_key is not None:
+                values[output_key] = public_unit_state(
+                    unit, output_key, value[:64]
+                )
+    return values
+
+
+def bounded_process_identity(pid, identity):
+    process_root = pathlib.Path(f"/proc/{pid}")
+    try:
+        process_metadata = process_root.stat()
+        executable = (process_root / "exe").resolve(strict=True)
+        executable_metadata = executable.stat()
+        stat_fields = (process_root / "stat").read_text(encoding="utf-8").rsplit(")", 1)[1].split()
+        process_start_time = int(stat_fields[19])
+    except (FileNotFoundError, IndexError, OSError, UnicodeDecodeError, ValueError):
+        return None
+
+    executable_basename = executable.name
+    if not re.fullmatch(r"[A-Za-z0-9._+-]{1,128}", executable_basename):
+        executable_basename = "unreportable"
+    return {
+        "pid": pid,
+        "owner_class": owner_class(process_metadata.st_uid, identity),
+        "start_time_ticks": process_start_time,
+        "executable_basename": executable_basename,
+        "executable_device": executable_metadata.st_dev,
+        "executable_inode": executable_metadata.st_ino,
+    }
+
+
+def azure_platform_agent_observation(identity):
+    for unit in helper.AZURE_PLATFORM_AGENT_UNITS:
+        observation = observe_platform_agent_unit(unit, identity)
+        if observation is not None:
+            return observation
+    return {"status": "unavailable"}
+
+
+def observe_platform_agent_unit(unit, identity):
+    output = command_output(
+        [
+            "/usr/bin/systemctl",
+            "show",
+            "--no-pager",
+            "--property=LoadState",
+            "--property=ActiveState",
+            "--property=SubState",
+            "--property=UnitFileState",
+            "--property=MainPID",
+            "--property=User",
+            "--property=ControlGroup",
+            unit,
+        ]
+    )
+    if output is None:
+        return None
+
+    fields = {}
+    for line in output.splitlines():
+        key, separator, value = line.partition("=")
+        if separator:
+            fields[key] = value
+    try:
+        main_pid = int(fields.get("MainPID", "0"))
+    except ValueError:
+        main_pid = 0
+    configured_user = fields.get("User", "")
+    control_group = fields.get("ControlGroup", "")
+    if (
+        fields.get("LoadState") != "loaded"
+        or fields.get("ActiveState") != "active"
+        or fields.get("SubState") != "running"
+        or configured_user not in {"", "root"}
+        or re.fullmatch(r"/[A-Za-z0-9_.@:/-]{1,255}", control_group) is None
+        or not control_group.endswith("/" + unit)
+        or re.fullmatch(r"[a-z][a-z0-9-]{0,63}", fields.get("UnitFileState", ""))
+        is None
+    ):
+        return None
+
+    observation = {
+        "name": unit,
+        "status": "observed",
+        "load_state": fields["LoadState"],
+        "active_state": fields["ActiveState"],
+        "sub_state": fields["SubState"],
+        "unit_file_state": fields["UnitFileState"],
+        "configured_user_class": "root_or_default",
+        "control_group": control_group,
+        "main_pid": main_pid,
+    }
+    if main_pid <= 0:
+        return None
+
+    cgroup_processes = pathlib.Path("/sys/fs/cgroup") / control_group.removeprefix("/") / "cgroup.procs"
+    try:
+        raw_pids, lines_truncated = bounded_file_lines(
+            cgroup_processes,
+            MAX_CGROUP_PROCS_BYTES,
+            MAX_AZURE_PLATFORM_AGENT_PROCESSES + 1,
+        )
+    except (FileNotFoundError, OSError, UnicodeDecodeError, ValueError):
+        return None
+    if not all(value.isdecimal() for value in raw_pids):
+        return None
+    process_ids = sorted({int(value) for value in raw_pids if value.isdecimal()})
+    if (
+        lines_truncated
+        or len(raw_pids) > MAX_AZURE_PLATFORM_AGENT_PROCESSES
+        or len(process_ids) > MAX_AZURE_PLATFORM_AGENT_PROCESSES
+    ):
+        return None
+    observation["processes_truncated"] = False
+    processes = [
+        process
+        for pid in process_ids[:MAX_AZURE_PLATFORM_AGENT_PROCESSES]
+        if (process := bounded_process_identity(pid, identity)) is not None
+        and process["owner_class"] == "root"
+    ]
+    observation["processes"] = processes
+    main_process = next((process for process in processes if process["pid"] == main_pid), None)
+    if main_process is None:
+        return None
+    observation.update(
+        {
+            "process_status": "observed",
+            "process_owner_class": main_process["owner_class"],
+            "process_start_time_ticks": main_process["start_time_ticks"],
+            "executable_basename": main_process["executable_basename"],
+            "executable_device": main_process["executable_device"],
+            "executable_inode": main_process["executable_inode"],
+        }
+    )
+    return observation
+
+
+def socket_state(path):
+    candidate = pathlib.Path(path)
+    try:
+        metadata = candidate.stat()
+    except FileNotFoundError:
+        return {"path": path, "present": False}
+    mode = stat.S_IMODE(metadata.st_mode)
+    kind = "socket" if stat.S_ISSOCK(metadata.st_mode) else "unexpected_type"
+    try:
+        owner = pwd.getpwuid(metadata.st_uid).pw_name
+    except KeyError:
+        owner = str(metadata.st_uid)
+    try:
+        group = grp.getgrgid(metadata.st_gid).gr_name
+    except KeyError:
+        group = str(metadata.st_gid)
+    return {
+        "path": path,
+        "present": True,
+        "type": kind,
+        "mode": format(mode, "04o"),
+        "owner": public_socket_identity(path, "owner", owner[:64]),
+        "group": public_socket_identity(path, "group", group[:64]),
+    }
+
+
+def resolver_layout():
+    path = pathlib.Path("/etc/resolv.conf")
+    try:
+        metadata = path.lstat()
+        canonical = path.resolve(strict=True)
+        target = canonical.stat()
+    except (FileNotFoundError, OSError):
+        return {"status": "unavailable"}
+    return {
+        "status": "observed",
+        "path": str(path),
+        "is_symlink": stat.S_ISLNK(metadata.st_mode),
+        "canonical_target": public_resolver_target(canonical),
+        "target_type": "regular" if stat.S_ISREG(target.st_mode) else "unexpected_type",
+        "target_mode": format(stat.S_IMODE(target.st_mode), "04o"),
+        "target_uid": target.st_uid,
+    }
+
+
+def validate_metadata_fields(item):
+    required = {
+        "canonical_target",
+        "target_type",
+        "owner_class",
+        "group_class",
+        "mode",
+        "device",
+        "inode",
+        "runner_writable",
+    }
+    if not required.issubset(item):
+        fail("hosted-runner observation metadata is incomplete")
+    if item["owner_class"] not in {"root", "runner", "other"}:
+        fail("hosted-runner observation owner classification mismatch")
+    if item["group_class"] not in {
+        "root",
+        "runner_primary",
+        "runner_member",
+        "other",
+    }:
+        fail("hosted-runner observation group classification mismatch")
+    if not re.fullmatch(r"[0-7]{4}", item["mode"]):
+        fail("hosted-runner observation mode mismatch")
+    if not isinstance(item["device"], int) or isinstance(item["device"], bool):
+        fail("hosted-runner observation device identity mismatch")
+    if not isinstance(item["inode"], int) or isinstance(item["inode"], bool):
+        fail("hosted-runner observation inode identity mismatch")
+    if item["runner_writable"] not in {True, False, None}:
+        fail("hosted-runner observation writability mismatch")
+
+
+def validate_result(result):
+    try:
+        validate_schema4_observation(result)
+    except ValueError as error:
+        fail(f"hosted-runner schema 4 observation is invalid: {error}")
+    if result.get("schema_version") != 4:
+        fail("hosted-runner observation schema mismatch")
+    required_paths = result.get("required_paths")
+    if not isinstance(required_paths, list) or [
+        item.get("path") for item in required_paths
+    ] != FIXED_PATHS:
+        fail("hosted-runner observation path set mismatch")
+    for item in required_paths:
+        if item.get("present") is True:
+            validate_metadata_fields(item)
+        if item.get("executable") not in {True, False}:
+            fail("hosted-runner observation executable state mismatch")
+        if item.get("runner_executable") not in {True, False, None}:
+            fail("hosted-runner observation runner executable state mismatch")
+    ancestors = result.get("permission_ancestor_directories")
+    if not isinstance(ancestors, list) or [
+        item.get("path") for item in ancestors
+    ] != FIXED_ANCESTOR_DIRECTORIES:
+        fail("hosted-runner observation ancestor set mismatch")
+    for item in ancestors:
+        if item.get("present") is True:
+            validate_metadata_fields(item)
+        if item.get("runner_searchable") not in {True, False, None}:
+            fail("hosted-runner observation directory search state mismatch")
+        if item.get("synthetic_create_delete_probe") not in PROBE_RESULTS:
+            fail("hosted-runner observation probe result mismatch")
+    policy_sources = result.get("sudo", {}).get("policy_source_hashes")
+    if not isinstance(policy_sources, list) or len(policy_sources) > MAX_POLICY_SOURCES:
+        fail("hosted-runner observation policy source bound mismatch")
+    for item in policy_sources:
+        validate_metadata_fields(item)
+    try:
+        validate_local_control_inventory(result.get("local_control_inventory"))
+    except ValueError as error:
+        fail(f"hosted-runner local control observation is invalid: {error}")
+    encoded = json.dumps(result, sort_keys=True, separators=(",", ":"))
+    if len(encoded.encode("utf-8")) > MAX_OUTPUT_BYTES:
+        fail("hosted-runner observation exceeds its output bound")
+    return encoded
+
+
+identity = runner_identity(sys.argv[1])
+sudo_sources = []
+main_sudoers = regular_file_observation("/etc/sudoers", sys.argv[1], identity)
+if main_sudoers is not None:
+    main_sudoers["path_class"] = "main_policy"
+    sudo_sources.append(main_sudoers)
+
+policy_sources_truncated = False
+drop_in_root = pathlib.Path("/etc/sudoers.d")
+try:
+    drop_in_root_metadata = drop_in_root.lstat()
+except OSError:
+    drop_in_root_metadata = None
+if drop_in_root_metadata is not None and stat.S_ISDIR(drop_in_root_metadata.st_mode):
+    remaining_sources = max(0, MAX_POLICY_SOURCES - len(sudo_sources))
+    try:
+        candidates, policy_sources_truncated = bounded_directory_entries(
+            drop_in_root,
+            remaining_sources,
+            lambda name: "." not in name and not name.endswith("~"),
+        )
+    except OSError:
+        candidates = []
+        policy_sources_truncated = True
+    for candidate in candidates:
+        hashed = regular_file_observation(candidate, sys.argv[1], identity)
+        if hashed is not None:
+            hashed["path_class"] = "drop_in"
+            sudo_sources.append(hashed)
+
+sudo_sources = canonical_sudo_sources(sudo_sources)
+
+docker_ps = command_output(["/usr/bin/docker", "ps", "--quiet"])
+docker_workload_count = (
+    None if docker_ps is None else len([line for line in docker_ps.splitlines() if line])
+)
+
+os_identity = {"id": "unknown", "version_id": "unknown"}
+try:
+    os_release = bounded_read("/etc/os-release", MAX_OS_RELEASE_BYTES).decode(
+        "utf-8", errors="strict"
+    )
+    for line in os_release.splitlines():
+        key, _, value = line.partition("=")
+        if key in {"ID", "VERSION_ID"}:
+            os_identity[key.lower()] = value.strip().strip('"')[:64]
+except (FileNotFoundError, OSError, UnicodeDecodeError, ValueError):
+    pass
+
+result = {
+    "schema_version": 4,
+    "observation": "hosted_runner_fingerprint_candidate",
+    "status": "observation_only_no_protection",
+    "protected_target": "github_hosted_ubuntu_24_04_x86_64",
+    "host": {
+        "os_id": public_host_identity(
+            os_identity["id"],
+            helper.SCHEMA4_REVIEWED_OS_ID,
+            helper.UNREVIEWED_OS_ID,
+        ),
+        "os_version_id": public_host_identity(
+            os_identity["version_id"],
+            os_identity["version_id"]
+            if helper.supported_ubuntu_lts_version(os_identity["version_id"])
+            else helper.SCHEMA4_REVIEWED_OS_VERSION_ID,
+            helper.UNREVIEWED_OS_VERSION_ID,
+        ),
+        "architecture": public_host_identity(
+            platform.machine(),
+            helper.SCHEMA4_REVIEWED_ARCHITECTURE,
+            helper.UNREVIEWED_ARCHITECTURE,
+        ),
+        "runner_principal": public_host_identity(
+            sys.argv[1],
+            helper.SCHEMA4_REVIEWED_RUNNER_PRINCIPAL,
+            helper.UNREVIEWED_RUNNER_PRINCIPAL,
+        ),
+        "runner_groups": sorted(
+            {public_runner_group_name(name) for name in identity["group_names"]}
+        ),
+    },
+    "required_paths": [
+        command_path_observation(path, identity) for path in FIXED_PATHS
+    ],
+    "permission_ancestor_directories": [
+        ancestor_directory_observation(path, identity)
+        for path in FIXED_ANCESTOR_DIRECTORIES
+    ],
+    "resolver": resolver_layout(),
+    "systemd": {
+        "units": [unit_state(unit) for unit in FIXED_UNITS],
+        "azure_platform_agent": azure_platform_agent_observation(identity),
+    },
+    "sudo": {
+        "noninteractive_root_observation_succeeded": True,
+        "policy_source_hashes": sudo_sources,
+        "policy_sources_truncated": policy_sources_truncated,
+        "grant_source_review_required": True,
+    },
+    "container_runtime": {
+        "sockets": [socket_state(path) for path in FIXED_SOCKETS],
+        "docker_running_workload_count": docker_workload_count,
+    },
+    "local_control_inventory": observe_local_control_inventory(
+        filesystem_socket_access=lambda path: runner_access(
+            path, os.W_OK, identity
+        )
+    ),
+    "next_step": "review_closed_host_invariants_before_any_enforcement_change",
+}
+encoded = validate_result(result)
+output_path = pathlib.Path(sys.argv[2])
+try:
+    descriptor = os.open(
+        output_path,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW,
+        0o644,
+    )
+except OSError:
+    fail("hosted-runner observation could not create its bounded evidence file")
+with os.fdopen(descriptor, "w", encoding="utf-8") as destination:
+    destination.write(encoded)
+print(encoded)
+PY

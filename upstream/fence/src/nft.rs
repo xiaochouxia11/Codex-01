@@ -1,0 +1,1093 @@
+use crate::config::{Mode, Protocol};
+use crate::findings::ConnectionFinding;
+use crate::plan::EffectiveAllowance;
+use crate::platform_profile::{
+    AZURE_INSTANCE_METADATA_ADDRESS, AZURE_INSTANCE_METADATA_TCP_PORT, AZURE_WIRESERVER_ADDRESS,
+    AZURE_WIRESERVER_ROOT_UID, AZURE_WIRESERVER_TCP_PORTS,
+};
+use serde::{Deserialize, Serialize};
+use std::fmt::Write as _;
+
+pub const NFT_BACKEND: &str = "native_nftables";
+pub const NFT_FAMILY: &str = "inet";
+pub const NFT_TABLE: &str = "fence_v0";
+pub const NFT_OUTPUT_CHAIN: &str = "fence_output";
+pub const NFT_FORWARD_CHAIN: &str = "fence_forward";
+pub const NFT_CLASSIFY_CHAIN: &str = "fence_classify";
+pub const NFT_VIOLATION_CHAIN: &str = "fence_violation";
+pub const NFT_SAMPLED_VIOLATIONS_COUNTER: &str = "fence_sampled_violations";
+pub const NFT_TOTAL_VIOLATIONS_COUNTER: &str = "fence_total_violations";
+pub const NFT_HOOK_PRIORITY: i32 = 10;
+pub const NFLOG_GROUP: u16 = 4242;
+pub const NFLOG_PREFIX_BLOCK: &str = "fence-v0-block";
+pub const NFLOG_PREFIX_AUDIT: &str = "fence-v0-audit";
+pub const NFLOG_PACKET_PREFIX_BYTES: u32 = 64;
+pub const NFLOG_SAMPLE_RATE_PER_SECOND: u32 = 100;
+pub const NFLOG_SAMPLE_BURST: u32 = 100;
+pub const NETWORK_EVIDENCE_STATUS: &str = "network_enforcement_test_only";
+pub const DNS_MEDIATOR_UPSTREAM_ADDRESS: &str = "168.63.129.16";
+pub const DNS_MEDIATOR_UPSTREAM_PORT: u16 = 53;
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+pub struct OwnedTablePreview {
+    pub family: &'static str,
+    pub name: &'static str,
+    pub single_active_invocation: bool,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+pub struct HookPreview {
+    pub chain: &'static str,
+    pub hook: &'static str,
+    pub priority: i32,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+pub struct ImplicitIpv6Control {
+    pub rule_class: &'static str,
+    pub icmpv6_types: Vec<&'static str>,
+    pub required_hop_limit: u8,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+pub struct NflogPreview {
+    pub group: u16,
+    pub prefix: &'static str,
+    pub packet_prefix_bytes: u32,
+    pub sample_rate_per_second: u32,
+    pub sample_burst: u32,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+pub struct NetworkEnforcementPreview {
+    pub backend: &'static str,
+    pub activation_status: &'static str,
+    pub owned_table: OwnedTablePreview,
+    pub hooks: Vec<HookPreview>,
+    pub implicit_ipv6_control: ImplicitIpv6Control,
+    pub nflog: NflogPreview,
+    pub ruleset: String,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+pub struct NetworkEvidence {
+    pub status: &'static str,
+    pub mode: Mode,
+    pub policy_hash: String,
+    pub ruleset_hash: String,
+    pub apply_status: &'static str,
+    pub verification_status: &'static str,
+    pub readiness_status: &'static str,
+    pub counters: NetworkEvidenceCounters,
+    pub findings: Vec<ConnectionFinding>,
+    pub findings_truncated: bool,
+    pub limitations: Vec<&'static str>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+pub struct NetworkEvidenceCounters {
+    pub total_violations: u64,
+    pub sampled_violations: u64,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct OwnedNftState {
+    pub family: String,
+    pub table: String,
+    pub chains: Vec<OwnedChain>,
+    pub counters: Vec<String>,
+    pub rules: Vec<OwnedRule>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(tag = "chain_kind", rename_all = "snake_case")]
+pub enum OwnedChain {
+    Base {
+        name: String,
+        chain_type: String,
+        hook: String,
+        priority: i32,
+        policy: String,
+    },
+    Regular {
+        name: String,
+    },
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(tag = "rule_class", rename_all = "snake_case")]
+pub enum OwnedRule {
+    Loopback {
+        chain: String,
+    },
+    UdpOriginalDispatch {
+        chain: String,
+    },
+    EstablishedRelated {
+        chain: String,
+    },
+    ImplicitIpv6Control {
+        chain: String,
+        icmpv6_types: Vec<String>,
+        required_hop_limit: u8,
+    },
+    ClassifyDispatch {
+        chain: String,
+    },
+    Allowance {
+        chain: String,
+        address_family: String,
+        destination: String,
+        protocol: String,
+        port: u16,
+    },
+    DnsMediatorUpstreamDispatch {
+        chain: String,
+        destination: String,
+        protocol: String,
+        port: u16,
+    },
+    DnsMediatorUpstream {
+        chain: String,
+        uid: u32,
+        destination: String,
+        protocol: String,
+        port: u16,
+    },
+    WireServerPlatform {
+        chain: String,
+        uid: u32,
+        destination: String,
+        protocol: String,
+        port: u16,
+    },
+    WireServerViolationDispatch {
+        chain: String,
+        port: u16,
+    },
+    InstanceMetadataPlatform {
+        chain: String,
+        destination: String,
+        protocol: String,
+        port: u16,
+    },
+    ViolationDispatch {
+        chain: String,
+    },
+    SampledViolation {
+        chain: String,
+        nflog_group: u16,
+        prefix: String,
+        packet_prefix_bytes: u32,
+        sample_rate_per_second: u32,
+        sample_burst: u32,
+    },
+    TerminalViolation {
+        chain: String,
+        verdict: String,
+    },
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct VerificationFailure {
+    pub code: &'static str,
+    pub message: &'static str,
+}
+
+pub fn implicit_ipv6_control() -> ImplicitIpv6Control {
+    ImplicitIpv6Control {
+        rule_class: "implicit_ipv6_control",
+        icmpv6_types: vec![
+            "router_solicitation",
+            "neighbor_solicitation",
+            "neighbor_advertisement",
+        ],
+        required_hop_limit: 255,
+    }
+}
+
+pub fn build_preview(mode: Mode, allowances: &[EffectiveAllowance]) -> NetworkEnforcementPreview {
+    build_preview_with_dns_mediator(mode, allowances, false)
+}
+
+pub fn build_dns_mediated_preview(
+    mode: Mode,
+    allowances: &[EffectiveAllowance],
+) -> NetworkEnforcementPreview {
+    build_preview_with_dns_mediator(mode, allowances, true)
+}
+
+fn build_preview_with_dns_mediator(
+    mode: Mode,
+    allowances: &[EffectiveAllowance],
+    dns_mediator_upstream: bool,
+) -> NetworkEnforcementPreview {
+    NetworkEnforcementPreview {
+        backend: NFT_BACKEND,
+        activation_status: "not_applied",
+        owned_table: OwnedTablePreview {
+            family: NFT_FAMILY,
+            name: NFT_TABLE,
+            single_active_invocation: true,
+        },
+        hooks: hook_preview(),
+        implicit_ipv6_control: implicit_ipv6_control(),
+        nflog: NflogPreview {
+            group: NFLOG_GROUP,
+            prefix: nflog_prefix(mode),
+            packet_prefix_bytes: NFLOG_PACKET_PREFIX_BYTES,
+            sample_rate_per_second: NFLOG_SAMPLE_RATE_PER_SECOND,
+            sample_burst: NFLOG_SAMPLE_BURST,
+        },
+        ruleset: render_ruleset_with_dns_mediator(mode, allowances, dns_mediator_upstream, false),
+    }
+}
+
+pub fn unapplied_test_evidence_model(
+    mode: Mode,
+    policy_hash: String,
+    ruleset_hash: String,
+) -> NetworkEvidence {
+    NetworkEvidence {
+        status: NETWORK_EVIDENCE_STATUS,
+        mode,
+        policy_hash,
+        ruleset_hash,
+        apply_status: "not_applied",
+        verification_status: "not_verified",
+        readiness_status: "not_emitted",
+        counters: NetworkEvidenceCounters {
+            total_violations: 0,
+            sampled_violations: 0,
+        },
+        findings: Vec::new(),
+        findings_truncated: false,
+        limitations: vec![
+            "network_test_evidence_only_no_containment",
+            "readiness_not_available",
+            "packet_prefixes_transiently_inspected_in_memory_not_serialized",
+        ],
+    }
+}
+
+pub fn expected_owned_state(mode: Mode, allowances: &[EffectiveAllowance]) -> OwnedNftState {
+    expected_owned_state_with_dns_mediator(mode, allowances, false)
+}
+
+pub fn expected_dns_mediated_owned_state(
+    mode: Mode,
+    allowances: &[EffectiveAllowance],
+) -> OwnedNftState {
+    expected_owned_state_with_dns_mediator(mode, allowances, true)
+}
+
+fn expected_owned_state_with_dns_mediator(
+    mode: Mode,
+    allowances: &[EffectiveAllowance],
+    dns_mediator_upstream: bool,
+) -> OwnedNftState {
+    OwnedNftState {
+        family: NFT_FAMILY.to_owned(),
+        table: NFT_TABLE.to_owned(),
+        chains: vec![
+            OwnedChain::Base {
+                name: NFT_OUTPUT_CHAIN.to_owned(),
+                chain_type: "filter".to_owned(),
+                hook: "output".to_owned(),
+                priority: NFT_HOOK_PRIORITY,
+                policy: "accept".to_owned(),
+            },
+            OwnedChain::Base {
+                name: NFT_FORWARD_CHAIN.to_owned(),
+                chain_type: "filter".to_owned(),
+                hook: "forward".to_owned(),
+                priority: NFT_HOOK_PRIORITY,
+                policy: "accept".to_owned(),
+            },
+            OwnedChain::Regular {
+                name: NFT_CLASSIFY_CHAIN.to_owned(),
+            },
+            OwnedChain::Regular {
+                name: NFT_VIOLATION_CHAIN.to_owned(),
+            },
+        ],
+        counters: vec![
+            NFT_SAMPLED_VIOLATIONS_COUNTER.to_owned(),
+            NFT_TOTAL_VIOLATIONS_COUNTER.to_owned(),
+        ],
+        rules: build_rules(mode, allowances, dns_mediator_upstream),
+    }
+}
+
+pub fn verify_owned_state(
+    expected: &OwnedNftState,
+    observed: &OwnedNftState,
+) -> Result<(), VerificationFailure> {
+    if expected == observed {
+        Ok(())
+    } else {
+        Err(VerificationFailure {
+            code: "owned_nft_state_mismatch",
+            message: "active owned nftables state does not match the generated plan",
+        })
+    }
+}
+
+pub fn render_ruleset(mode: Mode, allowances: &[EffectiveAllowance]) -> String {
+    render_ruleset_with_dns_mediator(mode, allowances, false, false)
+}
+
+pub fn render_dns_mediated_ruleset(mode: Mode, allowances: &[EffectiveAllowance]) -> String {
+    render_ruleset_with_dns_mediator(mode, allowances, true, false)
+}
+
+pub fn render_dns_mediated_replacement_ruleset(
+    mode: Mode,
+    allowances: &[EffectiveAllowance],
+) -> String {
+    render_ruleset_with_dns_mediator(mode, allowances, true, true)
+}
+
+fn render_ruleset_with_dns_mediator(
+    mode: Mode,
+    allowances: &[EffectiveAllowance],
+    dns_mediator_upstream: bool,
+    replace_owned_table: bool,
+) -> String {
+    let mut program = String::new();
+    if replace_owned_table {
+        writeln!(&mut program, "delete table {NFT_FAMILY} {NFT_TABLE}").unwrap();
+    }
+    writeln!(&mut program, "create table {NFT_FAMILY} {NFT_TABLE}").unwrap();
+    writeln!(
+        &mut program,
+        "add counter {NFT_FAMILY} {NFT_TABLE} {NFT_SAMPLED_VIOLATIONS_COUNTER}"
+    )
+    .unwrap();
+    writeln!(
+        &mut program,
+        "add counter {NFT_FAMILY} {NFT_TABLE} {NFT_TOTAL_VIOLATIONS_COUNTER}"
+    )
+    .unwrap();
+    writeln!(
+        &mut program,
+        "add chain {NFT_FAMILY} {NFT_TABLE} {NFT_OUTPUT_CHAIN} {{ type filter hook output priority {NFT_HOOK_PRIORITY}; policy accept; }}"
+    )
+    .unwrap();
+    writeln!(
+        &mut program,
+        "add chain {NFT_FAMILY} {NFT_TABLE} {NFT_FORWARD_CHAIN} {{ type filter hook forward priority {NFT_HOOK_PRIORITY}; policy accept; }}"
+    )
+    .unwrap();
+    writeln!(
+        &mut program,
+        "add chain {NFT_FAMILY} {NFT_TABLE} {NFT_CLASSIFY_CHAIN}"
+    )
+    .unwrap();
+    writeln!(
+        &mut program,
+        "add chain {NFT_FAMILY} {NFT_TABLE} {NFT_VIOLATION_CHAIN}"
+    )
+    .unwrap();
+    for rule in build_rules(mode, allowances, dns_mediator_upstream) {
+        render_rule(&mut program, &rule);
+    }
+    program
+}
+
+fn hook_preview() -> Vec<HookPreview> {
+    vec![
+        HookPreview {
+            chain: NFT_OUTPUT_CHAIN,
+            hook: "output",
+            priority: NFT_HOOK_PRIORITY,
+        },
+        HookPreview {
+            chain: NFT_FORWARD_CHAIN,
+            hook: "forward",
+            priority: NFT_HOOK_PRIORITY,
+        },
+    ]
+}
+
+fn nflog_prefix(mode: Mode) -> &'static str {
+    match mode {
+        Mode::Block => NFLOG_PREFIX_BLOCK,
+        Mode::Audit => NFLOG_PREFIX_AUDIT,
+    }
+}
+
+fn build_rules(
+    mode: Mode,
+    allowances: &[EffectiveAllowance],
+    dns_mediator_upstream: bool,
+) -> Vec<OwnedRule> {
+    let control = implicit_ipv6_control();
+    let mut rules = Vec::new();
+    if dns_mediator_upstream {
+        push_platform_dispatches(&mut rules, NFT_OUTPUT_CHAIN);
+    }
+    rules.extend([
+        OwnedRule::Loopback {
+            chain: NFT_OUTPUT_CHAIN.to_owned(),
+        },
+        OwnedRule::UdpOriginalDispatch {
+            chain: NFT_OUTPUT_CHAIN.to_owned(),
+        },
+        OwnedRule::EstablishedRelated {
+            chain: NFT_OUTPUT_CHAIN.to_owned(),
+        },
+        OwnedRule::ImplicitIpv6Control {
+            chain: NFT_OUTPUT_CHAIN.to_owned(),
+            icmpv6_types: control
+                .icmpv6_types
+                .into_iter()
+                .map(str::to_owned)
+                .collect(),
+            required_hop_limit: control.required_hop_limit,
+        },
+        OwnedRule::ClassifyDispatch {
+            chain: NFT_OUTPUT_CHAIN.to_owned(),
+        },
+    ]);
+    if dns_mediator_upstream {
+        push_platform_dispatches(&mut rules, NFT_FORWARD_CHAIN);
+    }
+    rules.extend([
+        OwnedRule::UdpOriginalDispatch {
+            chain: NFT_FORWARD_CHAIN.to_owned(),
+        },
+        OwnedRule::EstablishedRelated {
+            chain: NFT_FORWARD_CHAIN.to_owned(),
+        },
+        OwnedRule::ClassifyDispatch {
+            chain: NFT_FORWARD_CHAIN.to_owned(),
+        },
+    ]);
+    if dns_mediator_upstream {
+        rules.push(OwnedRule::DnsMediatorUpstream {
+            chain: NFT_CLASSIFY_CHAIN.to_owned(),
+            uid: 0,
+            destination: DNS_MEDIATOR_UPSTREAM_ADDRESS.to_owned(),
+            protocol: "udp".to_owned(),
+            port: DNS_MEDIATOR_UPSTREAM_PORT,
+        });
+        rules.push(OwnedRule::InstanceMetadataPlatform {
+            chain: NFT_CLASSIFY_CHAIN.to_owned(),
+            destination: AZURE_INSTANCE_METADATA_ADDRESS.to_owned(),
+            protocol: "tcp".to_owned(),
+            port: AZURE_INSTANCE_METADATA_TCP_PORT,
+        });
+    }
+    rules.extend(allowances.iter().map(|allowance| OwnedRule::Allowance {
+        chain: NFT_CLASSIFY_CHAIN.to_owned(),
+        address_family: if allowance.destination.contains(':') {
+            "ip6".to_owned()
+        } else {
+            "ip".to_owned()
+        },
+        destination: allowance.destination.clone(),
+        protocol: match allowance.protocol {
+            Protocol::Tcp => "tcp".to_owned(),
+            Protocol::Udp => "udp".to_owned(),
+        },
+        port: allowance.port,
+    }));
+    rules.push(OwnedRule::ViolationDispatch {
+        chain: NFT_CLASSIFY_CHAIN.to_owned(),
+    });
+    rules.push(OwnedRule::SampledViolation {
+        chain: NFT_VIOLATION_CHAIN.to_owned(),
+        nflog_group: NFLOG_GROUP,
+        prefix: nflog_prefix(mode).to_owned(),
+        packet_prefix_bytes: NFLOG_PACKET_PREFIX_BYTES,
+        sample_rate_per_second: NFLOG_SAMPLE_RATE_PER_SECOND,
+        sample_burst: NFLOG_SAMPLE_BURST,
+    });
+    rules.push(OwnedRule::TerminalViolation {
+        chain: NFT_VIOLATION_CHAIN.to_owned(),
+        verdict: match mode {
+            Mode::Block => "reject".to_owned(),
+            Mode::Audit => "accept".to_owned(),
+        },
+    });
+    rules
+}
+
+fn push_platform_dispatches(rules: &mut Vec<OwnedRule>, chain: &str) {
+    rules.push(OwnedRule::DnsMediatorUpstreamDispatch {
+        chain: chain.to_owned(),
+        destination: DNS_MEDIATOR_UPSTREAM_ADDRESS.to_owned(),
+        protocol: "udp".to_owned(),
+        port: DNS_MEDIATOR_UPSTREAM_PORT,
+    });
+    // WireServer is a host privilege, not an allowance. Decide before conntrack
+    // or DNS-derived policy can accept the packet, including when it has no socket UID.
+    for port in AZURE_WIRESERVER_TCP_PORTS {
+        if chain == NFT_OUTPUT_CHAIN {
+            rules.push(OwnedRule::WireServerPlatform {
+                chain: chain.to_owned(),
+                uid: AZURE_WIRESERVER_ROOT_UID,
+                destination: AZURE_WIRESERVER_ADDRESS.to_owned(),
+                protocol: "tcp".to_owned(),
+                port,
+            });
+        }
+        rules.push(OwnedRule::WireServerViolationDispatch {
+            chain: chain.to_owned(),
+            port,
+        });
+    }
+}
+
+fn render_rule(program: &mut String, rule: &OwnedRule) {
+    match rule {
+        OwnedRule::Loopback { chain } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} oifname \"lo\" accept comment \"fence:loopback\""
+            )
+            .unwrap();
+        }
+        OwnedRule::UdpOriginalDispatch { chain } => {
+            // Conntrack remembers a UDP tuple, not the socket or its grant. Recheck
+            // the original direction while leaving established replies alone.
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} meta l4proto udp ct direction original jump {NFT_CLASSIFY_CHAIN} comment \"fence:udp_original_dispatch\""
+            )
+            .unwrap();
+        }
+        OwnedRule::EstablishedRelated { chain } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} ct state established,related accept comment \"fence:established\""
+            )
+            .unwrap();
+        }
+        OwnedRule::ImplicitIpv6Control {
+            chain,
+            required_hop_limit,
+            ..
+        } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} meta nfproto ipv6 ip6 hoplimit {required_hop_limit} icmpv6 type {{ nd-router-solicit, nd-neighbor-solicit, nd-neighbor-advert }} accept comment \"fence:implicit_ipv6_control\""
+            )
+            .unwrap();
+        }
+        OwnedRule::ClassifyDispatch { chain } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} jump {NFT_CLASSIFY_CHAIN} comment \"fence:classify\""
+            )
+            .unwrap();
+        }
+        OwnedRule::Allowance {
+            chain,
+            address_family,
+            destination,
+            protocol,
+            port,
+        } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} {address_family} daddr {destination} {protocol} dport {port} accept comment \"fence:allowance\""
+            )
+            .unwrap();
+        }
+        OwnedRule::DnsMediatorUpstreamDispatch {
+            chain,
+            destination,
+            protocol,
+            port,
+        } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} ip daddr {destination} {protocol} dport {port} jump {NFT_CLASSIFY_CHAIN} comment \"fence:dns_mediator_upstream_dispatch\""
+            )
+            .unwrap();
+        }
+        OwnedRule::DnsMediatorUpstream {
+            chain,
+            uid,
+            destination,
+            protocol,
+            port,
+        } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} meta skuid {uid} ip daddr {destination} {protocol} dport {port} accept comment \"fence:dns_mediator_upstream\""
+            )
+            .unwrap();
+        }
+        OwnedRule::WireServerPlatform {
+            chain,
+            uid,
+            destination,
+            protocol,
+            port,
+        } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} meta skuid {uid} ip daddr {destination} {protocol} dport {port} accept comment \"fence:wireserver_platform\""
+            )
+            .unwrap();
+        }
+        OwnedRule::WireServerViolationDispatch { chain, port } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} ip daddr {AZURE_WIRESERVER_ADDRESS} tcp dport {port} jump {NFT_VIOLATION_CHAIN} comment \"fence:wireserver_violation\""
+            )
+            .unwrap();
+        }
+        OwnedRule::InstanceMetadataPlatform {
+            chain,
+            destination,
+            protocol,
+            port,
+        } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} ip daddr {destination} {protocol} dport {port} accept comment \"fence:instance_metadata_platform\""
+            )
+            .unwrap();
+        }
+        OwnedRule::ViolationDispatch { chain } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} jump {NFT_VIOLATION_CHAIN} comment \"fence:violation\""
+            )
+            .unwrap();
+        }
+        OwnedRule::SampledViolation {
+            chain,
+            nflog_group,
+            prefix,
+            packet_prefix_bytes,
+            sample_rate_per_second,
+            sample_burst,
+        } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} limit rate {sample_rate_per_second}/second burst {sample_burst} packets counter name {NFT_SAMPLED_VIOLATIONS_COUNTER} log group {nflog_group} prefix \"{prefix}\" queue-threshold 1 snaplen {packet_prefix_bytes} comment \"fence:sample_violation\""
+            )
+            .unwrap();
+        }
+        OwnedRule::TerminalViolation { chain, verdict } => {
+            writeln!(
+                program,
+                "add rule {NFT_FAMILY} {NFT_TABLE} {chain} counter name {NFT_TOTAL_VIOLATIONS_COUNTER} {verdict} comment \"fence:{verdict}_violation\""
+            )
+            .unwrap();
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::DestinationType;
+
+    fn allowances() -> Vec<EffectiveAllowance> {
+        vec![
+            EffectiveAllowance {
+                destination_type: DestinationType::Ip,
+                destination: "192.0.2.10".to_owned(),
+                protocol: Protocol::Tcp,
+                port: 443,
+            },
+            EffectiveAllowance {
+                destination_type: DestinationType::Cidr,
+                destination: "2001:db8::/64".to_owned(),
+                protocol: Protocol::Udp,
+                port: 53,
+            },
+        ]
+    }
+
+    #[test]
+    fn renders_fixed_block_ruleset_with_allowances_and_implicit_control() {
+        let preview = build_preview(Mode::Block, &allowances());
+
+        assert_eq!(preview.owned_table.name, NFT_TABLE);
+        assert!(preview.owned_table.single_active_invocation);
+        assert_eq!(preview.hooks[0].priority, NFT_HOOK_PRIORITY);
+        assert_eq!(
+            preview.implicit_ipv6_control.icmpv6_types,
+            vec![
+                "router_solicitation",
+                "neighbor_solicitation",
+                "neighbor_advertisement"
+            ]
+        );
+        assert!(preview.ruleset.starts_with("create table inet fence_v0\n"));
+        assert!(
+            preview
+                .ruleset
+                .contains("ip daddr 192.0.2.10 tcp dport 443")
+        );
+        assert!(
+            preview
+                .ruleset
+                .contains("ip6 daddr 2001:db8::/64 udp dport 53")
+        );
+        assert!(preview.ruleset.contains("icmpv6 type { nd-router-solicit"));
+        assert!(preview.ruleset.contains("prefix \"fence-v0-block\""));
+        assert!(
+            preview
+                .ruleset
+                .contains("counter name fence_total_violations reject")
+        );
+    }
+
+    #[test]
+    fn audit_uses_non_blocking_terminal_verdict_and_audit_prefix() {
+        let program = render_ruleset(Mode::Audit, &[]);
+
+        assert!(program.contains("prefix \"fence-v0-audit\""));
+        assert!(program.contains("counter name fence_total_violations accept"));
+        assert!(!program.contains("counter name fence_total_violations reject"));
+    }
+
+    #[test]
+    fn renders_root_only_platform_service_rules_as_owned_backend_state() {
+        let program = render_dns_mediated_ruleset(Mode::Block, &allowances());
+        let replacement = render_dns_mediated_replacement_ruleset(Mode::Block, &allowances());
+        let expected = expected_dns_mediated_owned_state(Mode::Block, &allowances());
+
+        assert!(program.contains(
+            "meta skuid 0 ip daddr 168.63.129.16 udp dport 53 accept comment \"fence:dns_mediator_upstream\""
+        ));
+        assert_eq!(
+            program
+                .matches("comment \"fence:wireserver_platform\"")
+                .count(),
+            2
+        );
+        assert!(program.contains(
+            "meta skuid 0 ip daddr 168.63.129.16 tcp dport 80 accept comment \"fence:wireserver_platform\""
+        ));
+        assert!(program.contains(
+            "meta skuid 0 ip daddr 168.63.129.16 tcp dport 32526 accept comment \"fence:wireserver_platform\""
+        ));
+        assert_eq!(
+            program
+                .matches("comment \"fence:instance_metadata_platform\"")
+                .count(),
+            1
+        );
+        assert!(program.contains(
+            "ip daddr 169.254.169.254 tcp dport 80 accept comment \"fence:instance_metadata_platform\""
+        ));
+        assert!(
+            replacement.starts_with("delete table inet fence_v0\ncreate table inet fence_v0\n")
+        );
+        assert!(expected.rules.iter().any(|rule| matches!(
+            rule,
+            OwnedRule::DnsMediatorUpstream {
+                uid: 0,
+                destination,
+                port: 53,
+                ..
+            } if destination == "168.63.129.16"
+        )));
+        let dispatches = expected
+            .rules
+            .iter()
+            .filter_map(|rule| match rule {
+                OwnedRule::DnsMediatorUpstreamDispatch {
+                    chain,
+                    destination,
+                    protocol,
+                    port,
+                } => Some((
+                    chain.as_str(),
+                    destination.as_str(),
+                    protocol.as_str(),
+                    *port,
+                )),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            dispatches,
+            vec![
+                (NFT_OUTPUT_CHAIN, "168.63.129.16", "udp", 53),
+                (NFT_FORWARD_CHAIN, "168.63.129.16", "udp", 53),
+            ]
+        );
+        let wireserver = expected
+            .rules
+            .iter()
+            .filter_map(|rule| match rule {
+                OwnedRule::WireServerPlatform {
+                    uid,
+                    destination,
+                    protocol,
+                    port,
+                    ..
+                } => Some((*uid, destination.as_str(), protocol.as_str(), *port)),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            wireserver,
+            vec![
+                (0, "168.63.129.16", "tcp", 80),
+                (0, "168.63.129.16", "tcp", 32526)
+            ]
+        );
+        assert!(expected.rules.iter().any(|rule| matches!(
+            rule,
+            OwnedRule::InstanceMetadataPlatform {
+                chain,
+                destination,
+                protocol,
+                port: 80,
+            } if chain == NFT_CLASSIFY_CHAIN
+                && destination == "169.254.169.254"
+                && protocol == "tcp"
+        )));
+        let audit = render_dns_mediated_ruleset(Mode::Audit, &[]);
+        assert_eq!(
+            audit
+                .matches("comment \"fence:wireserver_platform\"")
+                .count(),
+            2
+        );
+        assert_eq!(
+            audit
+                .matches("comment \"fence:instance_metadata_platform\"")
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn reserved_platform_and_original_udp_dispatch_precede_established_acceptance() {
+        for mode in [Mode::Block, Mode::Audit] {
+            let ruleset = render_dns_mediated_ruleset(mode, &[]);
+            for chain in [NFT_OUTPUT_CHAIN, NFT_FORWARD_CHAIN] {
+                let prefix = format!("add rule {NFT_FAMILY} {NFT_TABLE} {chain} ");
+                let mut rules = ruleset
+                    .lines()
+                    .filter_map(|line| line.strip_prefix(&prefix));
+                assert!(
+                    rules
+                        .next()
+                        .unwrap()
+                        .starts_with("ip daddr 168.63.129.16 udp dport 53 jump fence_classify")
+                );
+                for port in AZURE_WIRESERVER_TCP_PORTS {
+                    let destination =
+                        format!("ip daddr {AZURE_WIRESERVER_ADDRESS} tcp dport {port}");
+                    if chain == NFT_OUTPUT_CHAIN {
+                        let accept =
+                            format!("meta skuid {AZURE_WIRESERVER_ROOT_UID} {destination} accept");
+                        assert!(rules.next().unwrap().starts_with(&accept));
+                    }
+                    let violation = format!("{destination} jump {NFT_VIOLATION_CHAIN}");
+                    assert!(rules.next().unwrap().starts_with(&violation));
+                }
+                if chain == NFT_OUTPUT_CHAIN {
+                    assert!(rules.next().unwrap().starts_with("oifname \"lo\" accept"));
+                }
+                assert!(
+                    rules
+                        .next()
+                        .unwrap()
+                        .starts_with("meta l4proto udp ct direction original jump fence_classify")
+                );
+                assert!(
+                    rules
+                        .next()
+                        .unwrap()
+                        .starts_with("ct state established,related accept")
+                );
+            }
+        }
+
+        let explicit = render_dns_mediated_ruleset(
+            Mode::Block,
+            &[EffectiveAllowance {
+                destination_type: DestinationType::Ip,
+                destination: DNS_MEDIATOR_UPSTREAM_ADDRESS.to_owned(),
+                protocol: Protocol::Udp,
+                port: DNS_MEDIATOR_UPSTREAM_PORT,
+            }],
+        );
+        let root_only = "meta skuid 0 ip daddr 168.63.129.16 udp dport 53 accept comment \"fence:dns_mediator_upstream\"";
+        let allowance = "ip daddr 168.63.129.16 udp dport 53 accept comment \"fence:allowance\"";
+        let violation = "jump fence_violation comment \"fence:violation\"";
+        assert!(explicit.find(root_only).unwrap() < explicit.find(allowance).unwrap());
+        assert!(explicit.find(allowance).unwrap() < explicit.find(violation).unwrap());
+    }
+
+    #[test]
+    fn expected_state_is_deterministic_and_verification_detects_drift() {
+        let expected = expected_owned_state(Mode::Block, &allowances());
+        let identical = expected_owned_state(Mode::Block, &allowances());
+        let mut drifted = identical.clone();
+        drifted.chains[0] = OwnedChain::Regular {
+            name: NFT_OUTPUT_CHAIN.to_owned(),
+        };
+        let round_trip: OwnedNftState =
+            serde_json::from_slice(&serde_json::to_vec(&expected).unwrap()).unwrap();
+
+        assert!(verify_owned_state(&expected, &identical).is_ok());
+        assert_eq!(round_trip, expected);
+        let failure = verify_owned_state(&expected, &drifted).unwrap_err();
+        assert_eq!(failure.code, "owned_nft_state_mismatch");
+        assert!(failure.message.contains("does not match"));
+        assert!(
+            expected
+                .rules
+                .iter()
+                .any(|rule| matches!(rule, OwnedRule::ViolationDispatch { .. }))
+        );
+        assert_eq!(
+            expected.counters,
+            vec![
+                NFT_SAMPLED_VIOLATIONS_COUNTER.to_owned(),
+                NFT_TOTAL_VIOLATIONS_COUNTER.to_owned()
+            ]
+        );
+    }
+
+    #[test]
+    fn dns_mediated_verification_rejects_missing_or_broadened_platform_rules() {
+        let expected = expected_dns_mediated_owned_state(Mode::Block, &[]);
+
+        let mut missing_dispatch = expected.clone();
+        missing_dispatch.rules.retain(|rule| {
+            !matches!(
+                rule,
+                OwnedRule::DnsMediatorUpstreamDispatch { chain, .. }
+                    if chain == NFT_OUTPUT_CHAIN
+            )
+        });
+        assert!(verify_owned_state(&expected, &missing_dispatch).is_err());
+
+        let mut reordered_dispatch = expected.clone();
+        let dispatch_index = reordered_dispatch
+            .rules
+            .iter()
+            .position(|rule| {
+                matches!(
+                    rule,
+                    OwnedRule::DnsMediatorUpstreamDispatch { chain, .. }
+                        if chain == NFT_OUTPUT_CHAIN
+                )
+            })
+            .unwrap();
+        let dispatch = reordered_dispatch.rules.remove(dispatch_index);
+        let established_index = reordered_dispatch
+            .rules
+            .iter()
+            .position(|rule| {
+                matches!(
+                    rule,
+                    OwnedRule::EstablishedRelated { chain } if chain == NFT_OUTPUT_CHAIN
+                )
+            })
+            .unwrap();
+        reordered_dispatch
+            .rules
+            .insert(established_index + 1, dispatch);
+        assert!(verify_owned_state(&expected, &reordered_dispatch).is_err());
+
+        let mut broadened_dispatch = expected.clone();
+        let index = broadened_dispatch
+            .rules
+            .iter()
+            .position(|rule| matches!(rule, OwnedRule::DnsMediatorUpstreamDispatch { .. }))
+            .unwrap();
+        broadened_dispatch.rules[index] = OwnedRule::DnsMediatorUpstreamDispatch {
+            chain: NFT_OUTPUT_CHAIN.to_owned(),
+            destination: "0.0.0.0/0".to_owned(),
+            protocol: "udp".to_owned(),
+            port: 53,
+        };
+        assert!(verify_owned_state(&expected, &broadened_dispatch).is_err());
+
+        let mut duplicated_dispatch = expected.clone();
+        let duplicate = duplicated_dispatch
+            .rules
+            .iter()
+            .find(|rule| matches!(rule, OwnedRule::DnsMediatorUpstreamDispatch { .. }))
+            .unwrap()
+            .clone();
+        duplicated_dispatch.rules.push(duplicate);
+        assert!(verify_owned_state(&expected, &duplicated_dispatch).is_err());
+
+        let mut missing = expected.clone();
+        missing
+            .rules
+            .retain(|rule| !matches!(rule, OwnedRule::WireServerPlatform { port: 80, .. }));
+        assert!(verify_owned_state(&expected, &missing).is_err());
+
+        let mut broadened = expected.clone();
+        let index = broadened
+            .rules
+            .iter()
+            .position(|rule| matches!(rule, OwnedRule::WireServerPlatform { port: 32526, .. }))
+            .unwrap();
+        broadened.rules[index] = OwnedRule::WireServerPlatform {
+            chain: NFT_OUTPUT_CHAIN.to_owned(),
+            uid: 1001,
+            destination: AZURE_WIRESERVER_ADDRESS.to_owned(),
+            protocol: "tcp".to_owned(),
+            port: 32526,
+        };
+        assert!(verify_owned_state(&expected, &broadened).is_err());
+
+        let mut duplicated = expected.clone();
+        let duplicate = duplicated
+            .rules
+            .iter()
+            .find(|rule| matches!(rule, OwnedRule::WireServerPlatform { port: 80, .. }))
+            .unwrap()
+            .clone();
+        duplicated.rules.push(duplicate);
+        assert!(verify_owned_state(&expected, &duplicated).is_err());
+
+        let mut missing_metadata = expected.clone();
+        missing_metadata
+            .rules
+            .retain(|rule| !matches!(rule, OwnedRule::InstanceMetadataPlatform { .. }));
+        assert!(verify_owned_state(&expected, &missing_metadata).is_err());
+
+        let mut broadened_metadata = expected.clone();
+        let index = broadened_metadata
+            .rules
+            .iter()
+            .position(|rule| matches!(rule, OwnedRule::InstanceMetadataPlatform { .. }))
+            .unwrap();
+        broadened_metadata.rules[index] = OwnedRule::InstanceMetadataPlatform {
+            chain: NFT_CLASSIFY_CHAIN.to_owned(),
+            destination: AZURE_INSTANCE_METADATA_ADDRESS.to_owned(),
+            protocol: "tcp".to_owned(),
+            port: 443,
+        };
+        assert!(verify_owned_state(&expected, &broadened_metadata).is_err());
+    }
+
+    #[test]
+    fn evidence_schema_cannot_claim_readiness_or_containment_before_activation() {
+        let evidence =
+            unapplied_test_evidence_model(Mode::Audit, "policy".to_owned(), "ruleset".to_owned());
+
+        assert_eq!(evidence.status, NETWORK_EVIDENCE_STATUS);
+        assert_eq!(evidence.apply_status, "not_applied");
+        assert_eq!(evidence.verification_status, "not_verified");
+        assert_eq!(evidence.readiness_status, "not_emitted");
+        assert_eq!(evidence.counters.total_violations, 0);
+        assert!(evidence.findings.is_empty());
+        assert!(
+            evidence
+                .limitations
+                .contains(&"network_test_evidence_only_no_containment")
+        );
+    }
+}

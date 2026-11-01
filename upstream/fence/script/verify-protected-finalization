@@ -1,0 +1,209 @@
+#! /usr/bin/env bash
+
+set -euo pipefail
+
+source script/env "$@"
+
+if [[ $# -gt 1 ]]; then
+  die "usage: script/verify-protected-finalization [integration|action|canary]"
+fi
+job_set="${1:-integration}"
+case "$job_set" in
+  integration|action|canary) ;;
+  *) die "finalization job set must be integration, action, or canary" ;;
+esac
+if [[ "${CI:-}" != "true" || "${GITHUB_ACTIONS:-}" != "true" ]]; then
+  die "protected finalization verification runs only in GitHub Actions"
+fi
+if [[ -z "${GITHUB_TOKEN:-}" || -z "${GITHUB_REPOSITORY:-}" || -z "${GITHUB_RUN_ID:-}" ]]; then
+  die "protected finalization verification requires bounded GitHub run identity"
+fi
+
+require_cmd python3
+
+FENCE_FINALIZATION_JOB_SET="$job_set" python3 -B -E - "$DIR" <<'PY'
+import io
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+import urllib.parse
+import zipfile
+
+sys.path.insert(0, os.path.join(sys.argv[1], "script", "lib"))
+
+from protected_finalization import (
+    MAX_JOB_COUNT,
+    fetch_log_archive,
+    validate_action_finalization_report,
+    validate_job_listing,
+    verified_finalization_jobs,
+)
+
+repository = os.environ["GITHUB_REPOSITORY"]
+run_id = os.environ["GITHUB_RUN_ID"]
+token = os.environ["GITHUB_TOKEN"]
+job_set = os.environ["FENCE_FINALIZATION_JOB_SET"]
+require_report = job_set in {"action", "canary"}
+api_root = f"https://api.github.com/repos/{repository}"
+authorization_marker = b"fence-results-storage-authorization-observed"
+authorization_observed = False
+structured_report_prefix = b"FENCE_REPORT_JSON="
+max_structured_report_bytes = 16 * 1024
+
+
+def request(path):
+    return urllib.request.Request(
+        f"{api_root}{path}",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "User-Agent": "fence-finalization-verifier",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def log_archive(job_id):
+    opener = urllib.request.build_opener(NoRedirect)
+    try:
+        with opener.open(request(f"/actions/jobs/{job_id}/logs"), timeout=15):
+            raise RuntimeError("job log endpoint did not return an immutable archive redirect")
+    except urllib.error.HTTPError as error:
+        if error.code not in {301, 302, 303, 307, 308}:
+            raise
+        location = error.headers.get("Location", "")
+    parsed = urllib.parse.urlparse(location)
+    hostname = parsed.hostname or ""
+    accepted_suffixes = (
+        ".actions.githubusercontent.com",
+        ".blob.core.windows.net",
+        ".githubusercontent.com",
+    )
+    if parsed.scheme != "https" or not hostname.endswith(accepted_suffixes):
+        raise RuntimeError("job log endpoint returned an unexpected archive location")
+    unsigned = urllib.request.Request(
+        location,
+        headers={"User-Agent": "fence-finalization-verifier"},
+    )
+    unsigned_opener = urllib.request.build_opener(NoRedirect)
+    with unsigned_opener.open(unsigned, timeout=20) as response:
+        return response.read(8 * 1024 * 1024 + 1)
+
+
+def unique_json_object(pairs):
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError("structured report contained duplicate JSON fields")
+        value[key] = item
+    return value
+
+
+def action_structured_reports(payload, job_name):
+    reports = []
+    for raw_line in io.BytesIO(payload):
+        line = raw_line.rstrip(b"\r\n")
+        marker_offset = line.find(structured_report_prefix)
+        if marker_offset == -1:
+            continue
+        record = line[marker_offset:]
+        if record.count(structured_report_prefix) != 1:
+            raise SystemExit(
+                f"protected finalization structured report marker was invalid: {job_name}"
+            )
+        if len(record) > max_structured_report_bytes:
+            raise SystemExit(
+                f"protected finalization structured report exceeded 16 KiB: {job_name}"
+            )
+        try:
+            report = json.loads(
+                record[len(structured_report_prefix):].decode("utf-8"),
+                object_pairs_hook=unique_json_object,
+            )
+        except (UnicodeError, ValueError, json.JSONDecodeError):
+            raise SystemExit(
+                f"protected finalization structured report was invalid JSON: {job_name}"
+            ) from None
+        try:
+            validate_action_finalization_report(report, job_name)
+        except ValueError as error:
+            raise SystemExit(f"{error}: {job_name}") from None
+        reports.append(report)
+        if len(reports) > 1:
+            raise SystemExit(
+                f"protected finalization structured report was duplicated: {job_name}"
+            )
+    return reports
+
+
+def job_metadata():
+    path = f"/actions/runs/{run_id}"
+    if job_set == "canary":
+        path += f'/attempts/{os.environ["GITHUB_RUN_ATTEMPT"]}'
+    with urllib.request.urlopen(request(f"{path}/jobs?per_page={MAX_JOB_COUNT}"), timeout=15) as response:
+        body = response.read(1024 * 1024 + 1)
+    if len(body) > 1024 * 1024:
+        raise SystemExit("protected finalization job metadata exceeded its fixed bound")
+    return validate_job_listing(json.loads(body))
+
+
+try:
+    jobs = verified_finalization_jobs(job_metadata, job_set)
+except ValueError as error:
+    raise SystemExit(str(error)) from None
+
+for name in sorted(jobs):
+    job = jobs[name]
+    try:
+        archive = fetch_log_archive(lambda: log_archive(job["id"]), name)
+    except ValueError as error:
+        raise SystemExit(str(error)) from None
+    if not archive or len(archive) > 8 * 1024 * 1024:
+        raise SystemExit(f"protected finalization job log was empty or oversized: {name}")
+    reports = []
+    if zipfile.is_zipfile(io.BytesIO(archive)):
+        with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
+            files = [
+                entry for entry in bundle.infolist()
+                if not entry.is_dir() and entry.file_size > 0
+            ]
+            if not files:
+                raise SystemExit(f"protected finalization log archive had no nonempty files: {name}")
+            if sum(entry.file_size for entry in files) > 16 * 1024 * 1024:
+                raise SystemExit(f"protected finalization log archive expanded past its fixed bound: {name}")
+            if require_report:
+                marker_observed = False
+                for entry in files:
+                    reports.extend(action_structured_reports(bundle.read(entry), name))
+                    if len(reports) > 1:
+                        raise SystemExit(
+                            f"protected finalization structured report was duplicated: {name}"
+                        )
+            else:
+                marker_observed = any(authorization_marker in bundle.read(entry) for entry in files)
+    else:
+        marker_observed = authorization_marker in archive
+        if require_report:
+            reports = action_structured_reports(archive, name)
+    if require_report and len(reports) != 1:
+        raise SystemExit(
+            f"protected finalization job must contain exactly one structured report: {name}"
+        )
+    if job_set == "canary":
+        print(f"Verified first-step protection through the final job log: {name} (job {job['id']})")
+    if job_set == "integration" and name.startswith("protected finalization "):
+        authorization_observed = authorization_observed or marker_observed
+
+print(f"{job_set} finalization and downloadable job logs verified")
+if job_set == "action":
+    print("bounded blocked-burst and final post-job evidence verified")
+if authorization_observed:
+    print("runner-authorized results storage was observed after Fence readiness")
+PY

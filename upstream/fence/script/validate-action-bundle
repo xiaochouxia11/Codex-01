@@ -1,0 +1,124 @@
+#! /usr/bin/env bash
+
+set -euo pipefail
+
+source script/env "$@"
+
+allow_source=false
+root="$DIR"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --allow-source)
+      allow_source=true
+      shift
+      ;;
+    --root)
+      [[ $# -ge 2 ]] || die "--root requires a path"
+      root="$2"
+      shift 2
+      ;;
+    *)
+      die "usage: script/validate-action-bundle [--allow-source] [--root <path>]"
+      ;;
+  esac
+done
+
+manifest="$root/action/bundle-manifest.json"
+binary="$root/action/bin/fence"
+
+require_cmd python3
+
+manifest_present=false
+binary_present=false
+if [[ -e "$manifest" || -L "$manifest" ]]; then
+  manifest_present=true
+fi
+if [[ -e "$binary" || -L "$binary" ]]; then
+  binary_present=true
+fi
+
+if [[ "$manifest_present" != "$binary_present" ]]; then
+  die "Action bundle must contain both action/bin/fence and action/bundle-manifest.json or neither"
+fi
+if [[ "$manifest_present" == "false" ]]; then
+  if [[ "$allow_source" == "true" ]]; then
+    echo -e "${GREEN}Action bundle source state verified${OFF}"
+    exit 0
+  fi
+  die "Action bundle distribution files are missing"
+fi
+
+python3 -B -E - "$manifest" "$binary" <<'PY'
+import hashlib
+import json
+import pathlib
+import re
+import sys
+
+manifest_path = pathlib.Path(sys.argv[1])
+binary_path = pathlib.Path(sys.argv[2])
+for directory in (manifest_path.parent, binary_path.parent):
+    if not directory.is_dir() or directory.is_symlink():
+        raise SystemExit(f"unsafe Action bundle directory: {directory}")
+if not manifest_path.is_file() or manifest_path.is_symlink():
+    raise SystemExit(f"missing Action bundle manifest: {manifest_path}")
+if not 0 < manifest_path.stat().st_size <= 16 * 1024:
+    raise SystemExit(f"Action bundle manifest size is invalid: {manifest_path}")
+if not binary_path.is_file() or binary_path.is_symlink():
+    raise SystemExit(f"missing Action bundle binary: {binary_path}")
+if not 0 < binary_path.stat().st_size <= 64 * 1024 * 1024:
+    raise SystemExit(f"Action bundle binary size is invalid: {binary_path}")
+
+manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+if not isinstance(manifest, dict):
+    raise SystemExit("Action bundle manifest must be a JSON object")
+expected_keys = {
+    "schema_version",
+    "repository",
+    "release_tag",
+    "release_channel",
+    "release_url",
+    "source_commit",
+    "source_ref",
+    "artifact_name",
+    "artifact_sha256",
+    "bundle_path",
+    "signer_workflow",
+    "signer_digest",
+}
+if set(manifest) != expected_keys:
+    raise SystemExit("Action bundle manifest fields do not match the reviewed schema")
+if manifest["schema_version"] != 4:
+    raise SystemExit("Action bundle manifest schema_version must be 4")
+if manifest["repository"] != "openai/fence":
+    raise SystemExit("Action bundle manifest repository mismatch")
+semver_tag = r"v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-(?:(?:0|[1-9][0-9]*)|(?:[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))(?:\.(?:(?:0|[1-9][0-9]*)|(?:[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)))*)?"
+if not re.fullmatch(semver_tag, manifest["release_tag"]):
+    raise SystemExit("Action bundle manifest release_tag must identify an immutable semver release")
+expected_release_channel = "prerelease" if "-" in manifest["release_tag"] else "stable"
+if manifest["release_channel"] != expected_release_channel:
+    raise SystemExit("Action bundle manifest release channel mismatch")
+if manifest["release_url"] != f"https://github.com/openai/fence/releases/tag/{manifest['release_tag']}":
+    raise SystemExit("Action bundle manifest release URL mismatch")
+if not re.fullmatch(r"[0-9a-f]{40}", manifest["source_commit"]):
+    raise SystemExit("Action bundle manifest source_commit must be a full SHA")
+if manifest["source_ref"] != "refs/heads/main":
+    raise SystemExit("Action bundle manifest source ref mismatch")
+if manifest["artifact_name"] != f"fence_{manifest['release_tag']}_linux-amd64":
+    raise SystemExit("Action bundle manifest artifact name mismatch")
+if not re.fullmatch(r"[0-9a-f]{64}", manifest["artifact_sha256"]):
+    raise SystemExit("Action bundle manifest artifact checksum is invalid")
+if manifest["bundle_path"] != "action/bin/fence":
+    raise SystemExit("Action bundle manifest path mismatch")
+if manifest["signer_workflow"] != "openai/fence/.github/workflows/release.yml":
+    raise SystemExit("Action bundle signer workflow mismatch")
+if manifest["signer_digest"] != manifest["source_commit"]:
+    raise SystemExit("Action bundle signer digest mismatch")
+
+actual = hashlib.sha256(binary_path.read_bytes()).hexdigest()
+if actual != manifest["artifact_sha256"]:
+    raise SystemExit("Action bundle binary checksum does not match the manifest")
+PY
+
+echo -e "${GREEN}Action bundle verified${OFF}"

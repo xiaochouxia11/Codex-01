@@ -1,0 +1,538 @@
+#! /usr/bin/env bash
+
+set -euo pipefail
+
+source script/env "$@"
+
+if [[ $# -gt 1 ]]; then
+  die "usage: script/test-selected-profile-runtime [healthy|local-control-drift|worker-failure]"
+fi
+scenario="${1:-healthy}"
+if [[ "$scenario" != "healthy" && "$scenario" != "local-control-drift" && "$scenario" != "worker-failure" ]]; then
+  die "selected-profile runtime scenario must be healthy, local-control-drift, or worker-failure"
+fi
+
+if [[ "${CI:-}" != "true" || "${GITHUB_ACTIONS:-}" != "true" ]]; then
+  die "DNS-mediated selected-profile runtime evidence runs only on disposable GitHub Actions runners"
+fi
+if [[ "$PLATFORM" != "linux" || "$ARCH" != "x86_64" ]]; then
+  die "DNS-mediated selected-profile runtime evidence requires Linux x86_64"
+fi
+
+ensure_rust_toolchain
+require_cmd cargo
+require_cmd docker
+require_cmd python3
+require_cmd sudo
+
+for required in /usr/bin/mount /usr/bin/systemctl /usr/bin/systemd-run /usr/bin/umount /usr/sbin/nft; do
+  if [[ ! -x "$required" ]]; then
+    die "DNS-mediated selected-profile runtime evidence requires executable $required"
+  fi
+done
+
+suffix="${GITHUB_RUN_ID:-run}-${GITHUB_RUN_ATTEMPT:-attempt}-${SELECTED_PROFILE_RUNTIME_REPLICA:-trial}"
+invocation="selected-profile-${GITHUB_RUN_ATTEMPT:-attempt}-${SELECTED_PROFILE_RUNTIME_REPLICA:-trial}"
+unit="fence-evidence-${invocation}.service"
+runtime_root="/run/fence-selected-profile-runtime-${suffix}"
+directory="$runtime_root/$invocation"
+report="$directory/report.json"
+dns_report="$directory/dns-report.json"
+ready="$directory/ready.json"
+production_ready="/run/fence/$invocation/ready.json"
+target_root="$RUNNER_TEMP/fence-selected-profile-runtime-target"
+
+report_selected_profile_failure() {
+  local status="$?"
+  if [[ -x /usr/bin/journalctl ]]; then
+    echo "bounded selected-profile service diagnostics:" >&2
+    /usr/bin/journalctl --no-pager --output=cat --lines=40 --unit "$unit" >&2 || true
+  fi
+  return "$status"
+}
+trap report_selected_profile_failure ERR
+
+mkdir -p "$target_root"
+export CARGO_TARGET_DIR="$target_root"
+cargo test --frozen --test selected_profile_runtime --no-run
+
+shopt -s nullglob
+test_binaries=()
+for candidate in "$target_root"/debug/deps/selected_profile_runtime-*; do
+  if [[ -f "$candidate" && -x "$candidate" ]]; then
+    test_binaries+=("$candidate")
+  fi
+done
+if [[ "${#test_binaries[@]}" -ne 1 ]]; then
+  die "expected exactly one compiled DNS-mediated selected-profile runtime binary"
+fi
+
+if sudo /usr/sbin/nft list table inet fence_v0 >/dev/null 2>&1; then
+  die "DNS-mediated selected-profile runtime evidence requires absent host inet fence_v0 table"
+fi
+if [[ -e "$production_ready" ]]; then
+  die "DNS-mediated selected-profile runtime evidence requires absent production readiness path"
+fi
+
+# This applies the planner-selected profile on a disposable runner and
+# intentionally leaves controls resident so the platform conclusion tests the
+# test-only runtime realization.
+scenario_environment=()
+if [[ "$scenario" == "worker-failure" ]]; then
+  scenario_environment+=(--setenv=FENCE_SELECTED_PROFILE_RUNTIME_INJECT_WORKER_FAILURE=1)
+elif [[ "$scenario" == "local-control-drift" ]]; then
+  scenario_environment+=(--setenv=FENCE_SELECTED_PROFILE_RUNTIME_INJECT_LOCAL_CONTROL_DRIFT=1)
+fi
+sudo /usr/bin/systemd-run \
+  --quiet \
+  --collect \
+  --property=Type=exec \
+  --unit "$unit" \
+  --setenv=FENCE_SELECTED_PROFILE_RUNTIME_WORKER=1 \
+  "--setenv=FENCE_SELECTED_PROFILE_RUNTIME_UNIT=$unit" \
+  "--setenv=FENCE_SELECTED_PROFILE_RUNTIME_ROOT=$runtime_root" \
+  "--setenv=FENCE_SELECTED_PROFILE_RUNTIME_INVOCATION=$invocation" \
+  "${scenario_environment[@]}" \
+  "${test_binaries[0]}" --ignored --exact selected_profile_runtime_worker --nocapture
+
+first_scan_observation="$(
+  python3 -E - "$report" "$dns_report" "$ready" "$production_ready" "$scenario" <<'PY'
+import sys
+
+if sys.flags.optimize != 0:
+    raise SystemExit("Python optimization must be disabled")
+
+def require(condition, message="evidence validation failed"):
+    if not condition:
+        raise SystemExit(message)
+
+import json
+import pathlib
+import re
+import sys
+import time
+
+sys.path.insert(0, "script/lib")
+from dns_evidence import validate_materialization_rejections
+
+trusted_results_storage_hostnames = [
+    "productionresultssa19.blob.core.windows.net",
+    "productionresultssa13.blob.core.windows.net",
+    "productionresultssa9.blob.core.windows.net",
+    "productionresultssa15.blob.core.windows.net",
+    "productionresultssa17.blob.core.windows.net",
+]
+expected_bootstrap_hostnames = [
+    "github.com",
+    "api.github.com",
+    "release-assets.githubusercontent.com",
+    "hosted-compute-watchdog-prod-eus-01.githubapp.com",
+    "vstoken.actions.githubusercontent.com",
+    "pipelines.actions.githubusercontent.com",
+    "payload.pipelines.actions.githubusercontent.com",
+    "results-receiver.actions.githubusercontent.com",
+    "actions-results-receiver-production.githubapp.com",
+    *trusted_results_storage_hostnames,
+]
+
+report_path, dns_path, ready_path, production_path = (pathlib.Path(item) for item in sys.argv[1:5])
+scenario = sys.argv[5]
+deadline = time.monotonic() + 30
+report = None
+dns = None
+ready = None
+while time.monotonic() < deadline:
+    if report_path.exists() and dns_path.exists() and ready_path.exists():
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        dns = json.loads(dns_path.read_text(encoding="utf-8"))
+        ready = json.loads(ready_path.read_text(encoding="utf-8"))
+        resident_status = report.get("resident_health", {}).get("status")
+        if (
+            report.get("setup_status") == "resident_selected_profile_runtime_test_only"
+            and (scenario == "healthy" or resident_status == "critical")
+        ):
+            break
+    time.sleep(0.1)
+require(report is not None)
+require(dns is not None)
+require(ready is not None)
+require(report["status"] == "selected_profile_runtime_test_only")
+require(report["runtime_evidence_schema_version"] == 5)
+require(report["mode"] == "block")
+require(report["profile_realization_id"] == "github_hosted_workflow_bootstrap_dns_provenance_v5")
+require(report["platform_profile_id"] == "github_hosted_workflow_bootstrap_v5")
+require(report["policy_hash_schema_version"] == 9)
+require(re.fullmatch(r"[0-9a-f]{64}", report["policy_hash"]))
+require(re.fullmatch(r"[0-9a-f]{64}", report["base_ruleset_hash"]))
+require(re.fullmatch(r"[0-9a-f]{64}", report["ruleset_hash"]))
+require(report["bootstrap_hostnames"] == expected_bootstrap_hostnames)
+require(report["network_application_status"] == "applied")
+require(report["network_verification_status"] == "verified")
+require(report["sudo_status"] == "disabled_verified")
+require(report["container_status"] == "disabled_verified")
+require(report["dns_upstream_policy"] == "root_resident_mediator_only_udp_53")
+require(report["materialization_status"] == "bounded_ttl_exact_host_user_wildcard_and_cname_transport_policy")
+require(len(report["materialized_allowances"]) >= 1)
+require(all(item["protocol"] == "tcp" and item["port"] == 443 for item in report["materialized_allowances"]))
+resident = report["resident_health"]
+require(resident["status"] == ("healthy" if scenario == "healthy" else "critical"))
+require(resident["resident_pid"] > 0)
+require(resident["verification_sequence"] >= 1)
+require(resident["last_successful_verification_unix_milliseconds"] > 0)
+require(resident["verification_interval_seconds"] == 5)
+expected_workers = [
+    {"name": "host_tcp_dns", "status": "running"},
+    {
+        "name": "host_udp_dns",
+        "status": "failed" if scenario == "worker-failure" else "running",
+    },
+    {"name": "hostname_refresh", "status": "running"},
+    {"name": "process_attribution", "status": "running"},
+]
+require(resident["workers"] == expected_workers)
+require(ready["status"] == "selected_profile_runtime_ready_no_public_activation")
+require(ready["runtime_evidence_schema_version"] == 5)
+require(ready["protection_available"] is False)
+require(ready["profile_realization_id"] == "github_hosted_workflow_bootstrap_dns_provenance_v5")
+require(ready["platform_profile_id"] == "github_hosted_workflow_bootstrap_v5")
+require(ready["policy_hash_schema_version"] == 9)
+require(ready["policy_hash"] == report["policy_hash"])
+require(ready["base_ruleset_hash"] == report["base_ruleset_hash"])
+require(ready["resident_health"]["resident_pid"] == resident["resident_pid"])
+require(ready["resident_health"]["status"] == "healthy")
+require(dns["status"] == "selected_profile_runtime_test_only")
+require(dns["docker_dns_routing"] == "not_configured_standard_block")
+require(dns["runtime_evidence_schema_version"] == 5)
+require(dns["profile_realization_id"] == "github_hosted_workflow_bootstrap_dns_provenance_v5")
+require(dns["platform_profile_id"] == "github_hosted_workflow_bootstrap_v5")
+require(dns["authorized_domain_patterns"] == [
+    "*.actions.githubusercontent.com",
+    "*.githubapp.com",
+    "actions-results-receiver-production.githubapp.com",
+    "productionresultssa<1-to-5-decimal-digits>.blob.core.windows.net",
+])
+require(dns["bootstrap_hostnames"] == expected_bootstrap_hostnames)
+require(isinstance(dns["materialization_batch_count"], int))
+require(dns["materialization_batch_count"] >= 0)
+validate_materialization_rejections(dns)
+require(dns["results_storage_authorization_count"] >= 0)
+require(dns["results_storage_attribution_failures"] == 0)
+require(dns["results_storage_request_rejections"] == 0)
+require(len(dns["runner_authorized_results_storage"]) <= 4)
+require(isinstance(dns["upstream_request_failures"], int))
+require(dns["upstream_request_failures"] >= 0)
+require(dns["resident_health"]["resident_pid"] == resident["resident_pid"])
+require(isinstance(dns["materialization_update_max_milliseconds"], int))
+require(dns["materialization_update_max_milliseconds"] >= 0)
+require(dns["mode"] == "block")
+require(dns["proxy_policy_status"] == "block_forwards_exact_roots_bounded_user_wildcard_names_actions_suffix_names_githubapp_suffix_names_results_storage_and_bounded_cname_descendants")
+require(dns["answer_attribution_status"] == "bounded_reportable_hostname_answers_only")
+require(len(dns["bounded_actions_suffix_authorizations"]) <= 8)
+require(dns["bounded_actions_suffix_authorizations_truncated"] is False)
+require(len(dns["bounded_githubapp_suffix_authorizations"]) <= 8)
+require(dns["bounded_githubapp_suffix_authorizations_truncated"] is False)
+require(dns["bounded_user_wildcard_authorizations"] == [])
+require(dns["bounded_user_wildcard_authorizations_truncated"] is False)
+require(dns["user_wildcard_request_rejections"] == 0)
+require(all(
+    1 <= len(hostname.removesuffix(".actions.githubusercontent.com").split(".")) <= 2
+    for hostname in dns["bounded_actions_suffix_authorizations"]
+))
+require("test_only_evidence_path_does_not_activate_default_planning_descriptor" in dns["limitations"])
+require("bounded_actions_suffix_dns_authorization_remains_an_egress_limitation" in dns["limitations"])
+require("actions_suffix_authorizations_are_limited_to_8_unique_names_and_two_prefix_labels" in dns["limitations"])
+require("bounded_githubapp_suffix_dns_authorization_remains_an_egress_limitation" in dns["limitations"])
+require("githubapp_suffix_authorizations_are_limited_to_8_unique_single_label_names" in dns["limitations"])
+require("block_dns_queries_are_canonicalized_before_upstream_forwarding" in dns["limitations"])
+require("dns_query_timing_and_count_remain_egress_limitations" in dns["limitations"])
+require("post_ready_codeload_traffic_is_not_authorized" in dns["limitations"])
+require("runner_authorized_results_storage_accounts_remain_egress_channels" in dns["limitations"])
+require("static_results_storage_compatibility_account_remains_an_egress_channel" in dns["limitations"])
+require("cname_descendants_are_bounded_ttl_derived_authorizations" in dns["limitations"])
+require("dns_cname_descendants_may_delegate_to_external_dns_operator_names" in dns["limitations"])
+require("bootstrap_roots_refresh_every_5_seconds" in dns["limitations"])
+require("https_materialization_expiry_includes_30_second_refresh_overlap" in dns["limitations"])
+require("approved_workflow_bootstrap_https_destinations_remain_egress_channels" in dns["limitations"])
+require("resolved_workflow_bootstrap_ip_addresses_may_serve_additional_destinations" in dns["limitations"])
+require("test_only_evidence_path_does_not_activate_default_planning_descriptor" in report["limitations"])
+require("bounded_actions_suffix_dns_authorization_remains_an_egress_limitation" in report["limitations"])
+require("actions_suffix_authorizations_are_limited_to_8_unique_names_and_two_prefix_labels" in report["limitations"])
+require("bounded_githubapp_suffix_dns_authorization_remains_an_egress_limitation" in report["limitations"])
+require("githubapp_suffix_authorizations_are_limited_to_8_unique_single_label_names" in report["limitations"])
+require("block_dns_queries_are_canonicalized_before_upstream_forwarding" in report["limitations"])
+require("dns_query_timing_and_count_remain_egress_limitations" in report["limitations"])
+require("post_ready_codeload_traffic_is_not_authorized" in report["limitations"])
+require("runner_authorized_results_storage_accounts_remain_egress_channels" in report["limitations"])
+require("static_results_storage_compatibility_account_remains_an_egress_channel" in report["limitations"])
+require("cname_descendants_are_bounded_ttl_derived_authorizations" in report["limitations"])
+require("bootstrap_roots_refresh_every_5_seconds" in report["limitations"])
+require("https_materialization_expiry_includes_30_second_refresh_overlap" in report["limitations"])
+require("dns_cname_descendants_may_delegate_to_external_dns_operator_names" in report["limitations"])
+require("approved_workflow_bootstrap_https_destinations_remain_egress_channels" in report["limitations"])
+require("resolved_workflow_bootstrap_ip_addresses_may_serve_additional_destinations" in report["limitations"])
+require("root_resident_dns_upstream_channel_remains_an_egress_limitation" in report["limitations"])
+require("azure_instance_metadata_tcp_80_remains_an_egress_channel" in report["limitations"])
+if scenario == "worker-failure":
+    require(any(item["code"] == "resident_worker_test_failure" for item in report["critical_findings"]))
+elif scenario == "local-control-drift":
+    require(any(item["code"] == "local_control_inventory_unavailable" for item in report["critical_findings"]))
+    while not report_path.with_name("test-listener-closed").is_file():
+        require(time.monotonic() < deadline, "test listener did not confirm closure")
+        time.sleep(0.1)
+    scan = report["first_failed_local_control_scan"]
+    attempts = scan.get("attempts")
+    require(type(attempts) is int and 1 <= attempts <= 3)
+    require(scan == {"status": "unavailable", "attempts": attempts, "unavailable_inputs": ["socket_ownership"], "bounds_exceeded": []})
+    print(json.dumps([scan, report_path.stat().st_mtime_ns, resident["verification_sequence"]]))
+else:
+    require(report["critical_findings"] == [])
+if scenario != "local-control-drift":
+    require("first_failed_local_control_scan" not in report)
+require(not production_path.exists())
+PY
+)"
+
+# Unrelated traffic and a syntactically valid results-storage request from the
+# workflow process must be refused locally.
+python3 -E <<'PY'
+import sys
+
+if sys.flags.optimize != 0:
+    raise SystemExit("Python optimization must be disabled")
+
+def require(condition, message="evidence validation failed"):
+    if not condition:
+        raise SystemExit(message)
+
+import random
+import socket
+import struct
+
+for hostname in (
+    b"codeload.github.com",
+    b"productionresultssa8.blob.core.windows.net",
+    b"uploads.github.com",
+    b"lookalike.payload.pipelines.actions.githubusercontent.com",
+):
+    identifier = random.randrange(0, 65536)
+    question = b"".join(bytes([len(label)]) + label for label in hostname.split(b".")) + b"\x00"
+    packet = struct.pack("!HHHHHH", identifier, 0x0100, 1, 0, 0, 0) + question + struct.pack("!HH", 1, 1)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(2)
+    sock.sendto(packet, ("127.0.0.1", 53))
+    response, _ = sock.recvfrom(4096)
+    require(struct.unpack("!H", response[:2])[0] == identifier)
+    require(struct.unpack("!H", response[2:4])[0] & 0x000F == 5)
+PY
+
+if [[ "$scenario" == "healthy" ]]; then
+  python3 -E <<'PY'
+import random
+import socket
+import struct
+import sys
+import threading
+import time
+
+if sys.flags.optimize != 0:
+    raise SystemExit("Python optimization must be disabled")
+
+def require(condition, message="TCP DNS resolution failed"):
+    if not condition:
+        raise SystemExit(message)
+
+def read_exact(connection, size):
+    output = bytearray()
+    while len(output) < size:
+        chunk = connection.recv(size - len(output))
+        require(chunk)
+        output.extend(chunk)
+    return bytes(output)
+
+def dns_packet(hostname, identifier):
+    question = b"".join(bytes([len(label)]) + label for label in hostname.split(b".")) + b"\x00"
+    return struct.pack("!HHHHHH", identifier, 0x0100, 1, 0, 0, 0) + question + struct.pack("!HH", 1, 1)
+
+
+def resolve_tcp(connection, hostname=b"github.com"):
+    identifier = random.randrange(0, 65536)
+    packet = dns_packet(hostname, identifier)
+    connection.sendall(struct.pack("!H", len(packet)) + packet)
+    response_length = struct.unpack("!H", read_exact(connection, 2))[0]
+    response = read_exact(connection, response_length)
+    response_identifier, flags, question_count, answer_count, _, _ = struct.unpack("!HHHHHH", response[:12])
+    require(response_identifier == identifier)
+    require(flags & 0x8000 != 0)
+    require(flags & 0x000F == 0)
+    require(question_count == 1)
+    require(answer_count > 0)
+
+
+with socket.create_connection(("127.0.0.1", 53), timeout=5) as connection:
+    connection.settimeout(5)
+    resolve_tcp(connection, b"github.com")
+    resolve_tcp(connection, b"api.github.com")
+
+barrier = threading.Barrier(4)
+failures = []
+
+
+def resolve_concurrently():
+    try:
+        with socket.create_connection(("127.0.0.1", 53), timeout=5) as connection:
+            connection.settimeout(5)
+            barrier.wait(timeout=5)
+            resolve_tcp(connection)
+    except (Exception, SystemExit) as error:
+        failures.append(str(error))
+
+
+workers = [threading.Thread(target=resolve_concurrently) for _ in range(4)]
+for worker in workers:
+    worker.start()
+for worker in workers:
+    worker.join(timeout=8)
+require(all(not worker.is_alive() for worker in workers), "concurrent TCP DNS clients did not complete")
+require(not failures, "concurrent TCP DNS clients did not all resolve")
+
+with socket.create_connection(("127.0.0.1", 53), timeout=5) as stalled:
+    stalled.settimeout(2)
+    packet = dns_packet(b"github.com", random.randrange(0, 65536))
+    stalled.sendall(struct.pack("!H", len(packet)) + packet[:1])
+
+    with socket.create_connection(("127.0.0.1", 53), timeout=5) as connection:
+        connection.settimeout(5)
+        resolve_tcp(connection)
+
+    closed = False
+    started = time.monotonic()
+    for byte in packet[1:15]:
+        if time.monotonic() - started >= 3:
+            break
+        try:
+            stalled.sendall(bytes([byte]))
+        except OSError:
+            closed = True
+            break
+        time.sleep(0.2)
+
+    if not closed:
+        stalled.settimeout(1)
+        try:
+            closed = stalled.recv(1) == b""
+        except (ConnectionResetError, BrokenPipeError):
+            closed = True
+        except TimeoutError:
+            closed = False
+
+    require(closed, "a slow TCP DNS frame exceeded its fixed deadline")
+PY
+fi
+
+if sudo --non-interactive /usr/bin/true >/dev/null 2>&1; then
+  die "DNS-mediated selected-profile runtime evidence did not disable runner passwordless sudo"
+fi
+if docker ps --quiet >/dev/null 2>&1; then
+  die "DNS-mediated selected-profile runtime evidence did not disable runner Docker access"
+fi
+
+sleep 6
+python3 -E - "$report" "$dns_report" "$production_ready" "$scenario" "$first_scan_observation" <<'PY'
+import sys
+
+if sys.flags.optimize != 0:
+    raise SystemExit("Python optimization must be disabled")
+
+def require(condition, message="evidence validation failed"):
+    if not condition:
+        raise SystemExit(message)
+
+import json
+import pathlib
+import socket
+import sys
+import time
+
+sys.path.insert(0, "script/lib")
+from dns_evidence import validate_materialization_rejections
+
+report_path, dns_path, production_path = (pathlib.Path(item) for item in sys.argv[1:4])
+scenario = sys.argv[4]
+if scenario == "healthy":
+    former_table_limit = 1024 * 1024
+
+    def time_wait_bytes(destination):
+        with open("/proc/net/tcp", "rb") as table:
+            return sum(len(row) for row in table if row.split()[2:4] == [destination, b"06"])
+
+    # Port reuse varies. Measure our TIME_WAIT rows after each bounded batch,
+    # then close the listener before waiting for two full resident checks.
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        address = listener.getsockname()
+        destination = f"0100007F:{address[1]:04X}".encode("ascii")
+        listener.listen()
+        batch_size = 2048
+        for _ in range(0, 16_384, batch_size):
+            for _ in range(batch_size):
+                with socket.socket() as client:
+                    client.settimeout(2)
+                    client.connect(address)
+                    peer, _ = listener.accept()
+                    with peer:
+                        client.close()
+                        require(peer.recv(1) == b"", "loopback connection did not close")
+            if time_wait_bytes(destination) > former_table_limit:
+                break
+        else:
+            raise SystemExit("test TIME_WAIT sockets did not exceed the former TCP table bound")
+
+    resident = json.loads(report_path.read_bytes())["resident_health"]
+    target_sequence = resident["verification_sequence"] + 2
+    deadline = time.monotonic() + 30
+    while resident["verification_sequence"] < target_sequence:
+        require(resident["status"] == "healthy", "resident failed under TCP connection churn")
+        require(time.monotonic() < deadline, "resident verification did not advance under TCP connection churn")
+        time.sleep(0.2)
+        resident = json.loads(report_path.read_bytes())["resident_health"]
+    require(
+        time_wait_bytes(destination) > former_table_limit,
+        "test TIME_WAIT sockets fell below the former TCP table bound during resident checks",
+    )
+
+report = json.loads(report_path.read_text(encoding="utf-8"))
+dns = json.loads(dns_path.read_text(encoding="utf-8"))
+require(report["network_verification_status"] == "verified")
+require(report["sudo_status"] == "disabled_verified")
+require(report["container_status"] == "disabled_verified")
+if scenario == "worker-failure":
+    require(report["resident_health"]["status"] == "critical")
+    require(report["resident_health"]["verification_sequence"] == 1)
+    require(any(item["code"] == "resident_worker_test_failure" for item in report["critical_findings"]))
+    require(any(item["status"] == "failed" for item in report["resident_health"]["workers"]))
+elif scenario == "local-control-drift":
+    first_scan, first_report_mtime, first_sequence = json.loads(sys.argv[5])
+    require(report["resident_health"]["status"] == "critical")
+    require(report["resident_health"]["verification_sequence"] == first_sequence)
+    require(any(item["code"] == "local_control_inventory_unavailable" for item in report["critical_findings"]))
+    require(all(item["status"] == "running" for item in report["resident_health"]["workers"]))
+    require(report_path.stat().st_mtime_ns != first_report_mtime, "resident did not republish its report")
+    require(report["first_failed_local_control_scan"] == first_scan,
+            "first failed scan changed after the unexpected listener closed")
+else:
+    require(report["critical_findings"] == [])
+    require(report["resident_health"]["status"] == "healthy")
+    require(report["resident_health"]["verification_sequence"] >= 2)
+require(dns["blocked_non_profile_query_count"] >= 4)
+validate_materialization_rejections(dns)
+require(dns["results_storage_request_rejections"] >= 1)
+require(dns["results_storage_attribution_failures"] == 0)
+if scenario != "healthy":
+    require(dns["resident_health"]["status"] == "critical")
+else:
+    require(dns["resident_health"]["verification_sequence"] >= 2)
+require(not production_path.exists())
+print(json.dumps(report, sort_keys=True, separators=(",", ":")))
+PY
+
+echo -e "${GREEN}DNS-mediated selected-profile runtime evidence verified${OFF}"
