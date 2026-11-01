@@ -1,0 +1,77 @@
+import Foundation
+
+struct DeviceKeyboardTransport: LivePreviewKeyboardTransport {
+  static let version: UInt32 = 2
+  let connection: any ADBConnection
+  private let queue = DispatchQueue(label: "snapo.keyboard")
+
+  static func connect(
+    serial: String,
+    adb: ADBClient = ADBClient(),
+    helper: @Sendable () throws -> Data = DeviceClipboardProtocol.bundledHelper
+  ) async throws -> Self {
+    let command = try DeviceClipboardProtocol.launchCommand(helper: helper(), keyboard: true)
+    let connection = try await adb.makeConnection()
+    let transport = Self(connection: connection)
+    do {
+      try await transport.perform {
+        try connection.withRequestTimeout(.seconds(8)) {
+          try connection.sendTransport(to: serial)
+          _ = try connection.sendHostCommand("exec:" + command, expectsResponse: false)
+          guard try DeviceClipboardProtocol.readNumber(connection) == version else {
+            throw ADBError.protocolFailure("Unsupported input helper version")
+          }
+        }
+      }
+      return transport
+    } catch {
+      connection.close()
+      throw error
+    }
+  }
+
+  func close() {
+    connection.close()
+  }
+
+  func send(_ event: LivePreviewKeyboardEvent) async throws -> LivePreviewKeyboardResponse {
+    let frame = try Self.frame(event)
+    return try await perform {
+      try connection.withRequestTimeout(.seconds(3)) {
+        try connection.writeFully(frame)
+        switch try DeviceClipboardProtocol.readNumber(connection) {
+        case 0: return .sent
+        case 1: return try .copied(DeviceClipboardProtocol.readText(connection))
+        case 2: return .unsupportedText
+        default: throw ADBError.protocolFailure("Device input failed")
+        }
+      }
+    }
+  }
+
+  static func frame(_ event: LivePreviewKeyboardEvent) throws -> Data {
+    func number(_ value: UInt32) -> Data {
+      var value = value.bigEndian
+      return withUnsafeBytes(of: &value) { Data($0) }
+    }
+    switch event {
+    case .text(let text): return try number(1) + DeviceClipboardProtocol.frame(text)
+    case .key(let code, let modifiers): return number(2) + number(code) + number(modifiers)
+    case .paste(let text): return try number(3) + DeviceClipboardProtocol.frame(text)
+    case .copy: return number(4)
+    case .keyDown(let code): return number(5) + number(code)
+    case .keyUp(let code): return number(6) + number(code)
+    }
+  }
+
+  private func perform<Value: Sendable>(_ operation: @escaping @Sendable () throws -> Value) async throws -> Value {
+    try await withTaskCancellationHandler {
+      try Task.checkCancellation()
+      return try await withCheckedThrowingContinuation { continuation in
+        queue.async { continuation.resume(with: Result(catching: operation)) }
+      }
+    } onCancel: {
+      connection.close()
+    }
+  }
+}

@@ -1,0 +1,25 @@
+Config/Signing.xcconfig
+
+# Xcode and Swift
+DerivedData/
+build/
+*.moved-aside
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+xcuserdata/
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcuserdata/
+*.xcworkspace
+.xcresult
+.swiftpm/
+.build/
+Package.resolved
+timeline.xctimeline
+playground.xcworkspace
+
+# Track the app's dependency lockfile without committing other workspace state.
+!Snap-O.xcodeproj/project.xcworkspace/
+Snap-O.xcodeproj/project.xcworkspace/**
+!Snap-O.xcodeproj/project.xcworkspace/**/
+!Snap-O.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved

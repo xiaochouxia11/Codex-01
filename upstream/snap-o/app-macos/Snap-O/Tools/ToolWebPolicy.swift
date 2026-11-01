@@ -1,0 +1,75 @@
+import CryptoKit
+import Foundation
+
+enum ToolWebPolicy {
+  struct Origin {
+    let scheme: String
+    let host: String
+    let port: Int
+  }
+
+  static func acceptsMessage(
+    ownsView: Bool, isMainFrame: Bool, url: URL?, documentURL: URL?, origin: Origin
+  ) -> Bool {
+    guard ownsView, isMainFrame, let url, let documentURL else { return false }
+    var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+    components?.fragment = nil
+    let expected = ToolURL.frontend
+    return components?.url == documentURL && origin.scheme == expected.scheme
+      && origin.host == expected.host && origin.port == (expected.port ?? 0)
+  }
+
+  static func developmentURL(_ text: String) -> URL? {
+    guard let url = URL(string: text.trimmingCharacters(in: .whitespacesAndNewlines)),
+          ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
+          ["localhost", "127.0.0.1", "::1", "[::1]"].contains(url.host?.lowercased() ?? ""),
+          url.user == nil, url.password == nil, url.port == nil || (1 ... 65535).contains(url.port ?? 0) else { return nil }
+    return url
+  }
+
+  static func storageIdentifier(app: InspectableApp?, tool: ToolID) -> UUID? {
+    guard let app, let identity = app.metadata?.verifiedIdentity else { return nil }
+    let scope = ["snapo.inspector.v2", app.deviceId, String(identity.androidUserId), identity.packageName, tool.rawValue]
+    guard let data = try? JSONEncoder().encode(scope) else { return nil }
+    let bytes = Array(SHA256.hash(data: data).prefix(16))
+    return UUID(uuid: (
+      bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+      bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+    ))
+  }
+
+  static func contentRules(developmentURL: URL?) throws -> String {
+    var allowed = ["^data:", "^blob:", "^snapo://tool/"]
+    if let url = developmentURL {
+      guard let origin = origin(of: url) else { throw ToolError.invalidBridgeMessage }
+      allowed.append("^" + NSRegularExpression.escapedPattern(for: origin) + "/")
+      let socket = origin.replacingOccurrences(of: "https://", with: "wss://")
+        .replacingOccurrences(of: "http://", with: "ws://")
+      allowed.append("^" + NSRegularExpression.escapedPattern(for: socket) + "/")
+    }
+    let rules: [[String: Any]] = [
+      ["trigger": ["url-filter": ".*"], "action": ["type": "block"]]
+    ] + allowed.map {
+      ["trigger": ["url-filter": $0], "action": ["type": "ignore-previous-rules"]]
+    }
+    guard let encoded = try String(data: JSONSerialization.data(withJSONObject: rules), encoding: .utf8) else {
+      throw ToolError.invalidBridgeMessage
+    }
+    return encoded
+  }
+
+  static let contentSecurityPolicy = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+    + "connect-src 'self' data: blob:; "
+    + "img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; "
+    + "worker-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+
+  private static func origin(of url: URL) -> String? {
+    guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+    components.path = ""
+    components.query = nil
+    components.fragment = nil
+    if (components.scheme == "http" && components.port == 80) ||
+      (components.scheme == "https" && components.port == 443) { components.port = nil }
+    return components.string
+  }
+}

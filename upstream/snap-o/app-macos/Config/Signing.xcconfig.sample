@@ -1,0 +1,7 @@
+// -----------------------------------------------------------------
+// Copy this file to `Signing.xcconfig` and fill in your own details
+// to use AndroidHostService in Release builds or archive for distribution.
+// -----------------------------------------------------------------
+
+SNAPO_DEVELOPMENT_TEAM = YOUR_TEAM_ID
+SNAPO_CODE_SIGN_IDENTITY = Apple Development

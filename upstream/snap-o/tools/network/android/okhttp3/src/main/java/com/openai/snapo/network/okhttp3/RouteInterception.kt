@@ -1,0 +1,184 @@
+package com.openai.snapo.network.okhttp3
+
+import com.openai.snapo.network.Header
+import com.openai.snapo.network.InterceptionDecision
+import com.openai.snapo.network.InterceptionHeader
+import com.openai.snapo.network.InterceptionRequest
+import com.openai.snapo.network.InterceptionResponse
+import com.openai.snapo.network.MaxInterceptionBodyBytes
+import com.openai.snapo.network.NetworkInterception
+import com.openai.snapo.network.OriginalResponse
+import com.openai.snapo.network.ResponseInterception
+import com.openai.snapo.network.capture.BodyContentType
+import com.openai.snapo.network.capture.RawResponseBodyCapture
+import com.openai.snapo.network.capture.resolveResponseBody
+import okhttp3.Headers
+import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.Protocol
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.Buffer
+import okio.ByteString
+import okio.ByteString.Companion.decodeBase64
+import okio.ForwardingSink
+import okio.buffer
+import java.io.IOException
+
+/** Runs the original call at most once, on its existing OkHttp chain. */
+internal fun interceptWithRoutes(
+    chain: Interceptor.Chain,
+    request: Request,
+    interception: NetworkInterception,
+): InterceptionResult {
+    if (request.header("Upgrade").equals("websocket", ignoreCase = true)) {
+        return InterceptionResult(chain.proceed(request))
+    }
+    if (request.header("Accept")?.contains("text/event-stream", ignoreCase = true) == true) {
+        return InterceptionResult(chain.proceed(request))
+    }
+    val exchange = interception.open(request.method, request.url.encodedPath)
+        ?: return InterceptionResult(chain.proceed(request))
+    return exchange.use {
+        val capturedRequest = request.readRouteBody()
+        exchange.request(
+            InterceptionRequest(
+                method = request.method,
+                url = request.url.toString(),
+                headerEntries = request.headers.interceptionHeaders(),
+                body = capturedRequest.base64(),
+            )
+        )
+        val decision = exchange.awaitDecision { chain.call().isCanceled() }
+        if (decision.action != "upstream") {
+            return@use decision.fulfillRoute(request)
+        }
+        // Reuse the bytes already read instead of invoking the app's RequestBody twice.
+        val outbound = request.withRouteBody(capturedRequest)
+        chain.proceed(outbound).use { upstream ->
+            val original = upstream.readRouteResponse()
+            exchange.response(original)
+            exchange.awaitDecision { chain.call().isCanceled() }.fulfillRoute(request, upstream, original)
+        }
+    }
+}
+
+internal data class InterceptionResult(val response: Response, val interception: RouteInterception? = null)
+
+internal fun InterceptionDecision.fulfillRoute(
+    request: Request,
+    upstream: Response? = null,
+    original: InterceptionResponse? = null,
+): InterceptionResult {
+    val delivered = toResponse(request, upstream)
+    val details = when {
+        original == null -> RouteInterception("mocked")
+        original.hasSameContent(requireNotNull(response)) -> RouteInterception("unchanged")
+        else -> RouteInterception("modified", original)
+    }
+    return InterceptionResult(delivered, details)
+}
+
+internal data class RouteInterception(val outcome: String, val original: InterceptionResponse? = null) {
+    fun capture(textBodyMaxBytes: Int, binaryBodyMaxBytes: Int): ResponseInterception {
+        val capturedOriginal = original?.let { response ->
+            val bytes = requireNotNull(response.body.decodeBase64()).toByteArray()
+            val contentType = response.headerEntries.firstOrNull { it.name.equals("Content-Type", true) }?.value
+            val contentEncoding = response.headerEntries.filter { it.name.equals("Content-Encoding", true) }
+                .joinToString(",") { it.value }
+            val body = resolveResponseBody(
+                capture = RawResponseBodyCapture(bytes, bytes.size.toLong(), reachedEof = true),
+                contentType = BodyContentType.parse(contentType),
+                textBodyMaxBytes = textBodyMaxBytes,
+                binaryBodyMaxBytes = binaryBodyMaxBytes,
+                previewBytes = 0,
+                declaredBodySize = bytes.size.toLong(),
+                contentEncoding = contentEncoding,
+            )
+            OriginalResponse(
+                code = response.status,
+                headers = response.headerEntries.map { Header(it.name, it.value) },
+                body = body.body,
+                bodyEncoding = body.encoding,
+                bodyTruncatedBytes = body.truncatedBytes,
+                bodySize = body.bodySize,
+            )
+        }
+        return ResponseInterception(outcome, capturedOriginal)
+    }
+}
+
+internal fun InterceptionResponse.hasSameContent(other: InterceptionResponse): Boolean {
+    // Runners normalize transport framing even when they return the upstream response unchanged.
+    val ignoredHeaders = FramingHeaders + (headerEntries + other.headerEntries)
+        .filter { it.name.equals("Connection", true) }
+        .flatMap { it.value.split(',').map { name -> name.trim().lowercase() } }
+    fun List<InterceptionHeader>.meaningfulHeaders() =
+        filterNot { it.name.lowercase() in ignoredHeaders }
+            .groupBy({ it.name.lowercase() }, { it.value })
+    return status == other.status && body.decodeBase64() == other.body.decodeBase64() &&
+        headerEntries.meaningfulHeaders() == other.headerEntries.meaningfulHeaders()
+}
+
+private val FramingHeaders = setOf(
+    "connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer",
+    "transfer-encoding", "upgrade", "content-length",
+)
+
+private fun Request.readRouteBody(): ByteString {
+    val requestBody = body ?: return ByteString.EMPTY
+    val isUnsupported = requestBody.isDuplex() || requestBody.isOneShot() ||
+        requestBody.contentLength() !in 0..MaxInterceptionBodyBytes.toLong()
+    if (isUnsupported) throw IOException("Snap-O routes require a repeatable request body of at most 1 MiB")
+    val capture = Buffer()
+    val sink = object : ForwardingSink(capture) {
+        override fun write(source: Buffer, byteCount: Long) {
+            if (capture.size + byteCount > MaxInterceptionBodyBytes) {
+                throw IOException("Snap-O request body exceeds 1 MiB")
+            }
+            super.write(source, byteCount)
+        }
+    }.buffer()
+    sink.use { requestBody.writeTo(it) }
+    return capture.readByteString()
+}
+
+private fun Request.withRouteBody(bytes: ByteString): Request {
+    val requestBody = body ?: return this
+    return newBuilder().method(method, bytes.toRequestBody(requestBody.contentType())).build()
+}
+
+private fun Response.readRouteResponse(): InterceptionResponse {
+    if (body.contentType()?.toString()?.startsWith("text/event-stream", ignoreCase = true) == true) {
+        throw IOException("Streaming response interception is not supported")
+    }
+    val source = body.source()
+    source.request(MaxInterceptionBodyBytes.toLong() + 1)
+    if (source.buffer.size > MaxInterceptionBodyBytes) throw IOException("Snap-O response body exceeds 1 MiB")
+    return InterceptionResponse(code, headers.interceptionHeaders(), source.readByteString().base64())
+}
+
+private fun InterceptionDecision.toResponse(request: Request, upstream: Response? = null): Response {
+    if (action != "fulfill") throw IOException(error ?: "The upstream request has already been sent")
+    val replacement = response ?: throw IOException("Missing Snap-O response")
+    return replacement.toResponse(request, upstream)
+}
+
+private fun InterceptionResponse.toResponse(request: Request, upstream: Response?): Response {
+    val bytes = body.decodeBase64() ?: throw IOException("Invalid Snap-O response body")
+    if (bytes.size > MaxInterceptionBodyBytes) throw IOException("Snap-O response body exceeds 1 MiB")
+    val headers = Headers.Builder().apply {
+        headerEntries.forEach { add(it.name, it.value) }
+    }.build()
+    return (upstream?.newBuilder() ?: Response.Builder().request(request).protocol(Protocol.HTTP_1_1))
+        .code(status)
+        .message("Snap-O")
+        .headers(headers)
+        .body(bytes.toResponseBody(headers["Content-Type"]?.toMediaTypeOrNull()))
+        .build()
+}
+
+private fun Headers.interceptionHeaders(): List<InterceptionHeader> =
+    (0 until size).map { InterceptionHeader(name(it), value(it)) }

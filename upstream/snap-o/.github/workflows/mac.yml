@@ -1,0 +1,210 @@
+name: Mac
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'app-macos/**'
+      - 'tool-sdk/host/**'
+      - 'tools/tweaks/frontend/**'
+      - 'tools/network/frontend/**'
+      - 'tools/frontend/**'
+      - 'contracts/**'
+      - 'skills/snap-o-network-inspector/scripts/**'
+      - 'skills/snap-o-tweaks/scripts/**'
+      - 'tool-reader/**'
+      - 'device-helper/**'
+      - '.github/workflows/mac.yml'
+      - 'VERSION'
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Mac web
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tool-sdk/host/package-lock.json
+      - name: Install dependencies
+        run: |
+          npm ci --prefix tool-sdk/host
+          npm ci --prefix tools/network/frontend
+          npm ci --prefix tools/tweaks/frontend
+      - name: Check formatting
+        working-directory: tool-sdk/host
+        run: npm run format:check
+      - name: Lint
+        working-directory: tool-sdk/host
+        run: npm run lint
+      - name: Typecheck
+        working-directory: tool-sdk/host
+        run: npm run typecheck
+      - name: Test
+        working-directory: tool-sdk/host
+        run: npm test
+
+  test:
+    name: Mac tests
+    runs-on: macos-26
+    timeout-minutes: 15
+    env:
+      XCODE_VERSION: '26.4.1'
+      SNAPO_TEST_CONFIGURATION: Debug
+    defaults:
+      run:
+        working-directory: app-macos
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+      - name: Restore Swift packages and compiler cache
+        id: swift-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        timeout-minutes: 2
+        with:
+          path: |
+            ${{ runner.temp }}/snap-o-derived-data/SourcePackages
+            ${{ runner.temp }}/snap-o-derived-data/CompilationCache.noindex
+          key: mac-swift-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.XCODE_VERSION }}-${{ hashFiles('app-macos/**/Package.resolved') }}-${{ github.sha }}
+          restore-keys: |
+            mac-swift-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.XCODE_VERSION }}-${{ hashFiles('app-macos/**/Package.resolved') }}-
+            mac-swift-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.XCODE_VERSION }}-
+      - name: Build macOS tests
+        id: build-tests
+        timeout-minutes: 8
+        run: |
+          for scheme in Snap-OUnitTests Snap-OIntegrationTests; do
+            python3 scripts/ci-run-with-diagnostics.py "build-$scheme" \
+              xcodebuild -project Snap-O.xcodeproj -scheme "$scheme" -configuration "$SNAPO_TEST_CONFIGURATION" \
+              -destination "platform=macOS" -derivedDataPath "$RUNNER_TEMP/snap-o-derived-data" \
+              -onlyUsePackageVersionsFromResolvedFile -skipPackageUpdates -showBuildTimingSummary \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+              COMPILATION_CACHE_ENABLE_CACHING=YES build-for-testing
+          done
+      - name: Run headless unit tests
+        timeout-minutes: 2
+        run: |
+          python3 scripts/ci-run-with-diagnostics.py unit-tests \
+            xcodebuild test-without-building \
+            -xctestrun "$RUNNER_TEMP/snap-o-derived-data/Build/Products/"Snap-OUnitTests_*.xctestrun \
+            -destination "platform=macOS" \
+            -resultBundlePath "$RUNNER_TEMP/snap-o-unit-tests.xcresult" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+      - name: Run app integration tests
+        timeout-minutes: 2
+        run: |
+          python3 scripts/ci-run-with-diagnostics.py integration-tests \
+            xcodebuild test-without-building \
+            -xctestrun "$RUNNER_TEMP/snap-o-derived-data/Build/Products/"Snap-OIntegrationTests_*.xctestrun \
+            -destination "platform=macOS" \
+            -resultBundlePath "$RUNNER_TEMP/snap-o-integration-tests.xcresult" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+      - name: Upload test logs and diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: mac-test-results
+          path: |
+            ${{ runner.temp }}/mac-diagnostics
+            ${{ runner.temp }}/snap-o-unit-tests.xcresult
+            ${{ runner.temp }}/snap-o-integration-tests.xcresult
+          if-no-files-found: ignore
+      - name: Test capture export permissions
+        env:
+          SNAPO_DERIVED_DATA: ${{ runner.temp }}/snap-o-derived-data
+        run: sh scripts/test-capture-export.sh
+      - name: Test media lifetime
+        env:
+          SNAPO_DERIVED_DATA: ${{ runner.temp }}/snap-o-derived-data
+          SNAPO_TEST_CONFIGURATION: Debug
+        run: sh scripts/test-media-lifetime.sh
+      - name: Test device connection identity
+        env:
+          SNAPO_DERIVED_DATA: ${{ runner.temp }}/snap-o-derived-data
+        run: sh scripts/test-device-connection.sh
+      - name: Test preview input
+        env:
+          SNAPO_DERIVED_DATA: ${{ runner.temp }}/snap-o-derived-data
+          SNAPO_TEST_CONFIGURATION: Debug
+        run: sh scripts/test-preview-input.sh
+      - name: Test capture integration
+        env:
+          SNAPO_DERIVED_DATA: ${{ runner.temp }}/snap-o-derived-data
+        run: sh scripts/test-startup-capture.sh
+      - name: Test app shutdown ordering
+        env:
+          SNAPO_DERIVED_DATA: ${{ runner.temp }}/snap-o-derived-data
+          SNAPO_TEST_CONFIGURATION: Debug
+        run: sh scripts/test-app-runtime.sh
+      - name: Test recording failures
+        env:
+          SNAPO_DERIVED_DATA: ${{ runner.temp }}/snap-o-derived-data
+        run: sh scripts/test-recording.sh
+      - name: Test emulator preview
+        env:
+          SNAPO_DERIVED_DATA: ${{ runner.temp }}/snap-o-derived-data
+        run: sh scripts/test-emulator-preview.sh
+      - name: Test tool recovery
+        env:
+          SNAPO_DERIVED_DATA: ${{ runner.temp }}/snap-o-derived-data
+        run: sh scripts/test-tool-recovery.sh
+
+      - name: Device Manager tests
+        env:
+          SNAPO_DERIVED_DATA: ${{ runner.temp }}/snap-o-derived-data
+        run: bash StandaloneTests/DeviceManager/test.sh
+
+      - name: Compact compiler cache
+        id: compact-swift-cache
+        if: always() && steps.build-tests.outcome == 'success'
+        run: xcrun llvm-cas --cas "$RUNNER_TEMP/snap-o-derived-data/CompilationCache.noindex/builtin" --prune
+
+      - name: Save Swift packages and compiler cache
+        if: always() && steps.compact-swift-cache.outcome == 'success' && steps.swift-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        timeout-minutes: 2
+        with:
+          path: |
+            ${{ runner.temp }}/snap-o-derived-data/SourcePackages
+            ${{ runner.temp }}/snap-o-derived-data/CompilationCache.noindex
+          key: ${{ steps.swift-cache.outputs.cache-primary-key }}
+
+  style:
+    name: Mac style
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          fetch-depth: 1
+      - name: Set up mise
+        working-directory: app-macos
+        run: ./scripts/ci-install-mise.sh
+      - name: Install tools
+        working-directory: app-macos
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mise trust --quiet
+          mise install
+      - name: SwiftFormat
+        working-directory: app-macos
+        run: mise exec -- swiftformat . --lint --config .swiftformat --reporter github-actions-log
+      - name: SwiftLint
+        working-directory: app-macos
+        run: mise exec -- swiftlint lint --strict --no-cache --reporter github-actions-logging

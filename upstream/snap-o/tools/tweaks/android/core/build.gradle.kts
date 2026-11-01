@@ -1,0 +1,58 @@
+plugins {
+    id("snapo.android.library")
+    id("snapo.maven.publish")
+    id("snapo.detekt")
+    id("com.openai.snapo.tool-packager")
+}
+
+description = "Compose-free live tweaks for Snap-O."
+
+android {
+    namespace = "com.openai.snapo.tweaks.core"
+    lint {
+        enable += "UnusedResources"
+        error += "UnusedResources"
+    }
+}
+
+// This build declares the Node repository in settings.gradle.kts.
+node { distBaseUrl.set(null as String?) }
+
+snapoTool {
+    frontendDirectory = layout.projectDirectory.dir("../../frontend")
+    id = "tweaks"
+    displayName = "Tweaks"
+    icon = "@drawable/snapo_tweaks_inspector_icon"
+}
+
+dependencies {
+    implementation(project(":tool-core"))
+    api(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.annotation)
+    testImplementation(libs.androidx.lifecycle.viewmodel)
+    testImplementation(libs.junit4)
+    testImplementation(libs.kotlinx.coroutines.test)
+}
+
+val verifyNoComposeDependencies by tasks.registering {
+    group = "verification"
+    description = "Checks that the core has no Compose dependencies."
+    doLast {
+        listOf("debugRuntimeClasspath", "releaseRuntimeClasspath").forEach { name ->
+            val compose = configurations.getByName(name).incoming.resolutionResult.allComponents
+                .mapNotNull { it.moduleVersion }
+                .filter { it.group.startsWith("androidx.compose") }
+            check(compose.isEmpty()) { "$name includes Compose: $compose" }
+        }
+    }
+}
+
+tasks.named("check") { dependsOn(verifyNoComposeDependencies) }
+
+// Include sources outside each frontend directory in incremental builds.
+tasks.named("buildSnapoToolFrontend") {
+    inputs.dir(rootProject.file("tools/frontend"))
+    inputs.dir(rootProject.file("tool-sdk/host/src"))
+    inputs.file(rootProject.file("tool-sdk/host/tsconfig.build.json"))
+}

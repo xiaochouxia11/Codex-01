@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block main %}
+<main id="main">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        {{ title|safe }}
+        <p class="subtitle">{{ page.meta.subtitle }}</p>
+        {{ introduction|safe }}
+        <div class="cta">
+          {% for action in page.meta.actions %}
+          <a class="{{ action.class }}" href="{{ action.href }}">{{ action.label }}</a>
+          {% endfor %}
+        </div>
+        {{ note|safe }}
+      </div>
+      <div class="robot-orbit">
+        <img class="space-rocket" src="{{ 'assets/space-rocket.webp'|url }}" alt="" width="200" height="200" aria-hidden="true">
+        {% include "robot.html" %}
+      </div>
+    </div>
+  </section>
+  <div class="section section-features">
+    <div class="wrap">
+      {% for section in sections %}
+      <section class="product-section">
+        {{ section.heading|safe }}
+        {{ section.body|safe }}
+      </section>
+      {% endfor %}
+    </div>
+  </div>
+</main>
+{% endblock %}

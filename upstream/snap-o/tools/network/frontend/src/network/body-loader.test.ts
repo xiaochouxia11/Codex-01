@@ -1,0 +1,198 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { bodyLoadPriority, RequestBodyLoader, type BodyLoadJob } from "./body-loader";
+import type { RequestBodies } from "./bridge-types";
+
+describe("RequestBodyLoader", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+  it("limits concurrency and starts selected and visible requests first", async () => {
+    const started: string[] = [];
+    const loaded: string[] = [];
+    const pending = new Map<string, ReturnType<typeof deferred<RequestBodies>>>();
+    const loader = new RequestBodyLoader(
+      (input) => {
+        started.push(input.requestId);
+        const result = deferred<RequestBodies>();
+        pending.set(input.requestId, result);
+        return result.promise;
+      },
+      (recordKey) => loaded.push(recordKey),
+      2
+    );
+    const jobs = [
+      job("background-1", bodyLoadPriority.background),
+      job("background-2", bodyLoadPriority.background),
+      job("visible", bodyLoadPriority.visible),
+      job("selected", bodyLoadPriority.selected)
+    ];
+
+    loader.retainRecords(new Set(jobs.map((item) => item.recordKey)));
+    loader.schedule(jobs);
+    expect(started).toEqual(["selected", "visible"]);
+
+    pending.get("selected")?.resolve({ requestId: "selected", requestBody: "body" });
+    await flushJobs();
+    expect(started).toEqual(["selected", "visible", "background-1"]);
+    expect(loaded).toEqual(["selected"]);
+
+    loader.dispose();
+  });
+
+  it("allows an evicted record to be loaded again", async () => {
+    const loaded: string[] = [];
+    const loader = new RequestBodyLoader(
+      async (input) => ({ requestId: input.requestId, responseBody: input.requestId }),
+      (recordKey) => loaded.push(recordKey),
+      1
+    );
+    const request = job("request", bodyLoadPriority.selected);
+    loader.retainRecords(new Set([request.recordKey]));
+
+    loader.schedule([request]);
+    await flushJobs();
+    loader.forgetRecords([request.recordKey]);
+    loader.schedule([request]);
+    await flushJobs();
+
+    expect(loaded).toEqual(["request", "request"]);
+    loader.dispose();
+  });
+
+  it("ignores an evicted in-flight result and allows its replacement to load", async () => {
+    const pending: Array<ReturnType<typeof deferred<RequestBodies>>> = [];
+    const loaded: string[] = [];
+    const loader = new RequestBodyLoader(
+      () => {
+        const result = deferred<RequestBodies>();
+        pending.push(result);
+        return result.promise;
+      },
+      (_recordKey, bodies) => loaded.push(bodies.responseBody ?? "missing"),
+      1
+    );
+    const request = job("request", bodyLoadPriority.selected);
+    loader.retainRecords(new Set([request.recordKey]));
+
+    loader.schedule([request]);
+    loader.forgetRecords([request.recordKey]);
+    loader.schedule([request]);
+    expect(pending).toHaveLength(1);
+
+    pending[0].resolve({ requestId: "request", responseBody: "stale" });
+    await flushJobs();
+    expect(loaded).toEqual([]);
+    expect(pending).toHaveLength(2);
+
+    pending[1].resolve({ requestId: "request", responseBody: "fresh" });
+    await flushJobs();
+    expect(loaded).toEqual(["fresh"]);
+    loader.dispose();
+  });
+
+  it.each([
+    ["an empty result", false],
+    ["a failed load", true]
+  ])("marks a missing response body as completed after %s", async (_description, shouldFail) => {
+    const loaded: RequestBodies[] = [];
+    const request = job("request", bodyLoadPriority.selected);
+    request.input.includeRequestBody = false;
+    request.input.includeResponseBody = true;
+    const loader = new RequestBodyLoader(
+      async (input) => {
+        if (shouldFail) throw new Error("body unavailable");
+        return { requestId: input.requestId };
+      },
+      (_recordKey, bodies) => loaded.push(bodies),
+      1
+    );
+    loader.retainRecords(new Set([request.recordKey]));
+
+    loader.schedule([request]);
+    await flushJobs();
+
+    expect(loaded).toEqual([
+      { requestId: "request", responseBodyLoadCompleted: true, responseBodyLoadError: "failed" }
+    ]);
+    loader.dispose();
+  });
+
+  it("preserves a confirmed unavailable response", async () => {
+    const loaded: RequestBodies[] = [];
+    const request = job("request", bodyLoadPriority.selected);
+    request.input.includeResponseBody = true;
+    const loader = new RequestBodyLoader(
+      async (input) => ({ requestId: input.requestId, responseBodyLoadError: "unavailable" }),
+      (_recordKey, bodies) => loaded.push(bodies)
+    );
+    loader.retainRecords(new Set([request.recordKey]));
+    loader.schedule([request]);
+    await flushJobs();
+    expect(loaded).toEqual([
+      { requestId: "request", responseBodyLoadCompleted: true, responseBodyLoadError: "unavailable" }
+    ]);
+    loader.dispose();
+  });
+
+  it("retries only the failed response job and clears its error after success", async () => {
+    const loaded: RequestBodies[] = [];
+    const started: string[] = [];
+    const request = job("request", bodyLoadPriority.selected);
+    const response: BodyLoadJob = {
+      ...request,
+      key: "request:response",
+      input: { ...request.input, includeRequestBody: false, includeResponseBody: true }
+    };
+    let failResponse = true;
+    const loader = new RequestBodyLoader(
+      async (input) => {
+        started.push(input.includeResponseBody ? "response" : "request");
+        if (!input.includeResponseBody) return { requestId: input.requestId, requestBody: "input" };
+        if (failResponse) throw new Error("temporary failure");
+        return { requestId: input.requestId, responseBody: "output" };
+      },
+      (_recordKey, bodies) => loaded.push(bodies)
+    );
+    loader.retainRecords(new Set([request.recordKey]));
+    loader.schedule([request, response]);
+    await flushJobs();
+    loader.schedule([response]);
+    expect(started).toEqual(["request", "response"]);
+    failResponse = false;
+    loader.forgetJob(response.key);
+    loader.schedule([request, response]);
+    await flushJobs();
+    expect(started).toEqual(["request", "response", "response"]);
+    expect(loaded.at(-1)).toEqual({
+      requestId: "request",
+      responseBody: "output",
+      responseBodyLoadCompleted: true,
+      responseBodyLoadError: null
+    });
+    loader.dispose();
+  });
+});
+
+function job(requestId: string, priority: BodyLoadJob["priority"]): BodyLoadJob {
+  return {
+    key: `${requestId}:request`,
+    recordKey: requestId,
+    priority,
+    input: {
+      processId: "process-1",
+      requestId,
+      includeRequestBody: true
+    }
+  };
+}
+
+function deferred<T>(): { promise: Promise<T>; resolve(value: T): void } {
+  let resolvePromise: (value: T) => void = () => {};
+  const promise = new Promise<T>((resolve) => {
+    resolvePromise = resolve;
+  });
+  return { promise, resolve: resolvePromise };
+}
+
+function flushJobs(): Promise<void> {
+  return vi.runAllTimersAsync().then(() => {});
+}

@@ -1,0 +1,19 @@
+plugins {
+    id("snapo.android.library")
+    id("snapo.maven.publish")
+    id("snapo.detekt")
+}
+
+description = "OkHttp integration for intercepting network requests with Snap-O."
+
+android {
+    namespace = "com.openai.snapo.network.okhttp3"
+}
+
+dependencies {
+    implementation(project(":network"))
+    api(libs.okhttp3.okhttp)
+    api(libs.kotlinx.coroutines.core)
+    testImplementation(libs.junit4)
+    testImplementation(libs.okhttp3.mockwebserver3)
+}

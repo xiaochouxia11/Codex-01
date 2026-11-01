@@ -1,0 +1,385 @@
+import Foundation
+import Observation
+
+@Observable
+@MainActor
+final class ToolHostModel {
+  private(set) var toolApps: [InspectableApp] = []
+  private(set) var presentation = AppToolPresentation.findingApps
+  private(set) var selectedTool: SelectedAppTool?
+  private(set) var selectedToolApp: InspectableApp?
+  private(set) var replacementApp: InspectableApp?
+  private(set) var preferredPluginID: ToolID?
+  private(set) var appLaunch: AppLaunchState?
+  var isDevelopmentServerPresented = false
+
+  var selectedCompatibility: ToolCompatibility {
+    selectedToolApp?.tools.first { $0.kind == preferredPluginID }?.compatibility ?? .unknown
+  }
+
+  var compatibilityExplanation: ToolCompatibility? {
+    // A development frontend can replace a missing archive, but not an unknown tool identity.
+    if developmentURL != nil, case .missingFrontend = selectedCompatibility { return nil }
+    return selectedCompatibility.title(for: preferredPluginID) == nil ? nil : selectedCompatibility
+  }
+
+  var isPageReady: Bool {
+    activePage?.isReady ?? false
+  }
+
+  var webContainer: (any ToolPageContainer)? {
+    activePage?.container
+  }
+
+  var frontendError: String? {
+    activePage?.error
+  }
+
+  var developmentURL: URL? {
+    activePageIdentity?.developmentURL
+  }
+
+  var canConfigureDevelopmentServer: Bool {
+    activePageIdentity?.storageIdentifier != nil
+  }
+
+  func useDevelopmentServer(_ url: URL?) {
+    guard let scope = activePageIdentity?.storageIdentifier,
+          url == nil || ToolWebPolicy.developmentURL(url?.absoluteString ?? "") != nil else { return }
+    let key = "inspectorDevelopmentServer." + scope.uuidString
+    if let url {
+      preferences.set(url.absoluteString, forKey: key)
+    } else {
+      preferences.removeObject(forKey: key)
+    }
+    apply(appTool.snapshot)
+  }
+
+  func retryDiscovery() {
+    appTool.refresh()
+  }
+
+  func retryFrontend() {
+    guard let kind = preferredPluginID, let identity = activePage?.identity else { return }
+    replacePage(kind: kind, identity: identity)
+  }
+
+  var toolbarActions: [ToolToolbarAction] {
+    activePage?.toolbar.actions ?? []
+  }
+
+  private var activePage: Page? {
+    guard let kind = preferredPluginID, let identity = activePageIdentity,
+          let page = pages[kind], page.identity == identity else { return nil }
+    return page
+  }
+
+  private var activePageIdentity: PageIdentity?
+
+  struct PageIdentity: Equatable {
+    let appID: String?
+    let server: ToolServerReference?
+    let processIdentity: String?
+    let storageIdentifier: UUID?
+    let packageRevision: String?
+    let frontend: ToolFrontend?
+    let developmentURL: URL?
+    let compatibility: ToolCompatibility
+  }
+
+  /// Toolbar and connection updates must not invalidate commands that only read page readiness.
+  @Observable
+  @MainActor
+  final class Page {
+    let identity: PageIdentity
+    let container: any ToolPageContainer
+    var isReady = false
+    var error: String?
+    var endpointID: UUID?
+    var connection = ToolConnectionState()
+    var toolbar = ToolToolbar(revision: 0, actions: [])
+    @ObservationIgnored var search = ToolToolbarSearch(restoring: nil)
+
+    init(identity: PageIdentity, container: any ToolPageContainer) {
+      self.identity = identity
+      self.container = container
+    }
+  }
+
+  private var pages: [ToolID: Page] = [:]
+  @ObservationIgnored private var searchValues: [UUID: String] = [:]
+  @ObservationIgnored private let service: ToolService
+  @ObservationIgnored private var pageTransitions: [ToolID: Task<Void, Never>] = [:]
+  @ObservationIgnored private var bindings: [ToolID: Task<Void, Never>] = [:]
+  @ObservationIgnored private var pendingWork: [UUID: Task<Void, Never>] = [:]
+  @ObservationIgnored private var stopTask: Task<Void, Never>?
+  @ObservationIgnored private var isStopped = false
+  @ObservationIgnored private let appTool: AppToolModel
+  @ObservationIgnored private let preferences: UserDefaults
+
+  @ObservationIgnored private let makeContainer: @MainActor (ToolWebBridge, UUID?, URL?) -> any ToolPageContainer
+
+  init(
+    service: ToolService, preferences: UserDefaults = .standard, appTool: AppToolModel? = nil,
+    configuredServerIDs: @escaping () -> Set<ADBServerID> = { [.local] },
+    makeContainer: @escaping @MainActor (ToolWebBridge, UUID?, URL?) -> any ToolPageContainer = {
+      ToolWebContainer(bridge: $0, storageIdentifier: $1, developmentURL: $2)
+    }
+  ) {
+    self.makeContainer = makeContainer
+    self.service = service
+    self.preferences = preferences
+    let appTool = appTool ?? AppToolModel(
+      preferences: preferences, configuredServerIDs: configuredServerIDs,
+      discover: { try await service.discoverPlugins() },
+      changes: { await service.changes() },
+      currentDiscovery: { await service.currentPlugins() },
+      openApp: { try await service.openApp($0) }
+    )
+    self.appTool = appTool
+    appTool.stateChanged = { [weak self] snapshot in self?.apply(snapshot) }
+    apply(appTool.snapshot)
+    appTool.start()
+  }
+
+  @discardableResult
+  func stop() -> Task<Void, Never> {
+    if let stopTask { return stopTask }
+    isStopped = true
+    let modelCleanup = appTool.stop()
+    for task in pendingWork.values {
+      task.cancel()
+    }
+    bindings.removeAll()
+    for kind in Array(pages.keys) {
+      removePage(kind: kind)
+    }
+    activePageIdentity = nil
+    searchValues.removeAll()
+    let pending = Array(pendingWork.values)
+    pageTransitions.removeAll()
+    let task = Task {
+      await modelCleanup.value
+      for task in pending {
+        await task.value
+      }
+    }
+    stopTask = task
+    return task
+  }
+
+  private func startWork(_ operation: @escaping @MainActor () async -> Void) -> Task<Void, Never> {
+    let id = UUID()
+    let task = Task {
+      await operation()
+      pendingWork[id] = nil
+    }
+    pendingWork[id] = task
+    return task
+  }
+
+  func selectApp(_ app: InspectableApp) {
+    appTool.selectApp(app)
+  }
+
+  func selectTool(_ app: InspectableApp, option: AppToolOption) {
+    appTool.selectTool(app, option: option)
+  }
+
+  func reconnectToNewProcess() {
+    appTool.reconnectToNewProcess()
+  }
+
+  func openSelectedApp() {
+    if let selectedToolApp { appTool.openSelectedApp(appId: selectedToolApp.id) }
+  }
+
+  func activateToolbarAction(_ id: String, value: String? = nil) {
+    guard let page = activePage, page.isReady,
+          let index = page.toolbar.actions.firstIndex(where: { $0.id == id }),
+          page.toolbar.actions[index].enabled != false else { return }
+    var event = ToolToolbarEvent(revision: page.toolbar.revision, id: id)
+    if page.toolbar.actions[index].type == .search {
+      guard let value else { return }
+      let revision = (page.toolbar.actions[index].inputRevision ?? 0) + 1
+      page.toolbar.actions[index].value = value
+      page.toolbar.actions[index].inputRevision = revision
+      page.search.value = value
+      event.value = value
+      event.inputRevision = revision
+    }
+    page.container.sendPageEvent(name: "host:toolbar", payload: event)
+  }
+
+  private func apply(_ snapshot: AppToolSnapshot) {
+    guard !isStopped else { return }
+    let state = snapshot.state
+    if selectedTool?.kind != state.selection?.kind || selectedTool?.server != state.selection?.server {
+      webContainer?.closeNativeColorPanel()
+    }
+    presentation = snapshot.presentation
+    toolApps = state.apps
+    selectedTool = state.selection
+    selectedToolApp = state.selectedApp
+    replacementApp = state.replacementApp
+    preferredPluginID = state.preferredKind
+    appLaunch = snapshot.appLaunch
+    reconcilePages(snapshot)
+  }
+
+  private func pageIdentity(for kind: ToolID, snapshot: AppToolSnapshot) -> PageIdentity? {
+    guard let app = snapshot.state.selectedApp,
+          let selection = snapshot.state.displayed[kind], selection.appId == app.id else { return nil }
+    let scope = ToolWebPolicy.storageIdentifier(app: app, tool: kind)
+    let developmentURL = scope
+      .flatMap { preferences.string(forKey: "inspectorDevelopmentServer." + $0.uuidString) }
+      .flatMap(ToolWebPolicy.developmentURL)
+    return PageIdentity(
+      appID: app.id, server: selection.server,
+      processIdentity: app.metadata?.verifiedIdentity?.processIdentity,
+      storageIdentifier: scope, packageRevision: app.metadata?.verifiedIdentity?.revision,
+      frontend: app.metadata?.tools.first { $0.id == kind }?.frontend,
+      developmentURL: developmentURL,
+      compatibility: app.tools.first { $0.kind == kind }?.compatibility ?? .unknown
+    )
+  }
+
+  private func reconcilePages(_ snapshot: AppToolSnapshot) {
+    activePageIdentity = preferredPluginID.flatMap { pageIdentity(for: $0, snapshot: snapshot) }
+    for kind in Array(pages.keys) where pages[kind]?.identity != pageIdentity(for: kind, snapshot: snapshot) {
+      removePage(kind: kind)
+    }
+    if presentation == .tool, let kind = preferredPluginID, let identity = activePageIdentity, pages[kind] == nil {
+      replacePage(kind: kind, identity: identity)
+    }
+    for kind in pages.keys {
+      synchronizeConnection(kind: kind)
+    }
+  }
+
+  private func synchronizeConnection(kind: ToolID) {
+    bindings[kind]?.cancel()
+    guard let page = pages[kind] else { return }
+    let state = appTool.snapshot.pageState(for: kind)
+    guard page.isReady else { return }
+    guard state.isActive, state.isConnected, let selection = state.selection else {
+      setEndpoint(nil, kind: kind)
+      return
+    }
+    bindings[kind] = startWork { [weak self, weak container = page.container] in
+      guard let self, let container else { return }
+      do {
+        let target = try await service.pluginEndpoint(for: selection.server)
+        guard !Task.isCancelled, !isStopped, pages[kind]?.container === container else { return }
+        setEndpoint(target, kind: kind)
+      } catch {
+        guard !Task.isCancelled, pages[kind]?.container === container else { return }
+        setEndpoint(nil, kind: kind)
+      }
+    }
+  }
+
+  private func setEndpoint(_ endpoint: ToolHTTPService.Endpoint?, kind: ToolID) {
+    guard let page = pages[kind] else { return }
+    page.container.setServer(endpoint)
+    let state = appTool.snapshot.pageState(for: kind)
+    let app = state.selectedApp?.id == page.identity.appID
+      ? state.selectedApp : toolApps.first { $0.id == page.identity.appID }
+    let metadata = app?.metadata ?? page.connection.metadata
+    let tool = metadata?.tools.first { $0.id == kind }
+    guard page.endpointID != endpoint?.id || page.connection.metadata != metadata || page.connection.tool != tool else { return }
+    page.connection.metadata = metadata
+    page.connection.tool = tool
+    page.endpointID = endpoint?.id
+    page.connection.revision += 1
+    page.connection.connected = endpoint != nil
+    page.container.sendPageEvent(name: "host:connection", payload: page.connection)
+  }
+
+  private func removePage(kind: ToolID) {
+    guard let page = pages.removeValue(forKey: kind) else { return }
+    if let scope = page.identity.storageIdentifier {
+      searchValues[scope] = page.search.value
+    }
+    page.container.stop()
+    bindings.removeValue(forKey: kind)?.cancel()
+    let transition = pageTransitions[kind]
+    transition?.cancel()
+    pageTransitions[kind] = startWork {
+      await transition?.value
+      await page.container.finishStopping()
+    }
+  }
+
+  private func replacePage(kind: ToolID, identity: PageIdentity) {
+    let metadata = appTool.snapshot.pageState(for: kind).selectedApp?.metadata
+    removePage(kind: kind)
+    let bridge = ToolWebBridge()
+    let container = makeContainer(bridge, identity.storageIdentifier, identity.developmentURL)
+    bridge.isActiveHandler = { [weak self, weak container] in
+      guard let self, let container else { return false }
+      return !isStopped && activePage?.container === container
+    }
+    bridge.hostStateHandler = { [weak self, weak container] in
+      guard let self, let container, pages[kind]?.container === container else { return ToolConnectionState() }
+      return pages[kind]?.connection ?? ToolConnectionState()
+    }
+    bridge.toolbarHandler = { [weak self, weak container] toolbar in
+      guard let self, let container, let page = pages[kind], page.container === container,
+            toolbar.revision > page.toolbar.revision else { return }
+      var toolbar = toolbar
+      let restoredSearch = page.search.reconcile(&toolbar, previous: page.toolbar)
+      page.toolbar = toolbar
+      if let restoredSearch { container.sendPageEvent(name: "host:toolbar", payload: restoredSearch) }
+    }
+    container.pageReadinessChangedHandler = { [weak self, weak container] isReady in
+      guard let self, let container, pages[kind]?.container === container else { return }
+      pages[kind]?.isReady = isReady
+      if isReady { pages[kind]?.error = nil }
+      if !isReady, let page = pages[kind] {
+        page.toolbar = ToolToolbar(revision: 0, actions: [])
+        page.search = ToolToolbarSearch(restoring: page.identity.storageIdentifier == nil ? nil : page.search.value)
+      }
+      synchronizeConnection(kind: kind)
+    }
+    container.pageLoadFailedHandler = { [weak self, weak container] message in
+      guard let self, let container, pages[kind]?.container === container else { return }
+      pages[kind]?.error = message
+    }
+    let page = Page(identity: identity, container: container)
+    page.search = ToolToolbarSearch(restoring: identity.storageIdentifier.flatMap { searchValues[$0] })
+    pages[kind] = page
+    let transition = pageTransitions[kind]
+    transition?.cancel()
+    pageTransitions[kind] = startWork { [weak self] in
+      await transition?.value
+      guard let self, !Task.isCancelled, !isStopped, pages[kind]?.container === container else { return }
+      defer {
+        if pages[kind]?.container === container { pageTransitions[kind] = nil }
+      }
+      switch identity.compatibility {
+      case .supported: break
+      case .missingFrontend where identity.developmentURL != nil: break
+      default: return
+      }
+      do {
+        let frontend: ToolFrontendBundle?
+        if identity.developmentURL != nil {
+          frontend = nil
+        } else if identity.frontend != nil {
+          guard let server = identity.server, let processIdentity = metadata?.verifiedIdentity,
+                let tool = metadata?.tools.first(where: { $0.id == kind }),
+                tool.frontend?.isHostAPICompatible == true else { throw ToolError.frontendUnavailable }
+          frontend = try await service.pluginFrontend(for: server, identity: processIdentity, tool: tool)
+        } else {
+          throw ToolError.frontendUnavailable
+        }
+        guard !Task.isCancelled, !isStopped, pages[kind]?.container === container else { return }
+        container.start(frontend: frontend)
+      } catch {
+        guard !Task.isCancelled, !isStopped, pages[kind]?.container === container else { return }
+        pages[kind]?.error = error.localizedDescription
+      }
+    }
+  }
+}

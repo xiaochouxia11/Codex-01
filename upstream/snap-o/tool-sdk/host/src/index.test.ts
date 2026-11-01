@@ -1,0 +1,339 @@
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from "vitest";
+import { ToolHost } from "./index";
+
+const metadata = { manifest: { processIdentity: "boot:42:1" } };
+
+function setup() {
+  const listeners = new Map<string, (value: unknown) => void>();
+  const request = vi.fn(async (command: string, _payload?: unknown): Promise<unknown> => {
+    void _payload;
+    return command === "hostState" ? { ...metadata, revision: 1, connected: true } : undefined;
+  });
+  const host = new ToolHost({
+    request: async <T>(command: string, payload?: unknown) => (await request(command, payload)) as T,
+    listen: <T>(name: string, callback: (value: T) => void) => {
+      listeners.set(name, callback as (value: unknown) => void);
+      return () => listeners.delete(name);
+    }
+  });
+  return {
+    host,
+    request,
+    emit: (name: string, value: unknown) =>
+      listeners.get(`host:${name}`)?.(name === "connection" ? { ...metadata, ...(value as object) } : value)
+  };
+}
+
+async function connected(host: ToolHost) {
+  const changed = vi.fn();
+  const stop = host.onConnection(changed);
+  await vi.waitFor(() =>
+    expect(changed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        processIdentity: "boot:42:1"
+      })
+    )
+  );
+  stop();
+}
+
+describe("shared tool host", () => {
+  it("reports a missing WebKit bridge through onError", async () => {
+    const host = new ToolHost();
+    const error = vi.fn();
+    host.onError(error);
+    await vi.waitFor(() =>
+      expect(error).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "Open this tool in the Snap-O macOS app."
+        })
+      )
+    );
+    expect(host).not.toHaveProperty("ready");
+  });
+
+  it("replays initialization failures to late subscribers and retries on use", async () => {
+    const { host, request } = setup();
+    const failure = new Error("Connection request failed.");
+    request.mockRejectedValueOnce(failure);
+    const first = vi.fn();
+    const stop = host.onError(first);
+    await vi.waitFor(() => expect(first).toHaveBeenCalledWith(failure));
+    stop();
+    const late = vi.fn();
+    host.onError(late);
+    expect(late).toHaveBeenCalledWith(failure);
+    await connected(host);
+    expect(request.mock.calls.map(([command]) => command)).toEqual(["hostState", "hostState"]);
+    const recovered = vi.fn();
+    host.onError(recovered);
+    expect(recovered).not.toHaveBeenCalled();
+    request.mockRejectedValueOnce(new Error("Native operation failed."));
+    await expect(host.setToolbar({})).rejects.toThrow("Native operation failed.");
+    expect(first).toHaveBeenCalledOnce();
+    expect(late).toHaveBeenCalledOnce();
+  });
+
+  it("shares automatic initialization and succeeds without an Android connection", async () => {
+    const { host, request } = setup();
+    request.mockResolvedValue({ revision: 1, connected: false });
+    const error = vi.fn();
+    host.onError(error);
+    host.onConnection(() => {});
+    host.onConnection(() => {});
+    // A native method waits internally on the same initialization.
+    await host.setToolbar({});
+    expect(request.mock.calls.filter(([command]) => command === "hostState")).toHaveLength(1);
+    expect(host.connection).toBeNull();
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("supports async connection callbacks and reports uncaught failures", async () => {
+    const { host, emit } = setup();
+    await connected(host);
+    const error = vi.fn();
+    const stopErrors = host.onError(error);
+    const failure = new Error("Callback failed.");
+    let reject: (error: Error) => void = () => {};
+    const pending = new Promise<void>((_, rejectPromise) => {
+      reject = rejectPromise;
+    });
+    const stop = host.onConnection(async (connection) => {
+      if (connection) await pending;
+    });
+    emit("connection", { revision: 2, connected: false });
+    stop();
+    reject(failure);
+    await vi.waitFor(() => expect(error).toHaveBeenCalledWith(failure));
+    stopErrors();
+    host.onConnection(() => {
+      throw new Error("Later failure");
+    });
+    expect(error).toHaveBeenCalledOnce();
+  });
+
+  it("keeps discovery objects internal while disconnected", async () => {
+    const { host, emit } = setup();
+    await connected(host);
+    emit("connection", { revision: 2, connected: false });
+    const changed = vi.fn();
+    host.addEventListener("connection", changed);
+    const tool = { id: "sample", name: "Sample" };
+    const manifest = { version: 1, pid: 10 };
+    emit("connection", { revision: 3, connected: false, manifest, inspector: tool });
+    expect(changed).toHaveBeenCalledOnce();
+    expect(host.connection).toBeNull();
+    expect(host).not.toHaveProperty("manifest");
+    expect(host).not.toHaveProperty("tool");
+  });
+
+  it("waits for connection details and exposes only the fields tools need", async () => {
+    const { host, emit } = setup();
+    await connected(host);
+    emit("connection", { revision: 2, connected: true, manifest: null });
+    expect(host.connection).toBeNull();
+    emit("connection", { revision: 3, connected: true });
+    expect(host.connection).toEqual({
+      processIdentity: "boot:42:1",
+      signal: expect.any(AbortSignal)
+    });
+    expect(host).not.toHaveProperty("connected");
+    expect(host).not.toHaveProperty("endpoint");
+  });
+
+  it("connects bundled tools without protocol metadata", async () => {
+    const { host, emit } = setup();
+    await connected(host);
+    emit("connection", {
+      revision: 2,
+      connected: true,
+      inspector: {}
+    });
+    expect(host.connection).not.toBeNull();
+    expect(host.connection).not.toHaveProperty("protocolVersion");
+  });
+
+  it("publishes connection revisions and ignores old state replies", async () => {
+    const { host, emit } = setup();
+    const changed = vi.fn();
+    host.addEventListener("connection", changed);
+    await connected(host);
+    expect(host.connection).not.toBeNull();
+    emit("connection", { revision: 2, connected: true });
+    emit("connection", { revision: 1, connected: false });
+    expect(host.connection).not.toBeNull();
+    expect(changed).toHaveBeenCalledTimes(2);
+    emit("connection", { revision: 3, connected: true });
+    expect(changed).toHaveBeenCalledTimes(3);
+  });
+
+  it("counts optional search toward the three main controls and keeps end actions separate", async () => {
+    const { host, request } = setup();
+    const button = (id: string) => ({ id, label: id, icon: "clear" as const, onClick() {} });
+    const actions = [button("clear"), button("sort")];
+    const search = { label: "Search", value: "", onChange() {} };
+    await host.setToolbar({ actions, search, endActions: [button("share")] });
+    const payload = request.mock.calls.at(-1)![1] as { actions: { placement: string }[] };
+    expect(payload.actions.map((action) => action.placement)).toEqual(["start", "start", "start", "end"]);
+    await expect(host.setToolbar({ actions: [...actions, button("third")], search })).rejects.toThrow("three main");
+    await host.setToolbar({ actions: [...actions, button("third")] });
+    await expect(host.setToolbar({ actions: [button("search")], search })).rejects.toThrow("reserved");
+  });
+
+  it("ignores queued search input after removing and recreating search", async () => {
+    const { host, request, emit } = setup();
+    const changed = vi.fn();
+    const search = { label: "Search", value: "", onChange: changed };
+    await host.setToolbar({ search });
+    const old = request.mock.calls.at(-1)![1] as { revision: number };
+    await host.setToolbar({});
+    await host.setToolbar({ search });
+    emit("toolbar", { revision: old.revision, id: "search", value: "old", inputRevision: 1 });
+    expect(changed).not.toHaveBeenCalled();
+  });
+
+  it("delivers current connections, cleans up before replacement, and aborts old requests", async () => {
+    const { host, emit } = setup();
+    await connected(host);
+    const first = host.connection!;
+    const order: string[] = [];
+    const unsubscribe = host.onConnection((connection) => {
+      order.push(connection ? "connected" : "disconnected");
+      return () => order.push("cleanup");
+    });
+    expect(order).toEqual(["connected"]);
+    emit("connection", { revision: 2, connected: true });
+    expect(host.connection).not.toBe(first);
+    expect(first.signal.aborted).toBe(true);
+    const second = host.connection!;
+    emit("connection", { revision: 3, connected: false });
+    expect(second.signal.aborted).toBe(true);
+    expect(order).toEqual(["connected", "cleanup", "connected", "cleanup", "disconnected"]);
+    unsubscribe();
+    unsubscribe();
+    emit("connection", { revision: 4, connected: true });
+    expect(order).toHaveLength(6);
+  });
+
+  it("unsubscribing one UI does not abort another UI's connection", async () => {
+    const { host, emit } = setup();
+    await connected(host);
+    const connection = host.connection!;
+    const cleanup = vi.fn();
+    const stop = host.onConnection(() => cleanup);
+    const other = vi.fn();
+    const stopOther = host.onConnection(other);
+    stop();
+    expect(connection.signal.aborted).toBe(false);
+    emit("connection", { revision: 2, connected: false });
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(other).toHaveBeenLastCalledWith(null);
+    stopOther();
+  });
+
+  it("rejects stale picker sessions and colors queued before setValue", async () => {
+    const { host, request, emit } = setup();
+    const firstChanged = vi.fn(),
+      secondChanged = vi.fn(),
+      closed = vi.fn();
+    const first = await host.openColorPicker({ value: "#112233FF", onChange: firstChanged, onClose: closed });
+    const firstSession = request.mock.calls.at(-1)![1] as { sessionId: string };
+    const second = await host.openColorPicker({ value: "#445566FF", onChange: secondChanged });
+    const session = request.mock.calls.at(-1)![1] as { sessionId: string };
+    emit("color-changed", { ...firstSession, revision: 0, color: "#000000FF" });
+    expect(firstChanged).not.toHaveBeenCalled();
+    expect(closed).toHaveBeenCalledTimes(1);
+    await first.close();
+    expect(request.mock.calls.at(-1)![0]).toBe("openNativeColorPanel");
+    await second.setValue("#778899FF");
+    emit("color-changed", { ...session, revision: 0, color: "#000000FF" });
+    emit("color-changed", { ...session, revision: 1, color: "#AABBCCFF" });
+    expect(secondChanged).toHaveBeenCalledExactlyOnceWith("#AABBCCFF");
+    emit("color-closed", firstSession.sessionId);
+    await second.close();
+    expect(request).toHaveBeenLastCalledWith("closeNativeColorPanel", { sessionId: session.sessionId });
+  });
+
+  it.each(["succeeds", "fails"])("sends only the latest pending color after the first update %s", async (outcome) => {
+    const { host, request, emit } = setup();
+    const changed = vi.fn();
+    const picker = await host.openColorPicker({ value: "#112233FF", onChange: changed });
+    const session = request.mock.calls.at(-1)![1] as { sessionId: string };
+    request.mockClear();
+    let finish!: () => void;
+    request.mockReturnValueOnce(
+      new Promise<void>((resolve, reject) => {
+        finish = () => (outcome === "fails" ? reject(new Error("Native action in progress.")) : resolve());
+      })
+    );
+    const updates = ["#445566FF", "#778899FF", "#99AABBFF"].map((value) => picker.setValue(value));
+    expect(request).toHaveBeenCalledTimes(1);
+    finish();
+    await Promise.all(updates);
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(request).toHaveBeenLastCalledWith("openNativeColorPanel", {
+      color: "#99AABBFF",
+      sessionId: session.sessionId,
+      revision: 3,
+      present: false
+    });
+    emit("color-changed", { ...session, revision: 1, color: "#000000FF" });
+    emit("color-changed", { ...session, revision: 3, color: "#AABBCCFF" });
+    expect(changed).toHaveBeenCalledExactlyOnceWith("#AABBCCFF");
+  });
+
+  it("discards a pending color when the picker closes", async () => {
+    const { host, request } = setup();
+    const picker = await host.openColorPicker({ value: "#112233FF", onChange: vi.fn() });
+    let finish!: () => void;
+    request.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        })
+    );
+    const first = picker.setValue("#445566FF");
+    const second = picker.setValue("#778899FF");
+    await picker.close();
+    finish();
+    await Promise.all([first, second]);
+    expect(request.mock.calls.filter(([command]) => command === "openNativeColorPanel")).toHaveLength(2);
+    expect(request.mock.calls.at(-1)![0]).toBe("closeNativeColorPanel");
+  });
+
+  it("keeps accepting live colors after a picker update is rejected", async () => {
+    const { host, request, emit } = setup();
+    const changed = vi.fn();
+    const picker = await host.openColorPicker({ value: "#112233FF", onChange: changed });
+    const session = request.mock.calls.at(-1)![1] as { sessionId: string };
+    await picker.setValue("#445566FF");
+    request.mockRejectedValueOnce(new Error("Native action in progress."));
+    await expect(picker.setValue("#778899FF")).rejects.toThrow("Native action in progress.");
+    emit("color-changed", { ...session, revision: 1, color: "#AABBCCFF" });
+    expect(changed).toHaveBeenCalledExactlyOnceWith("#AABBCCFF");
+    await picker.setValue("#DDEEFF80");
+    emit("color-changed", { ...session, revision: 3, color: "#00000080" });
+    expect(changed).toHaveBeenLastCalledWith("#00000080");
+  });
+
+  it("routes toolbar input to current callbacks and rejects stale button events", async () => {
+    const { host, request, emit } = setup();
+    const oldClick = vi.fn(),
+      click = vi.fn(),
+      search = vi.fn();
+    await host.setToolbar({ actions: [{ id: "clear", label: "Clear", icon: "clear", onClick: oldClick }] });
+    await host.setToolbar({
+      actions: [{ id: "clear", label: "Clear", icon: "clear", onClick: click }],
+      search: { label: "Search", value: "", onChange: search }
+    });
+    const { revision } = request.mock.calls.at(-1)![1] as { revision: number };
+    emit("toolbar", { revision: revision - 1, id: "clear" });
+    emit("toolbar", { revision, id: "clear" });
+    emit("toolbar", { revision, id: "search", value: "query", inputRevision: 1 });
+    emit("toolbar", { revision, id: "search", value: "old", inputRevision: 1 });
+    expect(oldClick).not.toHaveBeenCalled();
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenCalledExactlyOnceWith("query");
+  });
+});

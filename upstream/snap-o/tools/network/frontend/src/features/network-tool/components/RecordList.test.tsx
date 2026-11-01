@@ -1,0 +1,499 @@
+// @vitest-environment jsdom
+
+import { act } from "preact/test-utils";
+import { useState } from "preact/hooks";
+import { render as renderPreact } from "preact";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { NetworkClient } from "../../../network/client";
+import { recordId, type RequestRecord } from "../../../network/cdp";
+import { RecordList } from "./RecordList";
+
+const records = [request("first"), request("second"), request("third")];
+const copyText = vi.fn().mockResolvedValue(undefined);
+const client = { copyText } as unknown as NetworkClient;
+const onSelect = vi.fn();
+const onAddExclusionFilter = vi.fn();
+const scrollIntoView = vi.fn();
+const resizeCallbacks = new Set<() => void>();
+let container: HTMLDivElement;
+
+beforeEach(() => {
+  Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
+  onSelect.mockClear();
+  onAddExclusionFilter.mockClear();
+  copyText.mockClear();
+  scrollIntoView.mockClear();
+  resizeCallbacks.clear();
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      constructor(private readonly callback: () => void) {}
+      observe() {
+        resizeCallbacks.add(this.callback);
+      }
+      disconnect() {
+        resizeCallbacks.delete(this.callback);
+      }
+    }
+  );
+  container = document.createElement("div");
+  document.body.append(container);
+});
+
+afterEach(() => {
+  act(() => renderPreact(null, container));
+  container.remove();
+  vi.restoreAllMocks();
+  Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+  vi.unstubAllGlobals();
+});
+
+function render(visibleRecords = records, initialId: string | null = recordId(records[0]), sortNewestFirst = false) {
+  act(() =>
+    renderPreact(
+      <Harness records={visibleRecords} initialId={initialId} sortNewestFirst={sortNewestFirst} />,
+      container
+    )
+  );
+  return container.querySelector<HTMLDivElement>('[role="listbox"]')!;
+}
+
+function Harness({
+  records: visibleRecords,
+  initialId,
+  sortNewestFirst
+}: {
+  records: RequestRecord[];
+  initialId: string | null;
+  sortNewestFirst: boolean;
+}) {
+  const [selectedId, setSelectedId] = useState(initialId);
+  return (
+    <>
+      <input aria-label="Filter" />
+      <RecordList
+        records={visibleRecords}
+        allRecords={records}
+        sortNewestFirst={sortNewestFirst}
+        placeholder={null}
+        selectedRecordId={selectedId}
+        onSelect={(id) => {
+          onSelect(id);
+          setSelectedId(id);
+        }}
+        client={client}
+        onAddExclusionFilter={onAddExclusionFilter}
+      />
+    </>
+  );
+}
+
+function press(target: Element, key: string, options: KeyboardEventInit = {}) {
+  const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...options });
+  act(() => {
+    target.dispatchEvent(event);
+  });
+  return event;
+}
+
+function openNativeContextMenu(target: Element, options: MouseEventInit = {}) {
+  const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true, ...options });
+  act(() => {
+    target.dispatchEvent(event);
+  });
+  return event;
+}
+
+function expectSelected(list: HTMLElement, label: string) {
+  const selected = list.querySelector('[aria-selected="true"]')!;
+  expect(selected.textContent).toContain(label);
+  expect(list.getAttribute("aria-activedescendant")).toBe(selected.id);
+  expect(list.querySelectorAll('[aria-selected="true"]')).toHaveLength(1);
+}
+
+// jsdom has no layout. Model row height and the browser's scroll position clamping.
+function mockListLayout(list: HTMLElement, bottomPadding = 0) {
+  let scrollTop = 0;
+  let clientHeight = 88;
+  Object.defineProperties(list, {
+    clientHeight: { get: () => clientHeight },
+    scrollHeight: { get: () => Math.max(clientHeight, list.children.length * 44 + bottomPadding) },
+    scrollTop: {
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = Math.max(0, Math.min(value, list.scrollHeight - list.clientHeight));
+      }
+    }
+  });
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+    if (this === list) return new DOMRect(0, 0, 240, clientHeight);
+    const index = Array.from(list.children).indexOf(this);
+    return new DOMRect(0, index * 44 - scrollTop, 240, 44);
+  });
+  return (height: number) => {
+    act(() => {
+      clientHeight = height;
+      for (const callback of resizeCallbacks) callback();
+    });
+  };
+}
+
+function scrollList(list: HTMLElement, top: number) {
+  act(() => {
+    list.scrollTop = top;
+    list.dispatchEvent(new Event("scroll"));
+  });
+}
+
+describe("network request autoscroll", () => {
+  it("follows the top in newest-first order and preserves the visible request while paused", () => {
+    const newestFirst = [...records].reverse();
+    const list = render(newestFirst, recordId(records[0]), true);
+    mockListLayout(list);
+    scrollList(list, 0);
+    const filter = container.querySelector("input")!;
+    filter.focus();
+
+    const fourth = [request("fourth"), ...newestFirst];
+    render(fourth, null, true);
+    expect(list.scrollTop).toBe(0);
+    expectSelected(list, "first");
+    expect(document.activeElement).toBe(filter);
+
+    scrollList(list, 20);
+    const anchor = list.children[0];
+    const offset = anchor.getBoundingClientRect().top;
+    const fifth = [request("fifth"), ...fourth];
+    render(fifth, null, true);
+    expect(anchor.getBoundingClientRect().top).toBe(offset);
+    expect(list.scrollTop).toBe(64);
+
+    // Retention replaces the oldest call without changing the number of rows.
+    render([request("sixth"), ...fifth.slice(0, -1)], null, true);
+    expect(anchor.getBoundingClientRect().top).toBe(offset);
+    expect(list.scrollTop).toBe(108);
+
+    scrollList(list, 0);
+    render([request("seventh"), ...fifth.slice(0, -1)], null, true);
+    expect(list.scrollTop).toBe(0);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("switches the followed edge with sorting and keeps a paused request in view", () => {
+    const calls = [...records, request("fourth"), request("fifth")];
+    const list = render(calls);
+    mockListLayout(list);
+    scrollList(list, list.scrollHeight);
+
+    render([...calls].reverse(), null, true);
+    expect(list.scrollTop).toBe(0);
+    render(calls);
+    expect(list.scrollTop).toBe(132);
+
+    scrollList(list, 20);
+    const anchor = list.firstElementChild!;
+    render([...calls].reverse(), null, true);
+    // The old first row moves to the end; clamping keeps it visible.
+    expect(list.scrollTop).toBe(132);
+    expect(anchor.getBoundingClientRect().top).toBe(44);
+    render([request("sixth"), ...[...calls].reverse()], null, true);
+    expect(anchor.getBoundingClientRect().top).toBe(44);
+  });
+
+  it.each(["Home", "ArrowUp"])("resumes newest-first following when %s reaches the first row", (key) => {
+    const newestFirst = [...records].reverse();
+    const list = render(newestFirst, recordId(records[1]), true);
+    mockListLayout(list, 12);
+    scrollList(list, list.scrollHeight);
+
+    press(list, key);
+    expectSelected(list, "third");
+    expect(list.scrollTop).toBe(0);
+    render([request("fourth"), ...newestFirst], null, true);
+    expect(list.scrollTop).toBe(0);
+    expectSelected(list, "third");
+  });
+
+  it.each(["End", "ArrowDown"])("resumes following when %s reaches the last row with bottom padding", (key) => {
+    const list = render(records, recordId(records[1]));
+    mockListLayout(list, 12);
+    // Revealing the last row leaves the list's trailing padding below the viewport.
+    vi.spyOn(list.lastElementChild!, "scrollIntoView").mockImplementation(() => {
+      list.scrollTop = list.scrollHeight - list.clientHeight - 12;
+    });
+    scrollList(list, 0);
+
+    press(list, key);
+
+    expectSelected(list, "third");
+    expect(list.scrollTop).toBe(56);
+    render([...records, request("fourth")]);
+    expect(list.scrollTop).toBe(100);
+    expectSelected(list, "third");
+  });
+
+  it("follows new calls at the bottom, pauses above it, and resumes on return", () => {
+    const list = render();
+    mockListLayout(list);
+    const filter = container.querySelector("input")!;
+    filter.focus();
+    scrollList(list, 43.5);
+
+    const fourth = [...records, request("fourth")];
+    render(fourth);
+    expect(list.scrollTop).toBe(88);
+    expectSelected(list, "first");
+    expect(document.activeElement).toBe(filter);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(container.querySelector(".record-list-top-fade")?.classList.contains("visible")).toBe(true);
+
+    scrollList(list, 20);
+    const fifth = [...fourth, request("fifth")];
+    render(fifth);
+    expect(list.scrollTop).toBe(20);
+
+    scrollList(list, list.scrollHeight);
+    render([...fifth, request("sixth")]);
+    expect(list.scrollTop).toBe(176);
+  });
+
+  it("keeps following when a short list first overflows and after clearing it", () => {
+    const list = render([], null);
+    mockListLayout(list);
+    render(records.slice(0, 2));
+    expect(list.scrollTop).toBe(0);
+    render(records);
+    expect(list.scrollTop).toBe(44);
+
+    scrollList(list, 0);
+    render([]);
+    render(records);
+    expect(list.scrollTop).toBe(44);
+  });
+
+  it("follows new calls when retention removes old calls without changing the count", () => {
+    const list = render();
+    mockListLayout(list);
+    scrollList(list, list.scrollHeight);
+    // Removing the first row can move the viewport before the new row is appended.
+    list.scrollTop = 0;
+
+    render([...records.slice(1), request("fourth")]);
+
+    expect(list.scrollTop).toBe(44);
+    expect(list.lastElementChild?.textContent).toContain("fourth");
+  });
+
+  it("resumes when resizing makes the whole list visible without a scroll event", () => {
+    const list = render();
+    const resizeList = mockListLayout(list);
+    scrollList(list, 0);
+    resizeList(0);
+    resizeList(100);
+    const fourth = [...records, request("fourth")];
+    render(fourth);
+    expect(list.scrollTop).toBe(0);
+
+    resizeList(176);
+    render([...fourth, request("fifth")]);
+
+    expect(list.scrollTop).toBe(44);
+    resizeList(88);
+    expect(list.scrollTop).toBe(132);
+  });
+});
+
+describe("network request keyboard selection", () => {
+  it("owns focus after a click and moves selection instead of scrolling", () => {
+    const list = render();
+    const options = list.querySelectorAll<HTMLButtonElement>('[role="option"]');
+
+    // A synthetic click does not focus the button, like a mouse click in macOS WebKit.
+    act(() => options[1].click());
+    expect(document.activeElement).toBe(list);
+    expectSelected(list, "second");
+    expect(list.tabIndex).toBe(0);
+    expect([...options].every((option) => option.tabIndex === -1)).toBe(true);
+
+    expect(press(list, "ArrowDown").defaultPrevented).toBe(true);
+    expectSelected(list, "third");
+    expect(document.activeElement).toBe(list);
+
+    expect(press(list, "ArrowUp").defaultPrevented).toBe(true);
+    expectSelected(list, "second");
+    expect(scrollIntoView).toHaveBeenLastCalledWith({ block: "nearest" });
+    expect(scrollIntoView.mock.instances.at(-1)).toBe(options[1]);
+  });
+
+  it("uses the current filtered and sorted order", () => {
+    const list = render();
+    render([records[2], records[0]]);
+    press(list, "ArrowUp");
+    expect(onSelect).toHaveBeenLastCalledWith(recordId(records[2]));
+    expectSelected(list, "third");
+    press(list, "ArrowDown");
+    expectSelected(list, "first");
+  });
+
+  it("clamps at each end and supports Home and End", () => {
+    const list = render();
+    expect(press(list, "ArrowUp").defaultPrevented).toBe(true);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(press(list, "End").defaultPrevented).toBe(true);
+    expectSelected(list, "third");
+    onSelect.mockClear();
+    expect(press(list, "ArrowDown").defaultPrevented).toBe(true);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(press(list, "Home").defaultPrevented).toBe(true);
+    expectSelected(list, "first");
+  });
+
+  it.each([
+    ["ArrowDown", "first"],
+    ["ArrowUp", "third"]
+  ])("starts at the appropriate end for %s without a selection", (key, label) => {
+    const list = render(records, null);
+    press(list, key);
+    expectSelected(list, label);
+  });
+
+  it("leaves unrelated controls, modified keys, and composition alone", () => {
+    const list = render();
+    const filter = container.querySelector("input")!;
+    filter.focus();
+    expect(press(filter, "ArrowDown").defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(filter);
+    for (const modifiers of [
+      { altKey: true },
+      { ctrlKey: true },
+      { metaKey: true },
+      { shiftKey: true },
+      { isComposing: true }
+    ]) {
+      expect(press(list, "ArrowDown", modifiers).defaultPrevented).toBe(false);
+    }
+    expect(press(list, "ArrowLeft").defaultPrevented).toBe(false);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("does nothing for an empty list", () => {
+    const list = render([], null);
+    expect(press(list, "ArrowDown").defaultPrevented).toBe(false);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it.each(["Shift+F10", "ContextMenu", "native contextmenu"])(
+    "opens the active request's menu with %s and returns focus after an action",
+    (gesture) => {
+      const list = render();
+      list.focus();
+      press(list, "ArrowDown");
+      const option = list.querySelector('[aria-selected="true"]')!;
+      vi.spyOn(option, "getBoundingClientRect").mockReturnValue({ left: 24, bottom: 88 } as DOMRect);
+
+      const event =
+        gesture === "native contextmenu"
+          ? openNativeContextMenu(list)
+          : press(list, gesture === "Shift+F10" ? "F10" : "ContextMenu", { shiftKey: gesture === "Shift+F10" });
+
+      expect(event.defaultPrevented).toBe(true);
+      const menu = container.querySelector<HTMLElement>('[role="menu"]')!;
+      expect(menu).not.toBeNull();
+      expect(menu.style.left).toBe("24px");
+      expect(menu.style.top).toBe("88px");
+      const items = [...menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+      expect(items.map((item) => item.textContent)).toEqual([
+        "Copy URL",
+        "Copy as cURL",
+        "Add example.com to exclusion filter",
+        "Export HAR (sanitized)..."
+      ]);
+      expect(document.activeElement).toBe(items[0]);
+
+      expect(press(items[0], "ArrowDown").defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(items[1]);
+      press(items[1], "End");
+      expect(document.activeElement).toBe(items[3]);
+      press(items[3], "Home");
+      expect(document.activeElement).toBe(items[0]);
+      expectSelected(list, "second");
+
+      press(items[0], "Enter");
+      expect(copyText).toHaveBeenCalledWith(records[1].url);
+      expect(container.querySelector('[role="menu"]')).toBeNull();
+      expect(document.activeElement).toBe(list);
+      press(list, "ArrowDown");
+      expectSelected(list, "third");
+    }
+  );
+
+  it("dismisses the keyboard menu with Escape without invoking an action", () => {
+    const list = render();
+    list.focus();
+    press(list, "F10", { shiftKey: true });
+    const firstItem = container.querySelector('[role="menuitem"]')!;
+    press(firstItem, "ArrowUp");
+    expect(document.activeElement?.textContent).toBe("Export HAR (sanitized)...");
+    expect(press(document.activeElement!, "Escape").defaultPrevented).toBe(true);
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+    expect(document.activeElement).toBe(list);
+    expect(copyText).not.toHaveBeenCalled();
+  });
+
+  it("adds the active request host through the keyboard context menu", () => {
+    const list = render();
+    list.focus();
+    press(list, "F10", { shiftKey: true });
+    const items = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+    press(items[0], "ArrowDown");
+    press(items[1], "ArrowDown");
+    expect(document.activeElement).toBe(items[2]);
+
+    press(items[2], "Enter");
+
+    expect(onAddExclusionFilter).toHaveBeenCalledExactlyOnceWith("-example.com");
+    expect(copyText).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+    expect(document.activeElement).toBe(list);
+  });
+
+  it("keeps pointer context menus attached to the clicked request", () => {
+    const list = render();
+    const options = list.querySelectorAll('[role="option"]');
+    expect(openNativeContextMenu(options[2], { clientX: 70, clientY: 110 }).defaultPrevented).toBe(true);
+    expectSelected(list, "third");
+    const menu = container.querySelector<HTMLElement>('[role="menu"]')!;
+    expect(menu.style.left).toBe("70px");
+    expect(menu.style.top).toBe("110px");
+    act(() => menu.querySelector<HTMLButtonElement>('[role="menuitem"]')!.click());
+    expect(copyText).toHaveBeenCalledWith(records[2].url);
+  });
+
+  it("does not open a keyboard menu without an active request", () => {
+    const list = render([], null);
+    expect(press(list, "F10", { shiftKey: true }).defaultPrevented).toBe(false);
+    expect(press(list, "ContextMenu").defaultPrevented).toBe(false);
+    expect(openNativeContextMenu(list).defaultPrevented).toBe(false);
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+  });
+});
+
+function request(id: string): RequestRecord {
+  return {
+    kind: "request",
+    processId: "process-1",
+    requestId: id,
+    method: "GET",
+    url: `https://example.com/${id}`,
+    requestHeaders: [],
+    responseHeaders: [],
+    status: { kind: "success", code: 200 },
+    startedAt: 1,
+    endedAt: 2,
+    streamEvents: [],
+    streamEventCount: 0,
+    updatedAt: 2
+  };
+}
