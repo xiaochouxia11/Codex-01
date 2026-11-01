@@ -1,0 +1,1629 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --admin-user --admin-password
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-azure-mgmt-resource/23.1.0b2 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/test_private_endpoint_connection_sql_server000001?api-version=2022-09-01
+  response:
+    body:
+      string: '{"id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001","name":"test_private_endpoint_connection_sql_server000001","type":"Microsoft.Resources/resourceGroups","location":"eastus","tags":{"product":"azurecli","cause":"automation","test":"test_private_endpoint_connection_sql_server","date":"2023-11-21T14:39:20Z","module":"network"},"properties":{"provisioningState":"Succeeded"}}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '448'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:39:22 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"location": "eastus", "properties": {"administratorLogin": "admin123",
+      "administratorLoginPassword": "SecretPassword123", "administrators": {}}}'
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server create
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '145'
+      Content-Type:
+      - application/json
+      ParameterSetName:
+      - -g -n --admin-user --admin-password
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-mgmt-sql/4.0.0b13 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: PUT
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006?api-version=2023-02-01-preview
+  response:
+    body:
+      string: '{"operation":"UpsertLogicalServer","startTime":"2023-11-21T14:39:24.22Z"}'
+    headers:
+      azure-asyncoperation:
+      - https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/serverAzureAsyncOperation/c7d45a0d-87c6-4e51-a91d-19ea8066c0f4?api-version=2023-02-01-preview
+      cache-control:
+      - no-cache
+      content-length:
+      - '73'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:39:23 GMT
+      expires:
+      - '-1'
+      location:
+      - https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/serverOperationResults/c7d45a0d-87c6-4e51-a91d-19ea8066c0f4?api-version=2023-02-01-preview
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      x-content-type-options:
+      - nosniff
+      x-ms-ratelimit-remaining-subscription-writes:
+      - '1199'
+    status:
+      code: 202
+      message: Accepted
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --admin-user --admin-password
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-mgmt-sql/4.0.0b13 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/serverAzureAsyncOperation/c7d45a0d-87c6-4e51-a91d-19ea8066c0f4?api-version=2023-02-01-preview
+  response:
+    body:
+      string: '{"name":"c7d45a0d-87c6-4e51-a91d-19ea8066c0f4","status":"InProgress","startTime":"2023-11-21T14:39:24.22Z"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '107'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:39:23 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --admin-user --admin-password
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-mgmt-sql/4.0.0b13 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/serverAzureAsyncOperation/c7d45a0d-87c6-4e51-a91d-19ea8066c0f4?api-version=2023-02-01-preview
+  response:
+    body:
+      string: '{"name":"c7d45a0d-87c6-4e51-a91d-19ea8066c0f4","status":"InProgress","startTime":"2023-11-21T14:39:24.22Z"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '107'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:39:25 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --admin-user --admin-password
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-mgmt-sql/4.0.0b13 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/serverAzureAsyncOperation/c7d45a0d-87c6-4e51-a91d-19ea8066c0f4?api-version=2023-02-01-preview
+  response:
+    body:
+      string: '{"name":"c7d45a0d-87c6-4e51-a91d-19ea8066c0f4","status":"InProgress","startTime":"2023-11-21T14:39:24.22Z"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '107'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:39:26 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --admin-user --admin-password
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-mgmt-sql/4.0.0b13 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/serverAzureAsyncOperation/c7d45a0d-87c6-4e51-a91d-19ea8066c0f4?api-version=2023-02-01-preview
+  response:
+    body:
+      string: '{"name":"c7d45a0d-87c6-4e51-a91d-19ea8066c0f4","status":"InProgress","startTime":"2023-11-21T14:39:24.22Z"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '107'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:39:27 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --admin-user --admin-password
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-mgmt-sql/4.0.0b13 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/serverAzureAsyncOperation/c7d45a0d-87c6-4e51-a91d-19ea8066c0f4?api-version=2023-02-01-preview
+  response:
+    body:
+      string: '{"name":"c7d45a0d-87c6-4e51-a91d-19ea8066c0f4","status":"InProgress","startTime":"2023-11-21T14:39:24.22Z"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '107'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:39:28 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --admin-user --admin-password
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-mgmt-sql/4.0.0b13 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/serverAzureAsyncOperation/c7d45a0d-87c6-4e51-a91d-19ea8066c0f4?api-version=2023-02-01-preview
+  response:
+    body:
+      string: '{"name":"c7d45a0d-87c6-4e51-a91d-19ea8066c0f4","status":"InProgress","startTime":"2023-11-21T14:39:24.22Z"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '107'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:39:29 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --admin-user --admin-password
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-mgmt-sql/4.0.0b13 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/serverAzureAsyncOperation/c7d45a0d-87c6-4e51-a91d-19ea8066c0f4?api-version=2023-02-01-preview
+  response:
+    body:
+      string: '{"name":"c7d45a0d-87c6-4e51-a91d-19ea8066c0f4","status":"InProgress","startTime":"2023-11-21T14:39:24.22Z"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '107'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:39:49 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --admin-user --admin-password
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-mgmt-sql/4.0.0b13 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/serverAzureAsyncOperation/c7d45a0d-87c6-4e51-a91d-19ea8066c0f4?api-version=2023-02-01-preview
+  response:
+    body:
+      string: '{"name":"c7d45a0d-87c6-4e51-a91d-19ea8066c0f4","status":"InProgress","startTime":"2023-11-21T14:39:24.22Z"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '107'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:10 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --admin-user --admin-password
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-mgmt-sql/4.0.0b13 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/serverAzureAsyncOperation/c7d45a0d-87c6-4e51-a91d-19ea8066c0f4?api-version=2023-02-01-preview
+  response:
+    body:
+      string: '{"name":"c7d45a0d-87c6-4e51-a91d-19ea8066c0f4","status":"Succeeded","startTime":"2023-11-21T14:39:24.22Z"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '106'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:30 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --admin-user --admin-password
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-mgmt-sql/4.0.0b13 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006?api-version=2023-02-01-preview
+  response:
+    body:
+      string: '{"kind":"v12.0","properties":{"administratorLogin":"admin123","version":"12.0","state":"Ready","fullyQualifiedDomainName":"cli-test-resource-000006.database.windows.net","privateEndpointConnections":[],"minimalTlsVersion":"None","publicNetworkAccess":"Enabled","restrictOutboundNetworkAccess":"Disabled","externalGovernanceStatus":"Disabled"},"location":"eastus","id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006","name":"cli-test-resource-000006","type":"Microsoft.Sql/servers"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '609'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:30 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - sql server show
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-mgmt-sql/4.0.0b13 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006?api-version=2023-02-01-preview
+  response:
+    body:
+      string: '{"kind":"v12.0","properties":{"administratorLogin":"admin123","version":"12.0","state":"Ready","fullyQualifiedDomainName":"cli-test-resource-000006.database.windows.net","privateEndpointConnections":[],"minimalTlsVersion":"None","publicNetworkAccess":"Enabled","restrictOutboundNetworkAccess":"Disabled","externalGovernanceStatus":"Disabled"},"location":"eastus","id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006","name":"cli-test-resource-000006","type":"Microsoft.Sql/servers"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '609'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:32 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network private-link-resource list
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - --name -g --type
+      User-Agent:
+      - python/3.8.0 (Windows-10-10.0.17763-SP0) AZURECLI/2.54.0
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006/privateLinkResources?api-version=2018-06-01-preview
+  response:
+    body:
+      string: '{"value":[{"properties":{"groupId":"sqlServer","requiredMembers":["sqlServer"],"requiredZoneNames":["privatelink.database.windows.net"]},"id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006/privateLinkResources/plr","name":"plr","type":"Microsoft.Sql/servers/privateLinkResources"}]}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '410'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:33 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network vnet create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -n -g --subnet-name
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-azure-mgmt-resource/23.1.0b2 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/test_private_endpoint_connection_sql_server000001?api-version=2022-09-01
+  response:
+    body:
+      string: '{"id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001","name":"test_private_endpoint_connection_sql_server000001","type":"Microsoft.Resources/resourceGroups","location":"eastus","tags":{"product":"azurecli","cause":"automation","test":"test_private_endpoint_connection_sql_server","date":"2023-11-21T14:39:20Z","module":"network"},"properties":{"provisioningState":"Succeeded"}}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '448'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:33 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"location": "eastus", "properties": {"addressSpace": {"addressPrefixes":
+      ["10.0.0.0/16"]}, "enableDdosProtection": false, "enableVmProtection": false,
+      "subnets": [{"name": "cli-subnet-000003", "properties": {"addressPrefix": "10.0.0.0/24"}}]}}'
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network vnet create
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '244'
+      Content-Type:
+      - application/json
+      ParameterSetName:
+      - -n -g --subnet-name
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: PUT
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002?api-version=2022-01-01
+  response:
+    body:
+      string: "{\r\n  \"name\": \"cli-vnet-000002\",\r\n  \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002\"\
+        ,\r\n  \"etag\": \"W/\\\"26852f9d-5169-47f9-8464-6f6d1a512887\\\"\",\r\n \
+        \ \"type\": \"Microsoft.Network/virtualNetworks\",\r\n  \"location\": \"eastus\"\
+        ,\r\n  \"properties\": {\r\n    \"provisioningState\": \"Updating\",\r\n \
+        \   \"resourceGuid\": \"6365732f-2c74-4861-b8eb-2f2ec639edc7\",\r\n    \"\
+        addressSpace\": {\r\n      \"addressPrefixes\": [\r\n        \"10.0.0.0/16\"\
+        \r\n      ]\r\n    },\r\n    \"subnets\": [\r\n      {\r\n        \"name\"\
+        : \"cli-subnet-000003\",\r\n        \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002/subnets/cli-subnet-000003\"\
+        ,\r\n        \"etag\": \"W/\\\"26852f9d-5169-47f9-8464-6f6d1a512887\\\"\"\
+        ,\r\n        \"properties\": {\r\n          \"provisioningState\": \"Updating\"\
+        ,\r\n          \"addressPrefix\": \"10.0.0.0/24\",\r\n          \"delegations\"\
+        : [],\r\n          \"privateEndpointNetworkPolicies\": \"Disabled\",\r\n \
+        \         \"privateLinkServiceNetworkPolicies\": \"Enabled\"\r\n        },\r\
+        \n        \"type\": \"Microsoft.Network/virtualNetworks/subnets\"\r\n    \
+        \  }\r\n    ],\r\n    \"virtualNetworkPeerings\": [],\r\n    \"enableDdosProtection\"\
+        : false\r\n  }\r\n}"
+    headers:
+      azure-asyncnotification:
+      - Enabled
+      azure-asyncoperation:
+      - https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Network/locations/eastus/operations/9ce4631a-9464-43aa-9487-052956a9a0e5?api-version=2022-01-01&t=638361744352291841&c=MIIHHjCCBgagAwIBAgITOgI9Ig-plRDloSE8vgAEAj0iDzANBgkqhkiG9w0BAQsFADBEMRMwEQYKCZImiZPyLGQBGRYDR0JMMRMwEQYKCZImiZPyLGQBGRYDQU1FMRgwFgYDVQQDEw9BTUUgSU5GUkEgQ0EgMDEwHhcNMjMxMTAxMjA0NDQwWhcNMjQxMDI2MjA0NDQwWjBAMT4wPAYDVQQDEzVhc3luY29wZXJhdGlvbnNpZ25pbmdjZXJ0aWZpY2F0ZS5tYW5hZ2VtZW50LmF6dXJlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMb-UV-VLkpVyCGTv07XQJggq35w_ljmxo2yw2cXID1iY_wnNJzz4XOXhcasH_3CTCm_x3FDY3Fn1y0xNNIXvkwBgxrOWt6gFJ396AIEq80H3g8IXCwcgb7YCpg7rZ1NnapY3uMunsFKrDxtXz83_YMmXl7jJe1fUW-nQqJFXMARnoYpxMAmXHSDR-ODglNrhS2DUdjOksTs6hIAapwEICiVUTgQhKM6jxhqAzr6VjO9WFjl9OELgnbJZGQ5Eyo1pE-8o_-qSB_aCqEVodPjQo4N2tQSygSGLXMFvO0VfOtbMiealjfx7xVV3t4zw-g9-kp04vAwyXefD9MiFft3sk0CAwEAAaOCBAswggQHMCcGCSsGAQQBgjcVCgQaMBgwCgYIKwYBBQUHAwEwCgYIKwYBBQUHAwIwPQYJKwYBBAGCNxUHBDAwLgYmKwYBBAGCNxUIhpDjDYTVtHiE8Ys-hZvdFs6dEoFggvX2K4Py0SACAWQCAQowggHaBggrBgEFBQcBAQSCAcwwggHIMGYGCCsGAQUFBzAChlpodHRwOi8vY3JsLm1pY3Jvc29mdC5jb20vcGtpaW5mcmEvQ2VydHMvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmwxLmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MFYGCCsGAQUFBzAChkpodHRwOi8vY3JsMi5hbWUuZ2JsL2FpYS9CWTJQS0lJTlRDQTAxLkFNRS5HQkxfQU1FJTIwSU5GUkElMjBDQSUyMDAxKDQpLmNydDBWBggrBgEFBQcwAoZKaHR0cDovL2NybDMuYW1lLmdibC9haWEvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmw0LmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MB0GA1UdDgQWBBTwBKBIZPGe4mdYHcMXhQi3_OkpTTAOBgNVHQ8BAf8EBAMCBaAwggE1BgNVHR8EggEsMIIBKDCCASSgggEgoIIBHIZCaHR0cDovL2NybC5taWNyb3NvZnQuY29tL3BraWluZnJhL0NSTC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMS5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMi5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMy5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsNC5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JsMBcGA1UdIAQQMA4wDAYKKwYBBAGCN3sBATAfBgNVHSMEGDAWgBTl2Ztn_PjsurvwwKidileIud8-YzAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDQYJKoZIhvcNAQELBQADggEBAKx5I8zBHl5aYFpoUe5lb-yCLJAd5iZStpJ90NJsD4jt4-JP0XnSup97AmUJxihgdIhF46U_6NIH53vH6ZPRQyeE2rng2i7BkAgFlm5DyLdFPvCIiNuA-xBZZSKvxSdyaKD8eArFi6M0_O3_Vc6LZGPJrgTsn5CU8oVBxyTwhw5ghv5NwC5e9bzGGs6tuGTp3-RxudxHE9HkS7cvmhzg9iKzHyYUuDLuEbLDg4_jaU8QEM62lK1KTVm4RDP_8Cco5lUhFsV8cKMD14lqtDNGI54TTR9gFJ4vU5H2JdPmKcucDb1RmEkolUg19huASyLTfzJxSw4-iVbRkmaWB811wkU&s=fZf3BCXEwBnk0Tste2Mws5gpszVQ6bwViqSQ-b_i0xLiYEiYyVvulLWr3aNeCeqYkQ_XzCZTVEAoesFsTVVUBxrhGTlMaZrOOjnmp3_L1VTymDBkklR0lApmnynuQfw_MKRu13RqcglDSyVQyBPxfb5CKdg8LZkkFnD19CD5XlJ2Czat4sCB0tuBprlrWLk262Z9Gu5p5Kz0vpF-jATUKCSb7b4tuDI9sPSmYoLvqYvKM1h6iIfkDYYxPEpcn1X3BbdAiL4sUxb5VAq_Q5JZuptcnK8YKss50F4T8NYHp6Z4pC7cFfDaY_E8dvQGYeIXcPH6_su70S5jBxW7YEBSQQ&h=wT3kdJf3wq-EM5HD9y-Qp2RzSNn4Gu39m5Ox8JG13hI
+      cache-control:
+      - no-cache
+      content-length:
+      - '1333'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:35 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - 85015a4e-08f8-493e-876d-798ac7901123
+      x-ms-ratelimit-remaining-subscription-writes:
+      - '1199'
+    status:
+      code: 201
+      message: Created
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network vnet create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -n -g --subnet-name
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Network/locations/eastus/operations/9ce4631a-9464-43aa-9487-052956a9a0e5?api-version=2022-01-01&t=638361744352291841&c=MIIHHjCCBgagAwIBAgITOgI9Ig-plRDloSE8vgAEAj0iDzANBgkqhkiG9w0BAQsFADBEMRMwEQYKCZImiZPyLGQBGRYDR0JMMRMwEQYKCZImiZPyLGQBGRYDQU1FMRgwFgYDVQQDEw9BTUUgSU5GUkEgQ0EgMDEwHhcNMjMxMTAxMjA0NDQwWhcNMjQxMDI2MjA0NDQwWjBAMT4wPAYDVQQDEzVhc3luY29wZXJhdGlvbnNpZ25pbmdjZXJ0aWZpY2F0ZS5tYW5hZ2VtZW50LmF6dXJlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMb-UV-VLkpVyCGTv07XQJggq35w_ljmxo2yw2cXID1iY_wnNJzz4XOXhcasH_3CTCm_x3FDY3Fn1y0xNNIXvkwBgxrOWt6gFJ396AIEq80H3g8IXCwcgb7YCpg7rZ1NnapY3uMunsFKrDxtXz83_YMmXl7jJe1fUW-nQqJFXMARnoYpxMAmXHSDR-ODglNrhS2DUdjOksTs6hIAapwEICiVUTgQhKM6jxhqAzr6VjO9WFjl9OELgnbJZGQ5Eyo1pE-8o_-qSB_aCqEVodPjQo4N2tQSygSGLXMFvO0VfOtbMiealjfx7xVV3t4zw-g9-kp04vAwyXefD9MiFft3sk0CAwEAAaOCBAswggQHMCcGCSsGAQQBgjcVCgQaMBgwCgYIKwYBBQUHAwEwCgYIKwYBBQUHAwIwPQYJKwYBBAGCNxUHBDAwLgYmKwYBBAGCNxUIhpDjDYTVtHiE8Ys-hZvdFs6dEoFggvX2K4Py0SACAWQCAQowggHaBggrBgEFBQcBAQSCAcwwggHIMGYGCCsGAQUFBzAChlpodHRwOi8vY3JsLm1pY3Jvc29mdC5jb20vcGtpaW5mcmEvQ2VydHMvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmwxLmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MFYGCCsGAQUFBzAChkpodHRwOi8vY3JsMi5hbWUuZ2JsL2FpYS9CWTJQS0lJTlRDQTAxLkFNRS5HQkxfQU1FJTIwSU5GUkElMjBDQSUyMDAxKDQpLmNydDBWBggrBgEFBQcwAoZKaHR0cDovL2NybDMuYW1lLmdibC9haWEvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmw0LmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MB0GA1UdDgQWBBTwBKBIZPGe4mdYHcMXhQi3_OkpTTAOBgNVHQ8BAf8EBAMCBaAwggE1BgNVHR8EggEsMIIBKDCCASSgggEgoIIBHIZCaHR0cDovL2NybC5taWNyb3NvZnQuY29tL3BraWluZnJhL0NSTC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMS5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMi5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMy5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsNC5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JsMBcGA1UdIAQQMA4wDAYKKwYBBAGCN3sBATAfBgNVHSMEGDAWgBTl2Ztn_PjsurvwwKidileIud8-YzAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDQYJKoZIhvcNAQELBQADggEBAKx5I8zBHl5aYFpoUe5lb-yCLJAd5iZStpJ90NJsD4jt4-JP0XnSup97AmUJxihgdIhF46U_6NIH53vH6ZPRQyeE2rng2i7BkAgFlm5DyLdFPvCIiNuA-xBZZSKvxSdyaKD8eArFi6M0_O3_Vc6LZGPJrgTsn5CU8oVBxyTwhw5ghv5NwC5e9bzGGs6tuGTp3-RxudxHE9HkS7cvmhzg9iKzHyYUuDLuEbLDg4_jaU8QEM62lK1KTVm4RDP_8Cco5lUhFsV8cKMD14lqtDNGI54TTR9gFJ4vU5H2JdPmKcucDb1RmEkolUg19huASyLTfzJxSw4-iVbRkmaWB811wkU&s=fZf3BCXEwBnk0Tste2Mws5gpszVQ6bwViqSQ-b_i0xLiYEiYyVvulLWr3aNeCeqYkQ_XzCZTVEAoesFsTVVUBxrhGTlMaZrOOjnmp3_L1VTymDBkklR0lApmnynuQfw_MKRu13RqcglDSyVQyBPxfb5CKdg8LZkkFnD19CD5XlJ2Czat4sCB0tuBprlrWLk262Z9Gu5p5Kz0vpF-jATUKCSb7b4tuDI9sPSmYoLvqYvKM1h6iIfkDYYxPEpcn1X3BbdAiL4sUxb5VAq_Q5JZuptcnK8YKss50F4T8NYHp6Z4pC7cFfDaY_E8dvQGYeIXcPH6_su70S5jBxW7YEBSQQ&h=wT3kdJf3wq-EM5HD9y-Qp2RzSNn4Gu39m5Ox8JG13hI
+  response:
+    body:
+      string: "{\r\n  \"status\": \"InProgress\"\r\n}"
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '30'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:35 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - 233e7c16-c080-4df9-8964-a1055b8d4147
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network vnet create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -n -g --subnet-name
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Network/locations/eastus/operations/9ce4631a-9464-43aa-9487-052956a9a0e5?api-version=2022-01-01&t=638361744352291841&c=MIIHHjCCBgagAwIBAgITOgI9Ig-plRDloSE8vgAEAj0iDzANBgkqhkiG9w0BAQsFADBEMRMwEQYKCZImiZPyLGQBGRYDR0JMMRMwEQYKCZImiZPyLGQBGRYDQU1FMRgwFgYDVQQDEw9BTUUgSU5GUkEgQ0EgMDEwHhcNMjMxMTAxMjA0NDQwWhcNMjQxMDI2MjA0NDQwWjBAMT4wPAYDVQQDEzVhc3luY29wZXJhdGlvbnNpZ25pbmdjZXJ0aWZpY2F0ZS5tYW5hZ2VtZW50LmF6dXJlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMb-UV-VLkpVyCGTv07XQJggq35w_ljmxo2yw2cXID1iY_wnNJzz4XOXhcasH_3CTCm_x3FDY3Fn1y0xNNIXvkwBgxrOWt6gFJ396AIEq80H3g8IXCwcgb7YCpg7rZ1NnapY3uMunsFKrDxtXz83_YMmXl7jJe1fUW-nQqJFXMARnoYpxMAmXHSDR-ODglNrhS2DUdjOksTs6hIAapwEICiVUTgQhKM6jxhqAzr6VjO9WFjl9OELgnbJZGQ5Eyo1pE-8o_-qSB_aCqEVodPjQo4N2tQSygSGLXMFvO0VfOtbMiealjfx7xVV3t4zw-g9-kp04vAwyXefD9MiFft3sk0CAwEAAaOCBAswggQHMCcGCSsGAQQBgjcVCgQaMBgwCgYIKwYBBQUHAwEwCgYIKwYBBQUHAwIwPQYJKwYBBAGCNxUHBDAwLgYmKwYBBAGCNxUIhpDjDYTVtHiE8Ys-hZvdFs6dEoFggvX2K4Py0SACAWQCAQowggHaBggrBgEFBQcBAQSCAcwwggHIMGYGCCsGAQUFBzAChlpodHRwOi8vY3JsLm1pY3Jvc29mdC5jb20vcGtpaW5mcmEvQ2VydHMvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmwxLmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MFYGCCsGAQUFBzAChkpodHRwOi8vY3JsMi5hbWUuZ2JsL2FpYS9CWTJQS0lJTlRDQTAxLkFNRS5HQkxfQU1FJTIwSU5GUkElMjBDQSUyMDAxKDQpLmNydDBWBggrBgEFBQcwAoZKaHR0cDovL2NybDMuYW1lLmdibC9haWEvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmw0LmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MB0GA1UdDgQWBBTwBKBIZPGe4mdYHcMXhQi3_OkpTTAOBgNVHQ8BAf8EBAMCBaAwggE1BgNVHR8EggEsMIIBKDCCASSgggEgoIIBHIZCaHR0cDovL2NybC5taWNyb3NvZnQuY29tL3BraWluZnJhL0NSTC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMS5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMi5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMy5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsNC5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JsMBcGA1UdIAQQMA4wDAYKKwYBBAGCN3sBATAfBgNVHSMEGDAWgBTl2Ztn_PjsurvwwKidileIud8-YzAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDQYJKoZIhvcNAQELBQADggEBAKx5I8zBHl5aYFpoUe5lb-yCLJAd5iZStpJ90NJsD4jt4-JP0XnSup97AmUJxihgdIhF46U_6NIH53vH6ZPRQyeE2rng2i7BkAgFlm5DyLdFPvCIiNuA-xBZZSKvxSdyaKD8eArFi6M0_O3_Vc6LZGPJrgTsn5CU8oVBxyTwhw5ghv5NwC5e9bzGGs6tuGTp3-RxudxHE9HkS7cvmhzg9iKzHyYUuDLuEbLDg4_jaU8QEM62lK1KTVm4RDP_8Cco5lUhFsV8cKMD14lqtDNGI54TTR9gFJ4vU5H2JdPmKcucDb1RmEkolUg19huASyLTfzJxSw4-iVbRkmaWB811wkU&s=fZf3BCXEwBnk0Tste2Mws5gpszVQ6bwViqSQ-b_i0xLiYEiYyVvulLWr3aNeCeqYkQ_XzCZTVEAoesFsTVVUBxrhGTlMaZrOOjnmp3_L1VTymDBkklR0lApmnynuQfw_MKRu13RqcglDSyVQyBPxfb5CKdg8LZkkFnD19CD5XlJ2Czat4sCB0tuBprlrWLk262Z9Gu5p5Kz0vpF-jATUKCSb7b4tuDI9sPSmYoLvqYvKM1h6iIfkDYYxPEpcn1X3BbdAiL4sUxb5VAq_Q5JZuptcnK8YKss50F4T8NYHp6Z4pC7cFfDaY_E8dvQGYeIXcPH6_su70S5jBxW7YEBSQQ&h=wT3kdJf3wq-EM5HD9y-Qp2RzSNn4Gu39m5Ox8JG13hI
+  response:
+    body:
+      string: "{\r\n  \"status\": \"Succeeded\"\r\n}"
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '29'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:45 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - 7ce9c39a-1bb1-4f30-9c57-1c1adea13106
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network vnet create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -n -g --subnet-name
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002?api-version=2022-01-01
+  response:
+    body:
+      string: "{\r\n  \"name\": \"cli-vnet-000002\",\r\n  \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002\"\
+        ,\r\n  \"etag\": \"W/\\\"489833a6-a60f-4d60-a6fa-e4b5ad4f377b\\\"\",\r\n \
+        \ \"type\": \"Microsoft.Network/virtualNetworks\",\r\n  \"location\": \"eastus\"\
+        ,\r\n  \"properties\": {\r\n    \"provisioningState\": \"Succeeded\",\r\n\
+        \    \"resourceGuid\": \"6365732f-2c74-4861-b8eb-2f2ec639edc7\",\r\n    \"\
+        addressSpace\": {\r\n      \"addressPrefixes\": [\r\n        \"10.0.0.0/16\"\
+        \r\n      ]\r\n    },\r\n    \"subnets\": [\r\n      {\r\n        \"name\"\
+        : \"cli-subnet-000003\",\r\n        \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002/subnets/cli-subnet-000003\"\
+        ,\r\n        \"etag\": \"W/\\\"489833a6-a60f-4d60-a6fa-e4b5ad4f377b\\\"\"\
+        ,\r\n        \"properties\": {\r\n          \"provisioningState\": \"Succeeded\"\
+        ,\r\n          \"addressPrefix\": \"10.0.0.0/24\",\r\n          \"delegations\"\
+        : [],\r\n          \"privateEndpointNetworkPolicies\": \"Disabled\",\r\n \
+        \         \"privateLinkServiceNetworkPolicies\": \"Enabled\"\r\n        },\r\
+        \n        \"type\": \"Microsoft.Network/virtualNetworks/subnets\"\r\n    \
+        \  }\r\n    ],\r\n    \"virtualNetworkPeerings\": [],\r\n    \"enableDdosProtection\"\
+        : false\r\n  }\r\n}"
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '1335'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:45 GMT
+      etag:
+      - W/"489833a6-a60f-4d60-a6fa-e4b5ad4f377b"
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - a5324f5b-1b15-48e5-8b36-bcba568e6d94
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network vnet subnet update
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -n --vnet-name -g --disable-private-endpoint-network-policies
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002/subnets/cli-subnet-000003?api-version=2023-05-01
+  response:
+    body:
+      string: '{"name":"cli-subnet-000003","id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002/subnets/cli-subnet-000003","etag":"W/\"489833a6-a60f-4d60-a6fa-e4b5ad4f377b\"","properties":{"provisioningState":"Succeeded","addressPrefix":"10.0.0.0/24","delegations":[],"privateEndpointNetworkPolicies":"Disabled","privateLinkServiceNetworkPolicies":"Enabled"},"type":"Microsoft.Network/virtualNetworks/subnets"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '525'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:46 GMT
+      etag:
+      - W/"489833a6-a60f-4d60-a6fa-e4b5ad4f377b"
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - 8e780def-c29c-4d3e-9e30-24adb4b48a66
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002/subnets/cli-subnet-000003",
+      "name": "cli-subnet-000003", "properties": {"addressPrefix": "10.0.0.0/24",
+      "delegations": [], "privateEndpointNetworkPolicies": "Disabled", "privateLinkServiceNetworkPolicies":
+      "Enabled"}, "type": "Microsoft.Network/virtualNetworks/subnets"}'
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network vnet subnet update
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '455'
+      Content-Type:
+      - application/json
+      ParameterSetName:
+      - -n --vnet-name -g --disable-private-endpoint-network-policies
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: PUT
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002/subnets/cli-subnet-000003?api-version=2023-05-01
+  response:
+    body:
+      string: '{"name":"cli-subnet-000003","id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002/subnets/cli-subnet-000003","etag":"W/\"a0df95b4-e5fa-4280-82d9-4a3437e63872\"","properties":{"provisioningState":"Succeeded","addressPrefix":"10.0.0.0/24","delegations":[],"privateEndpointNetworkPolicies":"Disabled","privateLinkServiceNetworkPolicies":"Enabled"},"type":"Microsoft.Network/virtualNetworks/subnets"}'
+    headers:
+      azure-asyncnotification:
+      - Enabled
+      azure-asyncoperation:
+      - https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Network/locations/eastus/operations/7b1fd278-603e-4070-85c4-526f32aeb877?api-version=2023-05-01&t=638361744469971063&c=MIIHHjCCBgagAwIBAgITOgI9Ig-plRDloSE8vgAEAj0iDzANBgkqhkiG9w0BAQsFADBEMRMwEQYKCZImiZPyLGQBGRYDR0JMMRMwEQYKCZImiZPyLGQBGRYDQU1FMRgwFgYDVQQDEw9BTUUgSU5GUkEgQ0EgMDEwHhcNMjMxMTAxMjA0NDQwWhcNMjQxMDI2MjA0NDQwWjBAMT4wPAYDVQQDEzVhc3luY29wZXJhdGlvbnNpZ25pbmdjZXJ0aWZpY2F0ZS5tYW5hZ2VtZW50LmF6dXJlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMb-UV-VLkpVyCGTv07XQJggq35w_ljmxo2yw2cXID1iY_wnNJzz4XOXhcasH_3CTCm_x3FDY3Fn1y0xNNIXvkwBgxrOWt6gFJ396AIEq80H3g8IXCwcgb7YCpg7rZ1NnapY3uMunsFKrDxtXz83_YMmXl7jJe1fUW-nQqJFXMARnoYpxMAmXHSDR-ODglNrhS2DUdjOksTs6hIAapwEICiVUTgQhKM6jxhqAzr6VjO9WFjl9OELgnbJZGQ5Eyo1pE-8o_-qSB_aCqEVodPjQo4N2tQSygSGLXMFvO0VfOtbMiealjfx7xVV3t4zw-g9-kp04vAwyXefD9MiFft3sk0CAwEAAaOCBAswggQHMCcGCSsGAQQBgjcVCgQaMBgwCgYIKwYBBQUHAwEwCgYIKwYBBQUHAwIwPQYJKwYBBAGCNxUHBDAwLgYmKwYBBAGCNxUIhpDjDYTVtHiE8Ys-hZvdFs6dEoFggvX2K4Py0SACAWQCAQowggHaBggrBgEFBQcBAQSCAcwwggHIMGYGCCsGAQUFBzAChlpodHRwOi8vY3JsLm1pY3Jvc29mdC5jb20vcGtpaW5mcmEvQ2VydHMvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmwxLmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MFYGCCsGAQUFBzAChkpodHRwOi8vY3JsMi5hbWUuZ2JsL2FpYS9CWTJQS0lJTlRDQTAxLkFNRS5HQkxfQU1FJTIwSU5GUkElMjBDQSUyMDAxKDQpLmNydDBWBggrBgEFBQcwAoZKaHR0cDovL2NybDMuYW1lLmdibC9haWEvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmw0LmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MB0GA1UdDgQWBBTwBKBIZPGe4mdYHcMXhQi3_OkpTTAOBgNVHQ8BAf8EBAMCBaAwggE1BgNVHR8EggEsMIIBKDCCASSgggEgoIIBHIZCaHR0cDovL2NybC5taWNyb3NvZnQuY29tL3BraWluZnJhL0NSTC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMS5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMi5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMy5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsNC5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JsMBcGA1UdIAQQMA4wDAYKKwYBBAGCN3sBATAfBgNVHSMEGDAWgBTl2Ztn_PjsurvwwKidileIud8-YzAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDQYJKoZIhvcNAQELBQADggEBAKx5I8zBHl5aYFpoUe5lb-yCLJAd5iZStpJ90NJsD4jt4-JP0XnSup97AmUJxihgdIhF46U_6NIH53vH6ZPRQyeE2rng2i7BkAgFlm5DyLdFPvCIiNuA-xBZZSKvxSdyaKD8eArFi6M0_O3_Vc6LZGPJrgTsn5CU8oVBxyTwhw5ghv5NwC5e9bzGGs6tuGTp3-RxudxHE9HkS7cvmhzg9iKzHyYUuDLuEbLDg4_jaU8QEM62lK1KTVm4RDP_8Cco5lUhFsV8cKMD14lqtDNGI54TTR9gFJ4vU5H2JdPmKcucDb1RmEkolUg19huASyLTfzJxSw4-iVbRkmaWB811wkU&s=iEIzf9YoQAsq9cIFrUKrGWECcMgylYAn_nedzSizR0QT48jWw2XXW17AYrcZHLsW3q9s8Vk6DQAIR6Sl2XSmjMJjzOEXEshDt7NgtY4TuIck61oulJID-SFnBcYO2wR3Jn4aKhQZ8GcS6DAUaLhnlHwgYydixxwaM15xLNd042weGoFwESR25KJUS0ZoYtEbcTcDp5LQCmNrp5PJYcFddyQ58vbR6rpX6h0EpPLzjAufA7ISOPHpSeaCJVADRLNU-ddZqvcHxgL99O1O5TmVsnr-hhPtBh4_b0CDg5E5hrCCBjRMIAMtVi61bcea12t_jri1oFw7Vfj_12RKDoVadA&h=ejtYsv5CzHrCZYfjhaj2LWnE9_kHDyoZkK-Z5xDTiaU
+      cache-control:
+      - no-cache
+      content-length:
+      - '525'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:46 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - c5cbd354-bd64-47b9-a964-4729cac2a703
+      x-ms-ratelimit-remaining-subscription-writes:
+      - '1199'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network vnet subnet update
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -n --vnet-name -g --disable-private-endpoint-network-policies
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Network/locations/eastus/operations/7b1fd278-603e-4070-85c4-526f32aeb877?api-version=2023-05-01&t=638361744469971063&c=MIIHHjCCBgagAwIBAgITOgI9Ig-plRDloSE8vgAEAj0iDzANBgkqhkiG9w0BAQsFADBEMRMwEQYKCZImiZPyLGQBGRYDR0JMMRMwEQYKCZImiZPyLGQBGRYDQU1FMRgwFgYDVQQDEw9BTUUgSU5GUkEgQ0EgMDEwHhcNMjMxMTAxMjA0NDQwWhcNMjQxMDI2MjA0NDQwWjBAMT4wPAYDVQQDEzVhc3luY29wZXJhdGlvbnNpZ25pbmdjZXJ0aWZpY2F0ZS5tYW5hZ2VtZW50LmF6dXJlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMb-UV-VLkpVyCGTv07XQJggq35w_ljmxo2yw2cXID1iY_wnNJzz4XOXhcasH_3CTCm_x3FDY3Fn1y0xNNIXvkwBgxrOWt6gFJ396AIEq80H3g8IXCwcgb7YCpg7rZ1NnapY3uMunsFKrDxtXz83_YMmXl7jJe1fUW-nQqJFXMARnoYpxMAmXHSDR-ODglNrhS2DUdjOksTs6hIAapwEICiVUTgQhKM6jxhqAzr6VjO9WFjl9OELgnbJZGQ5Eyo1pE-8o_-qSB_aCqEVodPjQo4N2tQSygSGLXMFvO0VfOtbMiealjfx7xVV3t4zw-g9-kp04vAwyXefD9MiFft3sk0CAwEAAaOCBAswggQHMCcGCSsGAQQBgjcVCgQaMBgwCgYIKwYBBQUHAwEwCgYIKwYBBQUHAwIwPQYJKwYBBAGCNxUHBDAwLgYmKwYBBAGCNxUIhpDjDYTVtHiE8Ys-hZvdFs6dEoFggvX2K4Py0SACAWQCAQowggHaBggrBgEFBQcBAQSCAcwwggHIMGYGCCsGAQUFBzAChlpodHRwOi8vY3JsLm1pY3Jvc29mdC5jb20vcGtpaW5mcmEvQ2VydHMvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmwxLmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MFYGCCsGAQUFBzAChkpodHRwOi8vY3JsMi5hbWUuZ2JsL2FpYS9CWTJQS0lJTlRDQTAxLkFNRS5HQkxfQU1FJTIwSU5GUkElMjBDQSUyMDAxKDQpLmNydDBWBggrBgEFBQcwAoZKaHR0cDovL2NybDMuYW1lLmdibC9haWEvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmw0LmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MB0GA1UdDgQWBBTwBKBIZPGe4mdYHcMXhQi3_OkpTTAOBgNVHQ8BAf8EBAMCBaAwggE1BgNVHR8EggEsMIIBKDCCASSgggEgoIIBHIZCaHR0cDovL2NybC5taWNyb3NvZnQuY29tL3BraWluZnJhL0NSTC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMS5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMi5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMy5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsNC5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JsMBcGA1UdIAQQMA4wDAYKKwYBBAGCN3sBATAfBgNVHSMEGDAWgBTl2Ztn_PjsurvwwKidileIud8-YzAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDQYJKoZIhvcNAQELBQADggEBAKx5I8zBHl5aYFpoUe5lb-yCLJAd5iZStpJ90NJsD4jt4-JP0XnSup97AmUJxihgdIhF46U_6NIH53vH6ZPRQyeE2rng2i7BkAgFlm5DyLdFPvCIiNuA-xBZZSKvxSdyaKD8eArFi6M0_O3_Vc6LZGPJrgTsn5CU8oVBxyTwhw5ghv5NwC5e9bzGGs6tuGTp3-RxudxHE9HkS7cvmhzg9iKzHyYUuDLuEbLDg4_jaU8QEM62lK1KTVm4RDP_8Cco5lUhFsV8cKMD14lqtDNGI54TTR9gFJ4vU5H2JdPmKcucDb1RmEkolUg19huASyLTfzJxSw4-iVbRkmaWB811wkU&s=iEIzf9YoQAsq9cIFrUKrGWECcMgylYAn_nedzSizR0QT48jWw2XXW17AYrcZHLsW3q9s8Vk6DQAIR6Sl2XSmjMJjzOEXEshDt7NgtY4TuIck61oulJID-SFnBcYO2wR3Jn4aKhQZ8GcS6DAUaLhnlHwgYydixxwaM15xLNd042weGoFwESR25KJUS0ZoYtEbcTcDp5LQCmNrp5PJYcFddyQ58vbR6rpX6h0EpPLzjAufA7ISOPHpSeaCJVADRLNU-ddZqvcHxgL99O1O5TmVsnr-hhPtBh4_b0CDg5E5hrCCBjRMIAMtVi61bcea12t_jri1oFw7Vfj_12RKDoVadA&h=ejtYsv5CzHrCZYfjhaj2LWnE9_kHDyoZkK-Z5xDTiaU
+  response:
+    body:
+      string: '{"status":"Succeeded"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '22'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:46 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - cc97162d-c4a4-411c-9c38-adc0f7942195
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network vnet subnet update
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -n --vnet-name -g --disable-private-endpoint-network-policies
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002/subnets/cli-subnet-000003?api-version=2023-05-01
+  response:
+    body:
+      string: '{"name":"cli-subnet-000003","id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002/subnets/cli-subnet-000003","etag":"W/\"a0df95b4-e5fa-4280-82d9-4a3437e63872\"","properties":{"provisioningState":"Succeeded","addressPrefix":"10.0.0.0/24","delegations":[],"privateEndpointNetworkPolicies":"Disabled","privateLinkServiceNetworkPolicies":"Enabled"},"type":"Microsoft.Network/virtualNetworks/subnets"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '525'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:47 GMT
+      etag:
+      - W/"a0df95b4-e5fa-4280-82d9-4a3437e63872"
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - e86b0c5f-e57c-4f24-ab78-67df1c09d219
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network private-endpoint create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --vnet-name --subnet --connection-name --private-connection-resource-id
+        --group-id
+      User-Agent:
+      - AZURECLI/2.54.0 azsdk-python-azure-mgmt-resource/23.1.0b2 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/test_private_endpoint_connection_sql_server000001?api-version=2022-09-01
+  response:
+    body:
+      string: '{"id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001","name":"test_private_endpoint_connection_sql_server000001","type":"Microsoft.Resources/resourceGroups","location":"eastus","tags":{"product":"azurecli","cause":"automation","test":"test_private_endpoint_connection_sql_server","date":"2023-11-21T14:39:20Z","module":"network"},"properties":{"provisioningState":"Succeeded"}}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '448'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:47 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"location": "eastus", "properties": {"privateLinkServiceConnections":
+      [{"name": "cli-pec-000005", "properties": {"groupIds": ["sqlServer"], "privateLinkServiceId":
+      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006"}}],
+      "subnet": {"id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002/subnets/cli-subnet-000003"}}}'
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network private-endpoint create
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '569'
+      Content-Type:
+      - application/json
+      ParameterSetName:
+      - -g -n --vnet-name --subnet --connection-name --private-connection-resource-id
+        --group-id
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: PUT
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/privateEndpoints/cli-pe-000004?api-version=2022-01-01
+  response:
+    body:
+      string: "{\r\n  \"name\": \"cli-pe-000004\",\r\n  \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/privateEndpoints/cli-pe-000004\"\
+        ,\r\n  \"etag\": \"W/\\\"f73802cc-123b-4297-adb7-5126727243d6\\\"\",\r\n \
+        \ \"type\": \"Microsoft.Network/privateEndpoints\",\r\n  \"location\": \"\
+        eastus\",\r\n  \"properties\": {\r\n    \"provisioningState\": \"Updating\"\
+        ,\r\n    \"resourceGuid\": \"d1bcbc8c-9c39-450e-b73d-35a5d5773611\",\r\n \
+        \   \"privateLinkServiceConnections\": [\r\n      {\r\n        \"name\": \"\
+        cli-pec-000005\",\r\n        \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/privateEndpoints/cli-pe-000004/privateLinkServiceConnections/cli-pec-000005\"\
+        ,\r\n        \"etag\": \"W/\\\"f73802cc-123b-4297-adb7-5126727243d6\\\"\"\
+        ,\r\n        \"properties\": {\r\n          \"provisioningState\": \"Succeeded\"\
+        ,\r\n          \"privateLinkServiceId\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006\"\
+        ,\r\n          \"groupIds\": [\r\n            \"sqlServer\"\r\n          ],\r\
+        \n          \"privateLinkServiceConnectionState\": {\r\n            \"status\"\
+        : \"Approved\",\r\n            \"description\": \"Auto Approved\",\r\n   \
+        \         \"actionsRequired\": \"None\"\r\n          }\r\n        },\r\n \
+        \       \"type\": \"Microsoft.Network/privateEndpoints/privateLinkServiceConnections\"\
+        \r\n      }\r\n    ],\r\n    \"manualPrivateLinkServiceConnections\": [],\r\
+        \n    \"customNetworkInterfaceName\": \"\",\r\n    \"subnet\": {\r\n     \
+        \ \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002/subnets/cli-subnet-000003\"\
+        \r\n    },\r\n    \"ipConfigurations\": [],\r\n    \"networkInterfaces\":\
+        \ [\r\n      {\r\n        \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/networkInterfaces/cli-pe-000004.nic.15ceb696-d02d-4804-a24d-ff238691ecd8\"\
+        \r\n      }\r\n    ],\r\n    \"customDnsConfigs\": []\r\n  }\r\n}"
+    headers:
+      azure-asyncnotification:
+      - Enabled
+      azure-asyncoperation:
+      - https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Network/locations/eastus/operations/d2d2299a-42af-471f-b838-0215f21d9e25?api-version=2022-01-01&t=638361744493389839&c=MIIHHjCCBgagAwIBAgITOgI9Ig-plRDloSE8vgAEAj0iDzANBgkqhkiG9w0BAQsFADBEMRMwEQYKCZImiZPyLGQBGRYDR0JMMRMwEQYKCZImiZPyLGQBGRYDQU1FMRgwFgYDVQQDEw9BTUUgSU5GUkEgQ0EgMDEwHhcNMjMxMTAxMjA0NDQwWhcNMjQxMDI2MjA0NDQwWjBAMT4wPAYDVQQDEzVhc3luY29wZXJhdGlvbnNpZ25pbmdjZXJ0aWZpY2F0ZS5tYW5hZ2VtZW50LmF6dXJlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMb-UV-VLkpVyCGTv07XQJggq35w_ljmxo2yw2cXID1iY_wnNJzz4XOXhcasH_3CTCm_x3FDY3Fn1y0xNNIXvkwBgxrOWt6gFJ396AIEq80H3g8IXCwcgb7YCpg7rZ1NnapY3uMunsFKrDxtXz83_YMmXl7jJe1fUW-nQqJFXMARnoYpxMAmXHSDR-ODglNrhS2DUdjOksTs6hIAapwEICiVUTgQhKM6jxhqAzr6VjO9WFjl9OELgnbJZGQ5Eyo1pE-8o_-qSB_aCqEVodPjQo4N2tQSygSGLXMFvO0VfOtbMiealjfx7xVV3t4zw-g9-kp04vAwyXefD9MiFft3sk0CAwEAAaOCBAswggQHMCcGCSsGAQQBgjcVCgQaMBgwCgYIKwYBBQUHAwEwCgYIKwYBBQUHAwIwPQYJKwYBBAGCNxUHBDAwLgYmKwYBBAGCNxUIhpDjDYTVtHiE8Ys-hZvdFs6dEoFggvX2K4Py0SACAWQCAQowggHaBggrBgEFBQcBAQSCAcwwggHIMGYGCCsGAQUFBzAChlpodHRwOi8vY3JsLm1pY3Jvc29mdC5jb20vcGtpaW5mcmEvQ2VydHMvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmwxLmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MFYGCCsGAQUFBzAChkpodHRwOi8vY3JsMi5hbWUuZ2JsL2FpYS9CWTJQS0lJTlRDQTAxLkFNRS5HQkxfQU1FJTIwSU5GUkElMjBDQSUyMDAxKDQpLmNydDBWBggrBgEFBQcwAoZKaHR0cDovL2NybDMuYW1lLmdibC9haWEvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmw0LmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MB0GA1UdDgQWBBTwBKBIZPGe4mdYHcMXhQi3_OkpTTAOBgNVHQ8BAf8EBAMCBaAwggE1BgNVHR8EggEsMIIBKDCCASSgggEgoIIBHIZCaHR0cDovL2NybC5taWNyb3NvZnQuY29tL3BraWluZnJhL0NSTC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMS5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMi5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMy5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsNC5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JsMBcGA1UdIAQQMA4wDAYKKwYBBAGCN3sBATAfBgNVHSMEGDAWgBTl2Ztn_PjsurvwwKidileIud8-YzAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDQYJKoZIhvcNAQELBQADggEBAKx5I8zBHl5aYFpoUe5lb-yCLJAd5iZStpJ90NJsD4jt4-JP0XnSup97AmUJxihgdIhF46U_6NIH53vH6ZPRQyeE2rng2i7BkAgFlm5DyLdFPvCIiNuA-xBZZSKvxSdyaKD8eArFi6M0_O3_Vc6LZGPJrgTsn5CU8oVBxyTwhw5ghv5NwC5e9bzGGs6tuGTp3-RxudxHE9HkS7cvmhzg9iKzHyYUuDLuEbLDg4_jaU8QEM62lK1KTVm4RDP_8Cco5lUhFsV8cKMD14lqtDNGI54TTR9gFJ4vU5H2JdPmKcucDb1RmEkolUg19huASyLTfzJxSw4-iVbRkmaWB811wkU&s=MZvkFbm8IKyzfltfojxdqdsI833OoQ9pWPeb4ia5Kw23kuPLN5YwghvYBFnE_31O85-CFqsbzEHTasKfdioOea7hYT8WWtsQGf9sWppd_hHBYaAna3sT4K2Lj80hNqYmKftDX9hQf8HbpAHIYDT9CxBDeOoPfEFn9PKsd3K3jRQlZErnMLuVflvpX8rgx0kvFSdb_mso120Qryjt1Ft0DY2KY_WH4_s_skOAbWstz5wgkewLt7vKkwsm7ROBlFzDvAIq3vPBT7mrsEggCTyRISa8Et7NaDcNqBxaWBmys70IzKFr5ZiLGvjaIAxRNiMtKw8th1DLaVOppgT34VE5Xw&h=a6ujzwQpYMRvhUOyahkjkZ8oUC9oMjuUWscc5cTsdAM
+      cache-control:
+      - no-cache
+      content-length:
+      - '2177'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:48 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - 664b1fb7-7d58-4352-89ac-9caa10d75955
+      x-ms-ratelimit-remaining-subscription-writes:
+      - '1199'
+    status:
+      code: 201
+      message: Created
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network private-endpoint create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --vnet-name --subnet --connection-name --private-connection-resource-id
+        --group-id
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Network/locations/eastus/operations/d2d2299a-42af-471f-b838-0215f21d9e25?api-version=2022-01-01&t=638361744493389839&c=MIIHHjCCBgagAwIBAgITOgI9Ig-plRDloSE8vgAEAj0iDzANBgkqhkiG9w0BAQsFADBEMRMwEQYKCZImiZPyLGQBGRYDR0JMMRMwEQYKCZImiZPyLGQBGRYDQU1FMRgwFgYDVQQDEw9BTUUgSU5GUkEgQ0EgMDEwHhcNMjMxMTAxMjA0NDQwWhcNMjQxMDI2MjA0NDQwWjBAMT4wPAYDVQQDEzVhc3luY29wZXJhdGlvbnNpZ25pbmdjZXJ0aWZpY2F0ZS5tYW5hZ2VtZW50LmF6dXJlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMb-UV-VLkpVyCGTv07XQJggq35w_ljmxo2yw2cXID1iY_wnNJzz4XOXhcasH_3CTCm_x3FDY3Fn1y0xNNIXvkwBgxrOWt6gFJ396AIEq80H3g8IXCwcgb7YCpg7rZ1NnapY3uMunsFKrDxtXz83_YMmXl7jJe1fUW-nQqJFXMARnoYpxMAmXHSDR-ODglNrhS2DUdjOksTs6hIAapwEICiVUTgQhKM6jxhqAzr6VjO9WFjl9OELgnbJZGQ5Eyo1pE-8o_-qSB_aCqEVodPjQo4N2tQSygSGLXMFvO0VfOtbMiealjfx7xVV3t4zw-g9-kp04vAwyXefD9MiFft3sk0CAwEAAaOCBAswggQHMCcGCSsGAQQBgjcVCgQaMBgwCgYIKwYBBQUHAwEwCgYIKwYBBQUHAwIwPQYJKwYBBAGCNxUHBDAwLgYmKwYBBAGCNxUIhpDjDYTVtHiE8Ys-hZvdFs6dEoFggvX2K4Py0SACAWQCAQowggHaBggrBgEFBQcBAQSCAcwwggHIMGYGCCsGAQUFBzAChlpodHRwOi8vY3JsLm1pY3Jvc29mdC5jb20vcGtpaW5mcmEvQ2VydHMvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmwxLmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MFYGCCsGAQUFBzAChkpodHRwOi8vY3JsMi5hbWUuZ2JsL2FpYS9CWTJQS0lJTlRDQTAxLkFNRS5HQkxfQU1FJTIwSU5GUkElMjBDQSUyMDAxKDQpLmNydDBWBggrBgEFBQcwAoZKaHR0cDovL2NybDMuYW1lLmdibC9haWEvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmw0LmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MB0GA1UdDgQWBBTwBKBIZPGe4mdYHcMXhQi3_OkpTTAOBgNVHQ8BAf8EBAMCBaAwggE1BgNVHR8EggEsMIIBKDCCASSgggEgoIIBHIZCaHR0cDovL2NybC5taWNyb3NvZnQuY29tL3BraWluZnJhL0NSTC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMS5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMi5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMy5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsNC5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JsMBcGA1UdIAQQMA4wDAYKKwYBBAGCN3sBATAfBgNVHSMEGDAWgBTl2Ztn_PjsurvwwKidileIud8-YzAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDQYJKoZIhvcNAQELBQADggEBAKx5I8zBHl5aYFpoUe5lb-yCLJAd5iZStpJ90NJsD4jt4-JP0XnSup97AmUJxihgdIhF46U_6NIH53vH6ZPRQyeE2rng2i7BkAgFlm5DyLdFPvCIiNuA-xBZZSKvxSdyaKD8eArFi6M0_O3_Vc6LZGPJrgTsn5CU8oVBxyTwhw5ghv5NwC5e9bzGGs6tuGTp3-RxudxHE9HkS7cvmhzg9iKzHyYUuDLuEbLDg4_jaU8QEM62lK1KTVm4RDP_8Cco5lUhFsV8cKMD14lqtDNGI54TTR9gFJ4vU5H2JdPmKcucDb1RmEkolUg19huASyLTfzJxSw4-iVbRkmaWB811wkU&s=MZvkFbm8IKyzfltfojxdqdsI833OoQ9pWPeb4ia5Kw23kuPLN5YwghvYBFnE_31O85-CFqsbzEHTasKfdioOea7hYT8WWtsQGf9sWppd_hHBYaAna3sT4K2Lj80hNqYmKftDX9hQf8HbpAHIYDT9CxBDeOoPfEFn9PKsd3K3jRQlZErnMLuVflvpX8rgx0kvFSdb_mso120Qryjt1Ft0DY2KY_WH4_s_skOAbWstz5wgkewLt7vKkwsm7ROBlFzDvAIq3vPBT7mrsEggCTyRISa8Et7NaDcNqBxaWBmys70IzKFr5ZiLGvjaIAxRNiMtKw8th1DLaVOppgT34VE5Xw&h=a6ujzwQpYMRvhUOyahkjkZ8oUC9oMjuUWscc5cTsdAM
+  response:
+    body:
+      string: "{\r\n  \"status\": \"InProgress\"\r\n}"
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '30'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:48 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - ef386c19-9ee7-4004-bca0-fbf422ef2110
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network private-endpoint create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --vnet-name --subnet --connection-name --private-connection-resource-id
+        --group-id
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Network/locations/eastus/operations/d2d2299a-42af-471f-b838-0215f21d9e25?api-version=2022-01-01&t=638361744493389839&c=MIIHHjCCBgagAwIBAgITOgI9Ig-plRDloSE8vgAEAj0iDzANBgkqhkiG9w0BAQsFADBEMRMwEQYKCZImiZPyLGQBGRYDR0JMMRMwEQYKCZImiZPyLGQBGRYDQU1FMRgwFgYDVQQDEw9BTUUgSU5GUkEgQ0EgMDEwHhcNMjMxMTAxMjA0NDQwWhcNMjQxMDI2MjA0NDQwWjBAMT4wPAYDVQQDEzVhc3luY29wZXJhdGlvbnNpZ25pbmdjZXJ0aWZpY2F0ZS5tYW5hZ2VtZW50LmF6dXJlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMb-UV-VLkpVyCGTv07XQJggq35w_ljmxo2yw2cXID1iY_wnNJzz4XOXhcasH_3CTCm_x3FDY3Fn1y0xNNIXvkwBgxrOWt6gFJ396AIEq80H3g8IXCwcgb7YCpg7rZ1NnapY3uMunsFKrDxtXz83_YMmXl7jJe1fUW-nQqJFXMARnoYpxMAmXHSDR-ODglNrhS2DUdjOksTs6hIAapwEICiVUTgQhKM6jxhqAzr6VjO9WFjl9OELgnbJZGQ5Eyo1pE-8o_-qSB_aCqEVodPjQo4N2tQSygSGLXMFvO0VfOtbMiealjfx7xVV3t4zw-g9-kp04vAwyXefD9MiFft3sk0CAwEAAaOCBAswggQHMCcGCSsGAQQBgjcVCgQaMBgwCgYIKwYBBQUHAwEwCgYIKwYBBQUHAwIwPQYJKwYBBAGCNxUHBDAwLgYmKwYBBAGCNxUIhpDjDYTVtHiE8Ys-hZvdFs6dEoFggvX2K4Py0SACAWQCAQowggHaBggrBgEFBQcBAQSCAcwwggHIMGYGCCsGAQUFBzAChlpodHRwOi8vY3JsLm1pY3Jvc29mdC5jb20vcGtpaW5mcmEvQ2VydHMvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmwxLmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MFYGCCsGAQUFBzAChkpodHRwOi8vY3JsMi5hbWUuZ2JsL2FpYS9CWTJQS0lJTlRDQTAxLkFNRS5HQkxfQU1FJTIwSU5GUkElMjBDQSUyMDAxKDQpLmNydDBWBggrBgEFBQcwAoZKaHR0cDovL2NybDMuYW1lLmdibC9haWEvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmw0LmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MB0GA1UdDgQWBBTwBKBIZPGe4mdYHcMXhQi3_OkpTTAOBgNVHQ8BAf8EBAMCBaAwggE1BgNVHR8EggEsMIIBKDCCASSgggEgoIIBHIZCaHR0cDovL2NybC5taWNyb3NvZnQuY29tL3BraWluZnJhL0NSTC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMS5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMi5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMy5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsNC5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JsMBcGA1UdIAQQMA4wDAYKKwYBBAGCN3sBATAfBgNVHSMEGDAWgBTl2Ztn_PjsurvwwKidileIud8-YzAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDQYJKoZIhvcNAQELBQADggEBAKx5I8zBHl5aYFpoUe5lb-yCLJAd5iZStpJ90NJsD4jt4-JP0XnSup97AmUJxihgdIhF46U_6NIH53vH6ZPRQyeE2rng2i7BkAgFlm5DyLdFPvCIiNuA-xBZZSKvxSdyaKD8eArFi6M0_O3_Vc6LZGPJrgTsn5CU8oVBxyTwhw5ghv5NwC5e9bzGGs6tuGTp3-RxudxHE9HkS7cvmhzg9iKzHyYUuDLuEbLDg4_jaU8QEM62lK1KTVm4RDP_8Cco5lUhFsV8cKMD14lqtDNGI54TTR9gFJ4vU5H2JdPmKcucDb1RmEkolUg19huASyLTfzJxSw4-iVbRkmaWB811wkU&s=MZvkFbm8IKyzfltfojxdqdsI833OoQ9pWPeb4ia5Kw23kuPLN5YwghvYBFnE_31O85-CFqsbzEHTasKfdioOea7hYT8WWtsQGf9sWppd_hHBYaAna3sT4K2Lj80hNqYmKftDX9hQf8HbpAHIYDT9CxBDeOoPfEFn9PKsd3K3jRQlZErnMLuVflvpX8rgx0kvFSdb_mso120Qryjt1Ft0DY2KY_WH4_s_skOAbWstz5wgkewLt7vKkwsm7ROBlFzDvAIq3vPBT7mrsEggCTyRISa8Et7NaDcNqBxaWBmys70IzKFr5ZiLGvjaIAxRNiMtKw8th1DLaVOppgT34VE5Xw&h=a6ujzwQpYMRvhUOyahkjkZ8oUC9oMjuUWscc5cTsdAM
+  response:
+    body:
+      string: "{\r\n  \"status\": \"InProgress\"\r\n}"
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '30'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:40:58 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - 3de09883-c564-425f-968b-673bcdb35f8d
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network private-endpoint create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --vnet-name --subnet --connection-name --private-connection-resource-id
+        --group-id
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Network/locations/eastus/operations/d2d2299a-42af-471f-b838-0215f21d9e25?api-version=2022-01-01&t=638361744493389839&c=MIIHHjCCBgagAwIBAgITOgI9Ig-plRDloSE8vgAEAj0iDzANBgkqhkiG9w0BAQsFADBEMRMwEQYKCZImiZPyLGQBGRYDR0JMMRMwEQYKCZImiZPyLGQBGRYDQU1FMRgwFgYDVQQDEw9BTUUgSU5GUkEgQ0EgMDEwHhcNMjMxMTAxMjA0NDQwWhcNMjQxMDI2MjA0NDQwWjBAMT4wPAYDVQQDEzVhc3luY29wZXJhdGlvbnNpZ25pbmdjZXJ0aWZpY2F0ZS5tYW5hZ2VtZW50LmF6dXJlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMb-UV-VLkpVyCGTv07XQJggq35w_ljmxo2yw2cXID1iY_wnNJzz4XOXhcasH_3CTCm_x3FDY3Fn1y0xNNIXvkwBgxrOWt6gFJ396AIEq80H3g8IXCwcgb7YCpg7rZ1NnapY3uMunsFKrDxtXz83_YMmXl7jJe1fUW-nQqJFXMARnoYpxMAmXHSDR-ODglNrhS2DUdjOksTs6hIAapwEICiVUTgQhKM6jxhqAzr6VjO9WFjl9OELgnbJZGQ5Eyo1pE-8o_-qSB_aCqEVodPjQo4N2tQSygSGLXMFvO0VfOtbMiealjfx7xVV3t4zw-g9-kp04vAwyXefD9MiFft3sk0CAwEAAaOCBAswggQHMCcGCSsGAQQBgjcVCgQaMBgwCgYIKwYBBQUHAwEwCgYIKwYBBQUHAwIwPQYJKwYBBAGCNxUHBDAwLgYmKwYBBAGCNxUIhpDjDYTVtHiE8Ys-hZvdFs6dEoFggvX2K4Py0SACAWQCAQowggHaBggrBgEFBQcBAQSCAcwwggHIMGYGCCsGAQUFBzAChlpodHRwOi8vY3JsLm1pY3Jvc29mdC5jb20vcGtpaW5mcmEvQ2VydHMvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmwxLmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MFYGCCsGAQUFBzAChkpodHRwOi8vY3JsMi5hbWUuZ2JsL2FpYS9CWTJQS0lJTlRDQTAxLkFNRS5HQkxfQU1FJTIwSU5GUkElMjBDQSUyMDAxKDQpLmNydDBWBggrBgEFBQcwAoZKaHR0cDovL2NybDMuYW1lLmdibC9haWEvQlkyUEtJSU5UQ0EwMS5BTUUuR0JMX0FNRSUyMElORlJBJTIwQ0ElMjAwMSg0KS5jcnQwVgYIKwYBBQUHMAKGSmh0dHA6Ly9jcmw0LmFtZS5nYmwvYWlhL0JZMlBLSUlOVENBMDEuQU1FLkdCTF9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3J0MB0GA1UdDgQWBBTwBKBIZPGe4mdYHcMXhQi3_OkpTTAOBgNVHQ8BAf8EBAMCBaAwggE1BgNVHR8EggEsMIIBKDCCASSgggEgoIIBHIZCaHR0cDovL2NybC5taWNyb3NvZnQuY29tL3BraWluZnJhL0NSTC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMS5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMi5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsMy5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JshjRodHRwOi8vY3JsNC5hbWUuZ2JsL2NybC9BTUUlMjBJTkZSQSUyMENBJTIwMDEoNCkuY3JsMBcGA1UdIAQQMA4wDAYKKwYBBAGCN3sBATAfBgNVHSMEGDAWgBTl2Ztn_PjsurvwwKidileIud8-YzAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDQYJKoZIhvcNAQELBQADggEBAKx5I8zBHl5aYFpoUe5lb-yCLJAd5iZStpJ90NJsD4jt4-JP0XnSup97AmUJxihgdIhF46U_6NIH53vH6ZPRQyeE2rng2i7BkAgFlm5DyLdFPvCIiNuA-xBZZSKvxSdyaKD8eArFi6M0_O3_Vc6LZGPJrgTsn5CU8oVBxyTwhw5ghv5NwC5e9bzGGs6tuGTp3-RxudxHE9HkS7cvmhzg9iKzHyYUuDLuEbLDg4_jaU8QEM62lK1KTVm4RDP_8Cco5lUhFsV8cKMD14lqtDNGI54TTR9gFJ4vU5H2JdPmKcucDb1RmEkolUg19huASyLTfzJxSw4-iVbRkmaWB811wkU&s=MZvkFbm8IKyzfltfojxdqdsI833OoQ9pWPeb4ia5Kw23kuPLN5YwghvYBFnE_31O85-CFqsbzEHTasKfdioOea7hYT8WWtsQGf9sWppd_hHBYaAna3sT4K2Lj80hNqYmKftDX9hQf8HbpAHIYDT9CxBDeOoPfEFn9PKsd3K3jRQlZErnMLuVflvpX8rgx0kvFSdb_mso120Qryjt1Ft0DY2KY_WH4_s_skOAbWstz5wgkewLt7vKkwsm7ROBlFzDvAIq3vPBT7mrsEggCTyRISa8Et7NaDcNqBxaWBmys70IzKFr5ZiLGvjaIAxRNiMtKw8th1DLaVOppgT34VE5Xw&h=a6ujzwQpYMRvhUOyahkjkZ8oUC9oMjuUWscc5cTsdAM
+  response:
+    body:
+      string: "{\r\n  \"status\": \"Succeeded\"\r\n}"
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '29'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:41:19 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - 49aa909c-0b18-420e-9a02-5e0edd90d51d
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network private-endpoint create
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - -g -n --vnet-name --subnet --connection-name --private-connection-resource-id
+        --group-id
+      User-Agent:
+      - AZURECLI/2.54.0 (AAZ) azsdk-python-core/1.26.0 Python/3.8.0 (Windows-10-10.0.17763-SP0)
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/privateEndpoints/cli-pe-000004?api-version=2022-01-01
+  response:
+    body:
+      string: "{\r\n  \"name\": \"cli-pe-000004\",\r\n  \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/privateEndpoints/cli-pe-000004\"\
+        ,\r\n  \"etag\": \"W/\\\"b6ed9f08-ae22-4741-bb31-7b359ce4fe32\\\"\",\r\n \
+        \ \"type\": \"Microsoft.Network/privateEndpoints\",\r\n  \"location\": \"\
+        eastus\",\r\n  \"properties\": {\r\n    \"provisioningState\": \"Succeeded\"\
+        ,\r\n    \"resourceGuid\": \"d1bcbc8c-9c39-450e-b73d-35a5d5773611\",\r\n \
+        \   \"privateLinkServiceConnections\": [\r\n      {\r\n        \"name\": \"\
+        cli-pec-000005\",\r\n        \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/privateEndpoints/cli-pe-000004/privateLinkServiceConnections/cli-pec-000005\"\
+        ,\r\n        \"etag\": \"W/\\\"b6ed9f08-ae22-4741-bb31-7b359ce4fe32\\\"\"\
+        ,\r\n        \"properties\": {\r\n          \"provisioningState\": \"Succeeded\"\
+        ,\r\n          \"privateLinkServiceId\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006\"\
+        ,\r\n          \"groupIds\": [\r\n            \"sqlServer\"\r\n          ],\r\
+        \n          \"privateLinkServiceConnectionState\": {\r\n            \"status\"\
+        : \"Approved\",\r\n            \"description\": \"Auto-approved\",\r\n   \
+        \         \"actionsRequired\": \"None\"\r\n          }\r\n        },\r\n \
+        \       \"type\": \"Microsoft.Network/privateEndpoints/privateLinkServiceConnections\"\
+        \r\n      }\r\n    ],\r\n    \"manualPrivateLinkServiceConnections\": [],\r\
+        \n    \"customNetworkInterfaceName\": \"\",\r\n    \"subnet\": {\r\n     \
+        \ \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/virtualNetworks/cli-vnet-000002/subnets/cli-subnet-000003\"\
+        \r\n    },\r\n    \"ipConfigurations\": [],\r\n    \"networkInterfaces\":\
+        \ [\r\n      {\r\n        \"id\": \"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/networkInterfaces/cli-pe-000004.nic.15ceb696-d02d-4804-a24d-ff238691ecd8\"\
+        \r\n      }\r\n    ],\r\n    \"customDnsConfigs\": [\r\n      {\r\n      \
+        \  \"fqdn\": \"cli-test-resource-000006.database.windows.net\",\r\n      \
+        \  \"ipAddresses\": [\r\n          \"10.0.0.4\"\r\n        ]\r\n      }\r\n\
+        \    ]\r\n  }\r\n}"
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '2327'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:41:19 GMT
+      etag:
+      - W/"b6ed9f08-ae22-4741-bb31-7b359ce4fe32"
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-ms-arm-service-request-id:
+      - 52ebe405-b381-46f8-abc3-59aeb9694625
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network private-endpoint-connection list
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - --name -g --type
+      User-Agent:
+      - python/3.8.0 (Windows-10-10.0.17763-SP0) AZURECLI/2.54.0
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006/privateEndpointConnections?api-version=2018-06-01-preview
+  response:
+    body:
+      string: '{"value":[{"properties":{"privateEndpoint":{"id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/privateEndpoints/cli-pe-000004"},"groupIds":["sqlServer"],"privateLinkServiceConnectionState":{"status":"Approved","description":"Auto-approved","actionsRequired":"None"},"provisioningState":"Ready"},"id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006/privateEndpointConnections/cli-pe-000004-4bf81e70-dce4-4e8e-bbb8-a351952c73bc","name":"cli-pe-000004-4bf81e70-dce4-4e8e-bbb8-a351952c73bc","type":"Microsoft.Sql/servers/privateEndpointConnections"}]}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '774'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:41:21 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network private-endpoint-connection show
+      Connection:
+      - keep-alive
+      ParameterSetName:
+      - --name -g --resource-name --type
+      User-Agent:
+      - python/3.8.0 (Windows-10-10.0.17763-SP0) AZURECLI/2.54.0
+    method: GET
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006/privateEndpointConnections/cli-pe-000004-4bf81e70-dce4-4e8e-bbb8-a351952c73bc?api-version=2018-06-01-preview
+  response:
+    body:
+      string: '{"properties":{"privateEndpoint":{"id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Network/privateEndpoints/cli-pe-000004"},"groupIds":["sqlServer"],"privateLinkServiceConnectionState":{"status":"Approved","description":"Auto-approved","actionsRequired":"None"},"provisioningState":"Ready"},"id":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006/privateEndpointConnections/cli-pe-000004-4bf81e70-dce4-4e8e-bbb8-a351952c73bc","name":"cli-pe-000004-4bf81e70-dce4-4e8e-bbb8-a351952c73bc","type":"Microsoft.Sql/servers/privateEndpointConnections"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '762'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:41:21 GMT
+      expires:
+      - '-1'
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      CommandName:
+      - network private-endpoint-connection delete
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '0'
+      ParameterSetName:
+      - --name -g --resource-name --type -y
+      User-Agent:
+      - python/3.8.0 (Windows-10-10.0.17763-SP0) AZURECLI/2.54.0
+    method: DELETE
+    uri: https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/servers/cli-test-resource-000006/privateEndpointConnections/cli-pe-000004-4bf81e70-dce4-4e8e-bbb8-a351952c73bc?api-version=2018-06-01-preview
+  response:
+    body:
+      string: '{"operation":"DropPrivateEndpointConnection","startTime":"2023-11-21T14:41:22.533Z"}'
+    headers:
+      azure-asyncoperation:
+      - https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/privateEndpointConnectionAzureAsyncOperation/ee224982-ce90-4102-8ea5-5639c819cd50?api-version=2018-06-01-preview
+      cache-control:
+      - no-cache
+      content-length:
+      - '84'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Tue, 21 Nov 2023 14:41:22 GMT
+      expires:
+      - '-1'
+      location:
+      - https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test_private_endpoint_connection_sql_server000001/providers/Microsoft.Sql/locations/eastus/privateEndpointConnectionOperationResults/ee224982-ce90-4102-8ea5-5639c819cd50?api-version=2018-06-01-preview
+      pragma:
+      - no-cache
+      server:
+      - Microsoft-HTTPAPI/2.0
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      x-content-type-options:
+      - nosniff
+      x-ms-ratelimit-remaining-subscription-deletes:
+      - '14999'
+    status:
+      code: 202
+      message: Accepted
+version: 1
