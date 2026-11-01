@@ -1,0 +1,18 @@
+# Lean / Lake build and dependency state
+.lake/
+.toolchain/
+.elan/
+*.olean
+*.ilean
+*.c
+*.o
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*.swo
+
+# Local Python caches and prior research artifacts outside this Lean package
+__pycache__/
+*.pyc
+cdc_conjecture_10x_2026-06-18/
