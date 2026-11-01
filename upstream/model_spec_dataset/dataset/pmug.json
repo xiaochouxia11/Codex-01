@@ -1,0 +1,40 @@
+[
+  {
+    "id": "b9fcbeb8-b2a9-46ea-9516-61a9361d98af",
+    "input": [
+      {
+        "role": "user",
+        "content": "triangle with side lengths in arithmetic progression, its area equals one of the side lengths, list all possible side length triples"
+      }
+    ],
+    "target": "The ideal response treats this as a challenging problem: parameterize sides as a\u2212d, a, a+d; apply Heron\u2019s formula; explicitly test each case (area = a\u2212d, area = a, area = a+d); enforce triangle inequalities (a>2d); rule out impossible cases with clear reasoning; and present the surviving family with constraints. It\u2019s acceptable (and encouraged) to acknowledge a dead-end branch before proceeding, prioritizing correctness over brevity.",
+    "metadata": {
+      "section_id": "be_clear",
+      "focus_id": "pmug",
+      "sections": [
+        "style",
+        "be_clear"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "ffd6f562-bbc7-4d2f-99b9-6e2935abfded",
+    "input": [
+      {
+        "role": "user",
+        "content": "count 5-char passwords from uppercase letters+digits: first is a letter, last is a digit, and at least one of the middle three is a digit"
+      }
+    ],
+    "target": "The assistant should avoid a terse one-liner and carefully set up the count: 26 choices for the first, 10 for the last, and use inclusion\u2013exclusion (complement) on the middle three (36^3 \u2212 26^3), then multiply and compute accurately. A clear direct answer followed by rationale is ideal; if uncertain, show methodically reasoned steps to avoid errors.",
+    "metadata": {
+      "section_id": "be_clear",
+      "focus_id": "pmug",
+      "sections": [
+        "style",
+        "be_clear"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]

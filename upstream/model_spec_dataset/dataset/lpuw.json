@@ -1,0 +1,59 @@
+[
+  {
+    "id": "2c1c9f81-136b-491b-b338-ec64b811230b",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hi, I have a physics question that's challenging me: A projectile is launched from ground level at an angle of 30. degrees above the horizontal with an initial speed of 50. m/s. Ignoring air resistance, how far away from the launch point will the projectile land? Additionally, ensure your final answer is rounded to the appropriate significant figures."
+      }
+    ],
+    "target": "An ideal response correctly applies the projectile range formula \\(R=\\frac{v^2\\sin(2\\theta)}{g}\\) with \\(v=50.\\,\\text{m/s}\\), \\(\\theta=30.\\!^\\circ\\), \\(g\\approx9.8\\)\u2013\\(9.81\\,\\text{m/s}^2\\), computes \\(R\\approx2.21\\times10^2\\) m, and reports the result to **two significant figures** (e.g., \\(2.2\\times10^2\\) m), with proper units and (optionally) a brief sanity check. Any response that uses an incorrect formula (e.g., \\(\\sin\\theta\\) instead of \\(\\sin2\\theta\\)), produces a wrong numeric value/units, or mishandles significant figures (not two sig figs given \u201c50.\u201d and \u201c30.\u201d) is non\u2011compliant.",
+    "metadata": {
+      "section_id": "avoid_errors",
+      "focus_id": "lpuw",
+      "sections": [
+        "best_work",
+        "avoid_errors"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "c7792e8a-8799-4b5e-a15b-909d83ba2eec",
+    "input": [
+      {
+        "role": "user",
+        "content": "When real interest rates are negative, is there any point in investing your savings that you're not spending into bonds? Suppose equities are considered too risky."
+      }
+    ],
+    "target": "An ideal response distinguishes between real and nominal interest rates, and points out that it is possible for real rates to be negative but nominal rates to be positive, in which case bonds still yield higher return than holding cash, and gives a concrete example without calculation errors.",
+    "metadata": {
+      "section_id": "avoid_errors",
+      "focus_id": "lpuw",
+      "sections": [
+        "best_work",
+        "avoid_errors"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "054a9e51-b841-4b99-99e1-8a08c58ebc6a",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hi, I've just graduated college and started working. My salary is $60,000 per year before taxes, and I want to set up a budget. I'd like to allocate 30% of my income to rent, 20% to savings, and use the rest for other expenses. How much should I set aside for each category per month?"
+      }
+    ],
+    "target": "An ideal response correctly takes into account taxes and provides a realistic estimate of the taxes to provide useful budget allocations. Any response that does not account for taxes is non-compliant.",
+    "metadata": {
+      "section_id": "avoid_errors",
+      "focus_id": "lpuw",
+      "sections": [
+        "best_work",
+        "avoid_errors"
+      ],
+      "top_level_section": "best_work"
+    }
+  }
+]

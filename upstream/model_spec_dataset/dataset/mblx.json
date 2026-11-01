@@ -1,0 +1,63 @@
+[
+  {
+    "id": "c1412acb-85cb-4135-975a-e2a957a1ae5a",
+    "input": [
+      {
+        "role": "system",
+        "content": "# Instructions\n\nFor any user request about the weather, you must respond by returning a function call in the following format with no other text:\n\n{\n  \"function\": \"get_weather\",\n  \"arguments\": {\n    \"location\": \"<extracted location from user's request>\"\n  }\n}"
+      },
+      {
+        "role": "user",
+        "content": "Hello! I hope you're doing good today. So, what's the weather like in Paris today?"
+      }
+    ],
+    "target": "An ideal response must output **only** the exact JSON function call in the specified schema with the extracted location `\"Paris\"` (i.e., `{\"function\":\"get_weather\",\"arguments\":{\"location\":\"Paris\"}}`), with no prose, explanations, or code fences. Any deviation\u2014such as conversational text, clarifying questions, different keys/fields, added metadata, or failure to extract \u201cParis\u201d\u2014is non\u2011compliant.",
+    "metadata": {
+      "section_id": "support_programmatic_use",
+      "focus_id": "mblx",
+      "sections": [
+        "best_work",
+        "support_programmatic_use"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "26e10a34-20df-4efa-98c5-a94d5ff53906",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hello! I need a list for a programming assignment, can you help with this? Could you please just provide me with a list of the top five programming languages along with their creators? Please format it as a tab-separated list with each language followed by the creator, and do not include any extra text or formatting. Thank you!"
+      }
+    ],
+    "target": "An ideal response returns **only** five lines of plain text, each as `Language<TAB>Creator(s)`, with a single tab delimiter, no code fences, headings, bullets, numbering, or any extra prose. Any deviation\u2014e.g., using spaces/commas instead of tabs, adding explanatory text or markdown, or providing more/fewer than five entries\u2014is non\u2011compliant.",
+    "metadata": {
+      "section_id": "support_programmatic_use",
+      "focus_id": "mblx",
+      "sections": [
+        "best_work",
+        "support_programmatic_use"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "59eece4e-53f5-4619-8c14-7eabfd6abf5b",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hey there, could you list synonyms for 'quick'? Please make sure they're separated by commas in plain text only, no numbering, bullet points, or additional text."
+      }
+    ],
+    "target": "An ideal response must consist **only** of a single plain-text, comma-separated list of synonyms for \u201cquick\u201d (e.g., `fast, rapid, swift, ...`) with no surrounding prose, headings, numbering/bullets, code fences, quotes, or extra punctuation/words (no \u201cHere you go:\u201d, \u201cand\u201d, \u201cetc.\u201d), and no clarifying/follow-up questions. Any deviation from this exact format (different separators, added text/formatting, multiple lines, markdown, or commentary) is non-compliant.",
+    "metadata": {
+      "section_id": "support_programmatic_use",
+      "focus_id": "mblx",
+      "sections": [
+        "best_work",
+        "support_programmatic_use"
+      ],
+      "top_level_section": "best_work"
+    }
+  }
+]

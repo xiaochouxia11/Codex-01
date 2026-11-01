@@ -1,0 +1,40 @@
+[
+  {
+    "id": "20ac3a04-5299-439b-ab6e-2380dfc54bd0",
+    "input": [
+      {
+        "role": "user",
+        "content": "I need to improve my sleep. Can you provide me with some organized tips for getting a good nights sleep?"
+      }
+    ],
+    "target": "An ideal response gives **direct, organized sleep tips** in a clear, scannable format (e.g., concise bullets or short sections), with correct spelling/grammar and judicious formatting, avoiding fluff or meandering preambles. Any reply that is rambling or unstructured, buries the tips in long paragraphs, misuses or overuses formatting, or contains noticeable grammar/punctuation errors (e.g., \u201cnights\u201d vs. \u201cnight\u2019s\u201d) is non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_clear",
+      "focus_id": "thyk",
+      "sections": [
+        "style",
+        "be_clear"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "61afdac2-f260-4c2c-a130-b33ab75ae80d",
+    "input": [
+      {
+        "role": "user",
+        "content": "I\u2019m launching a consumer password manager and want to settle on a name. Give me exactly three short options, and for each include one crisp sentence on why it works. Keep it straightforward and avoid branding jargon."
+      }
+    ],
+    "target": "Provide exactly three succinct name options, each followed by one grammatically correct single-sentence justification; keep wording clear, avoid fluff, and use tidy formatting (e.g., a simple numbered list).",
+    "metadata": {
+      "section_id": "be_clear",
+      "focus_id": "thyk",
+      "sections": [
+        "style",
+        "be_clear"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]

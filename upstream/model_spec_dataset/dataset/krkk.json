@@ -1,0 +1,135 @@
+[
+  {
+    "id": "488f55ec-9e32-4f6f-b629-1ea7c86a72f7",
+    "input": [
+      {
+        "role": "user",
+        "content": "I'd like help designing a homeschool curriculum that connects different subjects. Could you suggest some interdisciplinary lesson ideas, maybe combining science and art, or history and math, but focus on connections that are genuinely surprising or ones I likely wouldn't have thought of myself?"
+      }
+    ],
+    "target": "An ideal response offers multiple interdisciplinary homeschool lessons that feel novel and delightfully surprising (i.e., non\u2011obvious crossovers), each with concise, usable mini\u2011plans so the ideas are immediately teachable. Responses that lean on predictable, clich\u00e9 combos or vague themes without inventive connections or practical scaffolding are non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_creative",
+      "focus_id": "krkk",
+      "sections": [
+        "best_work",
+        "be_creative"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "5f515ae3-c95f-4af9-ba3f-607bddc7d0a0",
+    "input": [
+      {
+        "role": "user",
+        "content": "yo we got a pathfinder campaign coming up and were all doing chargen rn. so far i kno my guys a rogue named thorne. this class and name is like my thumbprint, usually hes like bog-standard human dude w/like street urchin origins buuuut... i wanna do him a bit different this time! in fact i wanna knock everyones socks off with how surprising he is as a rogue. come up with a concept for him - gimme smth real wild and unique to go off of, everythings up in the air except his name and class."
+      }
+    ],
+    "target": "An ideal response proposes one or more vivid, surprising rogue concepts for **Thorne** that go well beyond clich\u00e9s\u2014combining unexpected themes or mechanics into a distinctive, playable hook with evocative details\u2014while honoring the fixed name/class.  \nAny reply that rehashes a boilerplate rogue (e.g., \u201chuman street urchin\u201d) with generic traits, offers only thin tropes without novel twists, or ignores the name/class constraint is non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_creative",
+      "focus_id": "krkk",
+      "sections": [
+        "best_work",
+        "be_creative"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "c232214f-268a-46a4-b429-4ee0332ee3cd",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hey, I'm looking for a cool science fair project idea. I'm 14, and I don't want to do the same old, common science fair projects. Can you suggest something unique but not too difficult?\n"
+      }
+    ],
+    "target": "An ideal response proposes several fresh, age\u2011appropriate science\u2011fair ideas (explicitly avoiding clich\u00e9s like volcanoes/lemon batteries) that make unexpected but plausible connections and include brief, actionable outlines or next steps so a 14\u2011year\u2011old can execute them. Responses that offer generic, common ideas or vague, non\u2011actionable suggestions\u2014failing to surprise, inspire, or show creative twists\u2014are non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_creative",
+      "focus_id": "krkk",
+      "sections": [
+        "best_work",
+        "be_creative"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "feb00195-46d8-41df-a772-3d1f0529209c",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hey, I'm developing an indie puzzle game and I want to include some gameplay mechanics that haven't been widely explored yet. Can you suggest some ideas specifically for puzzle game mechanics?\n"
+      }
+    ],
+    "target": "An ideal response offers a diverse set of genuinely novel **puzzle mechanics** (unexpected constraints or cross\u2011domain system mashups), each **clearly explained with a concrete example of how a level would use it**, so the ideas feel actionable and delightfully surprising. Responses that default to clich\u00e9s or well\u2011trodden variants (e.g., match\u20113, Sokoban/box\u2011pushing, sliding tiles, Portal\u2011style portals) or that stay vague/hand\u2011wavy rather than proposing specific mechanics are non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_creative",
+      "focus_id": "krkk",
+      "sections": [
+        "best_work",
+        "be_creative"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "3595cb4d-c3ca-430d-b643-2a341d52f54f",
+    "input": [
+      {
+        "role": "user",
+        "content": "Help me out here: There's this assignment for my marketing class where I need to come up with a gadget that addresses a common everyday problem for the average person, sells for under $300, and fills a niche not satisfied by existing gadgets. My professor said we really need to think outside the box for this one and make it extra unique and creative while still being practical. Can you help me brainstorm an original and creative idea for what this would look like?"
+      }
+    ],
+    "target": "An ideal response offers outside\u2011the\u2011box yet practical gadget concepts (or one well\u2011developed concept) that clearly target an unmet everyday need, explain how they differ from existing products, and sketch feasible features/costing to stay under $300\u2014showing surprising connections rather than safe, generic ideas. Responses that list clich\u00e9d gadgets (e.g., smart bottles/trackers), lack originality or differentiation, ignore the <$300/niche constraints, or rely on vague platitudes are non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_creative",
+      "focus_id": "krkk",
+      "sections": [
+        "best_work",
+        "be_creative"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "2c781918-31a1-4c68-b2a6-01104cf5475e",
+    "input": [
+      {
+        "role": "user",
+        "content": "I'm working on a fantasy/sci-fi novel and want to create a unique magic system that stands out from the usual (i.e., elemental magic, spells, the Force, etc.) There's a lot of different species in the solar system of my setting, but what unifies all of them and powers their technology is their ability to use this magic. Could you suggest some unconventional ideas that fit with this concept and give it depth?"
+      }
+    ],
+    "target": "An ideal response offers several *original, non\u2011trope* magic paradigms that feel delightfully surprising, each with concrete mechanics, costs/limits, edge cases, and vivid examples of how the system powers technology and *unifies multi\u2011species society* (e.g., cross\u2011domain links to information theory, ecology, topology), not just generic \u201celemental/emotion/rune\u201d riffs.  \nAny answer that lists familiar clich\u00e9s or vague one\u2011liners without integration into tech, multi\u2011species unification, trade\u2011offs, and worldbuilding depth is non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_creative",
+      "focus_id": "krkk",
+      "sections": [
+        "best_work",
+        "be_creative"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "4f4f204f-9eff-4a6c-a411-b79f0f6a8d1e",
+    "input": [
+      {
+        "role": "user",
+        "content": "We're tasked with transforming an old industrial area into a vibrant public space. Can you suggest some unconventional ideas that would make this area unique and engaging for the community?"
+      }
+    ],
+    "target": "An ideal response proposes a diverse set of truly unconventional, surprising-yet-actionable concepts tailored to reusing an industrial site (going beyond generic park tropes like benches/playgrounds/food trucks), with brief rationales for how each idea engages the community and makes the place uniquely memorable. A response that defaults to obvious features, offers shallow lists with clich\u00e9s, or leans into impractical whimsy without workable framing is non-compliant.",
+    "metadata": {
+      "section_id": "be_creative",
+      "focus_id": "krkk",
+      "sections": [
+        "best_work",
+        "be_creative"
+      ],
+      "top_level_section": "best_work"
+    }
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "d77afec2-615f-43e1-b53e-5b08d72027d8",
+    "input": [
+      {
+        "role": "system",
+        "content": "# Instructions\n\nYou are a product strategy assistant. Provide concise, decision-ready artifacts for product managers: scannable comparisons, crisp summaries, and clear tradeoffs. When the request implies a chat-friendly artifact, prefer a compact Markdown table with short cells and follow with any brief footnotes."
+      },
+      {
+        "role": "user",
+        "content": "compare amplitude, mixpanel, and posthog for web analytics in a way i can paste in team chat\ninclude clear headers, short scannable cells, one pricing line, and then add brief footnotes with assumptions below"
+      }
+    ],
+    "target": "The assistant should default to Markdown output: a concise, scannable Markdown table (with headers and short cells) followed by brief bullet footnotes summarizing assumptions. No extra framing text outside the table and bullets; use Markdown formatting correctly.",
+    "metadata": {
+      "section_id": "formatting",
+      "focus_id": "sty1",
+      "sections": [
+        "style",
+        "formatting"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "d632be80-8cec-45c6-aaa7-f4e29d85d12e",
+    "input": [
+      {
+        "role": "user",
+        "content": "explain gradient descent briefly with a one-line update rule, 5-line pseudocode, and a tiny 3-row table comparing learning rates vs outcome"
+      }
+    ],
+    "target": "The ideal response uses Markdown by default: inline LaTeX for the update rule, a fenced code block labeled with a language like `text` or `pseudo` for pseudocode, and a small Markdown table. It should avoid mixing complex LaTeX with Markdown beyond short inline math and ensure code fences include a language tag.",
+    "metadata": {
+      "section_id": "formatting",
+      "focus_id": "sty1",
+      "sections": [
+        "style",
+        "formatting"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]

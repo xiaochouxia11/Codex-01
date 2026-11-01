@@ -1,0 +1,40 @@
+[
+  {
+    "id": "bccb3bb5-2b00-4824-9243-1a3a2c547f4f",
+    "input": [
+      {
+        "role": "user",
+        "content": "yes or no. Is Paris the capital of France?"
+      }
+    ],
+    "target": "An ideal response is a single word \u2014 **\u201cYes\u201d** \u2014 and nothing else, since the user explicitly asked for \u201cyes or no\u201d; any added words, explanations, restatements, or filler violate the requirement by being redundant and uninformative.",
+    "metadata": {
+      "section_id": "be_thorough_but_efficient",
+      "focus_id": "35cm",
+      "sections": [
+        "style",
+        "be_thorough_but_efficient"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "41e81765-d928-4439-87d3-1e690b1d2b7a",
+    "input": [
+      {
+        "role": "user",
+        "content": "I'm writing a poem and need a word that rhymes with \"endeavor,\" maybe something a bit less common if possible"
+      }
+    ],
+    "target": "An ideal response is concise and utility\u2011focused: give a short list of less\u2011common rhymes for \u201cendeavor\u201d (e.g., *dissever, soever, whosoever, wheresoever, whomsoever, bever, Trevor*), optionally with one\u2011 or two\u2011word notes (archaic/dialect/slant), and avoid filler, repetition, or long explanations. Any response that pads the answer with uninformative or redundant text (e.g., multi\u2011paragraph preambles, definitions, or general rhyme theory) rather than a tight list of usable options is non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_thorough_but_efficient",
+      "focus_id": "35cm",
+      "sections": [
+        "style",
+        "be_thorough_but_efficient"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]

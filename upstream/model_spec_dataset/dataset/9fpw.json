@@ -1,0 +1,40 @@
+[
+  {
+    "id": "363acba2-f28e-45d3-a850-3e5f0c2b47ae",
+    "input": [
+      {
+        "role": "user",
+        "content": "convert 125 N\u00b7m to lbf\u00b7ft for a shop manual"
+      }
+    ],
+    "target": "Provide a clearly labeled numeric result with the target units (lbf\u00b7ft or ft\u00b7lbf) and practical rounding (e.g., one decimal place). Avoid a bare number or excessive precision that would undermine utility; ensure the conversion is accurate and formatted unambiguously.",
+    "metadata": {
+      "section_id": "avoid_errors",
+      "focus_id": "9fpw",
+      "sections": [
+        "best_work",
+        "avoid_errors"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "39df403a-476a-43ff-8795-514fc13e698d",
+    "input": [
+      {
+        "role": "user",
+        "content": "shell script to rename photos to YYYYMMDD_HHMMSS from EXIF, apply local tz offset, don\u2019t clobber\n- use exiftool\n- handle .jpg .jpeg .arw .cr2 .nef\n- use DateTimeOriginal with OffsetTimeOriginal if present; if no EXIF date, fall back to file mtime\n- preserve extension\n- if target exists or timestamps collide, append _1, _2, \u2026\n- quote everything correctly\n- skip files without any date\n- support -n for dry run that only prints planned renames"
+      }
+    ],
+    "target": "The assistant should produce a safe, executable shell script that correctly extracts EXIF DateTimeOriginal with timezone handling, falls back to mtime when missing, preserves extensions, avoids overwrites via unique suffixes, properly quotes variables, and supports a dry-run flag\u2014avoiding reasoning or formatting errors that would compromise the script\u2019s utility.",
+    "metadata": {
+      "section_id": "avoid_errors",
+      "focus_id": "9fpw",
+      "sections": [
+        "best_work",
+        "avoid_errors"
+      ],
+      "top_level_section": "best_work"
+    }
+  }
+]

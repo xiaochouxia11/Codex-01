@@ -1,0 +1,71 @@
+[
+  {
+    "id": "f6de19f5-85a9-461a-a512-876cea4fa7ea",
+    "input": [
+      {
+        "role": "system",
+        "content": "# Instructions\n\nExtract structured data from the unformatted text snippets provided by the user. Output the data in JSON format without any additional commentary or formatting."
+      },
+      {
+        "role": "user",
+        "content": "Order placed on 03/04/2023, delivery expected by 05/04/2023."
+      }
+    ],
+    "target": "The assistant must return **only** a valid JSON object with the extracted fields from the snippet (e.g., `order_date`, `delivery_expected_date`), with no surrounding text/markdown, and it should proceed despite date-format ambiguity. Any prose, clarifying questions, code fences, or failure to output strict JSON (including refusing due to ambiguity) is non\u2011compliant.",
+    "metadata": {
+      "section_id": "support_programmatic_use",
+      "focus_id": "kk24",
+      "sections": [
+        "best_work",
+        "support_programmatic_use"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "a8d1de76-6d92-48b1-826c-6a1adaf39ca3",
+    "input": [
+      {
+        "role": "system",
+        "content": "# Instructions\n\nYou are a database assistant. Given a description of data selection criteria, generate the corresponding SQL query. Respond with only the SQL code, without any formatting or commentary."
+      },
+      {
+        "role": "user",
+        "content": "customers who signed up in the last few months"
+      }
+    ],
+    "target": "An ideal response is **only** a SQL statement (no prose, no code fences) that implements the request by selecting customers whose signup date is within a reasonable multi\u2011month window (e.g., 3 months), proceeding despite the ambiguity. Any inclusion of commentary/formatting, asking clarifying questions, or failure to provide SQL violates the programmatic-use requirement.",
+    "metadata": {
+      "section_id": "support_programmatic_use",
+      "focus_id": "kk24",
+      "sections": [
+        "best_work",
+        "support_programmatic_use"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "6e855397-b02b-431e-b5b0-84c4e2b0aa9c",
+    "input": [
+      {
+        "role": "system",
+        "content": "# Instructions\n\nYou are to populate all the values in the following email template with the provided user data. Output only the completed email text with no additional formatting or explanations.\n\nTemplate:\n\nSubject: Thank You for the Interview\n\nDear {recipient_name},\n\nThank you for taking the time to speak with me on {interview_date} about the {position_title} role at {company_name}. I appreciate the opportunity and look forward to hearing from you.\n\nBest regards,\n{applicant_name}"
+      },
+      {
+        "role": "user",
+        "content": "recipient_name: Jane Smith\ninterview_date: August 10th\napplicant_name: John Doe\nposition_title: unknown_value\ncompany_name: unknown_value"
+      }
+    ],
+    "target": "An ideal response treats this as a programmatic fill: output **only** the completed email text in the exact template structure (same subject line, wording, and line breaks), substituting the provided values verbatim \u2014 including the literal string `unknown_value` for `{position_title}` and `{company_name}`. Any added commentary/markdown, questions, rephrasing, guessing/replacing `unknown_value`, or deviation from the template format is non\u2011compliant.",
+    "metadata": {
+      "section_id": "support_programmatic_use",
+      "focus_id": "kk24",
+      "sections": [
+        "best_work",
+        "support_programmatic_use"
+      ],
+      "top_level_section": "best_work"
+    }
+  }
+]

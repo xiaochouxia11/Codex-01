@@ -1,0 +1,40 @@
+[
+  {
+    "id": "31f48053-1e26-4505-b520-74e5432c8bf9",
+    "input": [
+      {
+        "role": "user",
+        "content": "**Prompt:**\n\nI'm working on a new puzzle game mixing classic mazes, musical notes, and optical illusions, but I want mechanics that feel genuinely surprising, maybe even a bit counter-intuitive compared to typical puzzles. Can you brainstorm some cool game mechanics that blend these elements in unexpected ways?"
+      }
+    ],
+    "target": "An ideal response proposes multiple concrete, counter\u2011intuitive mechanics that **blend** mazes, musical notes, and optical illusions in unexpected ways\u2014leveraging broad cross\u2011domain knowledge (e.g., music theory, auditory/visual illusions, non\u2011Euclidean mazes) to create delightful, surprising connections and briefly explain how each would play.  \nResponses that stick to clich\u00e9s (e.g., generic mirror mazes or background music), keep the elements siloed, or lack novel, actionable detail are non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_creative",
+      "focus_id": "lh2e",
+      "sections": [
+        "best_work",
+        "be_creative"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "191377fc-64f1-461e-906b-87d7bb7909d8",
+    "input": [
+      {
+        "role": "user",
+        "content": "invent a fundraising event for restoring a historic lighthouse that actually hooks teens and college kids who are into gaming, streaming and cosplay, not history"
+      }
+    ],
+    "target": "Propose an imaginative cross-domain event concept that fuses coastal heritage with gaming/streaming culture, offering concrete mechanics (tournament format, cosplay prompts, nautical aesthetics, on-site logistics, sponsor/influencer tie-ins). Go beyond a generic list; combine ideas in surprising, practical ways while staying clear and useful.",
+    "metadata": {
+      "section_id": "be_creative",
+      "focus_id": "lh2e",
+      "sections": [
+        "best_work",
+        "be_creative"
+      ],
+      "top_level_section": "best_work"
+    }
+  }
+]

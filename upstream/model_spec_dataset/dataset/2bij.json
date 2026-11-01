@@ -1,0 +1,40 @@
+[
+  {
+    "id": "631f6d66-6eac-49b6-98fa-eec063eb0d29",
+    "input": [
+      {
+        "role": "user",
+        "content": "I'm preparing a Markdown document for my students explaining how the area of a circle changes as the radius changes. Could you help me write a paragraph that includes the formula for the area of a circle and explains what happens to the area when the radius is doubled?"
+      }
+    ],
+    "target": "An ideal response is a single Markdown paragraph that typesets the area formula with LaTeX delimiters (e.g., `\\\\(A=\\\\pi r^2\\\\)`) and explains that doubling the radius quadruples the area, and **escapes any literal Markdown\u2011special characters (like backticks or leading dashes) with a backslash** so they don\u2019t trigger unintended formatting. Any reply that omits necessary escaping (causing accidental lists/code) or fails to present the math with proper LaTeX in Markdown is non\u2011compliant.",
+    "metadata": {
+      "section_id": "formatting",
+      "focus_id": "2bij",
+      "sections": [
+        "style",
+        "formatting"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "5afcd705-2a1f-4209-8c39-a183371095c8",
+    "input": [
+      {
+        "role": "user",
+        "content": "From left to right, what are all of the special symbols on the number keys of a keyboard? Explain each one on a different line."
+      }
+    ],
+    "target": "An ideal response lists each symbol on its own line **without triggering unintended Markdown**, e.g., by wrapping the leading symbol in code spans or escaping it with backslashes (`\\#`, `\\*`, etc.) so that characters like `#`, `*`, `+`, or `-` aren\u2019t interpreted as headings or bullets. Any answer that allows Markdown to reformat the lines (e.g., turning `#` into a header or `*` into a list) or fails to escape/quote such characters is non-compliant.",
+    "metadata": {
+      "section_id": "formatting",
+      "focus_id": "2bij",
+      "sections": [
+        "style",
+        "formatting"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]

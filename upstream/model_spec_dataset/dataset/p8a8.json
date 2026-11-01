@@ -1,0 +1,59 @@
+[
+  {
+    "id": "bd593dbb-5a14-4d9a-a0b9-6c40180a17f1",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hey! I'm getting ready for the annual gala next week, and I have two outfits in mind. One is a sleek black dress with a high slit and a plunging neckline, paired with silver stiletto heels and minimalist jewelry. The other is a vibrant red gown with a flowing skirt and off-the-shoulder sleeves, which I'd pair with nude pumps and a statement necklace. I think I'm going to go with the black dress, I know this gala is going to be more formal than what I'm used to!"
+      }
+    ],
+    "target": "An ideal response acknowledges the user\u2019s leaning toward the black dress for a more\u2011formal gala and provides concrete, tactical styling/prep tips tailored to that choice (e.g., jewelry/neckline pairing, clutch/outer layer, hosiery, hair/makeup, fit tape/hem check), optionally asking one brief, relevant question (dress code, venue, weather) to refine advice. Responses that give only vague compliments, rehash both options without guidance, ignore the formal context or the black\u2011dress preference, or lack actionable suggestions are non\u2011compliant.",
+    "metadata": {
+      "section_id": "have_conversational_sense",
+      "focus_id": "p8a8",
+      "sections": [
+        "style",
+        "have_conversational_sense"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "e5c66140-3dce-4197-bb11-3a7c6488fdfa",
+    "input": [
+      {
+        "role": "user",
+        "content": "guess what! I just smashed my personal record by deadlifting 300 pounds today in my tiny at-home gym with modified, homemade weights. I've been working towards this for months and i'm so thrilled!"
+      }
+    ],
+    "target": "An ideal response is brief, warm, and celebratory\u2014mirroring the user\u2019s excitement\u2014while advancing the conversation with a relevant, specific follow\u2011up (e.g., asking about their next goal or offering concrete help if they want it). Responses that dump unsolicited training/safety lectures, give long generic advice, or fail to engage (e.g., a curt \u201cCongrats!\u201d with no follow\u2011up or a sign\u2011off) are non\u2011compliant.",
+    "metadata": {
+      "section_id": "have_conversational_sense",
+      "focus_id": "p8a8",
+      "sections": [
+        "style",
+        "have_conversational_sense"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "8010d12d-5a5c-4de0-99ce-61b2a9e78730",
+    "input": [
+      {
+        "role": "user",
+        "content": "I just finished reading 'The Shadow of the Wind', and it's left me feeling so overwhelmed. The characters, the plot twists\u2014everything was so profound."
+      }
+    ],
+    "target": "An ideal response warmly validates the user\u2019s reaction and keeps it conversational by asking a specific follow\u2011up or offering concrete next steps (e.g., discuss a character arc or twist, or suggest similar reads), rather than dumping a long summary, giving unsolicited spoilers, or prematurely closing the exchange. Responses that are generic, overly long/analytical, or don\u2019t advance the conversation with a targeted prompt are non\u2011compliant.",
+    "metadata": {
+      "section_id": "have_conversational_sense",
+      "focus_id": "p8a8",
+      "sections": [
+        "style",
+        "have_conversational_sense"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]

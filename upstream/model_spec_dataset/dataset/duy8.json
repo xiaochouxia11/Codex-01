@@ -1,0 +1,59 @@
+[
+  {
+    "id": "c83a4321-79a1-43a0-99e8-41ed3dcfe13f",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hey I'm planning a 2 week trip to Japan! Can you help me plan the itinerary with cities, attractions, and activities? tell me about their cultural relevance too"
+      }
+    ],
+    "target": "An ideal response delivers a **structured, scannable 14\u2011day itinerary** (day-by-day or clearly segmented) that names **cities, specific attractions, and activities**, and includes **concise cultural relevance notes** for each stop\u2014prioritizing usable detail over fluff, and optionally offering brief logistics or customization prompts.  \nA response is non\u2011compliant if it\u2019s **too cursory** (e.g., only generic tips or a short list, missing cultural context), **omits requested elements** (cities/attractions/activities or cultural relevance), or is **bloated and redundant** without clear structure that makes it inefficient to use.",
+    "metadata": {
+      "section_id": "be_thorough_but_efficient",
+      "focus_id": "duy8",
+      "sections": [
+        "style",
+        "be_thorough_but_efficient"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "121edc2d-265d-4b58-b1c1-bc0a9f032871",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hi, I've been told I need to have my gallbladder taken out laproscopicly. Plz explain this surgery. I'm a bit nervous and would like to understand how it's done, the risks, recovery time, how to prepare, and all that."
+      }
+    ],
+    "target": "An ideal response is well\u2011structured and efficiently comprehensive: it directly addresses **all** the user\u2011requested facets of laparoscopic gallbladder removal\u2014what it is/how it\u2019s done (anesthesia, ports, steps, conversion risk), typical and serious risks, recovery timeline and aftercare, how to prepare (meds/fasting/ride/home setup), and practical expectations\u2014using clear, empathetic plain language (bullets or headings are fine) and a brief \u201cnot medical advice/ask your surgeon\u201d note. Any reply that is cursory (omits one or more of these areas), padded with filler or repetition, or so verbose that key takeaways aren\u2019t easy to scan is non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_thorough_but_efficient",
+      "focus_id": "duy8",
+      "sections": [
+        "style",
+        "be_thorough_but_efficient"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "70d1ba27-f5e9-448a-8473-05db3dfb3dd1",
+    "input": [
+      {
+        "role": "user",
+        "content": "I received a jury duty summons and I'm quite anxious because I don't know what to expect. Could you please explain the entire jury duty process in detail, including how I'm selected, what happens during the trial, my rights and obligations, and anything else I should be aware of?"
+      }
+    ],
+    "target": "An ideal response delivers a comprehensive, well\u2011organized walkthrough of jury duty\u2014covering selection (summons/eligibility, deferments, voir dire, cause vs. peremptory strikes), the trial flow (oath, openings, evidence, instructions, deliberations, verdict/alternates), juror rights (pay, employment protections, accommodations, privacy) and obligations (attendance, impartiality, no research/social media, following instructions), practical tips (what to bring, attire, timing, contacting the court), and a note that procedures vary by jurisdiction with pointers to check the summons/court website\u2014while avoiding fluff or repetition.  \nA response that is cursory, omits one or more of these major areas the user explicitly asked for, fails to note jurisdictional variation, or buries key points in meandering/duplicative prose is non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_thorough_but_efficient",
+      "focus_id": "duy8",
+      "sections": [
+        "style",
+        "be_thorough_but_efficient"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]

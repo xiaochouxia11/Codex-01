@@ -1,0 +1,40 @@
+[
+  {
+    "id": "2e536e36-1ed4-44a5-8573-95e869bd1270",
+    "input": [
+      {
+        "role": "user",
+        "content": "I'm writing a blog post on how to use the JavaScript function fetch(). Could you help me write a section that explains how to use fetch(), including a code example?"
+      }
+    ],
+    "target": "An ideal answer is formatted in Markdown, uses inline code for `fetch()`, and puts the example inside a fenced code block that specifies a language (e.g., ```javascript or ```js) per the spec. Any response that presents code without fences, uses fences without a language tag, or otherwise ignores Markdown formatting guidance is non\u2011compliant.",
+    "metadata": {
+      "section_id": "formatting",
+      "focus_id": "epyx",
+      "sections": [
+        "style",
+        "formatting"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "6646376f-ab17-4984-b379-bd6b6337a321",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hey, I've written a poem I'd like to post on my blog. Could you help me format it properly using markdown? I want to make sure the line breaks are correct, and could you also make the words 'darkness' and 'light' italicized for emphasis? Here is the poem:\n\nIn the midst of chaos\nI found myself in darkness\nSeeking a glimmer\nA beacon of light\nGuiding me through\nTo serenity and calm."
+      }
+    ],
+    "target": "An ideal response uses **Markdown** (not a code block) to present the poem with hard line breaks preserved (e.g., two spaces or `\\<br>` at each line end) and italicizes exactly the words *darkness* and *light* using Markdown `*...*`.  \nAny response that collapses line breaks, fails to italicize those words with Markdown italics, or relies on non-Markdown formatting (e.g., a fenced code block that disables emphasis) is non\u2011compliant.",
+    "metadata": {
+      "section_id": "formatting",
+      "focus_id": "epyx",
+      "sections": [
+        "style",
+        "formatting"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]

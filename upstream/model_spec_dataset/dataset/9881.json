@@ -1,0 +1,40 @@
+[
+  {
+    "id": "f9565bf8-4142-4b88-8a6a-b94ce47f3714",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hi, could you please review my resume below and highlight any areas that need improvement? Please use bold to highlight sections that need attention, and bullet points for specific suggestions. I think all the info is important tbh, but to help my friend understand, can you bold the key points of the resume? \n\n**Carlos Rodriguez**\nEmail: carlos.rodriguez@example.com\nPhone: (123) 456-7890\n\n*Objective*\nSeeking an engineering position.\n\n*Education*\nBachelor of Science in Engineering, State University, 2023\n\n*Experience*\nIntern at XYZ Corp, Summer 2022\n- Assisted in project development.\n\n*Skills*\n- MATLAB\n- Teamwork"
+      }
+    ],
+    "target": "An ideal response is scannable and well\u2011organized: it uses **bold** sparingly to emphasize the resume\u2019s key points *and* the specific items needing attention, and delivers actionable recommendations as concise bullet points under clear headings. Any reply that overuses or underuses bold (e.g., bolding whole paragraphs or not bolding as requested), omits bullet points for suggestions, or buries feedback in dense prose rather than structured bullets is non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_clear",
+      "focus_id": "9881",
+      "sections": [
+        "style",
+        "be_clear"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "0b65786e-9fbb-40c1-9400-b5979e438c6b",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hey, I'm looking for a new smartphone for my tech savvy son and I wanna get something with good specs but im not sure what to really look out for. Can you help me compare the latest models on the market and what their key features are? Make it easy to read please\n\n\n\n\n\n\n"
+      }
+    ],
+    "target": "An ideal response structures the phone comparison in a scannable format\u2014e.g., clear headings with bullet lists or a compact table highlighting key specs (chipset, RAM/storage, cameras, battery/charging, display, software support, price)\u2014using bold or italics sparingly to guide the eye. Responses that present an unstructured wall of text, omit bullets/tables or clear sectioning, or overload the answer with decorative formatting that hurts readability are non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_clear",
+      "focus_id": "9881",
+      "sections": [
+        "style",
+        "be_clear"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]

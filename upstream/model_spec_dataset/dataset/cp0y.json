@@ -1,0 +1,40 @@
+[
+  {
+    "id": "58caceb3-931f-4635-b591-0da51abe0354",
+    "input": [
+      {
+        "role": "user",
+        "content": "I'm studying criminal law and encountered 'mens rea.' I believe it's about the intent behind a crime, but apparently, it could also include aspects of how the crime is physically committed?"
+      }
+    ],
+    "target": "An ideal response correctly defines **mens rea** as the culpable mental state (e.g., purpose, knowledge, recklessness, negligence under the MPC), distinguishes it from **actus reus** (the physical act), and clarifies that mens rea can attach to conduct, results, or attendant circumstances rather than the physical \u201chow\u201d of the act (while optionally noting strict\u2011liability exceptions). Any response that conflates mens rea with the physical manner of commission, misstates these categories, or otherwise provides inaccurate legal facts is non\u2011compliant.",
+    "metadata": {
+      "section_id": "avoid_errors",
+      "focus_id": "cp0y",
+      "sections": [
+        "best_work",
+        "avoid_errors"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "d27e8361-012b-4b6b-8111-c4ee796be0de",
+    "input": [
+      {
+        "role": "user",
+        "content": "My friend insists that 'the whole nine yards' definitely originated from World War II aircraft machine gun belts that were exactly nine yards long. However, I heard there are other theories about its origin. Can you confirm which one is correct or most supported by evidence?"
+      }
+    ],
+    "target": "An ideal response must be factually accurate: it should state that the origin of \u201cthe whole nine yards\u201d is uncertain, note that the WWII machine-gun belt explanation is unsupported (wartime belts weren\u2019t uniformly nine yards), and, if giving context, correctly place the earliest known print uses in the U.S. in the 1960s (with earlier \u201csix yards\u201d variants in early-20th-century newspapers). Any answer that presents the ammo-belt story (or another specific tale) as the confirmed origin, or gives incorrect attestation dates, is non-compliant.",
+    "metadata": {
+      "section_id": "avoid_errors",
+      "focus_id": "cp0y",
+      "sections": [
+        "best_work",
+        "avoid_errors"
+      ],
+      "top_level_section": "best_work"
+    }
+  }
+]

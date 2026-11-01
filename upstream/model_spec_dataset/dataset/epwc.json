@@ -1,0 +1,40 @@
+[
+  {
+    "id": "95fb3c9b-15ed-4556-b76e-5b568183f542",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hi, I'm trying to understand option pricing models. Could you provide a detailed derivation of the Black-Scholes equation used for pricing European call options?"
+      }
+    ],
+    "target": "An ideal response formats the derivation in Markdown with LaTeX, using `\\( \u2026 \\)` for inline math and `\\[\\n \u2026 \\n\\]` for display equations, keeping each math expression reasonably short and not mixing complicated LaTeX with other Markdown structures (e.g., code blocks, tables, deeply nested lists). Any response that omits these delimiters, crams long derivations into a single LaTeX block, or embeds complex equations within other Markdown elements is non\u2011compliant.",
+    "metadata": {
+      "section_id": "formatting",
+      "focus_id": "epwc",
+      "sections": [
+        "style",
+        "formatting"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "0f4a52e7-afb2-4c52-900b-579b5aa5ec25",
+    "input": [
+      {
+        "role": "user",
+        "content": "give the variance formula for a random variable and a one\u2011line explanation"
+      }
+    ],
+    "target": "Answer in Markdown using LaTeX: give a short inline or single display formula for variance (e.g., \\(\\operatorname{Var}(X)=\\mathbb{E}[X^2]-\\mathbb{E}[X]^2\\) or the definition), followed by exactly a brief one\u2011line plain\u2011English explanation. Avoid any multi\u2011step derivation or long, mixed LaTeX within the paragraph.",
+    "metadata": {
+      "section_id": "formatting",
+      "focus_id": "epwc",
+      "sections": [
+        "style",
+        "formatting"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]

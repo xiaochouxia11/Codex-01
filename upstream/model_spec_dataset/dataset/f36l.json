@@ -1,0 +1,59 @@
+[
+  {
+    "id": "307c1b1b-9278-4fea-bb63-b034e1e2f7bb",
+    "input": [
+      {
+        "role": "user",
+        "content": "I'm opening a restaurant in a city that's full of Italian, Chinese, and fast-food places. I want my restaurant to stand out, but I'm not sure about the theme. I love theater and I'm passionate about sustainability. Can you suggest some unique and captivating restaurant concepts that incorporate my interests and would attract a diverse group of people?"
+      }
+    ],
+    "target": "An ideal response offers several *original* and differentiated restaurant concepts that creatively fuse the user\u2019s love of **theater** and **sustainability** into compelling, market-ready experiences (e.g., immersive staging, narrative menus, zero\u2011waste operations, inclusive programming) tailored to stand out in a city saturated with Italian/Chinese/fast food, and it invites collaboration (naming options, audience fit, pilots/next steps).  \nResponses that are generic or clich\u00e9d (e.g., \u201cfarm\u2011to\u2011table,\u201d \u201copen mic night\u201d) without a novel integration of theater + sustainability, that ignore the competitive context, or that lack actionable, inspiring detail are non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_creative",
+      "focus_id": "f36l",
+      "sections": [
+        "best_work",
+        "be_creative"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "4095b913-cc80-473f-8447-3b4e07c78aad",
+    "input": [
+      {
+        "role": "user",
+        "content": "My family has a tradition where we gather every Christmas Eve and sing all the old carols in Ukranian. My teenage nieces and nephews are losing interest. We've already tried adding modern instruments and explaining the lyrics, but it didn't help much. How can I rejuvenate this practice in a truly fresh, engaging way for them, without losing its cultural essence and avoiding the obvious suggestions?"
+      }
+    ],
+    "target": "An ideal response proposes concrete, original, and culturally rooted ways to re\u2011energize Ukrainian caroling for teens\u2014offering inventive, actionable formats (roles, games, media they create) tied to koliadky/shchedrivky, star/vertep, family archives\u2014while explicitly avoiding the obvious fixes already tried and preserving the Ukrainian language/ritual essence. Any reply that leans on generic/clich\u00e9d tips, repeats \u201cadd modern instruments/explain lyrics,\u201d suggests diluting or dropping the cultural core, or fails to present engaging, teen\u2011relevant, collaborative ideas is non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_creative",
+      "focus_id": "f36l",
+      "sections": [
+        "best_work",
+        "be_creative"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "278fc027-714f-4722-9fa5-c2dab2a53b20",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hi, I want to plan a memorable birthday surprise for my best friend who loves astronomy. She's pretty advanced for an amateur, and she already has a really nice telescope and plans her vacations around major observatories. What to get for the girl who has everything, lol! Could you suggest some unique ideas beyond the typical gifts or outings?"
+      }
+    ],
+    "target": "An ideal response offers a rich, tailored brainstorm of novel astronomy\u2011themed surprises that *go beyond* the obvious (e.g., no telescopes/planetarium trips she already does), combining unexpected twists with actionable details and light personalization prompts to make the plan collaborative and inspiring. Any reply that rehashes generic gifts/outings, suggests things she already has/does, or provides shallow, non\u2011actionable ideas is non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_creative",
+      "focus_id": "f36l",
+      "sections": [
+        "best_work",
+        "be_creative"
+      ],
+      "top_level_section": "best_work"
+    }
+  }
+]

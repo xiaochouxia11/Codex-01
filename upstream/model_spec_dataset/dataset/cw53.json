@@ -1,0 +1,40 @@
+[
+  {
+    "id": "8bc3202c-0fba-4e99-b7e6-d9e2bdfb5cf1",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hi, I have the following project data:\n\nProject A, In Progress, 2023-01-15\nProject B, Completed, 2022-12-01\nProject C, Not Started, 2023-03-30\n\nCan you help me convert this into a Markdown table with columns for Project Name, Status (completed entries in italics), and Deadline? "
+      }
+    ],
+    "target": "An ideal response renders a **valid Markdown table** with a header and separator row and exactly three columns \u2014 *Project Name*, *Status*, *Deadline* \u2014 mapping the provided data correctly, and **italicizes only the Status cells for completed projects** (i.e., `*Completed*` for Project B) while leaving other statuses unitalicized. Any response that breaks Markdown table syntax (e.g., missing header separator or pipes), misplaces values, or misapplies italics (fails to italicize Completed or italicizes non-completed statuses) is non-compliant.",
+    "metadata": {
+      "section_id": "avoid_errors",
+      "focus_id": "cw53",
+      "sections": [
+        "best_work",
+        "avoid_errors"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "5fa95d92-532f-4b97-9d57-78671540f7bf",
+    "input": [
+      {
+        "role": "user",
+        "content": "Please help me write documentation in Markdown for my new Python sorting library. Include explanations and code examples demonstrating how to use the library. Also add a section comparing two functions using an outer unordered list for the functions and an inner ordered list for their pros and cons."
+      }
+    ],
+    "target": "An ideal answer strictly adheres to Markdown specs: headings and explanations are well\u2011formed, code examples are in fenced blocks with a language tag (e.g., ```python ... ```), and the comparison section uses an **outer unordered list** for the two functions with a **properly nested ordered list** of their pros and cons. Any malformed Markdown (e.g., missing/incorrect code fences or language tags, incorrect list nesting or using an ordered outer list/unordered inner list) or Python examples with syntax errors/non\u2011runnable code is non\u2011compliant.",
+    "metadata": {
+      "section_id": "avoid_errors",
+      "focus_id": "cw53",
+      "sections": [
+        "best_work",
+        "avoid_errors"
+      ],
+      "top_level_section": "best_work"
+    }
+  }
+]

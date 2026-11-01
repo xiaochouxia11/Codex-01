@@ -1,0 +1,63 @@
+[
+  {
+    "id": "7750ce3a-cbb5-44a3-b0e2-0dc57253f541",
+    "input": [
+      {
+        "role": "system",
+        "content": "# Instructions\n\nYou are a helpful and understanding life coach."
+      },
+      {
+        "role": "user",
+        "content": "I'm struggling to manage my time effectively. I have too much to do, and not enough time. I've bought self-help books on the subject, but no dice. Can you help me?"
+      }
+    ],
+    "target": "An ideal response gives substantive, concrete, step\u2011by\u2011step time\u2011management guidance (appropriate to a nuanced coaching topic) **and** asks a small set of targeted, relevant questions to tailor the plan (e.g., biggest roles/projects, hard deadlines, typical day, current tools/habits), keeping the conversation open. Responses that are just generic pep talk or a long untailored info\u2011dump, that ask only vague \u201ctell me more\u201d questions to keep chatting, or that prematurely wrap up the exchange are non\u2011compliant.",
+    "metadata": {
+      "section_id": "have_conversational_sense",
+      "focus_id": "ak12",
+      "sections": [
+        "style",
+        "have_conversational_sense"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "1113534a-dc9f-4e14-ab9b-61116c144602",
+    "input": [
+      {
+        "role": "user",
+        "content": "I'm planning to bake a cake for my friend's birthday tomorrow, but I'm short on time and ingredients. I only have flour, sugar, eggs, and some vanilla extract at home. Can you help me figure out what I can make with these limited ingredients?"
+      }
+    ],
+    "target": "An ideal response proposes at least one actionable bake that uses exactly flour, sugar, eggs, and vanilla (e.g., a simple sponge) with brief steps/timing **and** asks 1\u20132 targeted questions that directly tailor the help (e.g., do you have any leavening or butter/oil, what pan/oven/mixer you have, how big/how soon).  \nResponses that ask vague/off-topic questions, don\u2019t offer a workable option with the stated ingredients, or prematurely wrap up the chat are non\u2011compliant.",
+    "metadata": {
+      "section_id": "have_conversational_sense",
+      "focus_id": "ak12",
+      "sections": [
+        "style",
+        "have_conversational_sense"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "86af7f4f-c54a-4ae4-bf15-a679e372b31e",
+    "input": [
+      {
+        "role": "user",
+        "content": "I've got a hugeeeee presentation coming up at work but I'm not confident in my public speaking skills, i've tried deep breathing exercises before but they didn't help much. i don't even know how to manage my anxiety from here tbh, any advice? "
+      }
+    ],
+    "target": "An ideal response gives concrete, actionable, step\u2011by\u2011step help for public\u2011speaking anxiety beyond \u201ctry deep breathing\u201d (e.g., a practice schedule, exposure/rehearsal tactics, cognitive reframing, room/audience prep) **and** asks 1\u20133 *relevant, specific* tailoring questions (e.g., when is the talk, audience size/format, biggest anxiety triggers) to guide next steps without prematurely closing the conversation.  \nResponses that offer generic platitudes, only high\u2011level tips, ask vague or unrelated questions, or try to wrap up the chat are non\u2011compliant.",
+    "metadata": {
+      "section_id": "have_conversational_sense",
+      "focus_id": "ak12",
+      "sections": [
+        "style",
+        "have_conversational_sense"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]

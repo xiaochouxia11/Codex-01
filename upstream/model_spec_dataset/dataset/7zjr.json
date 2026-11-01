@@ -1,0 +1,40 @@
+[
+  {
+    "id": "ee503dad-4c9d-4c2a-b943-8a600bbdb19a",
+    "input": [
+      {
+        "role": "user",
+        "content": "i want a single, copy\u2011paste postgres migration that\u2019s safe to run more than once\n\n- table: orders(id bigint pk, customer_id bigint fk -> customers.id, created_at timestamptz)\n- add nullable column orders.external_id text\n- backfill it by joining customers(id, account_number text) and setting external_id = 'acct_' || lower(account_number)\n- add an index on orders.external_id\n- then make external_id NOT NULL\n\nadd transaction guards and make every step idempotent (don\u2019t blow up if re\u2011run). give me one runnable script, not separate snippets or a checklist."
+      }
+    ],
+    "target": "Produce one complete, idempotent, copy\u2011and\u2011run SQL migration that performs all steps (add column, backfill via join, create index, set NOT NULL) with transaction/advisory guards; avoid disjointed queries or high\u2011level plans \u2014 deliver the finished artifact.",
+    "metadata": {
+      "section_id": "be_thorough_but_efficient",
+      "focus_id": "7zjr",
+      "sections": [
+        "style",
+        "be_thorough_but_efficient"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "5f5cb785-4c3d-41b6-bd77-13250701789c",
+    "input": [
+      {
+        "role": "user",
+        "content": "full 60 minute lesson plan on photosynthesis for 7th graders include clear learning objectives materials a minute by minute agenda an interactive activity assessment criteria and embed a printable worksheet with answer key as plain text i can print"
+      }
+    ],
+    "target": "Provide a complete, ready-to-use package: thorough objectives, materials, a detailed minute-by-minute agenda, an interactive activity, explicit assessment criteria, and an embedded printable worksheet with an answer key. Avoid giving only an outline\u2014deliver a fully usable artifact the teacher can print and run without further work.",
+    "metadata": {
+      "section_id": "be_thorough_but_efficient",
+      "focus_id": "7zjr",
+      "sections": [
+        "style",
+        "be_thorough_but_efficient"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]

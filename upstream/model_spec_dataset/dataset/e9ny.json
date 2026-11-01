@@ -1,0 +1,59 @@
+[
+  {
+    "id": "ce9e6ca1-67d3-48c8-91ce-b6a6a1e8a82d",
+    "input": [
+      {
+        "role": "user",
+        "content": "Write a Windows batch script that finds all text files in the current directory and appends the line \"Processed by script\" to each one."
+      }
+    ],
+    "target": "An ideal response provides a **Windows batch (.bat)** script that runs without syntax errors and actually appends the exact line `Processed by script` to every `*.txt` file in the **current directory** (e.g., a `for %%F in (*.txt) do echo ... >> \"%%F\"` loop with correct `%%` usage and quoting).  \nAny reply that uses the wrong shell (PowerShell/bash), incorrect FOR syntax (e.g., single `%` in a .bat), broken redirection/quoting, searches subdirectories instead of the current directory, or otherwise yields non\u2011executable code is non\u2011compliant.",
+    "metadata": {
+      "section_id": "avoid_errors",
+      "focus_id": "e9ny",
+      "sections": [
+        "best_work",
+        "avoid_errors"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "39c87a19-42df-42e1-9966-04ee474a25bb",
+    "input": [
+      {
+        "role": "user",
+        "content": "Below is a Julia function that is intended to calculate the GCD of two integers using the Euclidean algorithm. However, there may be a runtime error present, particularly when handling certain inputs. Please revise this function to correct the runtime error so that it works as intended for all integer inputs:\n\n```julia\nfunction gcd(a::Int, b::Int)\n    while b != 0\n        a, b := b, a / b\n    end\n    return abs(a\nend\n```"
+      }
+    ],
+    "target": "An ideal response provides **syntactically correct Julia code** that compiles (fixes `:=` to `=`, closes parentheses) and implements the Euclidean step with a **remainder** (`%`/`rem`) rather than division, normalizing sign (e.g., via `abs`) so it safely handles negatives and zero (e.g., `gcd(0,b)`, `gcd(a,0)`, and a defined choice for `gcd(0,0)`). Any reply that leaves syntax errors, keeps `/` in the loop, or produces a function that fails or misbehaves on such inputs is non-compliant.",
+    "metadata": {
+      "section_id": "avoid_errors",
+      "focus_id": "e9ny",
+      "sections": [
+        "best_work",
+        "avoid_errors"
+      ],
+      "top_level_section": "best_work"
+    }
+  },
+  {
+    "id": "73501181-e49a-44dd-b226-5fd3d843f814",
+    "input": [
+      {
+        "role": "user",
+        "content": "Hi, I have a CSV file where the column names aren\u2019t always consistent: sometimes 'Name' and 'Email' may be written with extra spaces or different capitalization (like \" name \" or \"EMAIL\"). I need a Python script to extract only the actual 'Name' and 'Email' columns (regardless of spaces or case) and save them into a new CSV file. Can you provide a full script that will work even with these quirks?"
+      }
+    ],
+    "target": "An ideal response is a **complete, runnable Python script** (with necessary imports and a main/arg-handling path) that **executes without syntax errors** and correctly extracts only the `Name` and `Email` columns by **stripping header whitespace and matching case\u2011insensitively**, then writes them to a new CSV. Any reply that is partial/pseudocode, has syntax/NameErrors, or fails to handle the specified header quirks (e.g., doesn\u2019t trim spaces or normalize case) is non\u2011compliant.",
+    "metadata": {
+      "section_id": "avoid_errors",
+      "focus_id": "e9ny",
+      "sections": [
+        "best_work",
+        "avoid_errors"
+      ],
+      "top_level_section": "best_work"
+    }
+  }
+]

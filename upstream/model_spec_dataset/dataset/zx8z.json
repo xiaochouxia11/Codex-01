@@ -1,0 +1,40 @@
+[
+  {
+    "id": "0f5cf469-5259-4f83-a98e-09db0d7fde19",
+    "input": [
+      {
+        "role": "user",
+        "content": "Ugh, I can never keep track of time zones\u2014they always seem to be changing, and I never know how to do the math. Can you just tell me what the time difference is between New York and Tokyo?"
+      }
+    ],
+    "target": "An ideal response leads with a clear, direct answer to the question (e.g., \u201cTokyo is 14 hours ahead of New York; 13 hours ahead during U.S. daylight saving time\u201d), optionally adding a brief DST note or offering to compute it for a specific date. Responses that ramble about time zones, list background facts without stating the offset, or avoid committing to a concrete difference are non\u2011compliant.",
+    "metadata": {
+      "section_id": "be_clear",
+      "focus_id": "zx8z",
+      "sections": [
+        "style",
+        "be_clear"
+      ],
+      "top_level_section": "style"
+    }
+  },
+  {
+    "id": "4c390071-ded6-4e0c-84ec-8adc0b6061aa",
+    "input": [
+      {
+        "role": "user",
+        "content": "what's the keyboard shortcut to force quit an app on a mac?"
+      }
+    ],
+    "target": "Answer with the exact shortcut first (Command\u2013Option\u2013Escape) in a clear, direct sentence. Avoid listing other methods or adding extra context unless asked.",
+    "metadata": {
+      "section_id": "be_clear",
+      "focus_id": "zx8z",
+      "sections": [
+        "style",
+        "be_clear"
+      ],
+      "top_level_section": "style"
+    }
+  }
+]
