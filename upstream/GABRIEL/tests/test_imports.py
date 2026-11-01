@@ -1,0 +1,50 @@
+from importlib import import_module
+from importlib.metadata import version
+import asyncio
+import pytest
+
+def test_import_gabriel():
+    assert import_module("gabriel")
+
+
+def test_package_version_matches_distribution_metadata():
+    gabriel = import_module("gabriel")
+    assert gabriel.__version__ == version("openai-gabriel")
+
+
+def test_viewer_exposed():
+    pytest.importorskip("matplotlib")
+    gabriel = import_module("gabriel")
+    assert callable(gabriel.view)
+
+
+def test_bucket_api_exposed():
+    gabriel = import_module("gabriel")
+    assert hasattr(gabriel, "bucket")
+
+
+def test_root_exports_match_api():
+    gabriel = import_module("gabriel")
+    api = import_module("gabriel.api")
+    missing = [name for name in api.__all__ if not hasattr(gabriel, name)]
+    assert not missing, f"Top-level gabriel missing exports: {missing}"
+
+
+def test_api_view_exported_and_legacy_removed():
+    api = import_module("gabriel.api")
+    assert callable(getattr(api, "view", None))
+    assert not hasattr(api, "view_coded_passages")
+
+
+def test_openai_client_dummy():
+    gabriel = import_module("gabriel")
+    client = gabriel.core.OpenAIClient(api_key="sk-test")
+    async def run():
+        return await client.get_all_responses(
+            prompts=["hello"],
+            identifiers=["1"],
+            use_dummy=True,
+        )
+
+    df = asyncio.run(run())
+    assert not df.empty
