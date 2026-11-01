@@ -1,0 +1,415 @@
+use anyhow::{Context, anyhow};
+use clap::Parser;
+use hickory_server::proto::rr::Name;
+use log::LevelFilter;
+use oslog::OsLogger;
+use softnet::NetType;
+use softnet::control::Control;
+use softnet::manager::{Manager, VmConfig};
+use softnet::proxy::ExposedPort;
+use softnet::proxy::Rule;
+use std::env;
+use std::os::fd::{FromRawFd, OwnedFd};
+use std::os::raw::c_int;
+use std::os::unix::process::CommandExt;
+use std::process::{Command, ExitCode};
+use system_configuration::core_foundation::base::TCFType;
+use system_configuration::core_foundation::boolean::CFBoolean;
+use system_configuration::core_foundation::dictionary::CFDictionary;
+use system_configuration::core_foundation::number::CFNumber;
+use system_configuration::core_foundation::string::CFString;
+use system_configuration::preferences::SCPreferences;
+use system_configuration::sys::preferences::{
+    SCPreferencesApplyChanges, SCPreferencesCommitChanges, SCPreferencesLock,
+    SCPreferencesSetValue, SCPreferencesUnlock,
+};
+use tokio::signal::unix::{SignalKind, signal};
+use uzers::{get_current_groupname, get_current_username, get_effective_uid};
+
+const VERSION: &str = match option_env!("SOFTNET_VERSION") {
+    Some(version) => version,
+    None => "unknown-unknown",
+};
+
+#[derive(Parser, Debug)]
+#[command(version = VERSION)]
+struct Args {
+    #[clap(
+        long,
+        value_parser = parse_vm_fd,
+        requires = "vm_mac_address",
+        required_unless_present = "control_fd",
+        help = "FD number to use for communicating with the VM's networking stack"
+    )]
+    vm_fd: Option<c_int>,
+
+    #[clap(
+        long,
+        value_parser = parse_vm_fd,
+        help = "connected Unix stream FD for newline-delimited JSON-RPC control"
+    )]
+    control_fd: Option<c_int>,
+
+    #[clap(long, requires = "vm_fd", help = "MAC address to enforce for the VM")]
+    vm_mac_address: Option<mac_address::MacAddress>,
+
+    #[clap(
+        long,
+        requires = "vm_fd",
+        value_parser = |value: &str| Name::from_ascii(value),
+        help = "Single-label VM name to register as <NAME>.internal"
+    )]
+    vm_name: Option<Name>,
+
+    #[clap(long, requires = "vm_fd", value_enum, help = "type of network to use for the VM", default_value_t=NetType::Nat)]
+    vm_net_type: NetType,
+
+    #[clap(
+        long,
+        help = "set bootpd(8) lease time to this value (in seconds) before starting the VM",
+        default_value_t = 600
+    )]
+    bootpd_lease_time: u32,
+
+    #[clap(long, help = "user name to drop privileges to")]
+    user: Option<String>,
+
+    #[clap(long, help = "group name to drop privileges to")]
+    group: Option<String>,
+
+    #[clap(
+        long,
+        requires = "vm_fd",
+        help = "Comma-separated rules for allowing traffic, in the following forms:\n\n\
+        * TARGET: traffic sent from the VM to TARGET; reverse traffic is not filtered by this rule\n\
+        * in [proto PROTO] [TARGET] [port PORT]: flows initiated toward the VM\n\
+        * out [proto PROTO] [TARGET] [port PORT]: flows initiated by the VM\n\n\
+        Parameters:\n\n\
+        * TARGET: an IPv4 CIDR, @host (the vmnet bridge gateway IP), or @peers \
+        (other configured VMs' reserved IPs on this Softnet network); defaults to 0.0.0.0/0 when omitted\n\
+        * PROTO: tcp, udp, or icmp\n\
+        * PORT: destination port or inclusive START:END range (TCP/UDP only)\n\n\
+        Directional rules make bare TARGET rules stateful in both directions.\n\n\
+        When used with --block, matching prefers a port, then the longest prefix, then a protocol, \
+        then the narrowest port range. Blocking wins ties.\n\n\
+        Examples:\n\n\
+        * --allow=192.168.0.0/24 — allow stateless traffic with this LAN\n\
+        * --allow=\"in @host\" — allow stateful flows initiated from @host\n\
+        * --allow=\"out 192.168.0.0/24\" — allow stateful flows initiated toward this LAN\n\
+        * --allow=\"out @peers\" — allow stateful flows initiated toward other VMs\n\
+        * --allow=\"in proto tcp @host port 22\" — allow SSH from the host to the VM\n\
+        * --allow=\"in proto tcp port 49152:65535\" — allow TCP connections to the VM's dynamic port range\n\
+        * --allow=\"in @host,out 192.168.0.0/24\" — multiple rules may be comma-separated",
+        value_name = "comma-separated rules",
+        use_value_delimiter = true,
+        action = clap::ArgAction::Set
+    )]
+    allow: Vec<Rule>,
+
+    #[clap(
+        long,
+        requires = "vm_fd",
+        help = "Comma-separated rules for blocking traffic, in the following forms:\n\n\
+        * TARGET: traffic sent from the VM to TARGET; reverse traffic is not filtered by this rule\n\
+        * in [proto PROTO] [TARGET] [port PORT]: flows initiated toward the VM\n\
+        * out [proto PROTO] [TARGET] [port PORT]: flows initiated by the VM\n\n\
+        Parameters:\n\n\
+        * TARGET: an IPv4 CIDR, @host (the vmnet bridge gateway IP), or @peers \
+        (other configured VMs' reserved IPs on this Softnet network); defaults to 0.0.0.0/0 when omitted\n\
+        * PROTO: tcp, udp, or icmp\n\
+        * PORT: destination port or inclusive START:END range (TCP/UDP only)\n\n\
+        Directional rules make bare TARGET rules stateful in both directions.\n\n\
+        When used with --allow, matching prefers a port, then the longest prefix, then a protocol, \
+        then the narrowest port range. Blocking wins ties.\n\n\
+        Examples:\n\n\
+        * --block=0.0.0.0/0 — establish a stateless default-deny egress policy\n\
+        * --block=\"out proto tcp port 22\" — block SSH from the VM to any host\n\
+        * --block=\"out 66.66.66.0/24\" — block stateful flows initiated toward this CIDR\n\
+        * --block=\"out @host,out 66.66.66.0/24\" — multiple rules may be comma-separated",
+        value_name = "comma-separated rules",
+        use_value_delimiter = true,
+        action = clap::ArgAction::Set
+    )]
+    block: Vec<Rule>,
+
+    #[clap(
+        long,
+        requires = "vm_fd",
+        help = "comma-separated list of TCP ports to expose (e.g. --expose 2222:22,8080:80)",
+        value_name = "comma-separated port specifications",
+        use_value_delimiter = true,
+        action = clap::ArgAction::Set
+    )]
+    expose: Vec<ExposedPort>,
+
+    #[clap(long, hide = true)]
+    sudo_escalation_probing: bool,
+
+    #[clap(long, hide = true)]
+    sudo_escalation_done: bool,
+}
+
+fn main() -> ExitCode {
+    // Enable backtraces by default
+    if env::var("RUST_BACKTRACE").is_err() {
+        unsafe {
+            env::set_var("RUST_BACKTRACE", "full");
+        }
+    }
+
+    // Initialize Sentry
+    let _sentry = sentry::init(
+        sentry::ClientOptions::default()
+            .maybe_release(option_env!("CIRRUS_TAG").map(|tag| format!("softnet@{tag}"))),
+    );
+
+    // Enrich future events with Cirrus CI-specific tags
+    if let Ok(tags) = env::var("CIRRUS_SENTRY_TAGS") {
+        sentry::configure_scope(|scope| {
+            for (key, value) in tags.split(',').filter_map(|tag| tag.split_once('=')) {
+                scope.set_tag(key, value);
+            }
+        });
+    }
+
+    match try_main() {
+        Ok(_) => ExitCode::SUCCESS,
+        Err(err) => {
+            // Print the error into stderr
+            let causes: Vec<String> = err.chain().map(|x| x.to_string()).collect();
+            eprintln!("{}", causes.join(": "));
+
+            // Capture the error into Sentry
+            sentry_anyhow::capture_anyhow(&err);
+
+            ExitCode::FAILURE
+        }
+    }
+}
+
+#[tokio::main(flavor = "multi_thread")]
+async fn try_main() -> anyhow::Result<()> {
+    // Initialize logger
+    OsLogger::new("org.cirruslabs.softnet")
+        .level_filter(LevelFilter::Info)
+        .init()?;
+
+    let args: Args = Args::parse();
+
+    // No need to run anything, just return
+    // so that the invoker process knows we
+    // can be invoked in Sudo as root
+    if args.sudo_escalation_probing {
+        return Ok(());
+    }
+
+    // Retrieve real (not effective) user and group names
+    let current_user_name = get_current_username()
+        .ok_or(anyhow!("failed to resolve real user name"))?
+        .to_string_lossy()
+        .to_string();
+    let current_group_name = get_current_groupname()
+        .ok_or(anyhow!("failed to resolve real group name"))?
+        .to_string_lossy()
+        .to_string();
+
+    // Ensure we are running as root
+    if get_effective_uid() != 0 {
+        if sudo_escalation_works() && !args.sudo_escalation_done {
+            let exe = std::env::current_exe().unwrap();
+            let args = std::env::args().skip(1);
+
+            let _ = Command::new("sudo")
+                .arg("--non-interactive")
+                .arg("--preserve-env=SENTRY_DSN,CIRRUS_SENTRY_TAGS")
+                .arg(&exe)
+                .args(args)
+                .arg("--sudo-escalation-done")
+                .arg("--user")
+                .arg(current_user_name)
+                .arg("--group")
+                .arg(current_group_name)
+                .exec();
+        }
+
+        return Err(anyhow!(
+            "root privileges are required to run and passwordless sudo was not available"
+        ));
+    }
+
+    // Configure bootpd(8) while still having the root privileges
+    configure_bootpd(args.bootpd_lease_time)?;
+
+    // Take ownership of the control descriptor inherited from the parent process
+    let control = args
+        .control_fd
+        .map(|control_fd| {
+            // SAFETY: fcntl checks whether the descriptor is open before taking ownership
+            if unsafe { libc::fcntl(control_fd, libc::F_GETFD) } == -1 {
+                return Err(std::io::Error::last_os_error())
+                    .context("invalid control file descriptor");
+            }
+
+            // SAFETY: fcntl verified the descriptor is open, so we transfer the ownership
+            Control::new(unsafe { OwnedFd::from_raw_fd(control_fd) })
+        })
+        .transpose()?;
+
+    // Instantiate the manager with its control connection
+    let mut manager = Manager::new(
+        args.user.unwrap_or(current_user_name),
+        args.group.unwrap_or(current_group_name),
+        control,
+    );
+
+    // Run the manager until it finishes or the process receives SIGINT
+    let mut interrupt = signal(SignalKind::interrupt())?;
+
+    let result = tokio::select! {
+        result = async {
+            if let (Some(vm_fd), Some(vm_mac_address)) = (args.vm_fd, args.vm_mac_address) {
+                // Initialize the legacy single-VM path through the shared manager's batch operation
+                manager
+                    .initialize(
+                        args.vm_net_type,
+                        vec![VmConfig {
+                            vm_fd,
+                            vm_mac_address,
+                            name: args.vm_name,
+                            allow: args.allow,
+                            block: args.block,
+                            exposed_ports: args.expose,
+                        }],
+                    )
+                    .await?;
+            }
+
+            manager.run().await
+        } => result,
+        _ = interrupt.recv() => Ok(()),
+    };
+
+    let shutdown_result = manager.shutdown().await;
+
+    result.and(shutdown_result)
+}
+
+fn parse_vm_fd(value: &str) -> Result<c_int, String> {
+    let vm_fd = value
+        .parse::<c_int>()
+        .map_err(|err| format!("invalid file descriptor: {err}"))?;
+
+    if vm_fd < 0 {
+        return Err("file descriptor must be non-negative".to_string());
+    }
+
+    Ok(vm_fd)
+}
+
+fn sudo_escalation_works() -> bool {
+    let exe = std::env::current_exe().unwrap();
+    let args = std::env::args().skip(1);
+
+    Command::new("sudo")
+        .arg("-n")
+        .arg(&exe)
+        .args(args)
+        .arg("--sudo-escalation-probing")
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}
+
+fn configure_bootpd(lease_time: u32) -> anyhow::Result<()> {
+    let prefs = SCPreferences::group(
+        &CFString::new("softnet"),
+        &CFString::new("com.apple.InternetSharing.default.plist"),
+    );
+
+    let bootpd_dict = CFDictionary::from_CFType_pairs(&[
+        (
+            CFString::new("DHCPLeaseTimeSecs"),
+            CFNumber::from(lease_time as i32).as_CFType(),
+        ),
+        (
+            CFString::new("dhcp_ignore_client_identifier"),
+            CFBoolean::true_value().as_CFType(),
+        ),
+    ]);
+
+    unsafe {
+        let prefs = prefs.as_concrete_TypeRef();
+        anyhow::ensure!(
+            SCPreferencesLock(prefs, 1) != 0,
+            "failed to lock bootpd preferences"
+        );
+
+        let result = (|| -> anyhow::Result<()> {
+            anyhow::ensure!(
+                SCPreferencesSetValue(
+                    prefs,
+                    CFString::new("bootpd").as_concrete_TypeRef(),
+                    bootpd_dict.as_concrete_TypeRef().cast(),
+                ) != 0,
+                "failed to set bootpd preferences"
+            );
+
+            anyhow::ensure!(
+                SCPreferencesCommitChanges(prefs) != 0,
+                "failed to commit bootpd preferences"
+            );
+
+            anyhow::ensure!(
+                SCPreferencesApplyChanges(prefs) != 0,
+                "failed to apply bootpd preferences"
+            );
+
+            Ok(())
+        })();
+
+        let unlocked = SCPreferencesUnlock(prefs) != 0;
+        result?;
+        anyhow::ensure!(unlocked, "failed to unlock bootpd preferences");
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Args;
+    use clap::Parser;
+
+    #[test]
+    fn test_cli_rejects_negative_vm_fd_before_startup() {
+        let error = Args::try_parse_from([
+            "softnet",
+            "--vm-fd=-1",
+            "--vm-mac-address=02:00:00:00:00:01",
+        ])
+        .unwrap_err();
+
+        assert!(
+            error
+                .to_string()
+                .contains("file descriptor must be non-negative")
+        );
+    }
+
+    #[test]
+    fn test_cli_rejects_negative_control_fd_before_startup() {
+        let error = Args::try_parse_from([
+            "softnet",
+            "--vm-fd=0",
+            "--control-fd=-1",
+            "--vm-mac-address=02:00:00:00:00:01",
+        ])
+        .unwrap_err();
+
+        assert!(
+            error
+                .to_string()
+                .contains("file descriptor must be non-negative")
+        );
+    }
+}

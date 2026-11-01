@@ -1,0 +1,42 @@
+---
+version: 2
+project_name: softnet
+
+builds:
+  - builder: rust
+    command: build
+    env:
+      - SOFTNET_VERSION={{ .Version }}-{{ .ShortCommit }}
+    targets:
+      - aarch64-apple-darwin
+      - x86_64-apple-darwin
+
+universal_binaries:
+  - replace: true
+
+archives:
+  - name_template: "{{ .ProjectName }}"
+    formats:
+      - tar.gz
+
+release:
+  prerelease: auto
+
+brews:
+  - name: "{{ .ProjectName }}"
+    repository:
+      owner: openai
+      name: homebrew-tools
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+      branch: "softnet-{{ .Version }}"
+      pull_request:
+        enabled: true
+    directory: Formula
+    caveats: See the Github repository for more information
+    homepage: https://github.com/openai/softnet
+    description: Software networking with isolation for Tart
+    skip_upload: auto
+    custom_block: |
+      on_macos do
+        depends_on :macos => :tahoe
+      end
