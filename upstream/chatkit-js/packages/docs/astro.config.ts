@@ -1,0 +1,150 @@
+import { defineConfig } from 'astro/config';
+import starlight from '@astrojs/starlight';
+import tailwindcss from '@tailwindcss/vite';
+import {
+  createStarlightTypeDocPlugin,
+  type StarlightTypeDocOptions,
+} from 'starlight-typedoc';
+const [chatkitStarlightTypeDoc, chatkitTypeDocSidebarGroup] =
+  createStarlightTypeDocPlugin();
+
+const typeDocConfig: StarlightTypeDocOptions['typeDoc'] = {
+  useCodeBlocks: true,
+  parametersFormat: 'htmlTable',
+  propertyMembersFormat: 'htmlTable',
+
+  disableSources: true,
+  expandObjects: true,
+  expandParameters: true,
+  formatWithPrettier: true,
+  prettierConfigFile: '../../.prettierrc',
+  excludeExternals: true,
+  entryPointStrategy: 'Packages',
+  sort: ['source-order'],
+  plugin: [
+    'typedoc-plugin-zod',
+    'typedoc-plugin-frontmatter',
+    'typedoc-plugin-no-inherit',
+  ],
+  tableColumnSettings: {
+    hideSources: true,
+    hideModifiers: true,
+    hideOverrides: true,
+  },
+  visibilityFilters: {
+    protected: true,
+    private: true,
+    external: false,
+  },
+};
+
+const sidebar = [
+  { label: 'Overview', link: '/' },
+  { label: 'Quick start', link: '/quickstart' },
+  { label: 'Customize', link: '/customize' },
+  {
+    label: 'Quick API Reference',
+    items: [
+      {
+        label: 'ChatKitOptions',
+        link: 'api/openai/chatkit/type-aliases/chatkitoptions/',
+      },
+      {
+        label: 'OpenAIChatKit (Web Component)',
+        link: 'api/openai/chatkit/interfaces/openaichatkit/',
+      },
+      {
+        label: 'useChatKit (React hook)',
+        link: 'quick-reference/use-chatkit/',
+      },
+      {
+        label: 'ChatKit (React component)',
+        link: 'quick-reference/chatkit-component/',
+      },
+    ],
+  },
+  chatkitTypeDocSidebarGroup,
+  {
+    label: 'Self-hosted backend',
+    items: [
+      {
+        label: 'ChatKit Python SDK',
+        link: 'https://openai.github.io/chatkit-python',
+      },
+    ],
+  },
+  {
+    label: 'OpenAI-hosted backend',
+    items: [
+      {
+        label: 'Managed ChatKit Docs',
+        link: 'https://platform.openai.com/docs/guides/chatkit',
+      },
+    ],
+  },
+  {
+    label: 'Examples',
+    items: [
+      {
+        label: 'Starter App',
+        link: 'https://github.com/openai/openai-chatkit-starter-app',
+      },
+      {
+        label: 'Advanced Samples',
+        link: 'https://github.com/openai/openai-chatkit-advanced-samples',
+      },
+    ],
+  },
+];
+
+export default defineConfig({
+  site: 'https://openai.github.io',
+  base: '/chatkit-js',
+
+  integrations: [
+    starlight({
+      plugins: [
+        chatkitStarlightTypeDoc({
+          sidebar: { label: 'Complete API reference', collapsed: true },
+          entryPoints: ['../chatkit', '../chatkit-react'],
+          tsconfig: '../chatkit/tsconfig.json',
+          typeDoc: typeDocConfig,
+        }),
+      ],
+      title: 'OpenAI ChatKit',
+      components: {
+        SiteTitle: './src/components/Title.astro',
+        PageTitle: './src/components/PageTitle.astro',
+        SocialIcons: './src/components/SocialIcons.astro',
+        Sidebar: './src/components/Sidebar.astro',
+        MobileMenuFooter: './src/components/MobileFooter.astro',
+      },
+      social: [
+        {
+          icon: 'github',
+          label: 'ChatKit.js',
+          href: 'https://github.com/openai/chatkit-js',
+        },
+      ],
+      locales: {
+        root: {
+          label: 'English',
+          lang: 'en',
+        },
+      },
+      editLink: {
+        baseUrl:
+          'https://github.com/openai/openai-agents-js/edit/main/packages/docs/',
+      },
+      sidebar,
+      expressiveCode: {
+        themes: ['github-light', 'github-dark'],
+      },
+      customCss: ['./src/styles/global.css'],
+    }),
+  ],
+
+  vite: {
+    plugins: [tailwindcss()],
+  },
+});
