@@ -1,0 +1,44 @@
+using System.ComponentModel.Composition;
+using Microsoft.TypeSpec.Generator;
+using Microsoft.TypeSpec.Generator.ClientModel;
+using OpenAILibraryPlugin.Visitors;
+
+namespace OpenAILibraryPlugin
+{
+    [Export(typeof(CodeModelGenerator))]
+    [ExportMetadata("GeneratorName", nameof(OpenAILibraryGenerator))]
+    public class OpenAILibraryGenerator : ScmCodeModelGenerator
+    {
+        [ImportingConstructor]
+        public OpenAILibraryGenerator(GeneratorContext context) : base(context) { }
+
+        protected override void Configure()
+        {
+            base.Configure();
+            // This should be first, as it recomputes the type
+            AddVisitor(new NonAbstractPublicTypesVisitor());
+            AddVisitor(new ConstructorFixupVisitor());
+            AddVisitor(new KindRenameVisitor());
+            AddVisitor(new ContentInnerCollectionDefinedVisitor());
+            AddVisitor(new PageOrderRemovalVisitor(this));
+            AddVisitor(new OmittedTypesVisitor());
+            AddVisitor(new InvariantFormatAdditionalPropertiesVisitor());
+            AddVisitor(new OpenAILibraryVisitor());
+            AddVisitor(new VirtualMessageCreationVisitor());
+            AddVisitor(new ProhibitedNamespaceVisitor());
+            AddVisitor(new ModelSerializationVisitor());
+            AddVisitor(new ModelDirectoryVisitor());
+            AddVisitor(new ResponsesDirectoryVisitor());
+            AddVisitor(new PaginationVisitor());
+            AddVisitor(new MetadataQueryParamVisitor());
+            AddVisitor(new ProtocolModelVisitor());
+            AddVisitor(new ItemsPropertyVisitor());
+            // Run after ProtocolModelVisitor to remove discriminator setters, and before VisibilityVisitor
+            // so explicit CodeGenVisibility overrides retain precedence. KindRenameVisitor owns CLR names.
+            AddVisitor(new ExtensibleModelVisitor());
+            AddVisitor(new VisibilityVisitor());
+            // Apply annotations after visitors have finalized public visibility, including promoted discriminator enums.
+            AddVisitor(new ExperimentalAttributeVisitor());
+        }
+    }
+}

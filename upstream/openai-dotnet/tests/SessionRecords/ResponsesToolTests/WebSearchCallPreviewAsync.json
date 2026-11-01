@@ -1,0 +1,268 @@
+{
+  "Entries": [
+    {
+      "RequestUri": "https://api.openai.com/v1/responses",
+      "RequestMethod": "POST",
+      "RequestHeaders": {
+        "Accept": "application/json, text/event-stream",
+        "Authorization": "Sanitized",
+        "Content-Length": "312",
+        "Content-Type": "application/json",
+        "User-Agent": "OpenAI/2.14.0 (.NET 10.0.12; Microsoft Windows 10.0.26200)"
+      },
+      "RequestBody": {
+        "model": "gpt-4o-mini",
+        "tools": [
+          {
+            "type": "web_search_preview"
+          }
+        ],
+        "tool_choice": {
+          "type": "web_search_preview"
+        },
+        "input": [
+          {
+            "type": "message",
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Searching the internet, tell me about something good that happened today."
+              }
+            ]
+          }
+        ],
+        "include": [
+          "web_search_call.action.sources"
+        ]
+      },
+      "StatusCode": 200,
+      "ResponseHeaders": {
+        "Access-Control-Expose-Headers": [
+          "X-Request-ID",
+          "CF-Ray",
+          "CF-Ray"
+        ],
+        "Alt-Svc": "h3=\":443\"",
+        "CF-Cache-Status": "DYNAMIC",
+        "CF-Ray": "a3b328029edd755d-SEA",
+        "Connection": "keep-alive",
+        "Content-Length": "7239",
+        "Content-Type": "application/json",
+        "Date": "Sanitized",
+        "openai-organization": "Sanitized",
+        "openai-processing-ms": "Sanitized",
+        "openai-project": "Sanitized",
+        "openai-version": "2020-10-01",
+        "Server": "cloudflare",
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+        "X-Content-Type-Options": "nosniff",
+        "X-Request-ID": "Sanitized"
+      },
+      "ResponseBody": {
+        "id": "resp_0fa1db5dd15497bf006aa8829f8cb087d085708670780749d3",
+        "object": "response",
+        "created_at": 1789428383,
+        "status": "completed",
+        "background": false,
+        "billing": {
+          "payer": "developer"
+        },
+        "completed_at": 1789428386,
+        "error": null,
+        "frequency_penalty": 0.0,
+        "incomplete_details": null,
+        "instructions": null,
+        "max_output_tokens": null,
+        "max_tool_calls": null,
+        "model": "gpt-4o-mini-2024-07-18",
+        "moderation": null,
+        "output": [
+          {
+            "id": "ws_0fa1db5dd15497bf006aa8829fe75c87d0b739ad8b6ed42673",
+            "type": "web_search_call",
+            "status": "completed",
+            "action": {
+              "type": "search",
+              "queries": [
+                "Searching the internet, tell me about something good that happened today."
+              ],
+              "query": "Searching the internet, tell me about something good that happened today.",
+              "sources": [
+                {
+                  "type": "url",
+                  "url": "https://www.democracynow.org/2026/9/14/headlines?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.kiowacountypress.net/content/daily-audio-newscast-september-14-2026?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.almanac.com/kids/calendar/date/2026-09-14?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.wknofm.org/podcast/wkno-daily/2026-09-14/wkno-daily-newscast-monday-september-14-2026?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.vaticannews.va/es/evangelio-de-hoy/2026/09/14.html?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.careerindia.com/news/school-assembly-news-headlines-today-september-14-2026-national-international-education-spo-065549.html?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.theguardian.com/world/2026/sep/14/all?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.theguardian.com/us-news/2026/sep/14/all?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://roserambles.org/2026/09/14/restored-republic-via-a-gcr-as-of-september-14-2026/?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://savedelete.com/news/archive/2026/09/14/?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.wusf.org/2026-09-14/morning-news-brief?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.kunc.org/2026-09-14/morning-news-brief?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.axios.com/newsletters/axios-am-68956162-ed74-42e1-a892-ae3da8e7d74f?utm_source=openai"
+                },
+                {
+                  "type": "url",
+                  "url": "https://www.lemonde.fr/en/economy/article/2026/09/14/trump-rejects-pause-in-ai-race-citing-competition-from-china_6757508_19.html?utm_source=openai"
+                }
+              ]
+            }
+          },
+          {
+            "id": "msg_0fa1db5dd15497bf006aa882a0b83087d0a0d3c4cfd3d8f8eb",
+            "type": "message",
+            "status": "completed",
+            "content": [
+              {
+                "type": "output_text",
+                "annotations": [
+                  {
+                    "type": "url_citation",
+                    "end_index": 683,
+                    "start_index": 571,
+                    "title": "\uD83D\uDEA6 Axios AM: Hitting AI brakes",
+                    "url": "https://www.axios.com/newsletters/axios-am-68956162-ed74-42e1-a892-ae3da8e7d74f?utm_source=openai"
+                  },
+                  {
+                    "type": "url_citation",
+                    "end_index": 833,
+                    "start_index": 703,
+                    "title": "\uD83D\uDEA6 Axios AM: Hitting AI brakes",
+                    "url": "https://www.axios.com/newsletters/axios-am-68956162-ed74-42e1-a892-ae3da8e7d74f?utm_source=openai"
+                  },
+                  {
+                    "type": "url_citation",
+                    "end_index": 1082,
+                    "start_index": 871,
+                    "title": "Trump rejects pause in AI race citing competition from China",
+                    "url": "https://www.lemonde.fr/en/economy/article/2026/09/14/trump-rejects-pause-in-ai-race-citing-competition-from-china_6757508_19.html?utm_source=openai"
+                  }
+                ],
+                "logprobs": [],
+                "text": "On September 13, 2026, leaders from major AI labs—including Anthropic, SpaceXAI, OpenAI, and Google DeepMind—collectively called for a slowdown in AI development. Anthropic CEO Dario Amodei initiated this call, expressing concerns that rapid AI progress could lead to catastrophic scenarios within six months. His remarks were echoed by top executives such as Elon Musk, Sam Altman, and Demis Hassabis, who emphasized prioritizing safety over growth. This rare moment of unity within the competitive industry highlights a shared commitment to responsible AI development. ([axios.com](https://www.axios.com/newsletters/axios-am-68956162-ed74-42e1-a892-ae3da8e7d74f?utm_source=openai))\n\n\n## Highlights:\n- [\uD83D\uDEA6 Axios AM: Hitting AI brakes](https://www.axios.com/newsletters/axios-am-68956162-ed74-42e1-a892-ae3da8e7d74f?utm_source=openai), Published on Sunday, September 13\n- [Trump rejects pause in AI race citing competition from China](https://www.lemonde.fr/en/economy/article/2026/09/14/trump-rejects-pause-in-ai-race-citing-competition-from-china_6757508_19.html?utm_source=openai), Published on Monday, September 14 "
+              }
+            ],
+            "role": "assistant"
+          }
+        ],
+        "parallel_tool_calls": true,
+        "presence_penalty": 0.0,
+        "previous_response_id": null,
+        "prompt_cache_key": null,
+        "prompt_cache_retention": "in_memory",
+        "reasoning": {
+          "context": null,
+          "effort": null,
+          "summary": null
+        },
+        "safety_identifier": null,
+        "service_tier": "auto",
+        "store": true,
+        "temperature": 1.0,
+        "text": {
+          "format": {
+            "type": "text"
+          },
+          "verbosity": "medium"
+        },
+        "tool_choice": {
+          "type": "web_search_preview"
+        },
+        "tool_usage": {
+          "image_gen": {
+            "input_tokens": 0,
+            "input_tokens_details": {
+              "image_tokens": 0,
+              "text_tokens": 0
+            },
+            "output_tokens": 0,
+            "output_tokens_details": {
+              "image_tokens": 0,
+              "text_tokens": 0
+            },
+            "total_tokens": 0
+          },
+          "web_search": {
+            "num_requests": 1
+          }
+        },
+        "tools": [
+          {
+            "type": "web_search_preview",
+            "search_content_types": [
+              "text"
+            ],
+            "search_context_size": "medium",
+            "user_location": {
+              "type": "approximate",
+              "city": null,
+              "country": "US",
+              "region": null,
+              "timezone": null
+            }
+          }
+        ],
+        "top_logprobs": 0,
+        "top_p": 1.0,
+        "truncation": "disabled",
+        "usage": {
+          "input_tokens": 319,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "output_tokens": 291,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 610
+        },
+        "user": null,
+        "metadata": {}
+      }
+    }
+  ],
+  "Variables": {
+    "OPENAI_API_KEY": "api-key"
+  }
+}

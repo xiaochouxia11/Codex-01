@@ -1,0 +1,83 @@
+﻿using Microsoft.ClientModel.TestFramework;
+using NUnit.Framework;
+using OpenAI.Models;
+using OpenAI.Tests.Utility;
+using System;
+using System.ClientModel;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace OpenAI.Tests.Models;
+
+[Category("Models")]
+public class ModelsTests : OpenAIRecordedTestBase
+{
+    public ModelsTests(bool isAsync) : base(isAsync)
+    {
+    }
+
+    [RecordedTest]
+    public async Task ListModels()
+    {
+        OpenAIModelClient client = GetProxiedOpenAIClient<OpenAIModelClient>();
+
+        OpenAIModelCollection allModels = await client.GetModelsAsync();
+
+        OpenAIModel whisper = allModels.First(m => m.Id.Contains("whisper", StringComparison.InvariantCultureIgnoreCase));
+        OpenAIModel turbo = allModels.First(m => m.Id.Contains("turbo", StringComparison.InvariantCultureIgnoreCase));
+        long unixTime2020 = (new DateTimeOffset(2020, 01, 01, 0, 0, 0, TimeSpan.Zero)).ToUnixTimeSeconds();
+
+        Assert.That(whisper.Id, Is.Not.EqualTo(turbo.Id));
+        Assert.That(whisper.CreatedAt.ToUnixTimeSeconds(), Is.GreaterThan(unixTime2020));
+        Assert.That(turbo.CreatedAt.ToUnixTimeSeconds(), Is.GreaterThan(unixTime2020));
+        Assert.That(whisper.OwnedBy.ToLowerInvariant(), Contains.Substring("system").Or.Contains("openai"));
+        Assert.That(turbo.OwnedBy.ToLowerInvariant(), Contains.Substring("system").Or.Contains("openai"));
+
+        Console.WriteLine($"Total model count: {allModels.Count}");
+    }
+
+    [RecordedTest]
+    public async Task GetModelInfo()
+    {
+        OpenAIModelClient client = GetProxiedOpenAIClient<OpenAIModelClient>();
+        string modelId = "gpt-4o-mini";
+
+        OpenAIModel model = await client.GetModelAsync(modelId);
+
+        long unixTime2020 = (new DateTimeOffset(2020, 01, 01, 0, 0, 0, TimeSpan.Zero)).ToUnixTimeSeconds();
+
+        Assert.That(model, Is.Not.Null);
+        Assert.That(model.Id, Is.EqualTo(modelId));
+        Assert.That(model.CreatedAt.ToUnixTimeSeconds(), Is.GreaterThan(unixTime2020));
+        Assert.That(model.OwnedBy.ToLowerInvariant(), Does.Contain("system"));
+    }
+
+    [RecordedTest]
+    public void GetModelCanParseServiceError()
+    {
+        OpenAIModelClient client = GetProxiedOpenAIClient<OpenAIModelClient>();
+        Assert.That(
+            async () => await client.GetModelAsync("fake_id"),
+            Throws.TypeOf<ClientResultException>()
+                .With.Property(nameof(ClientResultException.Status)).EqualTo(404));
+    }
+
+    [RecordedTest]
+    public void DeleteModelCanParseServiceError()
+    {
+        OpenAIModelClient client = GetProxiedOpenAIClient<OpenAIModelClient>();
+        // If the model exists but the user doesn't own it, the service returns 403.
+        // If the model doesn't exist at all, the service returns 404.
+        // The service has changed the behavior in the past.
+        Assert.That(
+            async () => await client.DeleteModelAsync("fake_id"),
+            Throws.TypeOf<ClientResultException>()
+                .With.Property(nameof(ClientResultException.Status)).AnyOf(403, 404));
+    }
+
+    [RecordedTest]
+    public void SerializeModelCollection()
+    {
+        // TODO: Add this test.
+    }
+}

@@ -1,0 +1,395 @@
+using System;
+using System.ClientModel;
+using System.ClientModel.Primitives;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.ClientModel.TestFramework;
+using NUnit.Framework;
+using OpenAI.Files;
+using OpenAI.Tests.Utility;
+
+namespace OpenAI.Tests.Files;
+
+[Category("Files")]
+public class FilesTests : OpenAIRecordedTestBase
+{
+    public enum FileSourceKind
+    {
+        UsingStream,
+        UsingFilePath,
+        UsingBinaryData
+    }
+
+    public FilesTests(bool isAsync) : base(isAsync)
+    {
+    }
+
+    [OneTimeTearDown]
+    public async Task OneTimeTearDown()
+    {
+        // Skip resource cleanup in Playback mode; no live resources were created.
+        if (Mode == RecordedTestMode.Playback)
+        {
+            return;
+        }
+
+        OpenAIFileClient client = GetProxiedOpenAIClient<OpenAIFileClient>();
+
+        RequestOptions noThrowOptions = new() { ErrorOptions = ClientErrorBehaviors.NoThrow };
+        foreach (string fileId in FileIdsForCleanup)
+        {
+            _ = await client.DeleteFileAsync(fileId, noThrowOptions);
+        }
+    }
+
+    [RecordedTest]
+    public async Task ListFiles()
+    {
+        using (Recording.DisableRequestBodyRecording()) // Temp pending https://github.com/Azure/azure-sdk-tools/issues/11901
+        {
+            OpenAIFileClient client = GetProxiedOpenAIClient<OpenAIFileClient>();
+            using Stream file1 = BinaryData.FromString("Hello! This is a test text file. Please delete me.").ToStream();
+            using Stream file2 = BinaryData.FromString("Hello! This is another test text file. Please delete me.").ToStream();
+            string filename = "test-file-delete-me.txt";
+            string visionFilename = "images_dog_and_cat.png";
+            string visionFilePath = Path.Combine("Assets", visionFilename);
+
+            OpenAIFile uploadedFile1 = null;
+            OpenAIFile uploadedFile2 = null;
+            OpenAIFile uploadedVisionFile = null;
+            OpenAIFileCollection fileInfoCollection;
+
+            try
+            {
+                uploadedFile1 = await client.UploadFileAsync(file1, filename, FileUploadPurpose.Assistants);
+                Validate(uploadedFile1);
+                uploadedFile2 = await client.UploadFileAsync(file2, filename, FileUploadPurpose.Assistants);
+                Validate(uploadedFile2);
+                uploadedVisionFile = await client.UploadFileAsync(visionFilePath, FileUploadPurpose.Vision);
+                Validate(uploadedVisionFile);
+
+                fileInfoCollection = await client.GetFilesAsync(FilePurpose.Assistants);
+            }
+            finally
+            {
+                if (uploadedVisionFile != null)
+                {
+                    await client.DeleteFileAsync(uploadedVisionFile.Id);
+                }
+
+                if (uploadedFile2 != null)
+                {
+                    await client.DeleteFileAsync(uploadedFile2.Id);
+                }
+
+                if (uploadedFile1 != null)
+                {
+                    await client.DeleteFileAsync(uploadedFile1.Id);
+                }
+            }
+
+            OpenAIFile fileInfo1 = null;
+            OpenAIFile fileInfo2 = null;
+            OpenAIFile visionFileInfo = null;
+
+            foreach (OpenAIFile item in fileInfoCollection)
+            {
+                if (item.Id == uploadedFile1.Id)
+                {
+                    fileInfo1 = item;
+                }
+                else if (item.Id == uploadedFile2.Id)
+                {
+                    fileInfo2 = item;
+                }
+                else if (item.Id == uploadedVisionFile.Id)
+                {
+                    visionFileInfo = item;
+                }
+            }
+
+            Assert.That(fileInfo1, Is.Not.Null);
+            Assert.That(fileInfo1.SizeInBytes, Is.EqualTo(uploadedFile1.SizeInBytes));
+            Assert.That(fileInfo1.CreatedAt, Is.EqualTo(uploadedFile1.CreatedAt));
+            Assert.That(fileInfo1.Filename, Is.EqualTo(uploadedFile1.Filename));
+            Assert.That(fileInfo1.Purpose, Is.EqualTo(uploadedFile1.Purpose));
+#pragma warning disable CS0618
+            Assert.That(fileInfo1.Status, Is.EqualTo(uploadedFile1.Status));
+            Assert.That(fileInfo1.StatusDetails, Is.EqualTo(uploadedFile1.StatusDetails));
+#pragma warning restore CS0618
+
+            Assert.That(fileInfo2, Is.Not.Null);
+            Assert.That(fileInfo2.SizeInBytes, Is.EqualTo(uploadedFile2.SizeInBytes));
+            Assert.That(fileInfo2.CreatedAt, Is.EqualTo(uploadedFile2.CreatedAt));
+            Assert.That(fileInfo2.Filename, Is.EqualTo(uploadedFile2.Filename));
+            Assert.That(fileInfo2.Purpose, Is.EqualTo(uploadedFile2.Purpose));
+#pragma warning disable CS0618
+            Assert.That(fileInfo2.Status, Is.EqualTo(uploadedFile2.Status));
+            Assert.That(fileInfo2.StatusDetails, Is.EqualTo(uploadedFile2.StatusDetails));
+#pragma warning restore CS0618
+
+            Assert.That(visionFileInfo, Is.Null);
+        }
+    }
+
+    [RecordedTest]
+    [TestCaseSource(nameof(s_fileSourceKindSource))]
+    public async Task UploadFile(FileSourceKind fileSourceKind)
+    {
+        using (Recording.DisableRequestBodyRecording()) // Temp pending https://github.com/Azure/azure-sdk-tools/issues/11901
+        {
+            OpenAIFileClient client = GetProxiedOpenAIClient<OpenAIFileClient>();
+            string filename = "images_dog_and_cat.png";
+            string path = Path.Combine("Assets", filename);
+            OpenAIFile fileInfo = null;
+
+            try
+            {
+                if (fileSourceKind == FileSourceKind.UsingStream)
+                {
+                    using Stream file = File.OpenRead(path);
+
+                    fileInfo = await client.UploadFileAsync(file, filename, FileUploadPurpose.Vision);
+                    Validate(fileInfo);
+                }
+                else if (fileSourceKind == FileSourceKind.UsingFilePath)
+                {
+                    fileInfo = await client.UploadFileAsync(path, FileUploadPurpose.Vision);
+                    Validate(fileInfo);
+                }
+                else if (fileSourceKind == FileSourceKind.UsingBinaryData)
+                {
+                    using Stream file = File.OpenRead(path);
+                    BinaryData content = BinaryData.FromStream(file);
+
+                    fileInfo = await client.UploadFileAsync(content, filename, FileUploadPurpose.Vision);
+                    Validate(fileInfo);
+                }
+                else
+                {
+                    Assert.Fail("Invalid source kind.");
+                }
+            }
+            finally
+            {
+                if (fileInfo != null)
+                {
+                    await client.DeleteFileAsync(fileInfo.Id);
+                }
+            }
+
+            long expectedSize = new FileInfo(path).Length;
+            long unixTime2024 = (new DateTimeOffset(2024, 01, 01, 0, 0, 0, TimeSpan.Zero)).ToUnixTimeSeconds();
+            Assert.That(fileInfo, Is.Not.Null);
+            Assert.That(fileInfo.Id, Is.Not.Null.And.Not.Empty);
+            Assert.That(fileInfo.SizeInBytes, Is.EqualTo(expectedSize));
+            Assert.That(fileInfo.CreatedAt.ToUnixTimeSeconds(), Is.GreaterThan(unixTime2024));
+            Assert.That(fileInfo.Filename, Is.EqualTo(filename).IgnoreCase);
+            Assert.That(fileInfo.Purpose, Is.EqualTo(FilePurpose.Vision));
+#pragma warning disable CS0618
+            Assert.That(fileInfo.Status, Is.Not.EqualTo(default(FileStatus)));
+#pragma warning restore CS0618
+        }
+    }
+
+    [RecordedTest]
+    public void UploadFileCanParseServiceError()
+    {
+        using (Recording.DisableRequestBodyRecording()) // Temp pending https://github.com/Azure/azure-sdk-tools/issues/11901
+        {
+            OpenAIFileClient client = GetProxiedOpenAIClient<OpenAIFileClient>();
+            string filename = "images_dog_and_cat.png";
+            string path = Path.Combine("Assets", filename);
+            FileUploadPurpose fakePurpose = new FileUploadPurpose("world_domination");
+            Assert.That(
+                async () => await client.UploadFileAsync(path, fakePurpose),
+                Throws.TypeOf<ClientResultException>()
+                    .With.Property(nameof(ClientResultException.Status)).EqualTo(400));
+        }
+    }
+
+    [RecordedTest]
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task DeleteFile(bool useFileInfoOverload)
+    {
+        using (Recording.DisableRequestBodyRecording()) // Temp pending https://github.com/Azure/azure-sdk-tools/issues/11901
+        {
+            OpenAIFileClient client = GetProxiedOpenAIClient<OpenAIFileClient>();
+            string fileContent = "Hello! This is a test text file. Please delete me.";
+            using Stream file = BinaryData.FromString(fileContent).ToStream();
+            string filename = "test-file-delete-me.txt";
+
+            OpenAIFile uploadedFile = await client.UploadFileAsync(file, filename, FileUploadPurpose.Assistants);
+            Validate(uploadedFile);
+            FileDeletionResult result;
+
+            if (useFileInfoOverload)
+            {
+                result = await client.DeleteFileAsync(uploadedFile.Id);
+            }
+            else
+            {
+                result = await client.DeleteFileAsync(uploadedFile.Id);
+            }
+
+            Assert.That(result.FileId, Is.EqualTo(uploadedFile.Id));
+            Assert.That(result.Deleted, Is.True);
+        }
+    }
+
+    [RecordedTest]
+    public void DeleteFileCanParseServiceError()
+    {
+        OpenAIFileClient client = GetProxiedOpenAIClient<OpenAIFileClient>();
+        Assert.That(
+            async () => await client.DeleteFileAsync("fake_id"),
+            Throws.TypeOf<ClientResultException>()
+                .With.Property(nameof(ClientResultException.Status)).EqualTo(404));
+    }
+
+    [RecordedTest]
+    public async Task GetFile()
+    {
+        using (Recording.DisableRequestBodyRecording()) // Temp pending https://github.com/Azure/azure-sdk-tools/issues/11901
+        {
+            OpenAIFileClient client = GetProxiedOpenAIClient<OpenAIFileClient>();
+            using Stream file = BinaryData.FromString("Hello! This is a test text file. Please delete me.").ToStream();
+            string filename = "test-file-delete-me.txt";
+            OpenAIFile uploadedFile = null;
+            OpenAIFile fileInfo;
+
+            try
+            {
+                uploadedFile = await client.UploadFileAsync(file, filename, FileUploadPurpose.Assistants);
+                Validate(uploadedFile);
+
+                fileInfo = await client.GetFileAsync(uploadedFile.Id);
+            }
+            finally
+            {
+                if (uploadedFile != null)
+                {
+                    await client.DeleteFileAsync(uploadedFile.Id);
+                }
+            }
+
+            Assert.That(fileInfo, Is.Not.Null);
+            Assert.That(fileInfo.Id, Is.EqualTo(uploadedFile.Id));
+            Assert.That(fileInfo.SizeInBytes, Is.EqualTo(uploadedFile.SizeInBytes));
+            Assert.That(fileInfo.CreatedAt, Is.EqualTo(uploadedFile.CreatedAt));
+            Assert.That(fileInfo.Filename, Is.EqualTo(uploadedFile.Filename));
+            Assert.That(fileInfo.Purpose, Is.EqualTo(uploadedFile.Purpose));
+#pragma warning disable CS0618
+            Assert.That(fileInfo.Status, Is.EqualTo(uploadedFile.Status));
+            Assert.That(fileInfo.StatusDetails, Is.EqualTo(uploadedFile.StatusDetails));
+#pragma warning restore CS0618
+        }
+    }
+
+    [RecordedTest]
+    public void GetFileCanParseServiceError()
+    {
+        OpenAIFileClient client = GetProxiedOpenAIClient<OpenAIFileClient>();
+        Assert.That(
+            async () => await client.GetFileAsync("fake_id"),
+            Throws.TypeOf<ClientResultException>()
+                .With.Property(nameof(ClientResultException.Status)).EqualTo(404));
+    }
+
+    [RecordedTest]
+    public async Task DownloadContent()
+    {
+        using (Recording.DisableRequestBodyRecording()) // Temp pending https://github.com/Azure/azure-sdk-tools/issues/11901
+        {
+            OpenAIFileClient client = GetProxiedOpenAIClient<OpenAIFileClient>();
+            string filename = "images_dog_and_cat.png";
+            string path = Path.Combine("Assets", filename);
+            using Stream file = File.OpenRead(path);
+            OpenAIFile uploadedFile = null;
+            BinaryData downloadedContent;
+
+            try
+            {
+                uploadedFile = await client.UploadFileAsync(file, filename, FileUploadPurpose.Vision);
+                Validate(uploadedFile);
+
+                downloadedContent = await client.DownloadFileAsync(uploadedFile.Id);
+            }
+            finally
+            {
+                if (uploadedFile != null)
+                {
+                    await client.DeleteFileAsync(uploadedFile.Id);
+                }
+            }
+
+            byte[] originalFileBytes = File.ReadAllBytes(path);
+            byte[] downloadedBytes = downloadedContent.ToArray();
+
+            Assert.That(downloadedBytes.SequenceEqual(originalFileBytes));
+        }
+    }
+
+    [RecordedTest]
+    public void DownloadFileCanParseServiceError()
+    {
+        OpenAIFileClient client = GetProxiedOpenAIClient<OpenAIFileClient>();
+        Assert.That(
+            async () => await client.DownloadFileAsync("fake_id"),
+            Throws.TypeOf<ClientResultException>()
+                .With.Property(nameof(ClientResultException.Status)).EqualTo(404));
+    }
+
+    [RecordedTest]
+    public void SerializeFileCollection()
+    {
+        // TODO: Add this test.
+    }
+
+    [RecordedTest]
+    public async Task NonAsciiFilename()
+    {
+        using (Recording.DisableRequestBodyRecording()) // Temp pending https://github.com/Azure/azure-sdk-tools/issues/11901
+        {
+            OpenAIFileClient client = GetProxiedOpenAIClient<OpenAIFileClient>();
+            string filename = "你好.txt";
+            BinaryData fileContent = BinaryData.FromString("世界您好！这是个测试。");
+            OpenAIFile uploadedFile = await client.UploadFileAsync(fileContent, filename, FileUploadPurpose.Assistants);
+            Validate(uploadedFile);
+            Assert.That(uploadedFile?.Filename, Is.EqualTo(filename));
+        }
+    }
+
+    [RecordedTest]
+    public async Task UserDataPurpose()
+    {
+        using (Recording.DisableRequestBodyRecording()) // Temp pending https://github.com/Azure/azure-sdk-tools/issues/11901
+        {
+            OpenAIFileClient client = GetProxiedOpenAIClient<OpenAIFileClient>();
+
+            BinaryData fileContent = BinaryData.FromString("Hello, world!");
+            OpenAIFile uploadedFile = await client.UploadFileAsync(fileContent, "test_hello_world.txt", FileUploadPurpose.UserData);
+            Validate(uploadedFile);
+            Assert.That(uploadedFile.Purpose, Is.EqualTo(FilePurpose.UserData));
+        }
+    }
+
+    private static Array s_fileSourceKindSource = Enum.GetValues(typeof(FileSourceKind));
+
+    private readonly List<string> FileIdsForCleanup = [];
+
+    private void Validate<T>(T instance)
+    {
+        if (instance is OpenAIFile file)
+        {
+            Assert.That(file?.Id, Is.Not.Null.And.Not.Empty);
+            FileIdsForCleanup.Add(file.Id);
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+    }}

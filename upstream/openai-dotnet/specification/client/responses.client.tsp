@@ -1,0 +1,334 @@
+import "../base/typespec/responses/main.tsp";
+import "@azure-tools/typespec-client-generator-core";
+import "@typespec/http-client-csharp";
+
+using OpenAI;
+using Azure.ClientGenerator.Core;
+using TypeSpec.HttpClient.CSharp;
+
+@@alternateType(TokenCountsResource.input_tokens, int32);
+@@alternateType(ResponseCustomToolCallInputDeltaEvent.output_index, int32);
+@@alternateType(ResponseCustomToolCallInputDoneEvent.output_index, int32);
+
+@@alternateType(CreateResponse.conversation, `ConversationParam-2`);
+@@alternateType(CreateResponse.`model`, string);
+@@alternateType(CreateResponse.service_tier, DotNetResponseServiceTier);
+@@alternateType(Response.`model`, string);
+@@alternateType(Response.service_tier, DotNetResponseServiceTier);
+
+// Do not generate convenience methods for these operations
+@@convenientAPI(Responses.getInputTokenCounts, false);
+@@convenientAPI(Responses.compactConversation, false);
+
+@@clientName(Responses.getInputTokenCounts, "GetInputTokenCount");
+@@clientName(Responses.compactConversation, "CompactResponse");
+
+@@clientName(DotNetResponseItemCollectionOptions.after, "AfterId");
+@@clientName(DotNetResponseItemCollectionOptions.before, "BeforeId");
+@@clientName(DotNetResponseItemCollectionOptions.limit, "PageSizeLimit");
+
+@@clientName(Includable.`computer_call_output.output.image_url`, "ComputerCallOutputImageUri");
+@@clientName(Includable.`message.input_image.image_url`, "MessageInputImageUri");
+@@clientName(Includable.`message.output_text.logprobs`, "MessageOutputTextLogProbabilities");
+
+// ------------ ItemResources ------------
+@@usage(ItemResource, Usage.input | Usage.output);
+@@visibility(ItemResource.id, Lifecycle.Read);
+
+@@clientName(CodeInterpreterToolImageOutput.url, "ImageUri");
+
+@@alternateType(FunctionToolCallItemResource.arguments, unknown);
+@@clientName(FunctionToolCallItemResource.name, "FunctionName");
+@@clientName(FunctionToolCallItemResource.arguments, "FunctionArguments");
+
+@@clientName(FunctionToolCallOutputItemResource.output, "FunctionOutput");
+
+@@clientName(ReasoningItemResource.summary, "SummaryParts");
+
+@@alternateType(MCPApprovalRequestItemResource.arguments, unknown);
+@@clientName(MCPApprovalRequestItemResource.name, "ToolName");
+@@clientName(MCPApprovalRequestItemResource.arguments, "ToolArguments");
+
+@@clientName(MCPApprovalResponseItemResource.approve, "Approved");
+
+@@alternateType(MCPCallItemResource.arguments, unknown);
+@@alternateType(MCPCallItemResource.error, unknown | null);
+@@clientName(MCPCallItemResource.name, "ToolName");
+@@clientName(MCPCallItemResource.arguments, "ToolArguments");
+@@clientName(MCPCallItemResource.output, "ToolOutput");
+
+@@alternateType(MCPListToolsItemResource.error, unknown | null);
+@@clientName(MCPListToolsItemResource.tools, "ToolDefinitions");
+
+@@clientName(ImageGenToolCallItemResource.result, "ImageResultBytes");
+
+// This is a data URL. Treat it as a string internally to avoid Uri limits.
+@@alternateType(ItemContentInputImage.image_url, string | null); 
+@@clientName(ItemContentInputImage.image_url, "ImageUri");
+
+// ------------ Tools ------------
+
+@@alternateType(CodeInterpreterTool.container, DotNetCodeInterpreterToolContainer);
+
+@@clientName(FileSearchTool.max_num_results, "MaxResultCount");
+
+@@clientName(CustomTool.name, "ToolName");
+@@clientName(CustomTool.description, "ToolDescription");
+@@clientName(CustomTool.format, "ToolFormat");
+
+@@clientName(CustomToolCallItem.name, "ToolName");
+@@alternateType(CustomToolCallOutputItem.output, ItemContent[]);
+
+@@clientName(ResponseCustomToolCallInputDeltaEvent.delta, "InputDelta");
+
+@@clientName(FunctionTool.name, "FunctionName");
+@@clientName(FunctionTool.description, "FunctionDescription");
+@@clientName(FunctionTool.parameters, "FunctionParameters");
+@@clientName(FunctionTool.strict, "StrictModeEnabled");
+
+@@alternateType(MCPTool.server_url, url);
+@@alternateType(MCPTool.allowed_tools, MCPToolFilter | null);
+@@clientName(MCPTool.server_url, "ServerUri");
+@@clientName(MCPTool.authorization, "AuthorizationToken");
+
+@@clientName(MCPToolFilter.read_only, "IsReadOnly");
+
+@@clientName(Responses.listInputItems, "GetResponseInputItems");
+
+// This is a data URL. Treat it as a string internally to avoid Uri limits.
+@@alternateType(ImageGenToolInputImageMask.image_url, string);
+@@clientName(ImageGenToolInputImageMask.image_url, "ImageUri");
+
+// ------------ Streaming ------------
+
+@@usage(ResponseStreamEvent, Usage.json);
+
+@@alternateType(ResponseFunctionCallArgumentsDoneEvent.arguments, unknown);
+@@clientName(ResponseFunctionCallArgumentsDoneEvent.name, "FunctionName");
+@@clientName(ResponseFunctionCallArgumentsDoneEvent.arguments, "FunctionArguments");
+
+@@alternateType(ResponseFunctionCallArgumentsDeltaEvent.delta, unknown);
+
+@@alternateType(ResponseMcpCallArgumentsDoneEvent.arguments, unknown);
+@@clientName(ResponseMcpCallArgumentsDoneEvent.arguments, "ToolArguments");
+
+@@alternateType(ResponseMcpCallArgumentsDeltaEvent.delta, unknown);
+
+@@clientName(ResponseImageGenerationCallPartialImageEvent.partial_image_b64, "PartialImageBytes");
+
+@@clientName(ResponseOutputTextDeltaEvent.logprobs, "TokenLogProbabilities");
+@@clientName(ResponseOutputTextDoneEvent.logprobs, "TokenLogProbabilities");
+
+
+// ------------ Others ------------
+
+@@clientName(CreateResponse.prompt_cache_retention, "PromptCacheRetentionPolicy");
+@@clientName(Response.prompt_cache_retention, "PromptCacheRetentionPolicy");
+@@clientName(PromptCacheRetention.`24h`, "Max24Hours");
+@@clientName(ResponsesReasoningEffort.xhigh, "ExtraHigh");
+@@clientName(ResponseUsage.input_tokens_details::type.cache_write_tokens, "CacheWriteTokenCount");
+
+// ------------ JsonPatch ------------
+
+// models.tsp
+@@dynamicModel(CreateResponse);
+@@dynamicModel(Response);
+@@dynamicModel(ResponseProperties);
+@@dynamicModel(ItemParam);
+@@dynamicModel(Tool);
+@@dynamicModel(ToolChoiceObject);
+@@dynamicModel(ToolChoiceObjectFileSearch);
+@@dynamicModel(ToolChoiceObjectComputer);
+@@dynamicModel(ToolChoiceObjectWebSearch);
+@@dynamicModel(ToolChoiceObjectImageGen);
+@@dynamicModel(ToolChoiceObjectCodeInterpreter);
+@@dynamicModel(ToolChoiceObjectMCP);
+@@dynamicModel(ToolChoiceObjectFunction);
+@@dynamicModel(FunctionTool);
+@@dynamicModel(FileSearchTool);
+@@dynamicModel(ComputerUsePreviewTool);
+@@dynamicModel(WebSearchPreviewTool);
+@@dynamicModel(Location);
+@@dynamicModel(ApproximateLocation);
+@@dynamicModel(ComputerCallSafetyCheckParam);
+@@dynamicModel(ComputerToolCallSafetyCheck);
+@@dynamicModel(ComputerActionClick);
+@@dynamicModel(ComputerAction);
+@@dynamicModel(ComputerToolCallOutputItemOutput);
+@@dynamicModel(ComputerToolCallOutputItemOutputComputerScreenshot);
+@@dynamicModel(ComputerActionDoubleClick);
+@@dynamicModel(ComputerActionDrag);
+@@dynamicModel(ComputerActionMove);
+@@dynamicModel(ComputerActionScreenshot);
+@@dynamicModel(ComputerActionScroll);
+@@dynamicModel(ComputerActionTypeKeys);
+@@dynamicModel(ComputerActionWait);
+@@dynamicModel(ComputerActionKeyPress);
+@@dynamicModel(Coordinate);
+@@dynamicModel(Reasoning);
+@@dynamicModel(ResponseTextFormatConfiguration);
+@@dynamicModel(ResponseTextFormatConfigurationText);
+@@dynamicModel(ResponseTextFormatConfigurationJsonObject);
+@@dynamicModel(ResponseTextFormatConfigurationJsonSchema);
+@@dynamicModel(ItemContent);
+@@dynamicModel(ItemContentInputAudio);
+@@dynamicModel(InputMessageContentList);
+@@dynamicModel(ItemContentOutputAudio);
+@@dynamicModel(ItemContentRefusal);
+@@dynamicModel(Annotation);
+@@dynamicModel(AnnotationFileCitation);
+@@dynamicModel(AnnotationUrlCitation);
+@@dynamicModel(ContainerFileCitationBody);
+@@dynamicModel(AnnotationFilePath);
+@@dynamicModel(ItemContentInputText);
+@@dynamicModel(ItemContentInputImage);
+@@dynamicModel(ItemContentInputFile);
+@@dynamicModel(RankingOptions);
+@@dynamicModel(ItemContentOutputText);
+@@dynamicModel(ResponseUsage);
+@@dynamicModel(ResponseError);
+@@dynamicModel(ResponseItemList);
+@@dynamicModel(ItemResource);
+@@dynamicModel(CodeInterpreterTool);
+@@dynamicModel(CodeInterpreterToolAuto);
+@@dynamicModel(ImageGenTool);
+@@dynamicModel(LocalShellExecAction);
+@@dynamicModel(LocalShellTool);
+@@dynamicModel(MCPListToolsTool);
+@@dynamicModel(MCPTool);
+@@dynamicModel(MCPToolFilter);
+@@dynamicModel(CodeInterpreterToolLogsOutput);
+@@dynamicModel(CodeInterpreterToolImageOutput);
+@@dynamicModel(TopLogProb);
+@@dynamicModel(LogProb);
+@@dynamicModel(WebSearchToolFilters);
+// custom.tsp models
+@@dynamicModel(ResponseErrorResponse);
+@@dynamicModel(DeleteResponseResponse);
+@@dynamicModel(ReasoningItemSummaryPart);
+@@dynamicModel(ReasoningItemSummaryTextPart);
+@@dynamicModel(CodeInterpreterToolOutput);
+@@dynamicModel(CodeInterpreterContainerConfiguration);
+@@dynamicModel(ReasoningItemSummaryPartType);
+@@dynamicModel(CodeInterpreterToolOutputType);
+@@dynamicModel(CodeInterpreterContainerConfigurationType);
+// custom/items.tsp models
+@@dynamicModel(FileSearchToolCallItemParam);
+@@dynamicModel(FileSearchToolCallItemResource);
+@@dynamicModel(ComputerToolCallItemParam);
+@@dynamicModel(ComputerToolCallItemResource);
+@@dynamicModel(ComputerToolCallOutputItemParam);
+@@dynamicModel(ComputerToolCallOutputItemResource);
+@@dynamicModel(WebSearchToolCallItemResource);
+@@dynamicModel(FunctionToolCallItemParam);
+@@dynamicModel(FunctionToolCallItemResource);
+@@dynamicModel(FunctionToolCallOutputItemParam);
+@@dynamicModel(FunctionToolCallOutputItemResource);
+@@dynamicModel(ReasoningItemParam);
+@@dynamicModel(ReasoningItemResource);
+@@dynamicModel(ItemReferenceItemParam);
+@@dynamicModel(ImageGenToolCallItemParam);
+@@dynamicModel(ImageGenToolCallItemResource);
+@@dynamicModel(CodeInterpreterToolCallItemParam);
+@@dynamicModel(CodeInterpreterToolCallItemResource);
+@@dynamicModel(LocalShellToolCallItemParam);
+@@dynamicModel(LocalShellToolCallItemResource);
+@@dynamicModel(LocalShellToolCallOutputItemParam);
+@@dynamicModel(LocalShellToolCallOutputItemResource);
+@@dynamicModel(MCPListToolsItemParam);
+@@dynamicModel(MCPListToolsItemResource);
+@@dynamicModel(MCPApprovalRequestItemParam);
+@@dynamicModel(MCPApprovalRequestItemResource);
+@@dynamicModel(MCPApprovalResponseItemParam);
+@@dynamicModel(MCPApprovalResponseItemResource);
+@@dynamicModel(MCPCallItemParam);
+@@dynamicModel(MCPCallItemResource);
+// custom/items.messages.tsp models
+@@dynamicModel(ResponsesMessageItemParam);
+@@dynamicModel(ResponsesUserMessageItemParam);
+@@dynamicModel(ResponsesSystemMessageItemParam);
+@@dynamicModel(ResponsesDeveloperMessageItemParam);
+@@dynamicModel(ResponsesAssistantMessageItemParam);
+@@dynamicModel(ResponsesMessageItemResource);
+@@dynamicModel(ResponsesUserMessageItemResource);
+@@dynamicModel(ResponsesSystemMessageItemResource);
+@@dynamicModel(ResponsesDeveloperMessageItemResource);
+@@dynamicModel(ResponsesAssistantMessageItemResource);
+@@dynamicModel(ImplicitUserMessage);
+@@dynamicModel(ResponsesComparisonFilter);
+@@dynamicModel(ResponsesCompoundFilter);
+// client/models/responses.models.tsp models
+@@dynamicModel(DotNetItemReferenceItemResource);
+@@dynamicModel(DotNetResponseItemCollectionOrder);
+@@dynamicModel(DotNetGetResponseOptions);
+@@dynamicModel(DotNetDefaultToolCallApprovalPolicy);
+@@dynamicModel(DotNetCustomToolCallApprovalPolicy);
+@@dynamicModel(DotNetToolCallApprovalPolicy);
+@@dynamicModel(DotNetCodeInterpreterToolContainer);
+// client/models/common.models.tsp models
+@@dynamicModel(DotNetResponseServiceTier);
+// models_streaming.tsp
+@@dynamicModel(ResponseStreamEvent);
+@@dynamicModel(ResponseAudioDeltaEvent);
+@@dynamicModel(ResponseAudioDoneEvent);
+@@dynamicModel(ResponseAudioTranscriptDeltaEvent);
+@@dynamicModel(ResponseAudioTranscriptDoneEvent);
+@@dynamicModel(ResponseCodeInterpreterCallCodeDeltaEvent);
+@@dynamicModel(ResponseCodeInterpreterCallCodeDoneEvent);
+@@dynamicModel(ResponseCodeInterpreterCallCompletedEvent);
+@@dynamicModel(ResponseCodeInterpreterCallInProgressEvent);
+@@dynamicModel(ResponseCodeInterpreterCallInterpretingEvent);
+@@dynamicModel(ResponseCompletedEvent);
+@@dynamicModel(ResponseContentPartAddedEvent);
+@@dynamicModel(ResponseContentPartDoneEvent);
+@@dynamicModel(ResponseCreatedEvent);
+@@dynamicModel(ResponseErrorEvent);
+@@dynamicModel(ResponseFileSearchCallCompletedEvent);
+@@dynamicModel(ResponseFileSearchCallInProgressEvent);
+@@dynamicModel(ResponseFileSearchCallSearchingEvent);
+@@dynamicModel(ResponseFunctionCallArgumentsDeltaEvent);
+@@dynamicModel(ResponseFunctionCallArgumentsDoneEvent);
+@@dynamicModel(ResponseInProgressEvent);
+@@dynamicModel(ResponseFailedEvent);
+@@dynamicModel(ResponseIncompleteEvent);
+@@dynamicModel(ResponseOutputItemAddedEvent);
+@@dynamicModel(ResponseOutputItemDoneEvent);
+@@dynamicModel(ResponseReasoningSummaryPartAddedEvent);
+@@dynamicModel(ResponseReasoningSummaryPartDoneEvent);
+@@dynamicModel(ResponseReasoningSummaryTextDeltaEvent);
+@@dynamicModel(ResponseReasoningSummaryTextDoneEvent);
+@@dynamicModel(ResponseReasoningTextDeltaEvent);
+@@dynamicModel(ResponseReasoningTextDoneEvent);
+@@dynamicModel(ResponseRefusalDeltaEvent);
+@@dynamicModel(ResponseRefusalDoneEvent);
+@@dynamicModel(ResponseOutputTextDeltaEvent);
+@@dynamicModel(ResponseOutputTextDoneEvent);
+@@dynamicModel(ResponseWebSearchCallCompletedEvent);
+@@dynamicModel(ResponseWebSearchCallInProgressEvent);
+@@dynamicModel(ResponseWebSearchCallSearchingEvent);
+@@dynamicModel(ResponseImageGenerationCallCompletedEvent);
+@@dynamicModel(ResponseImageGenerationCallGeneratingEvent);
+@@dynamicModel(ResponseImageGenerationCallInProgressEvent);
+@@dynamicModel(ResponseImageGenerationCallPartialImageEvent);
+@@dynamicModel(ResponseMcpCallArgumentsDeltaEvent);
+@@dynamicModel(ResponseMcpCallArgumentsDoneEvent);
+@@dynamicModel(ResponseMcpCallCompletedEvent);
+@@dynamicModel(ResponseMcpCallFailedEvent);
+@@dynamicModel(ResponseMcpCallInProgressEvent);
+@@dynamicModel(ResponseMcpListToolsCompletedEvent);
+@@dynamicModel(ResponseMcpListToolsFailedEvent);
+@@dynamicModel(ResponseMcpListToolsInProgressEvent);
+@@dynamicModel(ResponseOutputTextAnnotationAddedEvent);
+@@dynamicModel(ResponseQueuedEvent);
+@@dynamicModel(ResponseCustomToolCallInputDeltaEvent);
+@@dynamicModel(ResponseCustomToolCallInputDoneEvent);
+@@dynamicModel(CustomTool);
+@@dynamicModel(CustomToolFormatType);
+@@dynamicModel(CustomToolFormat);
+@@dynamicModel(CustomToolTextFormat);
+@@dynamicModel(CustomToolGrammarFormat);
+@@dynamicModel(CustomToolGrammarFormatSyntax);
+@@dynamicModel(CustomToolCallItem);
+@@dynamicModel(CustomToolCallStatus);
+@@dynamicModel(CustomToolCallOutputItem);
+@@dynamicModel(CustomToolCallOutputStatus);

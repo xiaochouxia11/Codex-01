@@ -1,0 +1,103 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+    ==============================================================
+      Central Package Management Metadata Propagation
+
+      CPM does not propagate metadata such as PrivateAssets from 
+      PackageVersion to PackageReference. This bridges that gap 
+      so the intent can be declared centrally in Directory.Packages.props.
+
+      This must operate at evaluation time (not inside a Target) for
+      NuGet restore to observe the metadata. MSBuild evaluation does
+      not support dynamic metadata inspection, so each known NuGet
+      metadata type is handled explicitly.
+    ==============================================================
+  -->
+
+  <ItemGroup>
+    <_CpmPrivateAssets Include="@(PackageVersion->HasMetadata('PrivateAssets'))" />
+    <_CpmIncludeAssets Include="@(PackageVersion->HasMetadata('IncludeAssets'))" />
+    <_CpmExcludeAssets Include="@(PackageVersion->HasMetadata('ExcludeAssets'))" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="@(_CpmPrivateAssets)" PrivateAssets="%(_CpmPrivateAssets.PrivateAssets)" />
+    <PackageReference Update="@(_CpmIncludeAssets)" IncludeAssets="%(_CpmIncludeAssets.IncludeAssets)" />
+    <PackageReference Update="@(_CpmExcludeAssets)" ExcludeAssets="%(_CpmExcludeAssets.ExcludeAssets)" />
+  </ItemGroup>
+
+  <!--
+    ==============================================================
+      GenAPI Target: Generate public API surface
+    ==============================================================
+  -->
+
+  <!-- GenAPI Properties -->
+  <PropertyGroup>
+    <GenAPIOutputDirectory>$(RepositoryRoot)artifacts\api\</GenAPIOutputDirectory>
+  </PropertyGroup>
+
+  <!-- Import GenAPI Task package when exporting API -->
+  <ItemGroup Condition="'$(ExportingApi)' == 'true'">
+    <PackageReference Include="Microsoft.DotNet.GenAPI.Task" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!--
+      ExportApi target: Generates the public API surface for the OpenAI library.
+
+    Usage:
+      dotnet build OpenAI/src/OpenAI.csproj -t:ExportApi -c Release -p:ExportingApi=true
+
+    Outputs intermediate files to:
+      artifacts/api/$(MSBuildProjectName).<TargetFramework>.cs
+  -->
+
+  <!-- Outer build target: Dispatches to inner builds for each target framework -->
+  <Target Name="ExportApi"
+           Condition="'$(MSBuildProjectName)' == 'OpenAI' and '$(TargetFramework)' == '' and '$(TargetFrameworks)' != ''">
+    <ItemGroup>
+      <_ExportApiTargetFramework Include="$(TargetFrameworks)" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ExportApiProject Include="$(MSBuildProjectFile)"
+                         AdditionalProperties="TargetFramework=%(_ExportApiTargetFramework.Identity);ExportingApi=true" />
+    </ItemGroup>
+
+    <MSBuild Projects="@(_ExportApiProject)"
+             Targets="ExportApiInner"
+             BuildInParallel="true" />
+  </Target>
+
+  <!-- Inner build target: Runs for each specific target framework -->
+  <Target Name="ExportApiInner"
+          DependsOnTargets="Build"
+           Condition="'$(MSBuildProjectName)' == 'OpenAI' and '$(TargetFramework)' != ''">
+
+    <!-- Run GenAPI task -->
+    <MakeDir Directories="$(GenAPIOutputDirectory)" />
+    <GenAPITask Assemblies="$(TargetPath)"
+                AssemblyReferences="@(ReferencePath)"
+                OutputPath="$(GenAPIOutputDirectory)$(MSBuildProjectName).$(TargetFramework).cs" />
+
+    <Message Importance="high"
+             Text="Generated API surface: $(GenAPIOutputDirectory)$(MSBuildProjectName).$(TargetFramework).cs" />
+  </Target>
+
+  <!--
+    ==============================================================
+      ConfigurationSchema.json auto-pack
+
+      Pack the JSON schema at the NuGet package root and include
+      the static .targets file in buildTransitive/ to register the
+      JsonSchemaSegment for appsettings.*.json IntelliSense.
+    ==============================================================
+  -->
+
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'OpenAI'">
+    <None Include="$(RepositoryRoot)schema\ConfigurationSchema.json" Pack="true" PackagePath="\" Link="schema\ConfigurationSchema.json" />
+    <None Include="$(RepositoryRoot)eng\OpenAI.NuGet.targets" Pack="true" PackagePath="buildTransitive\netstandard2.0\OpenAI.targets" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,90 @@
+{
+  "Entries": [
+    {
+      "RequestUri": "https://api.openai.com/v1/chat/completions",
+      "RequestMethod": "POST",
+      "RequestHeaders": {
+        "Accept": "application/json",
+        "Authorization": "Sanitized",
+        "Content-Length": "134",
+        "Content-Type": "application/json",
+        "User-Agent": "OpenAI/2.8.0 (.NET 9.0.13; Microsoft Windows 10.0.26200)"
+      },
+      "RequestBody": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "What are the best pizza toppings? Give me a breakdown on the reasons."
+          }
+        ],
+        "model": "gpt-4o-mini"
+      },
+      "StatusCode": 200,
+      "ResponseHeaders": {
+        "Access-Control-Expose-Headers": "X-Request-ID",
+        "Alt-Svc": "h3=\":443\"",
+        "cf-cache-status": "DYNAMIC",
+        "CF-RAY": "9cd0fdff49f9c37c-SEA",
+        "Connection": "keep-alive",
+        "Content-Type": "application/json",
+        "Date": "Sanitized",
+        "openai-organization": "Sanitized",
+        "openai-processing-ms": "Sanitized",
+        "openai-project": "Sanitized",
+        "openai-version": "2020-10-01",
+        "Server": "cloudflare",
+        "Set-Cookie": "Sanitized",
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+        "Transfer-Encoding": "chunked",
+        "X-Content-Type-Options": "nosniff",
+        "x-openai-proxy-wasm": "v0.1",
+        "x-ratelimit-limit-requests": "30000",
+        "x-ratelimit-limit-tokens": "150000000",
+        "x-ratelimit-remaining-requests": "29999",
+        "x-ratelimit-remaining-tokens": "149999977",
+        "x-ratelimit-reset-requests": "2ms",
+        "x-ratelimit-reset-tokens": "0s",
+        "X-Request-ID": "Sanitized"
+      },
+      "ResponseBody": {
+        "id": "chatcmpl-D8dTlkoqZS9MODa3FDuW6oCGIBVML",
+        "object": "chat.completion",
+        "created": 1770950753,
+        "model": "gpt-4o-mini-2024-07-18",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "The best pizza toppings can be subjective since personal preferences vary widely. However, some toppings are celebrated for their flavors, textures, and ability to complement other ingredients. Here's a breakdown of popular pizza toppings and reasons why they are often considered the best:\n\n### 1. **Pepperoni**\n   - **Flavor:** Spicy and savory with a robust taste that complements cheese and sauce well.\n   - **Texture:** Crispy edges when cooked, providing a satisfying crunch.\n   - **Popularity:** A classic topping that appeals to a broad audience, making it a staple in many pizzerias.\n\n### 2. **Mushrooms**\n   - **Flavor:** Earthy and umami-rich, they add depth to the pizza's flavor profile.\n   - **Texture:** Tender and juicy, providing a contrast to the crispiness of the crust.\n   - **Versatility:** Pairs well with various cheeses and other toppings, making it a great addition to many combinations.\n\n### 3. **Onions**\n   - **Flavor:** Sweet when caramelized and sharp when raw, they enhance the overall taste of the pizza.\n   - **Texture:** Adds crunch when raw and a soft, sweet quality when cooked.\n   - **Variety:** Different types of onions (red, yellow, green) can provide different flavor notes.\n\n### 4. **Sausage**\n   - **Flavor:** Savory and often seasoned with herbs and spices, adding richness to the pizza.\n   - **Texture:** Crumbled sausage can provide a hearty bite, making the pizza more filling.\n   - **Regional Variations:** Different styles (Italian, Chorizo, etc.) can introduce unique flavors.\n\n### 5. **Olives**\n   - **Flavor:** Salty and tangy, olives offer a unique taste that contrasts with the cheese and sauce.\n   - **Texture:** Firm and slightly chewy, adding variety to the mouthfeel.\n   - **Mediterranean Influence:** Often used in Mediterranean-inspired pizzas, giving them a distinctive character.\n\n### 6. **Bell Peppers**\n   - **Flavor:** Sweet and slightly crunchy, they offer a fresh taste that balances richer toppings.\n   - **Color:** Adds vibrant color to the pizza, making it visually appealing.\n   - **Nutritional Value:** Adds vitamins and antioxidants, making the pizza a bit healthier.\n\n### 7. **Bacon**\n   - **Flavor:** Smoky and salty, bacon adds indulgence and richness.\n   - **Texture:** Crispy pieces add a satisfying crunch amidst softer toppings.\n   - **Versatile:** Pairs well with many other toppings, enhancing their flavors.\n\n### 8. **Pineapple**\n   - **Flavor:** Sweet and juicy, pineapple provides a contrast to savory toppings like ham and cheese, appealing to those who enjoy sweet and savory combinations.\n   - **Texture:** Soft and succulent, adding a refreshing element to the mix.\n   - **Controversial yet Popular:** While it sparks debate, it has a dedicated following among pizza lovers.\n\n### 9. **Fresh Basil**\n   - **Flavor:** Aromatic and slightly peppery, fresh basil brightens up the pizza.\n   - **Visual Appeal:** Adds a pop of green, enhancing the presentation.\n   - **Pairing:** Works especially well with tomato sauce and mozzarella, reminiscent of traditional Margherita pizza.\n\n### 10. **Cheese**\n   - **Variety:** Beyond the classic mozzarella, options like feta, goat cheese, provolone, and cheddar can elevate a pizza’s flavor.\n   - **Texture:** Provides a gooey and rich base, essential for any pizza.\n   - **Flavor Profile:** Different cheeses add complexity and can complement other toppings well.\n\n### Conclusion\nChoosing the best pizza toppings often depends on individual taste preferences, regional influences, and experimental combinations. A successful pizza usually balances flavors and textures, providing a delightful culinary experience. Whether you prefer classic combinations or more adventurous choices, the key is to create a pizza that's enjoyable for your palate.",
+              "refusal": null,
+              "annotations": []
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 22,
+          "completion_tokens": 815,
+          "total_tokens": 837,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "service_tier": "default",
+        "system_fingerprint": "Sanitized"
+      }
+    }
+  ],
+  "Variables": {
+    "OPENAI_API_KEY": "api-key"
+  }
+}

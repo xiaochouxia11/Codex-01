@@ -1,0 +1,25 @@
+import "./client/assistants.client.tsp";
+import "./client/audio.client.tsp";
+import "./client/batch.client.tsp";
+import "./client/chat.client.tsp";
+import "./client/containers.client.tsp";
+import "./client/conversations.client.tsp";
+import "./client/embeddings.client.tsp";
+import "./client/evals.client.tsp";
+import "./client/files.client.tsp";
+import "./client/fine-tuning.client.tsp";
+import "./client/graders.client.tsp";
+import "./client/images.client.tsp";
+import "./client/messages.client.tsp";
+import "./client/models.client.tsp";
+import "./client/moderations.client.tsp";
+import "./client/realtime.client.tsp";
+import "./client/responses.client.tsp";
+import "./client/runs.client.tsp";
+import "./client/skills.client.tsp";
+import "./client/threads.client.tsp";
+import "./client/vector-stores.client.tsp";
+import "./client/videos.client.tsp";
+
+import "./base/typespec/main.tsp";
+import "./base/typespec/main.responses.tsp";

@@ -1,0 +1,116 @@
+﻿using Microsoft.ClientModel.TestFramework;
+using NUnit.Framework;
+using OpenAI.Images;
+using System;
+using System.ClientModel;
+using System.Threading.Tasks;
+
+namespace OpenAI.Tests.Images;
+
+public partial class ImagesTests : ImageTestFixtureBase
+{
+    public ImagesTests(bool isAsync) : base(isAsync)
+    {
+        TestTimeoutInSeconds = 30;
+    }
+
+    [RecordedTest]
+    public async Task BasicGenerationWorks()
+    {
+        ImageClient client = GetProxiedOpenAIClient<ImageClient>();
+
+        string prompt = "An isolated stop sign.";
+
+        GeneratedImage image = await client.GenerateImageAsync(prompt);
+        Assert.That(image.ImageUri, Is.Null);
+        Assert.That(image.ImageBytes, Is.Not.Null);
+
+        await ValidateGeneratedImage(image.ImageBytes, ["stop"]);
+    }
+
+    [RecordedTest]
+    public async Task GenerationWithOptionsWorks()
+    {
+        ImageClient client = GetProxiedOpenAIClient<ImageClient>("gpt-image-1");
+
+        string prompt = "An isolated stop sign.";
+
+        ImageGenerationOptions options = new()
+        {
+            OutputFileFormat = GeneratedImageFileFormat.Webp,
+            OutputCompressionFactor = 42,
+            Background = GeneratedImageBackground.Transparent,
+            ModerationLevel = GeneratedImageModerationLevel.Low,
+            Size = GeneratedImageSize.W1024xH1536,
+        };
+
+        GeneratedImageCollection images = await client.GenerateImagesAsync(prompt, 2, options);
+
+        long unixTime2025 = (new DateTimeOffset(2024, 01, 01, 0, 0, 0, TimeSpan.Zero)).ToUnixTimeSeconds();
+
+        Assert.That(images.CreatedAt.ToUnixTimeSeconds(), Is.GreaterThan(unixTime2025));
+        Assert.That(images.Count, Is.EqualTo(2));
+
+        Assert.That(images.Usage.InputTokenCount, Is.GreaterThan(0));
+        Assert.That(images.Usage.OutputTokenCount, Is.GreaterThan(0));
+        Assert.That(images.Usage.TotalTokenCount, Is.GreaterThan(0));
+        Assert.That(images.Usage.InputTokenDetails.TextTokenCount, Is.GreaterThan(0));
+        Assert.That(images.Usage.InputTokenDetails.ImageTokenCount, Is.EqualTo(0));
+
+        foreach (GeneratedImage image in images)
+        {
+            Assert.That(image.ImageUri, Is.Null);
+            Assert.That(image.ImageBytes, Is.Not.Null);
+            await ValidateGeneratedImage(image.ImageBytes, ["stop"]);
+        }
+    }
+
+    [RecordedTest]
+    public void GenerateImageCanParseServiceError()
+    {
+        ImageClient client = CreateProxyFromClient(new ImageClient(TestModel.Images, new ApiKeyCredential("fake_key"), InstrumentClientOptions(new OpenAIClientOptions())));
+        string prompt = "An isolated stop sign.";
+        Assert.That(
+            async () => await client.GenerateImageAsync(prompt),
+            Throws.TypeOf<ClientResultException>()
+                .With.Property(nameof(ClientResultException.Status)).EqualTo(401));
+    }
+
+    [RecordedTest]
+    public async Task GenerationOfMultipleImagesWorks()
+    {
+        ImageClient client = GetProxiedOpenAIClient<ImageClient>();
+
+        string prompt = "An isolated stop sign.";
+
+        ImageGenerationOptions options = new()
+        {
+            Size = GeneratedImageSize.W1024xH1024
+        };
+
+        GeneratedImageCollection images = await client.GenerateImagesAsync(prompt, 2, options);
+
+        long unixTime2024 = (new DateTimeOffset(2024, 01, 01, 0, 0, 0, TimeSpan.Zero)).ToUnixTimeSeconds();
+
+        Assert.That(images.CreatedAt.ToUnixTimeSeconds(), Is.GreaterThan(unixTime2024));
+        Assert.That(images.Count, Is.EqualTo(2));
+
+        foreach (GeneratedImage image in images)
+        {
+            Assert.That(image.ImageUri, Is.Null);
+            Assert.That(image.ImageBytes, Is.Not.Null);
+            await ValidateGeneratedImage(image.ImageBytes, ["stop"]);
+        }
+    }
+
+    [RecordedTest]
+    public void GenerateImagesCanParseServiceError()
+    {
+        ImageClient client = CreateProxyFromClient(new ImageClient(TestModel.Images, new ApiKeyCredential("fake_key"), InstrumentClientOptions(new OpenAIClientOptions())));
+        string prompt = "An isolated stop sign.";
+        Assert.That(
+            async () => await client.GenerateImagesAsync(prompt, 2),
+            Throws.TypeOf<ClientResultException>()
+                .With.Property(nameof(ClientResultException.Status)).EqualTo(401));
+    }
+}

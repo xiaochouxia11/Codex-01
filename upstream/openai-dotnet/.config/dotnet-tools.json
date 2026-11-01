@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "Azure.Sdk.Tools.SnippetGenerator": {
+      "version": "1.0.0-dev.20260811.3",
+      "commands": [
+        "snippet-generator"
+      ],
+      "rollForward": false
+    },
+    "azure.sdk.tools.testproxy": {
+      "version": "1.0.0-dev.20260521.2",
+      "commands": [
+        "test-proxy"
+      ],
+      "rollForward": false
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "@open-ai/plugin",
+  "version": "1.0.0",
+  "description": "OpenAI plugin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openai/openai-dotnet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/openai/openai-dotnet/issues"
+  },
+  "type": "module",
+  "main": "dist/emitter/index.js",
+  "exports": {
+    ".": "./dist/emitter/index.js"
+  },
+  "scripts": {
+    "clean": "rimraf ./dist ./emitter/temp && dotnet clean ./generator",
+    "build:emitter": "tsc -p ./tsconfig.build.json",
+    "build:generator": "dotnet build ./generator",
+    "build": "npm run build:emitter && npm run build:generator",
+    "test:emitter": "vitest run -c ./emitter/vitest.config.ts",
+    "test:generator": "dotnet test ./generator",
+    "test": "npm run test:emitter && npm run test:generator"
+  },
+  "files": [
+    "dist/**"
+  ],
+  "dependencies": {
+    "@azure-tools/typespec-client-generator-core": "0.72.2",
+    "@open-ai/plugin": "file:",
+    "@typespec/http": "1.16.0",
+    "@typespec/http-client-csharp": "1.0.0-alpha.20261003.1",
+    "@typespec/openapi": "1.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.1",
+    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/ui": "^4.1.11",
+    "c8": "^12.0.0",
+    "rimraf": "^6.1.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}
