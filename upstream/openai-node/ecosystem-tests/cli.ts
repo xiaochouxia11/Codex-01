@@ -1,0 +1,1263 @@
+import { randomBytes } from 'node:crypto';
+import { lstatSync, renameSync, unlinkSync } from 'node:fs';
+import fs from 'node:fs/promises';
+import execa from 'execa';
+import yargs from 'yargs';
+import assert from 'node:assert';
+import path from 'node:path';
+import { createServer } from 'node:http';
+import { connect } from 'node:net';
+
+const TAR_NAME = 'openai.tgz';
+const PACK_FOLDER = '.pack';
+const PACK_FILE = `${PACK_FOLDER}/${TAR_NAME}`;
+const IS_CI = Boolean(process.env['CI'] && process.env['CI'] !== 'false');
+const MAX_CLOUDFLARE_CREDENTIAL_BYTES = 64 * 1024;
+
+let activeCloudflareCredentialCleanup: (() => Promise<void>) | undefined;
+let ecosystemInterruptionRequested = false;
+
+async function defaultNodeRunner() {
+  await installPackage();
+  await run('npm', ['run', 'tsc']);
+  if (state.live) {
+    await run('npm', ['test'], { allowApiKey: true });
+  }
+}
+
+async function commonJSEcosystemRunner() {
+  await defaultNodeRunner();
+  if (!state.live) {
+    await run('npm', ['test', '--', '--runInBand', 'tests/import.test.ts']);
+  }
+}
+
+async function writeCloudflareCredentialFile(
+  file: Awaited<ReturnType<typeof fs.open>>,
+  contents: Buffer,
+): Promise<void> {
+  await file.truncate(0);
+
+  let offset = 0;
+  while (offset < contents.length) {
+    const { bytesWritten } = await file.write(contents, offset, contents.length - offset, offset);
+    if (bytesWritten === 0) {
+      throw new Error('Unable to update the Cloudflare credential file.');
+    }
+    offset += bytesWritten;
+  }
+}
+
+async function readCloudflareCredentialSnapshot(
+  file: Awaited<ReturnType<typeof fs.open>>,
+  size: bigint,
+): Promise<Buffer> {
+  if (size < 0n || size > BigInt(MAX_CLOUDFLARE_CREDENTIAL_BYTES)) {
+    throw new Error('The Cloudflare credential file exceeds the maximum size of 64 KiB.');
+  }
+
+  const contents = Buffer.alloc(MAX_CLOUDFLARE_CREDENTIAL_BYTES + 1);
+  let offset = 0;
+
+  while (offset < contents.length) {
+    const { bytesRead } = await file.read(contents, offset, contents.length - offset, offset);
+    if (bytesRead === 0) {
+      return contents.subarray(0, offset);
+    }
+    offset += bytesRead;
+  }
+
+  throw new Error('The Cloudflare credential file exceeds the maximum size of 64 KiB.');
+}
+
+class CloudflareCredentialIntegrityError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CloudflareCredentialIntegrityError';
+  }
+}
+
+type CloudflareCredentialIdentity = { dev: bigint; ino: bigint };
+
+function cloudflareCredentialMatchesIdentity(
+  candidate: string,
+  identity: CloudflareCredentialIdentity,
+): boolean {
+  try {
+    const metadata = lstatSync(candidate, { bigint: true });
+    return metadata.isFile() && metadata.dev === identity.dev && metadata.ino === identity.ino;
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function unlinkCloudflareCredentialArtifact(candidate: string, identity: CloudflareCredentialIdentity): void {
+  if (!cloudflareCredentialMatchesIdentity(candidate, identity)) {
+    throw new CloudflareCredentialIntegrityError('A Cloudflare credential artifact was replaced.');
+  }
+  unlinkSync(candidate);
+}
+
+async function withCloudflareCredentials(apiKey: string, runLiveTest: () => Promise<void>): Promise<void> {
+  if (ecosystemInterruptionRequested) {
+    throw new CloudflareCredentialIntegrityError('Cannot stage Cloudflare credentials after interruption.');
+  }
+
+  const credentialPath = '.dev.vars';
+  const flags = fs.constants.O_RDWR + fs.constants.O_NOFOLLOW + fs.constants.O_NONBLOCK;
+  const expectedContents = Buffer.from(`OPENAI_API_KEY='${apiKey}'`);
+  let file: Awaited<ReturnType<typeof fs.open>> | undefined;
+  let originalFile: Awaited<ReturnType<typeof fs.open>> | undefined;
+  let originalIdentity: CloudflareCredentialIdentity | undefined;
+  let stagingIdentity: CloudflareCredentialIdentity | undefined;
+  let backupIdentity: CloudflareCredentialIdentity | undefined;
+  let backupPath: string | undefined;
+  let temporaryPath: string | undefined;
+  let created = false;
+  let published = false;
+  let staged = false;
+  let stagedSecretPresent = false;
+  let pendingIntegrityError: CloudflareCredentialIntegrityError | undefined;
+  let cleanup: Promise<void> | undefined;
+  let staging: Promise<void> | undefined;
+
+  const removeSecret = (contents: Buffer): Buffer => {
+    let sanitized = contents;
+    let complete = sanitized.indexOf(expectedContents);
+    while (complete !== -1) {
+      sanitized = Buffer.concat([
+        sanitized.subarray(0, complete),
+        sanitized.subarray(complete + expectedContents.length),
+      ]);
+      complete = sanitized.indexOf(expectedContents);
+    }
+
+    const secret = Buffer.from(apiKey);
+    const chunks: Buffer[] = [];
+    let offset = 0;
+    let position = sanitized.indexOf(secret, offset);
+    while (position !== -1) {
+      chunks.push(sanitized.subarray(offset, position), Buffer.from('[REDACTED]'));
+      offset = position + secret.length;
+      position = sanitized.indexOf(secret, offset);
+    }
+    if (chunks.length === 0) {
+      return sanitized;
+    }
+    chunks.push(sanitized.subarray(offset));
+    return Buffer.concat(chunks);
+  };
+
+  const scrubCredentialFile = async (handle: Awaited<ReturnType<typeof fs.open>>): Promise<void> => {
+    await handle.truncate(0);
+    stagedSecretPresent = false;
+  };
+
+  const preserveChangedContents = async (
+    handle: Awaited<ReturnType<typeof fs.open>>,
+    contents: Buffer,
+    mode: number,
+    identity: CloudflareCredentialIdentity,
+  ): Promise<never> => {
+    const sanitized = removeSecret(contents);
+    if (!sanitized.equals(contents)) {
+      if (mode !== 0o600) {
+        await handle.chmod(0o600);
+      }
+      await writeCloudflareCredentialFile(handle, sanitized);
+      if (mode !== 0o600) {
+        await handle.chmod(mode);
+      }
+    }
+
+    stagedSecretPresent = false;
+    if (!cloudflareCredentialMatchesIdentity(credentialPath, identity)) {
+      await scrubCredentialFile(handle);
+      throw new CloudflareCredentialIntegrityError(
+        'The Cloudflare credential path was replaced while credentials were staged.',
+      );
+    }
+
+    throw new CloudflareCredentialIntegrityError(
+      'The Cloudflare credential contents changed while credentials were staged.',
+    );
+  };
+
+  const validateStagedContents = async (
+    handle: Awaited<ReturnType<typeof fs.open>>,
+    identity: CloudflareCredentialIdentity,
+  ): Promise<boolean> => {
+    if (!staged) {
+      return false;
+    }
+
+    const metadata = await handle.stat({ bigint: true });
+    const mode = Number(metadata.mode % 4096n);
+    let contents: Buffer;
+    try {
+      contents = await readCloudflareCredentialSnapshot(handle, metadata.size);
+    } catch {
+      await scrubCredentialFile(handle);
+      pendingIntegrityError = new CloudflareCredentialIntegrityError(
+        'The Cloudflare credential contents changed beyond the safe size limit.',
+      );
+      return false;
+    }
+
+    if (!contents.equals(expectedContents)) {
+      await preserveChangedContents(handle, contents, mode, identity);
+    }
+
+    const changedMode = mode !== 0o600;
+    if (changedMode && originalFile) {
+      await originalFile.chmod(mode);
+    }
+    return changedMode;
+  };
+
+  const restoreOriginalCredentialPath = (identity: CloudflareCredentialIdentity): void => {
+    if (!cloudflareCredentialMatchesIdentity(credentialPath, identity)) {
+      throw new CloudflareCredentialIntegrityError(
+        'The Cloudflare credential path was replaced while credentials were staged.',
+      );
+    }
+
+    if (created) {
+      unlinkSync(credentialPath);
+      return;
+    }
+
+    if (backupPath && backupIdentity) {
+      if (!cloudflareCredentialMatchesIdentity(backupPath, backupIdentity)) {
+        throw new CloudflareCredentialIntegrityError(
+          'The original Cloudflare credential backup was replaced.',
+        );
+      }
+      renameSync(backupPath, credentialPath);
+      backupPath = undefined;
+    }
+  };
+
+  const cleanupArtifacts = async (): Promise<void> => {
+    try {
+      if (stagedSecretPresent && file && (created || file !== originalFile)) {
+        await scrubCredentialFile(file);
+      }
+      if (temporaryPath && stagingIdentity && file && file !== originalFile) {
+        await file.truncate(0);
+        unlinkCloudflareCredentialArtifact(temporaryPath, stagingIdentity);
+        temporaryPath = undefined;
+      }
+      if (backupPath && backupIdentity) {
+        unlinkCloudflareCredentialArtifact(backupPath, backupIdentity);
+        backupPath = undefined;
+      }
+    } finally {
+      await file?.close();
+      if (originalFile && originalFile !== file) {
+        await originalFile.close();
+      }
+    }
+  };
+
+  const restoreOnce = (): Promise<void> => {
+    cleanup ??= (async () => {
+      try {
+        if (staging) {
+          try {
+            await staging;
+          } catch {
+            // The owning operation reports the original staging failure.
+          }
+        }
+
+        if (!file || !stagingIdentity || !published) {
+          return;
+        }
+
+        try {
+          if (!cloudflareCredentialMatchesIdentity(credentialPath, stagingIdentity)) {
+            throw new CloudflareCredentialIntegrityError(
+              'The Cloudflare credential path was replaced while credentials were staged.',
+            );
+          }
+        } catch (error) {
+          await scrubCredentialFile(file);
+          try {
+            restoreOriginalCredentialPath(stagingIdentity);
+          } catch {
+            // An inaccessible or replaced pathname must never block descriptor scrubbing.
+          }
+          if (error instanceof CloudflareCredentialIntegrityError) {
+            throw error;
+          }
+          throw new CloudflareCredentialIntegrityError(
+            'The Cloudflare credential path could not be validated safely.',
+          );
+        }
+
+        const changedMode = await validateStagedContents(file, stagingIdentity);
+        await scrubCredentialFile(file);
+        restoreOriginalCredentialPath(stagingIdentity);
+
+        if (pendingIntegrityError) {
+          throw pendingIntegrityError;
+        }
+
+        if (changedMode) {
+          throw new CloudflareCredentialIntegrityError(
+            'The Cloudflare credential permissions changed while credentials were staged.',
+          );
+        }
+      } finally {
+        await cleanupArtifacts();
+      }
+    })();
+    return cleanup;
+  };
+
+  activeCloudflareCredentialCleanup = restoreOnce;
+
+  try {
+    staging = (async () => {
+      try {
+        file = await fs.open(credentialPath, flags);
+      } catch (error) {
+        if (!(error instanceof Error) || !('code' in error) || error.code !== 'ENOENT') {
+          throw error;
+        }
+
+        file = await fs.open(credentialPath, flags + fs.constants.O_CREAT + fs.constants.O_EXCL, 0o600);
+        created = true;
+      }
+
+      const metadata = await file.stat({ bigint: true });
+      if (!metadata.isFile() || metadata.nlink !== 1n) {
+        throw new Error('The Cloudflare credential path must be an unshared regular file.');
+      }
+      originalIdentity = { dev: metadata.dev, ino: metadata.ino };
+      stagingIdentity = originalIdentity;
+      published = created;
+
+      if (!created) {
+        await readCloudflareCredentialSnapshot(file, metadata.size);
+      }
+
+      const current = await fs.lstat(credentialPath, { bigint: true });
+      if (!current.isFile() || current.dev !== originalIdentity.dev || current.ino !== originalIdentity.ino) {
+        throw new CloudflareCredentialIntegrityError(
+          'The Cloudflare credential path changed before credentials could be staged.',
+        );
+      }
+
+      if (!created) {
+        originalFile = file;
+        const suffix = randomBytes(16).toString('hex');
+        backupPath = `${credentialPath}.openai-original-${suffix}`;
+        await fs.link(credentialPath, backupPath);
+        const backup = lstatSync(backupPath, { bigint: true });
+        backupIdentity = { dev: backup.dev, ino: backup.ino };
+        if (!cloudflareCredentialMatchesIdentity(backupPath, originalIdentity)) {
+          throw new CloudflareCredentialIntegrityError(
+            'The Cloudflare credential path changed while its backup was being created.',
+          );
+        }
+
+        temporaryPath = `${credentialPath}.openai-staging-${suffix}`;
+        file = await fs.open(temporaryPath, flags + fs.constants.O_CREAT + fs.constants.O_EXCL, 0o600);
+        const privateMetadata = await file.stat({ bigint: true });
+        if (!privateMetadata.isFile() || privateMetadata.nlink !== 1n) {
+          throw new CloudflareCredentialIntegrityError(
+            'The private Cloudflare credential inode is not exclusive.',
+          );
+        }
+        stagingIdentity = { dev: privateMetadata.dev, ino: privateMetadata.ino };
+      }
+
+      await file.chmod(0o600);
+      stagedSecretPresent = true;
+      await writeCloudflareCredentialFile(file, expectedContents);
+      staged = true;
+
+      if (temporaryPath && originalIdentity) {
+        if (!cloudflareCredentialMatchesIdentity(credentialPath, originalIdentity)) {
+          throw new CloudflareCredentialIntegrityError(
+            'The Cloudflare credential path changed before private credentials could be published.',
+          );
+        }
+        renameSync(temporaryPath, credentialPath);
+        temporaryPath = undefined;
+        published = true;
+      }
+    })();
+    await staging;
+    if (!cleanup) {
+      await runLiveTest();
+    }
+  } finally {
+    try {
+      await restoreOnce();
+    } finally {
+      if (activeCloudflareCredentialCleanup === restoreOnce) {
+        activeCloudflareCredentialCleanup = undefined;
+      }
+    }
+  }
+}
+
+const projectRunners = {
+  'node-ts-cjs': commonJSEcosystemRunner,
+  'node-ts-cjs-web': commonJSEcosystemRunner,
+  'node-ts-cjs-auto': commonJSEcosystemRunner,
+  'node-ts4.5-jest28': commonJSEcosystemRunner,
+  'node-ts-esm': defaultNodeRunner,
+  'node-ts-esm-web': defaultNodeRunner,
+  'node-ts-esm-auto': defaultNodeRunner,
+  'node-js': async () => {
+    await installPackage();
+    await run('node', ['test.js']);
+  },
+  'ts-browser-webpack': async () => {
+    await installPackage();
+
+    await run('npm', ['run', 'tsc']);
+    await run('npm', ['run', 'build']);
+    await run('npm', ['run', 'test:bundle']);
+
+    if (state.live) {
+      await run('npm', ['run', 'test:ci'], { allowApiKey: true });
+    }
+  },
+  'browser-direct-import': async () => {
+    await installPackage();
+
+    await fs.rm('public/node_modules', { force: true });
+    await fs.symlink('../node_modules', 'public/node_modules');
+
+    await run('npm', ['run', 'tsc']);
+    await run('npm', ['run', 'test:ci'], {
+      allowApiKey: state.live,
+      env: { OPENAI_ECOSYSTEM_TEST_LIVE: String(state.live) },
+    });
+  },
+  'vercel-edge': async () => {
+    await installPackage();
+
+    if (state.live) {
+      await run('npm', ['run', 'test:ci:dev'], { allowApiKey: true });
+    }
+    await run('npm', ['run', 'build']);
+
+    if (state.live) {
+      await run('npm', ['run', 'test:ci'], { allowApiKey: true });
+    }
+    if (state.deploy) {
+      await run('npm', ['run', 'vercel', 'deploy', '--prod', '--force'], { allowApiKey: true });
+    }
+  },
+  'cloudflare-worker': async () => {
+    await installPackage();
+    await run('npm', ['run', 'tsc']);
+    await run('npm', ['run', 'test:smoke']);
+
+    if (state.live) {
+      const apiKey = process.env['OPENAI_API_KEY'];
+      assert.ok(apiKey);
+      await withCloudflareCredentials(apiKey, async () => {
+        await run('npm', ['run', 'test:ci'], { allowApiKey: true });
+      });
+    }
+    if (state.deploy) {
+      await run('npm', ['run', 'deploy'], { allowApiKey: true });
+    }
+  },
+  bun: async () => {
+    if (state.fromNpm) {
+      await run('bun', ['install', '-D', state.fromNpm]);
+    } else {
+      const packFile = getPackFile();
+      await fs.copyFile(packFile, `./${TAR_NAME}`);
+      await run('bun', ['install', '-D', `./${TAR_NAME}`]);
+    }
+
+    await run('npm', ['run', 'tsc']);
+
+    await run('bun', state.live ? ['test'] : ['test', 'workload-identity-access-token.test.ts'], {
+      allowApiKey: state.live,
+    });
+  },
+  deno: async () => {
+    const packageJson = {
+      name: 'openai-deno-ecosystem-test',
+      private: true,
+    };
+    await fs.writeFile('package.json', JSON.stringify(packageJson, null, 2) + '\n');
+
+    if (state.fromNpm) {
+      await run('npm', [
+        'install',
+        '--ignore-scripts',
+        '--no-package-lock',
+        '--no-audit',
+        '--no-fund',
+        '--no-save',
+        state.fromNpm,
+      ]);
+    } else {
+      const packFile = getPackFile();
+      await fs.copyFile(packFile, `./${TAR_NAME}`);
+      await run('deno', ['task', 'install']);
+    }
+
+    // Deno's BYONM resolver requires package.json to declare the npm
+    // dependency. For the default path, add that declaration only after npm
+    // installs the local tarball so it cannot substitute a registry package.
+    const installedPackage = JSON.parse(await fs.readFile('node_modules/openai/package.json', 'utf-8'));
+    assert.ok(typeof installedPackage.version === 'string');
+    await fs.writeFile(
+      'package.json',
+      JSON.stringify(
+        {
+          ...packageJson,
+          dependencies: { openai: installedPackage.version },
+        },
+        null,
+        2,
+      ) + '\n',
+    );
+
+    await run('deno', ['task', 'check']);
+
+    if (state.live) {
+      await run('deno', ['task', 'test'], { allowApiKey: true });
+    }
+  },
+};
+
+// SAFETY: projectRunners is the closed object literal above, so every enumerated own key names one registered runner.
+let projectNames = Object.keys(projectRunners) as (keyof typeof projectRunners)[];
+const projectNamesSet = new Set<string>(projectNames);
+
+async function startProxy() {
+  const proxy = createServer((_req, res) => {
+    res.end();
+  });
+
+  proxy.on('connect', (req, clientSocket, head) => {
+    console.log('got proxied connection');
+    const serverSocket = connect(443, 'api.openai.com', () => {
+      if (clientSocket.destroyed) {
+        serverSocket.destroy();
+        return;
+      }
+      clientSocket.write('HTTP/1.1 200 Connection Established\r\nProxy-agent: Node.js-Proxy\r\n\r\n');
+      serverSocket.write(head);
+      serverSocket.pipe(clientSocket);
+      clientSocket.pipe(serverSocket);
+    });
+    const destroyTunnel = () => {
+      clientSocket.destroy();
+      serverSocket.destroy();
+    };
+    clientSocket.on('error', destroyTunnel);
+    serverSocket.on('error', destroyTunnel);
+    clientSocket.on('close', () => serverSocket.destroy());
+  });
+
+  await new Promise<void>((resolve) => proxy.listen(0, '127.0.0.1', resolve));
+
+  const address = proxy.address();
+  assert.ok(address && typeof address !== 'string');
+  process.env['ECOSYSTEM_TESTS_PROXY'] = 'http://127.0.0.1:' + address.port;
+
+  return () => {
+    delete process.env['ECOSYSTEM_TESTS_PROXY'];
+    proxy.close();
+  };
+}
+
+export function createCliParser(argv: string[]) {
+  return yargs(argv)
+    .scriptName('ecosystem-tests')
+    .usage('run tests using various different project setups')
+
+    .positional('projects', {
+      type: 'string',
+      array: true,
+      choices: projectNames,
+    })
+
+    .options({
+      verbose: {
+        type: 'boolean',
+        default: false,
+      },
+      skip: {
+        type: 'array',
+        default: [],
+        description: 'Skip one or more projects. Separate project names with a space.',
+      },
+      skipPack: {
+        type: 'boolean',
+        default: false,
+      },
+      fromNpm: {
+        type: 'string',
+        description: 'Test installing from a given NPM package instead of the local package',
+      },
+      live: {
+        type: 'boolean',
+        default: false,
+        description: 'Make live API requests',
+      },
+      deploy: {
+        type: 'boolean',
+        default: false,
+        description: 'Push projects to live servers',
+      },
+      jobs: {
+        type: 'number',
+        default: 1,
+        description: 'number of parallel jobs to run',
+      },
+      retry: {
+        type: 'string',
+        default: '0',
+        description: 'number of times to retry failing jobs',
+        coerce: (value: unknown) => {
+          const retry = Number(value);
+          const decimal = /^[+-]?(?<whole>\d*)(?:\.(?<fraction>\d*))?(?:e(?<exponent>[+-]?\d+))?$/iu.exec(
+            String(value).trim(),
+          )?.groups;
+          let hasFraction = false;
+          if (decimal) {
+            const { whole = '', fraction = '', exponent = '0' } = decimal;
+            const digits = whole + fraction;
+            let significantDigits = digits.length;
+            while (digits[significantDigits - 1] === '0') {
+              significantDigits--;
+            }
+            // Check the original digits: Number can round a fraction to an integer or zero.
+            hasFraction = significantDigits > 0 && Number(exponent) < significantDigits - whole.length;
+          }
+          if (!Number.isSafeInteger(retry) || retry < 0 || hasFraction) {
+            throw new Error('--retry must be a non-negative safe integer.');
+          }
+          return retry;
+        },
+      },
+      retryDelay: {
+        type: 'number',
+        default: 1000,
+        description: 'delay between retries in ms',
+      },
+      parallel: {
+        type: 'boolean',
+        default: false,
+        description: 'run all projects in parallel (jobs = # projects)',
+      },
+      noCleanup: {
+        type: 'boolean',
+        default: false,
+      },
+    })
+    .check((args) => {
+      for (const project of args._) {
+        if (typeof project !== 'string' || !projectNamesSet.has(project)) {
+          throw new Error(`Unknown ecosystem project: ${JSON.stringify(project)}`);
+        }
+      }
+      return true;
+    })
+    .help();
+}
+
+function parseArgs() {
+  return createCliParser(process.argv.slice(2)).argv;
+}
+
+type Args = Awaited<ReturnType<typeof parseArgs>>;
+
+let state: Args & { rootDir: string };
+type ChildOutputChunk = { dest: 'stdout' | 'stderr'; data: string | Buffer };
+
+async function main() {
+  const args = await parseArgs();
+
+  if ((args.live || args.deploy) && !process.env['OPENAI_API_KEY']) {
+    throw new Error('The environment variable OPENAI_API_KEY must be set when using --live or --deploy.');
+  }
+
+  console.error(`args:`, args);
+
+  // Some projects, e.g. Deno can be slow to run, so offer the option to skip them. Example:
+  //   --skip=deno node-ts-cjs
+  if (args.skip.length > 0) {
+    for (const [idx, projectName] of args.skip.entries()) {
+      // Ensure the inputted project name is lower case
+      args.skip[idx] = (projectName + '').toLowerCase();
+    }
+
+    // SAFETY: The loop above normalizes every skip entry to a lowercase string before this membership check.
+    projectNames = projectNames.filter((projectName) => !(args.skip as string[]).includes(projectName));
+
+    for (const projectName of args.skip) {
+      // SAFETY: Every skip entry was converted to a lowercase string by the normalization loop above.
+      projectNamesSet.delete(projectName as string);
+    }
+  }
+
+  const tmpFolderPath = path.resolve(process.cwd(), 'tmp');
+
+  const rootDir = await packageDir();
+  console.error(`rootDir:`, rootDir);
+
+  state = { ...args, rootDir };
+
+  process.chdir(rootDir);
+
+  if (!args.skipPack) {
+    await buildPackage();
+  }
+
+  const positionalArgs = args._.filter(Boolean);
+
+  // For some reason `yargs` doesn't pick up the positional args correctly
+  let projectsToRun: typeof projectNames;
+  if (args.projects?.length) {
+    // SAFETY: Yargs choices and the explicit project-name membership check reject unregistered project names before runner lookup.
+    projectsToRun = args.projects as typeof projectNames;
+  } else if (positionalArgs.length) {
+    // SAFETY: Yargs choices and the explicit project-name membership check reject unregistered project names before runner lookup.
+    projectsToRun = positionalArgs.filter(
+      (n) => typeof n === 'string' && projectNamesSet.has(n),
+    ) as typeof projectNames;
+  } else {
+    projectsToRun = projectNames;
+  }
+  console.error(`running projects: ${projectsToRun}`);
+
+  const failed: typeof projectNames = [];
+
+  let cleanupWasRun = false;
+
+  // Cleanup the various artifacts created as part of executing this script
+  async function runCleanup() {
+    if (cleanupWasRun) {
+      return;
+    }
+    cleanupWasRun = true;
+
+    // Restore the original files in the ecosystem-tests folders from before
+    // npm install was run
+    await fileCache.restoreFiles(tmpFolderPath);
+
+    const packFolderPath = path.join(process.cwd(), PACK_FOLDER);
+
+    try {
+      // Clean up the .pack folder if this was the process that created it.
+      await fs.unlink(PACK_FILE);
+      await fs.rmdir(packFolderPath);
+    } catch (err) {
+      console.log('Failed to delete .pack folder', err);
+    }
+
+    for (let i = 0; i < projectNames.length; i++) {
+      // SAFETY: The loop bounds i by this fixed project-name array length; the selected element is one registered project name.
+      const projectName = (projectNames as any)[i] as string;
+
+      await defaultNodeCleanup(projectName).catch((err: any) => {
+        console.error('Error: Cleanup of file artifacts failed for project', projectName, err);
+      });
+    }
+
+    await fs.rm(path.join(tmpFolderPath, 'puppeteer-cache'), { recursive: true, force: true });
+  }
+
+  let interruptionCleanup: Promise<void> | undefined;
+
+  function runCleanupAndExit(signal: NodeJS.Signals): void {
+    ecosystemInterruptionRequested = true;
+    interruptionCleanup ??= (async () => {
+      try {
+        await activeCloudflareCredentialCleanup?.();
+      } catch {
+        console.error('Unable to finish Cloudflare credential cleanup after interruption.');
+        process.exit(1);
+        return;
+      }
+
+      if (!args.noCleanup) {
+        try {
+          await runCleanup();
+        } catch {
+          console.error('Unable to finish Cloudflare credential cleanup after interruption.');
+          if (signal !== 'SIGHUP') {
+            process.exit(1);
+            return;
+          }
+        }
+      }
+
+      if (args.noCleanup || signal === 'SIGHUP') {
+        process.removeListener('SIGHUP', runCleanupAndExit);
+        process.removeListener('SIGINT', runCleanupAndExit);
+        process.removeListener('SIGTERM', runCleanupAndExit);
+        process.kill(process.pid, signal);
+        return;
+      }
+
+      process.exit(1);
+    })();
+  }
+
+  if (!(await fileExists(tmpFolderPath))) {
+    await fs.mkdir(tmpFolderPath);
+  }
+
+  let { jobs } = args;
+  if (args.parallel) {
+    jobs = projectsToRun.length;
+  }
+
+  process.on('SIGHUP', runCleanupAndExit);
+  process.on('SIGINT', runCleanupAndExit);
+  process.on('SIGTERM', runCleanupAndExit);
+
+  if (!args.noCleanup) {
+    // The cleanup code is only executed from the parent script that runs
+    // multiple projects.
+    process.on('exit', runCleanup);
+
+    await fileCache.cacheFiles(tmpFolderPath);
+  }
+
+  const stopProxy = await startProxy();
+  try {
+    if (jobs > 1) {
+      const queue = [...projectsToRun];
+      const runningProjects = new Set();
+
+      const cursorLeft = '\u001B[G';
+      const eraseLine = '\u001B[2K';
+
+      let progressDisplayed = false;
+      const clearProgress = () => {
+        if (progressDisplayed) {
+          process.stderr.write(cursorLeft + eraseLine);
+          progressDisplayed = false;
+        }
+      };
+      const spinner = ['|', '/', '-', '\\'];
+
+      const showProgress = () => {
+        clearProgress();
+        progressDisplayed = true;
+        const spin = spinner[Math.floor(Date.now() / 500) % spinner.length];
+        process.stderr.write(
+          `${spin} Running ${[...runningProjects].join(', ')}`.slice(
+            0,
+            Math.max(0, process.stdout.columns - 3),
+          ) + '...',
+        );
+      };
+
+      const progressInterval = setInterval(showProgress, process.stdout.isTTY ? 500 : 5000);
+      showProgress();
+
+      await Promise.all(
+        Array.from({ length: jobs }, (_, index) => index).map(async () => {
+          while (queue.length) {
+            const project = queue.shift();
+            if (!project) {
+              break;
+            }
+
+            // preserve interleaved ordering of writes to stdout/stderr
+            const chunks: ChildOutputChunk[] = [];
+            try {
+              runningProjects.add(project);
+              await withRetry(
+                async () => {
+                  const child = execa(
+                    'pnpm',
+                    [
+                      'tsn',
+                      __filename,
+                      project,
+                      '--skip-pack',
+                      '--noCleanup',
+                      `--retry=${args.retry}`,
+                      `--retryDelay=${args.retryDelay}`,
+                      ...(args.live ? ['--live'] : []),
+                      ...(args.verbose ? ['--verbose'] : []),
+                      ...(args.deploy ? ['--deploy'] : []),
+                      ...(args.fromNpm ? [`--from-npm=${args.fromNpm}`] : []),
+                    ],
+                    {
+                      stdio: 'pipe',
+                      encoding: 'utf-8',
+                      maxBuffer: 100 * 1024 * 1024,
+                      env: {
+                        DISABLE_V8_COMPILE_CACHE: process.env['DISABLE_V8_COMPILE_CACHE'] ?? '1',
+                      },
+                    },
+                  );
+                  child.stdout?.on('data', (data) => chunks.push({ dest: 'stdout', data }));
+                  child.stderr?.on('data', (data) => chunks.push({ dest: 'stderr', data }));
+                  await child;
+                },
+                `${project} worker process`,
+                args.retry,
+                args.retryDelay,
+                isLikelyNodeCrash,
+              );
+            } catch {
+              failed.push(project);
+            } finally {
+              runningProjects.delete(project);
+            }
+
+            if (IS_CI) {
+              console.log(`::group::${failed.includes(project) ? '❌' : '✅'} ${project}`);
+            }
+
+            for (const { data } of chunks) {
+              process.stdout.write(data);
+            }
+            if (IS_CI) {
+              console.log('::endgroup::');
+            }
+          }
+        }),
+      );
+
+      clearInterval(progressInterval);
+      clearProgress();
+    } else {
+      const runProject = async (project: (typeof projectsToRun)[number]): Promise<void> => {
+        const fn = projectRunners[project];
+        console.error('\n');
+        console.error(banner(`▶️ ${project}`));
+        console.error('\n');
+
+        try {
+          await withRetry(
+            fn,
+            project,
+            state.retry,
+            state.retryDelay,
+            (error) => !(error instanceof CloudflareCredentialIntegrityError),
+          );
+          console.error('\n');
+          console.error(`✅ ${project}`);
+        } catch (err) {
+          // SAFETY: This command failure inspection reads optional execa fields for logging or crash classification; absent fields are handled by the surrounding fallback.
+          if (err && (err as any).shortMessage) {
+            // SAFETY: This command failure inspection reads optional execa fields for logging or crash classification; absent fields are handled by the surrounding fallback.
+            console.error((err as any).shortMessage);
+          } else {
+            console.error(err);
+          }
+          console.error('\n');
+          console.error(`❌ ${project}`);
+          failed.push(project);
+        }
+        console.error('\n');
+      };
+
+      for (const project of projectsToRun) {
+        await withChdir(path.join(rootDir, 'ecosystem-tests', project), runProject.bind(undefined, project));
+      }
+    }
+  } finally {
+    stopProxy();
+  }
+
+  if (!args.noCleanup) {
+    await runCleanup();
+  }
+
+  if (interruptionCleanup) {
+    await interruptionCleanup;
+  }
+
+  if (failed.length) {
+    console.error(`${failed.length} project(s) failed - ${failed.join(', ')}`);
+    process.exit(1);
+  }
+  console.error();
+  process.exit(0);
+}
+
+async function withRetry(
+  fn: () => Promise<void>,
+  identifier: string,
+  retryAmount: number,
+  retryDelayMs: number,
+  shouldRetry: (err: unknown) => boolean = () => true,
+): Promise<void> {
+  let retriesLeft = retryAmount;
+  while (true) {
+    if (ecosystemInterruptionRequested) {
+      throw new CloudflareCredentialIntegrityError('Cannot retry ecosystem tests after interruption.');
+    }
+
+    try {
+      return await fn();
+    } catch (err) {
+      if (retriesLeft <= 0 || !shouldRetry(err)) {
+        throw err;
+      }
+      retriesLeft -= 1;
+      console.error(
+        `${identifier} failed due to ${errorMessage(
+          err,
+        )}; retries left ${retriesLeft}, next retry in ${retryDelayMs}ms`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    }
+  }
+}
+
+function errorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'shortMessage' in err && typeof err.shortMessage === 'string') {
+    return err.shortMessage;
+  }
+  return String(err);
+}
+
+function isLikelyNodeCrash(err: unknown): boolean {
+  // SAFETY: This command failure inspection reads optional execa fields for logging or crash classification; absent fields are handled by the surrounding fallback.
+  const signal = err && typeof err === 'object' ? (err as any).signal : undefined;
+  if (signal === 'SIGABRT' || signal === 'SIGSEGV' || signal === 'SIGBUS' || signal === 'SIGILL') {
+    return true;
+  }
+
+  const output =
+    // SAFETY: This command failure inspection reads optional execa fields for logging or crash classification; absent fields are handled by the surrounding fallback.
+    err && typeof err === 'object' ? `${(err as any).stderr || ''}\n${(err as any).stdout || ''}` : '';
+  return /Fatal error in|Check failed:|Segmentation fault|core dumped/i.test(output);
+}
+
+function centerPad(text: string, width = text.length, char = ' '): string {
+  return text.padStart(Math.floor((width + text.length) / 2), char).padEnd(width, char);
+}
+
+function banner(name: string, width = 80): string {
+  function line(text = ''): string {
+    if (text) {
+      text = centerPad(text, width - 40);
+    }
+    return centerPad(text, width, '/');
+  }
+  return [line(), line(), line(' '), line(name), line(' '), line(), line()].join('\n');
+}
+
+module.exports = banner;
+
+async function buildPackage() {
+  if (state.fromNpm) {
+    return;
+  }
+
+  if (!(await pathExists(PACK_FOLDER))) {
+    await fs.mkdir(PACK_FOLDER);
+  }
+
+  // Run our build script to ensure all of our build artifacts are up to date.
+  await run('pnpm', ['build']);
+
+  const proc = await run('npm', ['pack', '--ignore-scripts', '--json'], {
+    cwd: path.join(process.cwd(), 'dist'),
+    alwaysPipe: true,
+  });
+
+  const pack = JSON.parse(proc.stdout);
+  assert.ok(Array.isArray(pack), `Expected pack output to be an array but got ${typeof pack}`);
+  assert.ok(pack.length === 1, `Expected pack output to be an array of length 1 but got ${pack.length}`);
+
+  // SAFETY: npm pack --json supplies the first package result with its filename; this harness uses that produced package archive.
+  const filename = path.join('dist', (pack[0] as any).filename);
+  console.error({ filename });
+
+  await fs.rename(filename, PACK_FILE);
+  console.error(`Successfully created tarball at ${PACK_FILE}`);
+}
+
+async function installPackage() {
+  if (state.fromNpm) {
+    await run('npm', ['install', '-D', state.fromNpm]);
+    return;
+  }
+
+  try {
+    // Ensure that there is a clean node_modules folder.
+    await run('rm', ['-rf', `./node_modules`]);
+  } catch {
+    // Best-effort cleanup; installation below can continue.
+  }
+
+  const packFile = getPackFile();
+  await fs.copyFile(packFile, `./${TAR_NAME}`);
+  return await run('npm', ['install', '-D', `./${TAR_NAME}`]);
+}
+
+function getPackFile() {
+  return path.relative(process.cwd(), path.join(state.rootDir, PACK_FILE));
+}
+
+// ------------------ helpers ------------------
+
+interface RunOpts extends execa.Options {
+  alwaysPipe?: boolean;
+  allowApiKey?: boolean;
+}
+
+async function run(command: string, args: string[], config?: RunOpts): Promise<execa.ExecaReturnValue> {
+  const { allowApiKey = false, alwaysPipe = false, ...options } = config ?? {};
+  const env = Object.fromEntries(
+    Object.entries({ ...process.env, ...options.env }).filter(
+      ([name]) => allowApiKey || name.toLowerCase() !== 'openai_api_key',
+    ),
+  );
+
+  if (state.verbose && !alwaysPipe) {
+    options.stdio = 'inherit';
+  }
+
+  console.debug('[run]:', command, ...args);
+  try {
+    return await execa(command, args, { ...options, env, extendEnv: false });
+  } catch (error) {
+    if (error instanceof Object && !state.verbose) {
+      // SAFETY: This command failure inspection reads optional execa fields for logging or crash classification; absent fields are handled by the surrounding fallback.
+      const { stderr, stdout } = error as any;
+      if (stderr) {
+        process.stderr.write(stderr);
+      }
+      if (stdout) {
+        process.stderr.write(stdout);
+      }
+    }
+    throw error;
+  }
+}
+
+async function withChdir<R>(newDir: string, fn: () => Promise<R>): Promise<R> {
+  const oldDir = process.cwd();
+
+  try {
+    process.chdir(newDir);
+    return await fn();
+  } finally {
+    process.chdir(oldDir);
+  }
+}
+
+async function pathExists(path: string) {
+  try {
+    await fs.access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Find closest parent directory that contains a file `package.json`
+ */
+export const packageDir = async (): Promise<string> => {
+  let currentDir = process.cwd();
+  const root = path.parse(currentDir).root;
+  while (currentDir !== root) {
+    const filepath = path.resolve(currentDir, 'package.json');
+    if (await pathExists(filepath)) {
+      return currentDir;
+    }
+    currentDir = path.resolve(currentDir, '..');
+  }
+
+  throw new Error('Package directory not found');
+};
+
+// Caches files that are modified by this script, e.g. package.json,
+// so that they can be restored when the script either finishes or is
+// terminated
+const fileCache = (() => {
+  const filesToCache: string[] = ['package.json', 'package-lock.json', 'deno.lock', 'bun.lockb'];
+  const generatedFilesToRemove = new Set(['deno/package.json']);
+
+  return {
+    // Copy existing files from each ecosystem-tests project folder to the ./tmp folder
+    cacheFiles: async (tmpFolderPath: string) => {
+      for (const projectName of projectNames) {
+        const projectPath = path.resolve(process.cwd(), 'ecosystem-tests', projectName);
+
+        for (const fileName of filesToCache) {
+          const filePath = path.resolve(projectPath, fileName);
+          if (await fileExists(filePath)) {
+            const tmpProjectPath = path.resolve(tmpFolderPath, projectName);
+
+            if (!(await fileExists(tmpProjectPath))) {
+              await fs.mkdir(tmpProjectPath);
+            }
+            await fs.copyFile(filePath, path.resolve(tmpProjectPath, fileName));
+          }
+        }
+      }
+    },
+
+    // Restore the original files to each ecosystem-tests project folder from the ./tmp folder
+    restoreFiles: async (tmpFolderPath: string) => {
+      for (const projectName of projectNames) {
+        const projectPath = path.resolve(process.cwd(), 'ecosystem-tests', projectName);
+        const tmpProjectPath = path.resolve(tmpFolderPath, projectName);
+
+        for (const fileName of filesToCache) {
+          const cachedFilePath = path.resolve(tmpProjectPath, fileName);
+          const projectFilePath = path.resolve(projectPath, fileName);
+          if (await fileExists(cachedFilePath)) {
+            await fs.rename(cachedFilePath, projectFilePath);
+          } else if (generatedFilesToRemove.has(path.join(projectName, fileName))) {
+            await fs.rm(projectFilePath, { force: true });
+          }
+        }
+        await fs.rmdir(tmpProjectPath);
+      }
+    },
+  };
+})();
+
+async function defaultNodeCleanup(projectName: string) {
+  try {
+    const projectPath = path.resolve(process.cwd(), 'ecosystem-tests', projectName);
+
+    const packFilePath = path.resolve(projectPath, TAR_NAME);
+
+    if (await fileExists(packFilePath)) {
+      await fs.unlink(packFilePath);
+    }
+  } catch (err) {
+    console.error('Cleanup failed for project', projectName, err);
+  }
+}
+
+async function fileExists(filePath: string) {
+  try {
+    await fs.stat(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+if (typeof require !== 'undefined' && require.main === module) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

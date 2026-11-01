@@ -1,0 +1,895 @@
+import type { Dirent } from 'node:fs';
+import type { promisify } from 'node:util';
+import type pAll from 'p-all';
+
+const packedPackageAcorn: {
+  parse: (source: string, options: { ecmaVersion: 2020; sourceType: 'module' }) => void;
+} = require(require.resolve('acorn', { paths: [require.resolve('ts-node/package.json')] }));
+const packedPackageAssert = require('node:assert/strict');
+const packedPackageChildProcess = require('node:child_process');
+const { promisify: packedPackagePromisify }: { promisify: typeof promisify } = require('node:util');
+
+const packedPackageExecFile = packedPackagePromisify(packedPackageChildProcess.execFile);
+const packedPackageAll: typeof pAll = require('p-all');
+const packedPackageFs = require('node:fs');
+const packedPackageOs = require('node:os');
+const packedPackagePath = require('node:path');
+
+(async () => {
+  const assert = packedPackageAssert;
+  const childProcess = packedPackageChildProcess;
+  const fs = packedPackageFs;
+  const os = packedPackageOs;
+  const path = packedPackagePath;
+  interface PackageMetadata {
+    engines?: {
+      node?: string;
+    };
+    peerDependencies?: Record<string, string>;
+    peerDependenciesMeta?: Record<string, { optional?: boolean }>;
+  }
+
+  interface RunOptions {
+    cwd?: string;
+    env?: NodeJS.ProcessEnv;
+  }
+
+  interface SourceMap {
+    sourceRoot?: string;
+    sources: string[];
+  }
+
+  const root = path.resolve(__dirname, '..');
+  const dist = path.join(root, 'dist');
+  const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'openai-node-packed-'));
+  const npmCache = path.join(temporaryDirectory, '.npm-cache');
+  const authExportNames = [
+    'k8sServiceAccountTokenProvider',
+    'azureManagedIdentityTokenProvider',
+    'gcpIDTokenProvider',
+    'OAuthError',
+    'SubjectTokenProviderError',
+  ];
+  const paginationExportNames = [
+    'ConversationCursorPage',
+    'CursorPage',
+    'NextCursorPage',
+    'Page',
+    'TokenPage',
+  ];
+  const run = (command: string, args: string[], options: RunOptions = {}): string =>
+    childProcess.execFileSync(command, args, {
+      cwd: temporaryDirectory,
+      encoding: 'utf-8',
+      stdio: 'pipe',
+      ...options,
+    });
+  const runAsync = async (command: string, args: string[], options: RunOptions = {}): Promise<string> => {
+    const { stdout } = await packedPackageExecFile(command, args, {
+      cwd: temporaryDirectory,
+      encoding: 'utf-8',
+      ...options,
+    });
+    return stdout;
+  };
+  const readPackage = (file: string): PackageMetadata =>
+    // SAFETY: This reads the package manifest produced by the local pack step; the checks below validate its engine and peer metadata.
+    JSON.parse(fs.readFileSync(file, 'utf-8')) as PackageMetadata;
+  const assertVertexPeer = (metadata: PackageMetadata): void => {
+    assert.equal(metadata.peerDependencies?.['google-auth-library'], '>=9.15.1 <12');
+    assert.equal(metadata.peerDependenciesMeta?.['google-auth-library']?.optional, true);
+  };
+  const findSourceMaps = (directory: string): string[] => {
+    const maps: string[] = [];
+    // SAFETY: withFileTypes requests native Dirent entries; the dynamically required fs module does not retain that overload in its inferred type.
+    const entries = fs.readdirSync(directory, { withFileTypes: true }) as Dirent[];
+    for (const entry of entries) {
+      const resolved = path.join(directory, entry.name);
+      if (entry.isDirectory() && entry.name !== 'node_modules') {
+        maps.push(...findSourceMaps(resolved));
+      } else if (entry.isFile() && entry.name.endsWith('.map')) {
+        maps.push(resolved);
+      }
+    }
+    return maps;
+  };
+  const standaloneZodParsers = new Set([
+    '_vendor/zod-to-json-schema/parsers/any.ts',
+    '_vendor/zod-to-json-schema/parsers/boolean.ts',
+    '_vendor/zod-to-json-schema/parsers/never.ts',
+    '_vendor/zod-to-json-schema/parsers/undefined.ts',
+    '_vendor/zod-to-json-schema/parsers/unknown.ts',
+  ]);
+  const requiresOptionalPeer = (source: string): boolean =>
+    (source.startsWith('_vendor/zod-to-json-schema/') && !standaloneZodParsers.has(source)) ||
+    source === 'helpers/zod.ts' ||
+    source === 'helpers/beta/agents/zod.ts' ||
+    source === 'helpers/beta/agents/filesystem.ts' ||
+    source === 'helpers/audio.ts' ||
+    source === 'providers/bedrock/aws.ts' ||
+    source === 'providers/vertex.ts' ||
+    source === 'auth/x509-transport.ts' ||
+    source === 'internal/auth/x509-transport-capability.ts' ||
+    source === 'internal/auth/x509-token-exchange.ts' ||
+    source === 'auth/index.ts' ||
+    source === 'auth/subject-token-providers.ts';
+
+  try {
+    assert(fs.existsSync(path.join(dist, 'package.json')), 'Run pnpm build before packed-package tests');
+
+    const packOutput = run(
+      'npm',
+      ['pack', '--silent', '--cache', npmCache, '--pack-destination', temporaryDirectory],
+      { cwd: dist },
+    ).trim();
+    const tarballName = packOutput.split(/\r?\n/).pop();
+    assert(tarballName, 'npm pack did not report a tarball');
+    const tarball = path.join(temporaryDirectory, tarballName);
+    assert(fs.existsSync(tarball), `npm pack did not create ${tarball}`);
+
+    fs.writeFileSync(
+      path.join(temporaryDirectory, 'package.json'),
+      JSON.stringify({ name: 'openai-packed-consumer', private: true, type: 'module' }),
+    );
+    fs.writeFileSync(
+      path.join(temporaryDirectory, 'consumer.cjs'),
+      [
+        "const OpenAI = require('openai');",
+        "const pagination = require('openai/core/pagination');",
+        "const { bedrock } = require('openai/providers/bedrock');",
+        "const { vertex } = require('openai/providers/vertex');",
+        "const checkVertex = require('./vertex-packed-consumer.cjs');",
+        "const auth = require('openai/auth');",
+        "if (typeof OpenAI !== 'function') throw new Error('CommonJS default export is not constructable');",
+        "if (typeof bedrock !== 'function') throw new Error('CommonJS Bedrock export is unavailable');",
+        ...authExportNames.map(
+          (name) =>
+            `if (typeof auth.${name} !== 'function') throw new Error('CommonJS auth export ${name} is unavailable');`,
+        ),
+        ...paginationExportNames.map(
+          (name) =>
+            `if (typeof OpenAI.${name} !== 'function' || OpenAI.${name} !== pagination.${name}) throw new Error('CommonJS pagination static ${name} does not match its public export');`,
+        ),
+        "new OpenAI({ apiKey: 'test' });",
+        'checkVertex(OpenAI, vertex).catch((error) => { console.error(error); process.exitCode = 1; });',
+      ].join('\n'),
+    );
+    fs.writeFileSync(
+      path.join(temporaryDirectory, 'consumer.mjs'),
+      [
+        "import OpenAI from 'openai';",
+        "import * as pagination from 'openai/core/pagination';",
+        "import { bedrock } from 'openai/providers/bedrock';",
+        "import { vertex } from 'openai/providers/vertex';",
+        "import checkVertex from './vertex-packed-consumer.cjs';",
+        `import { ${authExportNames.join(', ')} } from 'openai/auth';`,
+        "if (typeof OpenAI !== 'function') throw new Error('ESM default export is not constructable');",
+        "if (typeof bedrock !== 'function') throw new Error('ESM Bedrock export is unavailable');",
+        ...authExportNames.map(
+          (name) =>
+            `if (typeof ${name} !== 'function') throw new Error('ESM auth export ${name} is unavailable');`,
+        ),
+        ...paginationExportNames.map(
+          (name) =>
+            `if (typeof OpenAI.${name} !== 'function' || OpenAI.${name} !== pagination.${name}) throw new Error('ESM pagination static ${name} does not match its public export');`,
+        ),
+        "new OpenAI({ apiKey: 'test' });",
+        'await checkVertex(OpenAI, vertex);',
+      ].join('\n'),
+    );
+    fs.writeFileSync(
+      path.join(temporaryDirectory, 'consumer.ts'),
+      [
+        "import OpenAI, { AzureOpenAI } from 'openai';",
+        "import { vertex } from 'openai/providers/vertex';",
+        `import { ${authExportNames.join(', ')} } from 'openai/auth';`,
+        "import type { WorkloadIdentity } from 'openai/auth';",
+        "import type { ResponsesWS } from 'openai/resources/responses/ws';",
+        "import type { ResponsesWS as BetaResponsesWS } from 'openai/resources/beta/responses/ws';",
+        "import type { OpenAIRealtimeWS as RealtimeWS } from 'openai/realtime/ws';",
+        "import type { OpenAIRealtimeWS as BetaRealtimeWS } from 'openai/beta/realtime/ws';",
+        "new OpenAI({ apiKey: 'test', dangerouslyAllowBrowser: true });",
+        "new OpenAI({ provider: vertex({ baseURL: 'https://vertex.example/v1', tokenProvider: () => 'test' }) });",
+        'void AzureOpenAI;',
+        ...authExportNames.map((name) => `void ${name};`),
+        'void (null as unknown as WorkloadIdentity);',
+        'void (null as unknown as ResponsesWS | BetaResponsesWS | RealtimeWS | BetaRealtimeWS);',
+      ].join('\n'),
+    );
+    fs.writeFileSync(
+      path.join(temporaryDirectory, 'consumer.cts'),
+      [
+        `import { ${authExportNames.join(', ')} } from 'openai/auth';`,
+        "import { vertex } from 'openai/providers/vertex';",
+        "import type { WorkloadIdentity } from 'openai/auth';",
+        ...authExportNames.map((name) => `void ${name};`),
+        'void vertex;',
+        'void (null as unknown as WorkloadIdentity);',
+      ].join('\n'),
+    );
+    const websocketPeer = path.join(temporaryDirectory, 'websocket-peer.d.ts');
+    fs.writeFileSync(
+      websocketPeer,
+      [
+        "declare module 'ws' {",
+        '  interface TLSBuffer extends ArrayLike<number> {',
+        '    readonly buffer: ArrayBufferLike;',
+        '    readonly byteLength: number;',
+        '    readonly byteOffset: number;',
+        '  }',
+        '  export interface ClientOptions {',
+        '    ca?: string | TLSBuffer | (string | TLSBuffer)[] | undefined;',
+        '    cert?: string | TLSBuffer | (string | TLSBuffer)[] | undefined;',
+        '    crl?: string | TLSBuffer | (string | TLSBuffer)[] | undefined;',
+        '    key?: string | TLSBuffer | (string | TLSBuffer | { pem: string | TLSBuffer; passphrase?: string | undefined })[] | undefined;',
+        '    pfx?: string | TLSBuffer | (string | TLSBuffer | { buf: string | TLSBuffer; passphrase?: string | undefined })[] | undefined;',
+        '    followRedirects?: boolean | undefined;',
+        '    headers?: Record<string, string> | undefined;',
+        '    maxPayload?: number | undefined;',
+        '    perMessageDeflate?: boolean | object | undefined;',
+        '  }',
+        '  export class WebSocket {',
+        '    constructor(address: string | URL, options?: ClientOptions);',
+        '    readonly readyState: number;',
+        '    send(data: string | ArrayBufferLike | ArrayBufferView): void;',
+        '    close(code?: number, reason?: string): void;',
+        '    terminate(): void;',
+        "    on(event: 'message', listener: (data: ArrayBuffer | Uint8Array | Uint8Array[], isBinary: boolean) => void): this;",
+        "    on(event: 'error', listener: (error: Error) => void): this;",
+        "    on(event: 'redirect', listener: (url: string, request: { getHeaders(): Record<string, string | string[] | undefined> }) => void): this;",
+        "    on(event: 'unexpected-response', listener: (request: unknown, response: { statusCode?: number; resume(): void }) => void): this;",
+        '    on(event: string, listener: (...args: unknown[]) => void): this;',
+        '    removeListener(event: string, listener: (...args: unknown[]) => void): this;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+    fs.writeFileSync(
+      path.join(temporaryDirectory, 'tsconfig.json'),
+      JSON.stringify({
+        files: ['consumer.ts', 'consumer.cts', 'websocket-peer.d.ts'],
+        compilerOptions: {
+          target: 'ES2020',
+          lib: ['DOM', 'DOM.Iterable', 'ES2020'],
+          module: 'Node16',
+          moduleResolution: 'Node16',
+          types: [],
+          strict: true,
+          skipLibCheck: false,
+          noEmit: true,
+        },
+      }),
+    );
+    const bundlerConfig = path.join(temporaryDirectory, 'bundler.tsconfig.json');
+    fs.writeFileSync(
+      bundlerConfig,
+      JSON.stringify({
+        extends: './tsconfig.json',
+        files: ['consumer.ts', 'websocket-peer.d.ts'],
+        compilerOptions: {
+          module: 'ESNext',
+          moduleResolution: 'Bundler',
+        },
+      }),
+    );
+
+    run('npm', [
+      'install',
+      '--offline',
+      '--ignore-scripts',
+      '--no-audit',
+      '--no-fund',
+      '--cache',
+      npmCache,
+      tarball,
+    ]);
+
+    const optionalUndici = path.join(temporaryDirectory, 'node_modules/undici');
+    assert(!fs.existsSync(optionalUndici), 'Public authentication helpers must not require optional Undici');
+
+    const isolatedEnvironment = { ...process.env };
+    delete isolatedEnvironment['NODE_PATH'];
+    const browserConditionTest = path.join(temporaryDirectory, 'browser-condition.test.cjs');
+    fs.writeFileSync(
+      browserConditionTest,
+      [
+        "const OpenAI = require('openai');",
+        "test('loads the CommonJS entrypoint with browser export conditions', () => {",
+        "  expect(typeof OpenAI).toBe('function');",
+        "  expect(() => new OpenAI({ apiKey: 'test', dangerouslyAllowBrowser: true })).not.toThrow();",
+        '});',
+      ].join('\n'),
+    );
+    const browserConditionConfig = path.join(temporaryDirectory, 'jest-browser-condition.config.cjs');
+    fs.writeFileSync(
+      browserConditionConfig,
+      `module.exports = ${JSON.stringify({
+        testEnvironment: 'node',
+        testEnvironmentOptions: { customExportConditions: ['browser'] },
+        testMatch: ['<rootDir>/browser-condition.test.cjs'],
+        transform: {},
+      })};\n`,
+    );
+    const jestPackage = require.resolve('jest/package.json');
+    run(
+      process.execPath,
+      [
+        path.join(path.dirname(jestPackage), 'bin/jest.js'),
+        '--config',
+        browserConditionConfig,
+        '--runInBand',
+      ],
+      { env: isolatedEnvironment },
+    );
+    const browserConsumer = path.join(temporaryDirectory, 'browser-consumer.mjs');
+    fs.writeFileSync(
+      browserConsumer,
+      "import OpenAI from 'openai';\nexport default OpenAI;\nexport { vertex } from 'openai/providers/vertex';\n",
+    );
+    const browserConfig = path.join(temporaryDirectory, 'browser.vite.config.mjs');
+    fs.writeFileSync(
+      browserConfig,
+      [
+        "import { isBuiltin } from 'node:module';",
+        'export default {',
+        '  plugins: [{',
+        "    name: 'reject-node-builtins',",
+        "    enforce: 'pre',",
+        '    resolveId(source) {',
+        '      if (isBuiltin(source)) {',
+        '        this.error("Node-only dependency " + source + " reached the browser bundle");',
+        '      }',
+        '    },',
+        '  }],',
+        '  build: {',
+        "    target: 'es2020',",
+        '    minify: false,',
+        "    lib: { entry: './browser-consumer.mjs', formats: ['es'], fileName: () => 'browser-bundle.mjs' },",
+        '  },',
+        '};',
+      ].join('\n'),
+    );
+    const vitePackage = require.resolve('vite/package.json', {
+      paths: [require.resolve('vitest/package.json')],
+    });
+    run(
+      process.execPath,
+      [
+        path.join(path.dirname(vitePackage), 'bin/vite.js'),
+        'build',
+        '--config',
+        browserConfig,
+        '--logLevel',
+        'error',
+      ],
+      { env: isolatedEnvironment },
+    );
+    const browserBundle = path.join(temporaryDirectory, 'dist/browser-bundle.mjs');
+    assert(fs.existsSync(browserBundle), 'Packed browser consumer did not produce an ES2020 ESM bundle');
+    assert.doesNotThrow(
+      () =>
+        packedPackageAcorn.parse(fs.readFileSync(browserBundle, 'utf-8'), {
+          ecmaVersion: 2020,
+          sourceType: 'module',
+        }),
+      'Packed browser bundle contains syntax unsupported by ES2020, including top-level await',
+    );
+
+    for (const [inputType, authenticationImport] of [
+      ['commonjs', "const auth = require('openai/auth');"],
+      ['module', "import * as auth from 'openai/auth';"],
+    ] as const) {
+      run(process.execPath, [
+        `--input-type=${inputType}`,
+        '--eval',
+        `${authenticationImport} if (typeof auth.k8sServiceAccountTokenProvider !== 'function') throw new Error('Public authentication exports are unavailable');`,
+      ]);
+    }
+    assert(!fs.existsSync(optionalUndici), 'Importing public authentication helpers must not install Undici');
+
+    const privateModules = [
+      'openai/internal/chat-completion-runner-state',
+      'openai/internal/chat-completion-runner-state.js',
+      'openai/internal/chat-completion-runner-state.mjs',
+      'openai/internal/auth/x509-transport-capability',
+      'openai/internal/auth/x509-transport-capability.js',
+      'openai/internal/auth/x509-transport-capability.mjs',
+      'openai/internal/auth/x509-transport-registry',
+      'openai/internal/auth/x509-transport-registry.js',
+      'openai/internal/auth/x509-transport-registry.mjs',
+      'openai/internal/auth/x509-credential-options',
+      'openai/internal/auth/x509-credential-options.js',
+      'openai/internal/auth/x509-credential-options.mjs',
+      'openai/internal/auth/x509-api-origin',
+      'openai/internal/auth/x509-api-origin.js',
+      'openai/internal/auth/x509-api-origin.mjs',
+      'openai/internal/auth/x509-transport-state',
+      'openai/internal/auth/x509-transport-state.cjs',
+      'openai/internal/auth/x509-transport-state-browser',
+      'openai/internal/auth/x509-transport-state-browser.js',
+      'openai/internal/auth/x509-transport-state-browser.mjs',
+    ];
+    const moduleNames = JSON.stringify(privateModules);
+    run(process.execPath, [
+      '--input-type=commonjs',
+      '--eval',
+      `for (const name of ${moduleNames}) { try { require(name); throw new Error(name + ' is publicly accessible'); } catch (error) { if (error.code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED') throw error; } }`,
+    ]);
+    run(process.execPath, [
+      '--input-type=module',
+      '--eval',
+      `for (const name of ${moduleNames}) { try { await import(name); throw new Error(name + ' is publicly accessible'); } catch (error) { if (error.code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED') throw error; } }`,
+    ]);
+
+    assert(
+      ['.js', '.mjs'].every(
+        (extension) =>
+          !fs.existsSync(
+            path.join(
+              temporaryDirectory,
+              `node_modules/openai/internal/chat-completion-runner-state${extension}`,
+            ),
+          ),
+      ),
+      'Tool-runner mode must not be emitted as a shared mutable module',
+    );
+
+    const unsupportedDispatcher =
+      'assert.throws(direct, /Undici 5\\.2\\.0 or later/u); assert.throws(httpConnect, /Undici 5\\.2\\.0 or later/u); assert.throws(httpsConnect, /Undici 5\\.2\\.0 or later/u);';
+    const unsupportedProxy =
+      'assert.doesNotThrow(direct); assert.throws(httpConnect, /CONNECT.*Undici 5\\.5\\.1 or later/u); assert.throws(httpsConnect, /CONNECT.*Undici 5\\.5\\.1 or later/u);';
+    const supportedTransports =
+      'assert.doesNotThrow(direct); assert.doesNotThrow(httpConnect); assert.doesNotThrow(httpsConnect);';
+    // SAFETY: The controlled certificate-fixture subprocess serializes exactly certificateChain and privateKey for this local packing test.
+    const certificateFixture = JSON.parse(
+      run(
+        process.execPath,
+        [
+          '-r',
+          path.join(root, 'node_modules/ts-node/register/transpile-only'),
+          '-e',
+          [
+            `const { createX509TestLab } = require(${JSON.stringify(path.join(root, 'tests/utils/x509-test-lab.ts'))});`,
+            'const { firstClient } = createX509TestLab();',
+            'process.stdout.write(JSON.stringify({ certificateChain: firstClient.certificate.toString(), privateKey: firstClient.privateKey.toString() }));',
+          ].join(' '),
+        ],
+        { cwd: root },
+      ),
+    ) as { certificateChain: string; privateKey: string };
+
+    const legacyConsumers = await packedPackageAll(
+      (
+        [
+          ['5.1.1', unsupportedDispatcher],
+          ['5.2.0', unsupportedProxy],
+          ['5.5.0', unsupportedProxy],
+          ['5.5.1', supportedTransports],
+          ['6.28.0', supportedTransports],
+          ['7.0.0', supportedTransports],
+        ] as const
+      ).map(([undiciVersion, transportAssertions]) => async () => {
+        const legacyPackOutput = await runAsync('npm', [
+          'pack',
+          '--silent',
+          '--ignore-scripts',
+          '--cache',
+          npmCache,
+          '--pack-destination',
+          temporaryDirectory,
+          `undici@${undiciVersion}`,
+        ]);
+        const packedUndici = legacyPackOutput.trim().split(/\r?\n/).pop();
+        assert(packedUndici, `npm pack did not report the genuine Undici ${undiciVersion} release`);
+        return { undiciVersion, transportAssertions, packedUndici };
+      }),
+      // Complete every child before the temporary directory is removed, including on failure.
+      { concurrency: 3, stopOnError: false },
+    );
+
+    const installedLegacyConsumers = await packedPackageAll(
+      legacyConsumers.map(({ undiciVersion, transportAssertions, packedUndici }) => async () => {
+        const consumer = path.join(temporaryDirectory, `legacy-undici-${undiciVersion}`);
+        fs.mkdirSync(consumer);
+        fs.writeFileSync(
+          path.join(consumer, 'package.json'),
+          JSON.stringify({ name: `legacy-undici-${undiciVersion}-consumer`, private: true }),
+        );
+        const installation = await packedPackageExecFile(
+          'npm',
+          [
+            'install',
+            '--offline',
+            '--ignore-scripts',
+            '--no-audit',
+            '--no-fund',
+            '--cache',
+            npmCache,
+            tarball,
+            path.join(temporaryDirectory, packedUndici),
+          ],
+          { cwd: consumer, encoding: 'utf-8' },
+        ).catch((error: Error) => {
+          throw new Error(
+            `An existing Undici ${undiciVersion} consumer could not install the SDK: ${error.message}`,
+          );
+        });
+        assert.doesNotMatch(
+          installation.stderr,
+          /ERESOLVE/u,
+          `An existing Undici ${undiciVersion} consumer encountered an optional-peer conflict`,
+        );
+        return { consumer, undiciVersion, transportAssertions };
+      }),
+      // Wait for every install before cleanup, including when one fails.
+      { concurrency: 2, stopOnError: false },
+    );
+
+    for (const { consumer, undiciVersion, transportAssertions } of installedLegacyConsumers) {
+      run(process.execPath, ['-e', "require('openai')"], { cwd: consumer });
+      for (const [inputType, imports] of [
+        [
+          'commonjs',
+          "const assert = require('node:assert/strict'); const OpenAI = require('openai'); const { Agent, ProxyAgent } = require('undici'); const { createX509Transport, fromX509, workloadIdentity } = require('openai/auth/x509-transport');",
+        ],
+        [
+          'module',
+          "import assert from 'node:assert/strict'; import OpenAI from 'openai'; import { Agent, ProxyAgent } from 'undici'; import { createX509Transport, fromX509, workloadIdentity } from 'openai/auth/x509-transport';",
+        ],
+      ]) {
+        run(
+          process.execPath,
+          [
+            `--input-type=${inputType}`,
+            '-e',
+            [
+              imports,
+              'const dispatcher = new Agent();',
+              "const proxyDispatcher = new ProxyAgent({ uri: 'http://127.0.0.1:1' });",
+              "const secureProxyDispatcher = new ProxyAgent({ uri: 'https://127.0.0.1:1' });",
+              "const direct = () => createX509Transport({ runtime: 'node', dispatcher, certificateIdentity: 'static', proxy: 'direct' });",
+              "const httpConnect = () => createX509Transport({ runtime: 'node', dispatcher: proxyDispatcher, certificateIdentity: 'static', proxy: 'http-connect' });",
+              "const httpsConnect = () => createX509Transport({ runtime: 'node', dispatcher: secureProxyDispatcher, certificateIdentity: 'static', proxy: 'https-connect' });",
+              transportAssertions,
+              'assert.equal(workloadIdentity.fromX509, fromX509);',
+              `const credentialOptions = { ...${JSON.stringify(certificateFixture)}, identityProviderId: 'synthetic-provider', serviceAccountId: 'synthetic-account' };`,
+              undiciVersion === '5.1.1'
+                ? 'assert.throws(() => fromX509(credentialOptions), /Undici 5\\.2\\.0 or later/u);'
+                : 'const credential = fromX509(credentialOptions); new OpenAI({ credential }); credential.close();',
+              'dispatcher.close(); proxyDispatcher.close(); secureProxyDispatcher.close();',
+            ].join(' '),
+          ],
+          { cwd: consumer },
+        );
+      }
+    }
+
+    const installedPackageRoot = path.join(temporaryDirectory, 'node_modules/openai');
+    const installedSourceRoot = path.join(installedPackageRoot, 'src');
+    const installedSourceConfig = path.join(installedSourceRoot, 'tsconfig.json');
+    const installedSourceShim = path.join(installedSourceRoot, 'tsconfig.dist-src.d.ts');
+
+    assert(
+      !fs.existsSync(path.join(temporaryDirectory, 'node_modules/@types/node')),
+      'Packed browser/edge consumer unexpectedly installed @types/node',
+    );
+    run(
+      process.execPath,
+      [
+        '-e',
+        "try { require.resolve('@types/node/package.json'); throw new Error('Unexpected inherited @types/node'); } catch (error) { if (error.code !== 'MODULE_NOT_FOUND') throw error; }",
+      ],
+      { env: isolatedEnvironment },
+    );
+
+    const mappedSources = new Map<string, string>();
+    const sourceMaps = findSourceMaps(installedPackageRoot);
+    sourceMaps.sort();
+    for (const mapPath of sourceMaps) {
+      // SAFETY: These files are emitted source maps discovered in the built package; the validator checks their source paths and contents.
+      const sourceMap = JSON.parse(fs.readFileSync(mapPath, 'utf-8')) as SourceMap;
+      for (const source of sourceMap.sources) {
+        const resolvedSource: string = path.resolve(
+          path.dirname(mapPath),
+          sourceMap.sourceRoot ?? '',
+          source,
+        );
+        const relativeSource: string = path.relative(installedSourceRoot, resolvedSource);
+        assert(
+          relativeSource !== '..' &&
+            !relativeSource.startsWith(`..${path.sep}`) &&
+            !path.isAbsolute(relativeSource),
+          `Packed source map resolves outside its published source directory: ${mapPath}`,
+        );
+        assert(fs.existsSync(resolvedSource), `Packed source-map source is missing: ${resolvedSource}`);
+        mappedSources.set(relativeSource.split(path.sep).join('/'), resolvedSource);
+      }
+    }
+
+    assert.equal(
+      mappedSources.get('index.ts'),
+      path.join(installedSourceRoot, 'index.ts'),
+      'Packed source maps no longer navigate to the installed SDK source',
+    );
+
+    for (const websocketSource of [
+      'resources/responses/ws',
+      'resources/beta/responses/ws',
+      'realtime/ws',
+      'beta/realtime/ws',
+      'internal/ws-adapter-node',
+    ]) {
+      for (const extension of ['.d.ts.map', '.d.mts.map', '.js.map', '.mjs.map']) {
+        const websocketMap = `${websocketSource}${extension}`;
+        assert(
+          fs.existsSync(path.join(installedPackageRoot, websocketMap)),
+          `Packed websocket source map is missing: ${websocketMap}`,
+        );
+      }
+    }
+
+    // Zod/AWS/Google helpers require optional peers; Node-only helpers require @types/node.
+    // Validate every other mapped source without installing either in this consumer.
+    const browserSafeSources = [...mappedSources.entries()]
+      .filter(([source]) => !requiresOptionalPeer(source))
+      .map(([, source]) => source);
+    browserSafeSources.sort();
+    const sourceNavigationConfig = path.join(temporaryDirectory, 'source-navigation.tsconfig.json');
+    fs.writeFileSync(
+      sourceNavigationConfig,
+      JSON.stringify({
+        extends: installedSourceConfig,
+        files: [installedSourceShim, websocketPeer, ...browserSafeSources],
+        include: [],
+        exclude: [],
+        compilerOptions: {
+          types: [],
+          strict: true,
+          skipLibCheck: false,
+          noEmit: true,
+        },
+      }),
+    );
+
+    await packedPackageAll(
+      [
+        ...[
+          path.join(root, 'node_modules/typescript-4-9/bin/tsc'),
+          path.join(root, 'node_modules/typescript/bin/tsc'),
+        ].flatMap((compiler) =>
+          [path.join(temporaryDirectory, 'tsconfig.json'), installedSourceConfig, sourceNavigationConfig].map(
+            (config) => () =>
+              runAsync(process.execPath, [compiler, '--project', config, '--noEmit'], {
+                env: isolatedEnvironment,
+              }),
+          ),
+        ),
+        () =>
+          runAsync(
+            process.execPath,
+            [path.join(root, 'node_modules/typescript/bin/tsc'), '--project', bundlerConfig],
+            {
+              env: isolatedEnvironment,
+            },
+          ),
+      ],
+      { concurrency: 2, stopOnError: false },
+    );
+
+    fs.copyFileSync(
+      path.join(root, 'scripts/fixtures/vertex-packed-consumer.cjs'),
+      path.join(temporaryDirectory, 'vertex-packed-consumer.cjs'),
+    );
+    run(process.execPath, ['consumer.cjs'], { env: isolatedEnvironment });
+    run(process.execPath, ['consumer.mjs'], { env: isolatedEnvironment });
+    run(
+      process.execPath,
+      [
+        '--input-type=module',
+        '--eval',
+        "import OpenAI, { vertex } from './dist/browser-bundle.mjs'; import checkVertex from './vertex-packed-consumer.cjs'; await checkVertex(OpenAI, vertex);",
+      ],
+      { env: isolatedEnvironment },
+    );
+
+    fs.copyFileSync(
+      path.join(root, 'scripts/fixtures/vertex-packed-timeout.cjs'),
+      path.join(temporaryDirectory, 'vertex-packed-timeout.cjs'),
+    );
+    run(
+      process.execPath,
+      [
+        '--input-type=module',
+        '--eval',
+        [
+          "import OpenAI from 'openai';",
+          "import { vertex } from 'openai/providers/vertex';",
+          "import { createRequire } from 'node:module';",
+          "import checkVertexTimeout from './vertex-packed-timeout.cjs';",
+          'const require = createRequire(import.meta.url);',
+          "await checkVertexTimeout(require('openai'), vertex);",
+          "await checkVertexTimeout(OpenAI, require('openai/providers/vertex').vertex);",
+        ].join('\n'),
+      ],
+      { env: isolatedEnvironment },
+    );
+
+    // Install real peers with strict resolution: symlinks alone cannot catch a rejected peer range.
+    await packedPackageAll(
+      ['9.15.1', '10.0.0', '11.0.0', '11.3.1'].map((version) => async () => {
+        const consumer = path.join(temporaryDirectory, `google-auth-${version}`);
+        fs.mkdirSync(consumer);
+        fs.writeFileSync(path.join(consumer, 'package.json'), JSON.stringify({ private: true }));
+        await runAsync(
+          'npm',
+          [
+            'install',
+            '--strict-peer-deps',
+            '--ignore-scripts',
+            '--no-audit',
+            '--no-fund',
+            '--cache',
+            npmCache,
+            tarball,
+            `google-auth-library@${version}`,
+          ],
+          { cwd: consumer, env: isolatedEnvironment },
+        );
+        for (const fixture of ['vertex-packed-adc.cjs', 'vertex-packed-types.ts']) {
+          fs.copyFileSync(path.join(root, 'scripts/fixtures', fixture), path.join(consumer, fixture));
+        }
+        fs.copyFileSync(
+          path.join(consumer, 'vertex-packed-types.ts'),
+          path.join(consumer, 'vertex-packed-types.mts'),
+        );
+        run(
+          process.execPath,
+          [
+            '--input-type=module',
+            '--eval',
+            [
+              "import assert from 'node:assert/strict';",
+              "import { createRequire } from 'node:module';",
+              "import OpenAI from 'openai';",
+              "import { vertex } from 'openai/providers/vertex';",
+              "import checkVertexADC from './vertex-packed-adc.cjs';",
+              'const require = createRequire(import.meta.url);',
+              `assert.equal(require('google-auth-library/package.json').version, '${version}');`,
+              "await checkVertexADC(require('openai'), require('openai/providers/vertex').vertex);",
+              'await checkVertexADC(OpenAI, vertex);',
+            ].join('\n'),
+          ],
+          { cwd: consumer, env: isolatedEnvironment },
+        );
+        for (const compiler of ['typescript-4-9', 'typescript']) {
+          run(
+            process.execPath,
+            [
+              path.join(root, `node_modules/${compiler}/bin/tsc`),
+              ...(compiler === 'typescript' ? ['--ignoreConfig'] : []),
+              '--strict',
+              '--noEmit',
+              '--skipLibCheck',
+              '--target',
+              'ES2020',
+              '--module',
+              'Node16',
+              'vertex-packed-types.ts',
+              'vertex-packed-types.mts',
+            ],
+            { cwd: consumer, env: isolatedEnvironment },
+          );
+        }
+      }),
+      { concurrency: 2, stopOnError: false },
+    );
+
+    // ADC must resolve the installed peer at runtime, including from the token-provider bundle.
+    fs.symlinkSync(
+      fs.realpathSync(path.join(root, 'node_modules/google-auth-library')),
+      path.join(temporaryDirectory, 'node_modules/google-auth-library'),
+      'junction',
+    );
+    fs.copyFileSync(
+      path.join(root, 'scripts/fixtures/vertex-packed-adc.cjs'),
+      path.join(temporaryDirectory, 'vertex-packed-adc.cjs'),
+    );
+    run(
+      process.execPath,
+      [
+        '--input-type=module',
+        '--eval',
+        [
+          "import OpenAI from 'openai';",
+          "import { vertex } from 'openai/providers/vertex';",
+          "import BundledOpenAI, { vertex as bundledVertex } from './dist/browser-bundle.mjs';",
+          "import checkVertexADC from './vertex-packed-adc.cjs';",
+          "import { createRequire } from 'node:module';",
+          'const require = createRequire(import.meta.url);',
+          "await checkVertexADC(require('openai'), require('openai/providers/vertex').vertex);",
+          'await checkVertexADC(OpenAI, vertex);',
+          'await checkVertexADC(BundledOpenAI, bundledVertex);',
+        ].join('\n'),
+      ],
+      { env: isolatedEnvironment },
+    );
+
+    const sourcePackage = readPackage(path.join(root, 'package.json'));
+    const installedPackage = readPackage(path.join(temporaryDirectory, 'node_modules/openai/package.json'));
+    assert.deepEqual(
+      installedPackage.engines,
+      sourcePackage.engines,
+      'Packed package engine metadata differs from package.json',
+    );
+    assert.equal(
+      fs.readFileSync(
+        path.join(temporaryDirectory, 'node_modules/openai/src/_vendor/partial-json-parser/LICENSE'),
+        'utf-8',
+      ),
+      fs.readFileSync(path.join(root, 'src/_vendor/partial-json-parser/LICENSE'), 'utf-8'),
+      'Packed package must preserve the vendored partial-json license',
+    );
+    assert.equal(installedPackage.peerDependencies?.['undici'], '>=5 <9');
+    assert.equal(installedPackage.peerDependenciesMeta?.['undici']?.optional, true);
+    assert.equal(installedPackage.peerDependencies?.['ws'], '^8.21.0');
+    assert.equal(installedPackage.peerDependenciesMeta?.['ws']?.optional, true);
+    assertVertexPeer(installedPackage);
+    assert(!fs.existsSync(optionalUndici), 'Undici must remain optional for ordinary SDK consumers');
+    run(process.execPath, [
+      '--conditions=browser',
+      '--input-type=module',
+      '--eval',
+      "import OpenAI from 'openai'; new OpenAI({ apiKey: 'synthetic-browser-api-key', dangerouslyAllowBrowser: true });",
+    ]);
+    fs.symlinkSync(
+      path.join(root, 'node_modules/ws'),
+      path.join(temporaryDirectory, 'node_modules/ws'),
+      'dir',
+    );
+    fs.copyFileSync(
+      path.join(root, 'scripts/fixtures/responses-ws-module-formats.cjs'),
+      path.join(temporaryDirectory, 'responses-ws-module-formats.cjs'),
+    );
+    run(process.execPath, ['--test', 'responses-ws-module-formats.cjs']);
+    fs.copyFileSync(
+      path.join(root, 'scripts/fixtures/computer-use-smoke.mjs'),
+      path.join(temporaryDirectory, 'computer-use-smoke.mjs'),
+    );
+    run(process.execPath, ['computer-use-smoke.mjs', 'cjs']);
+    run(process.execPath, ['computer-use-smoke.mjs', 'esm']);
+    fs.symlinkSync(path.join(root, 'node_modules/undici'), optionalUndici, 'dir');
+    for (const [inputType, consumer] of [
+      [
+        'commonjs',
+        "const OpenAI = require('openai'); const { Agent } = require('undici'); const { createX509Transport, fromX509, workloadIdentity } = require('openai/auth/x509-transport');",
+      ],
+      [
+        'module',
+        "import OpenAI from 'openai'; import { Agent } from 'undici'; import { createX509Transport, fromX509, workloadIdentity } from 'openai/auth/x509-transport';",
+      ],
+      [
+        'module',
+        "import OpenAI from 'openai'; import { createRequire } from 'node:module'; const require = createRequire(import.meta.url); const { Agent } = require('undici'); const { createX509Transport, fromX509, workloadIdentity } = require('openai/auth/x509-transport');",
+      ],
+      [
+        'module',
+        "import { createRequire } from 'node:module'; import { Agent } from 'undici'; import { createX509Transport, fromX509, workloadIdentity } from 'openai/auth/x509-transport'; const OpenAI = createRequire(import.meta.url)('openai');",
+      ],
+    ]) {
+      run(process.execPath, [
+        `--input-type=${inputType}`,
+        '-e',
+        `${consumer} if (workloadIdentity.fromX509 !== fromX509) throw new Error('First-class X.509 factory is unavailable'); const credential = fromX509({ ...${JSON.stringify(certificateFixture)}, identityProviderId: 'synthetic-provider', serviceAccountId: 'synthetic-account' }); new OpenAI({ credential }); credential.close(); const dispatcher = new Agent(); const transport = createX509Transport({ runtime: 'node', dispatcher, certificateIdentity: 'static', proxy: 'direct' }); if (!Object.isFrozen(transport)) throw new Error('X.509 transport capability is not frozen'); new OpenAI({ apiKey: null, workloadIdentity: { type: 'x509', identityProviderId: 'synthetic-provider', serviceAccountId: 'synthetic-account' }, x509Transport: transport }); dispatcher.close();`,
+      ]);
+    }
+
+    console.log(
+      `Packed npm artifact passed CommonJS, ESM, ES2020 browser bundling, and ${browserSafeSources.length}/${mappedSources.size} source checks across ${sourceMaps.length} source maps on ${process.version}.`,
+    );
+  } catch (error) {
+    console.error(error);
+    process.exitCode = 1;
+  } finally {
+    fs.rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
+})();

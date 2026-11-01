@@ -1,0 +1,70 @@
+import type { Fetch, RequestInfo, RequestInit, Response } from 'openai/internal/builtin-types';
+
+/**
+ * Creates a mock `fetch` function and a `handleRequest` function for intercepting `fetch` calls.
+ *
+ * You call `handleRequest` with a callback function that handles the next `fetch` call.
+ * It returns a Promise that:
+ * - waits for the next call to `fetch`
+ * - calls the callback with the `fetch` arguments
+ * - resolves `fetch` with the callback output
+ */
+export function mockFetch() {
+  const fetchQueue: ((handler: typeof fetch) => void)[] = [];
+  const handlerQueue: Promise<typeof fetch>[] = [];
+
+  const enqueueHandler = () => {
+    handlerQueue.push(
+      new Promise<typeof fetch>((resolve) => {
+        fetchQueue.push((handle: typeof fetch) => {
+          enqueueHandler();
+          resolve(handle);
+        });
+      }),
+    );
+  };
+  enqueueHandler();
+
+  async function fetch(req: string | RequestInfo, init?: RequestInit): Promise<Response> {
+    const handler = await handlerQueue.shift();
+    if (!handler) {
+      throw new Error('expected handler to be defined');
+    }
+    const signal = init?.signal;
+    if (!signal) {
+      return await handler(req, init);
+    }
+    return await Promise.race([
+      handler(req, init),
+      new Promise<Response>((resolve, reject) => {
+        if (signal.aborted) {
+          // @ts-ignore does exist in Node
+          reject(new DOMException('The user aborted a request.', 'AbortError'));
+          return;
+        }
+        signal.addEventListener('abort', (e) => {
+          // @ts-ignore does exist in Node
+          reject(new DOMException('The user aborted a request.', 'AbortError'));
+        });
+      }),
+    ]);
+  }
+
+  function handleRequest(handle: typeof fetch): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      fetchQueue.shift()?.(async (req, init) => {
+        try {
+          const response = await handle(req, init);
+          resolve();
+          return response;
+        } catch (err) {
+          reject(err);
+          // SAFETY: This path rejects the controlling handleRequest promise first; the returned error is only the mock transport placeholder for that failed handler.
+          return err as any;
+        }
+      });
+    });
+  }
+
+  return { fetch, handleRequest };
+}

@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+set +e
+bash ./bin/check-npm-version
+VERSION_STATUS=$?
+set -e
+if [[ $VERSION_STATUS -eq 0 ]]; then
+  exit 0
+elif [[ $VERSION_STATUS -ne 1 ]]; then
+  exit "$VERSION_STATUS"
+fi
+
+if [[ ${GITHUB_ACTIONS:-} != true || -z ${ACTIONS_ID_TOKEN_REQUEST_URL:-} ||
+  -z ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-} ]]; then
+  echo "ERROR: npm publishing requires GitHub Actions OIDC with id-token: write" >&2
+  exit 1
+fi
+
+SOURCE_PACKAGE_NAME="$(jq -r -e '.name' package.json)"
+SOURCE_VERSION="$(jq -r -e '.version' package.json)"
+if [[ ! -f dist/package.json ]]; then
+  echo "ERROR: the prebuilt release package is missing" >&2
+  exit 1
+fi
+
+cd dist
+
+# Get package name and version from package.json
+PACKAGE_NAME="$(jq -r -e '.name' ./package.json)"
+VERSION="$(jq -r -e '.version' ./package.json)"
+if [[ "$PACKAGE_NAME" != "$SOURCE_PACKAGE_NAME" || "$VERSION" != "$SOURCE_VERSION" ]]; then
+  echo "ERROR: the release package does not match the checked-out release commit" >&2
+  exit 1
+fi
+
+# Get latest version from npm
+#
+# If the package doesn't exist, npm will return:
+# {
+#   "error": {
+#     "code": "E404",
+#     "summary": "Unpublished on 2025-06-05T09:54:53.528Z",
+#     "detail": "'the_package' is not in this registry..."
+#   }
+# }
+set +e
+NPM_INFO="$(npm view "$PACKAGE_NAME" version --json 2>/dev/null)"
+NPM_STATUS=$?
+set -e
+
+# Check if we got an E404 error
+if [[ $NPM_STATUS -eq 0 ]]; then
+  LAST_VERSION="$(jq -r -e '.' <<< "$NPM_INFO")"
+elif echo "$NPM_INFO" | jq -e '.error.code == "E404"' > /dev/null 2>&1; then
+  # Package doesn't exist yet, no last version
+  LAST_VERSION=""
+else
+  echo "ERROR: npm returned unexpected data:"
+  echo "$NPM_INFO"
+  exit 1
+fi
+
+# Check if current version is pre-release (e.g. alpha / beta / rc)
+CURRENT_IS_PRERELEASE=false
+if [[ "$VERSION" =~ -([a-zA-Z]+) ]]; then
+  CURRENT_IS_PRERELEASE=true
+  CURRENT_TAG="${BASH_REMATCH[1]}"
+fi
+
+# Check if last version is a stable release
+LAST_IS_STABLE_RELEASE=true
+if [[ -z "$LAST_VERSION" || "$LAST_VERSION" =~ -([a-zA-Z]+) ]]; then
+  LAST_IS_STABLE_RELEASE=false
+fi
+
+# Use a corresponding alpha/beta tag if there already is a stable release and we're publishing a prerelease.
+if $CURRENT_IS_PRERELEASE && $LAST_IS_STABLE_RELEASE; then
+  TAG="$CURRENT_TAG"
+else
+  TAG="latest"
+fi
+
+# Publish with the appropriate tag
+export npm_config_registry='https://registry.npmjs.org'
+npm publish --ignore-scripts --tag "$TAG"

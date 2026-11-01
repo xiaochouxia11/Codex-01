@@ -1,0 +1,934 @@
+import { vi } from 'vitest';
+import type OpenAI from 'openai';
+import { hasOwn } from 'openai/internal/utils/values';
+
+import {
+  zodFunction,
+  zodRealtimeFunction,
+  zodResponseFormat,
+  zodResponsesFunction,
+  zodTextFormat,
+} from 'openai/helpers/zod';
+import { compareType, expectType } from '../utils/typing';
+import { z as zv3 } from 'zod/v3';
+import { z as zv4 } from 'zod/v4';
+import { z as zv4Mini } from 'zod/v4-mini';
+
+function collectRefs(value: unknown, refs: string[] = []): string[] {
+  if (!value || typeof value !== 'object') {
+    return refs;
+  }
+
+  // SAFETY: The traversal checks for a non-null object before reading schema keywords; keyword values remain subject to the following checks.
+  const maybeRef = (value as { $ref?: unknown }).$ref;
+  if (typeof maybeRef === 'string') {
+    refs.push(maybeRef);
+  }
+
+  for (const child of Object.values(value)) {
+    collectRefs(child, refs);
+  }
+
+  return refs;
+}
+
+function countEnumValues(value: unknown): number {
+  if (!value || typeof value !== 'object') {
+    return 0;
+  }
+  if (Array.isArray(value)) {
+    let total = 0;
+    for (const child of value) {
+      total += countEnumValues(child);
+    }
+    return total;
+  }
+
+  // SAFETY: The traversal checks for a non-null object before reading schema keywords; keyword values remain subject to the following checks.
+  const record = value as Record<string, unknown>;
+  const enumValues = Array.isArray(record['enum']) ? record['enum'].length : 0;
+  let nestedEnumValues = 0;
+  for (const child of Object.values(record)) {
+    nestedEnumValues += countEnumValues(child);
+  }
+  return enumValues + nestedEnumValues;
+}
+
+// oxlint-disable-next-line anti-slop/no-unknown-returns -- JSON Pointer traversal may resolve any schema or literal value, which each fixture checks afterward. These assertions inspect converter output containing arbitrary schema keywords, definitions, and literal values.
+function resolveJsonPointer(root: Record<string, unknown>, pointer: string): unknown {
+  expect(pointer.startsWith('#/')).toBe(true);
+
+  const tokens = decodeURIComponent(pointer.slice(2))
+    .split('/')
+    .map((token) => token.replace(/~1/g, '/').replace(/~0/g, '~'));
+
+  let value: unknown = root;
+  for (const token of tokens) {
+    expect(value).not.toBeNull();
+    expect(typeof value).toBe('object');
+    // SAFETY: The traversal checks for a non-null object before reading schema keywords; keyword values remain subject to the following checks.
+    expect(hasOwn(value as object, token)).toBe(true);
+    // SAFETY: The traversal checks for a non-null object before reading schema keywords; keyword values remain subject to the following checks.
+    value = (value as Record<string, unknown>)[token];
+  }
+  return value;
+}
+
+function expectDefinitionRefsToResolve(schema: Record<string, unknown>) {
+  const visit = (value: unknown, resolving: Set<string>) => {
+    if (!value || typeof value !== 'object') {
+      return;
+    }
+
+    // SAFETY: The traversal checks for a non-null object before reading schema keywords; keyword values remain subject to the following checks.
+    const ref = (value as Record<string, unknown>)['$ref'];
+    if (typeof ref === 'string') {
+      const definition = resolveJsonPointer(schema, ref);
+      expect(definition).toBeDefined();
+      expect(resolving.has(ref)).toBe(false);
+
+      visit(definition, new Set(resolving).add(ref));
+      return;
+    }
+
+    for (const child of Object.values(value)) {
+      visit(child, resolving);
+    }
+  };
+
+  visit(schema, new Set());
+}
+
+it('converts Zod v4 discriminated unions to anyOf for strict schemas', () => {
+  const ResponseSchema = zv4.object({
+    data: zv4.discriminatedUnion('type', [
+      zv4.object({ type: zv4.literal('a') }),
+      zv4.object({ type: zv4.literal('b') }),
+    ]),
+  });
+
+  // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+  const schema = zodResponseFormat(ResponseSchema, 'choice').json_schema.schema as any;
+
+  expect(JSON.stringify(schema)).not.toContain('"oneOf"');
+  expect(schema.properties.data.anyOf).toHaveLength(2);
+});
+
+describe.each([
+  { version: 'v4', schema: zv4.object({ value: zv4.xor([zv4.string(), zv4.number()]) }) },
+  {
+    version: 'v4 mini',
+    schema: zv4Mini.object({ value: zv4Mini.xor([zv4Mini.string(), zv4Mini.number()]) }),
+  },
+])('Zod $version XOR schemas', ({ schema }) => {
+  it.each([
+    { name: 'response format', create: () => zodResponseFormat(schema, 'xor') },
+    { name: 'text format', create: () => zodTextFormat(schema, 'xor') },
+    { name: 'chat function', create: () => zodFunction({ name: 'xor', parameters: schema }) },
+    { name: 'Responses function', create: () => zodResponsesFunction({ name: 'xor', parameters: schema }) },
+  ])('rejects oneOf in $name without changing the input schema', ({ create }) => {
+    const original = zv4.toJSONSchema(schema, { target: 'draft-7' });
+
+    expect(create).toThrow(
+      'Schema at `properties/value` uses unsupported keyword `oneOf` and cannot be represented in strict Structured Outputs.',
+    );
+    expect(zv4.toJSONSchema(schema, { target: 'draft-7' })).toEqual(original);
+  });
+
+  it('preserves oneOf in a non-strict Realtime function', () => {
+    const tool = zodRealtimeFunction({ name: 'xor', parameters: schema });
+
+    expect(tool.parameters).toMatchObject({
+      type: 'object',
+      properties: { value: { oneOf: [{ type: 'string' }, { type: 'number' }] } },
+      required: ['value'],
+    });
+    expect(tool).not.toHaveProperty('strict');
+  });
+});
+
+describe('Zod v4 mini', () => {
+  const MiniSchema = zv4Mini.object({ hello: zv4Mini.literal('world') });
+  const expectedSchema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    properties: {
+      hello: {
+        type: 'string',
+        const: 'world',
+      },
+    },
+    required: ['hello'],
+    additionalProperties: false,
+  };
+
+  it('supports response formats', () => {
+    const format = zodResponseFormat(MiniSchema, 'response');
+
+    expect(format.json_schema.schema).toEqual(expectedSchema);
+    expect(format.$parseRaw('{"hello":"world"}')).toEqual({ hello: 'world' });
+    expect(() => format.$parseRaw('{"hello":"there"}')).toThrow();
+  });
+
+  it('supports text formats', () => {
+    const format = zodTextFormat(MiniSchema, 'response');
+
+    expect(format.schema).toEqual(expectedSchema);
+    expect(format.$parseRaw('{"hello":"world"}')).toEqual({ hello: 'world' });
+    expect(() => format.$parseRaw('{"hello":"there"}')).toThrow();
+  });
+
+  it('supports tool argument parsing', () => {
+    const chatTool = zodFunction({ name: 'mini_tool', parameters: MiniSchema });
+    const responseTool = zodResponsesFunction({ name: 'mini_tool', parameters: MiniSchema });
+    const realtimeTool = zodRealtimeFunction({ name: 'mini_tool', parameters: MiniSchema });
+
+    expect(chatTool.function.parameters).toEqual(expectedSchema);
+    expect(chatTool.$parseRaw('{"hello":"world"}')).toEqual({ hello: 'world' });
+    expect(() => chatTool.$parseRaw('{"hello":"there"}')).toThrow();
+
+    expect(responseTool.parameters).toEqual(expectedSchema);
+    expect(responseTool.$parseRaw('{"hello":"world"}')).toEqual({ hello: 'world' });
+    expect(() => responseTool.$parseRaw('{"hello":"there"}')).toThrow();
+
+    expect(realtimeTool).toMatchObject({
+      type: 'function',
+      name: 'mini_tool',
+      parameters: {
+        type: 'object',
+        properties: expectedSchema.properties,
+        required: ['hello'],
+      },
+    });
+  });
+});
+
+describe.each([
+  { version: 'v3', z: zv3 },
+  // SAFETY: The version matrix uses only the listed shared Zod constructors; the test exercises each real v3/v4 implementation despite incompatible library declarations.
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Run shared schema-factory cases across Zod versions whose nominal class types differ.
+  { version: 'v4', z: zv4 as any as typeof zv3 },
+])('zodRealtimeFunction (Zod $version)', ({ z }) => {
+  it('builds a Realtime function tool without strict', () => {
+    const tool = zodRealtimeFunction({
+      name: 'get_weather',
+      description: 'Get the current weather',
+      parameters: z.object({
+        location: z.string(),
+        unit: z.enum(['c', 'f']),
+      }),
+    });
+
+    expect(tool).toMatchObject({
+      type: 'function',
+      name: 'get_weather',
+      description: 'Get the current weather',
+      parameters: {
+        type: 'object',
+        properties: {
+          location: { type: 'string' },
+          unit: { type: 'string', enum: ['c', 'f'] },
+        },
+        required: ['location', 'unit'],
+      },
+    });
+    expect(tool).not.toHaveProperty('strict');
+  });
+
+  it('preserves optional and defaulted parameters in the non-strict schema', () => {
+    const tool = zodRealtimeFunction({
+      name: 'example',
+      parameters: z.object({
+        required: z.string(),
+        optional: z.number().optional(),
+        nullable: z.string().nullable(),
+        defaulted: z.boolean().default(true),
+      }),
+    });
+
+    expect(tool.parameters).toMatchObject({
+      type: 'object',
+      properties: {
+        required: { type: 'string' },
+        optional: { type: 'number' },
+        defaulted: { type: 'boolean', default: true },
+      },
+      required: ['required', 'nullable'],
+    });
+  });
+
+  it('uses pipeline input schemas', () => {
+    const tool = zodRealtimeFunction({
+      name: 'example',
+      parameters: z.object({
+        value: z.string().transform(Number).pipe(z.number()),
+      }),
+    });
+
+    expect(tool.parameters).toMatchObject({
+      type: 'object',
+      properties: {
+        value: { type: 'string' },
+      },
+      required: ['value'],
+    });
+    expect(tool.parameters).not.toHaveProperty('properties.value.allOf');
+  });
+});
+
+it('preserves inferred output types', () => {
+  const format = zodResponseFormat(zv4.object({ value: zv4.string() }), 'example');
+  const parsed: { value: string } = format.$parseRaw('{"value":"ok"}');
+
+  expect(parsed.value).toBe('ok');
+});
+
+describe.each([
+  { version: 'v3', z: zv3 },
+  // SAFETY: The version matrix uses only the listed shared Zod constructors; the test exercises each real v3/v4 implementation despite incompatible library declarations.
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Run shared schema-factory cases across Zod versions whose nominal class types differ.
+  { version: 'v4', z: zv4 as any as typeof zv3 },
+])('zodResponseFormat (Zod $version)', ({ version, z }) => {
+  it('does the thing', () => {
+    expect(
+      zodResponseFormat(
+        z.object({
+          city: z.string(),
+          temperature: z.number(),
+          units: z.enum(['c', 'f']),
+        }),
+        'location',
+      ).json_schema,
+    ).toMatchInlineSnapshot(`
+      {
+        "name": "location",
+        "schema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "city": {
+              "type": "string",
+            },
+            "temperature": {
+              "type": "number",
+            },
+            "units": {
+              "enum": [
+                "c",
+                "f",
+              ],
+              "type": "string",
+            },
+          },
+          "required": [
+            "city",
+            "temperature",
+            "units",
+          ],
+          "type": "object",
+        },
+        "strict": true,
+      }
+    `);
+  });
+
+  it('does not emit whitespace in extracted definition refs', () => {
+    const ThingWithSpaces = z.object({ spaced: z.string() });
+    const ThingWithUnderscores = z.object({ underscored: z.string() });
+    const Root = z.object({
+      group: z.object({
+        'Thing With Spaces': ThingWithSpaces,
+        Thing_With_Spaces: ThingWithUnderscores,
+        anotherSpacedUsage: ThingWithSpaces,
+        anotherUnderscoredUsage: ThingWithUnderscores,
+      }),
+    });
+
+    // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+    const schema = zodResponseFormat(Root, 'example-scope').json_schema.schema as Record<string, unknown>;
+    // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+    const definitions = (schema['definitions'] ?? schema['$defs'] ?? {}) as Record<string, unknown>;
+    const refs = collectRefs(schema);
+    const definitionNames = Object.keys(definitions);
+
+    expect(refs).not.toContainEqual(expect.stringMatching(/\s/));
+    expect(definitionNames).not.toContainEqual(expect.stringMatching(/\s/));
+    if (version === 'v3') {
+      // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+      const rootProperties = schema['properties'] as Record<string, Record<string, unknown>>;
+      // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+      const groupProperties = rootProperties['group']?.['properties'] as Record<string, { $ref?: string }>;
+      const spacedRef = groupProperties['anotherSpacedUsage']?.$ref;
+      const underscoredRef = groupProperties['anotherUnderscoredUsage']?.$ref;
+
+      expect(spacedRef).toBeDefined();
+      expect(underscoredRef).toBe(
+        '#/definitions/example-scope_properties_group_properties_Thing_With_Spaces',
+      );
+      expect(spacedRef).not.toBe(underscoredRef);
+    }
+
+    for (const ref of refs) {
+      const definitionName = ref.split('/').pop();
+      expect(definitionName).toBeDefined();
+      // SAFETY: The preceding assertion checks that the selected definition name exists before it is used as a property name.
+      expect(definitions).toHaveProperty(definitionName as string);
+    }
+  });
+
+  it('uses supplied schema definitions', () => {
+    // SAFETY: Array.from constructs exactly 200 enum strings here, so the tuple has a first element and only string values.
+    const fooValues = Array.from({ length: 200 }, (_, index) => 'foo_' + index) as [string, ...string[]];
+    // SAFETY: Array.from constructs exactly 200 enum strings here, so the tuple has a first element and only string values.
+    const barValues = Array.from({ length: 200 }, (_, index) => 'bar_' + index) as [string, ...string[]];
+    const Foo = z.enum(fooValues);
+    const Bar = z.enum(barValues);
+    // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+    const schema = zodResponseFormat(
+      z.object({
+        foo: Foo,
+        foos: z.array(Foo),
+        bar: Bar,
+        bars: z.array(Bar),
+      }),
+      'shared',
+      { schemaDefinitions: { foo: Foo, bar: Bar } },
+    ).json_schema.schema as Record<string, unknown>;
+
+    expect(countEnumValues(schema)).toBe(fooValues.length + barValues.length);
+    expect(collectRefs(schema)).not.toHaveLength(0);
+    expectDefinitionRefsToResolve(schema);
+  });
+
+  it('keeps the response name separate from supplied schema definitions', () => {
+    const Shared = z.object({ value: z.string() });
+    // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+    const schema = zodResponseFormat(z.object({ first: Shared, second: Shared }), 'root', {
+      schemaDefinitions: { root: Shared },
+    }).json_schema.schema as Record<string, unknown>;
+
+    expect(collectRefs(schema)).toContain('#/definitions/root');
+    expectDefinitionRefsToResolve(schema);
+  });
+
+  it('escapes JSON Pointer tokens in supplied schema definition refs', () => {
+    const Shared = z.object({ value: z.string() });
+    // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+    const schema = zodResponseFormat(z.object({ first: Shared, second: Shared }), 'response', {
+      schemaDefinitions: { 'foo/bar~baz': Shared },
+    }).json_schema.schema as Record<string, unknown>;
+
+    expect(collectRefs(schema)).toContain('#/definitions/foo~1bar~0baz');
+    expectDefinitionRefsToResolve(schema);
+  });
+
+  it('URI-encodes supplied schema definition refs', () => {
+    const Shared = z.object({ value: z.string() });
+    // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+    const schema = zodResponseFormat(z.object({ first: Shared, second: Shared }), 'response', {
+      schemaDefinitions: { 'foo%2Fbar': Shared },
+    }).json_schema.schema as Record<string, unknown>;
+
+    expect(collectRefs(schema)).toContain('#/definitions/foo%252Fbar');
+    expectDefinitionRefsToResolve(schema);
+  });
+
+  it('rejects __proto__ as a supplied schema definition name', () => {
+    const Shared = z.object({ value: z.string() });
+
+    expect(() =>
+      zodResponseFormat(z.object({ first: Shared, second: Shared }), 'response', {
+        schemaDefinitions: { ['__proto__']: Shared },
+      }),
+    ).toThrow('schemaDefinitions cannot include "__proto__" as a definition name');
+  });
+
+  it('automatically adds optional properties to `required`', () => {
+    expect(
+      zodResponseFormat(
+        z.object({
+          city: z.string(),
+          temperature: z.number(),
+          units: z.enum(['c', 'f']).optional().nullable(),
+        }),
+        'location',
+      ).json_schema,
+    ).toMatchInlineSnapshot(`
+      {
+        "name": "location",
+        "schema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "city": {
+              "type": "string",
+            },
+            "temperature": {
+              "type": "number",
+            },
+            "units": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "c",
+                    "f",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+            },
+          },
+          "required": [
+            "city",
+            "temperature",
+            "units",
+          ],
+          "type": "object",
+        },
+        "strict": true,
+      }
+    `);
+  });
+
+  it('automatically adds properties with defaults to `required`', () => {
+    expect(
+      zodResponseFormat(
+        z.object({
+          city: z.string(),
+          temperature: z.number(),
+          units: z.enum(['c', 'f']).default('c'),
+        }),
+        'location',
+      ).json_schema,
+    ).toMatchInlineSnapshot(`
+      {
+        "name": "location",
+        "schema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "city": {
+              "type": "string",
+            },
+            "temperature": {
+              "type": "number",
+            },
+            "units": {
+              "default": "c",
+              "enum": [
+                "c",
+                "f",
+              ],
+              "type": "string",
+            },
+          },
+          "required": [
+            "city",
+            "temperature",
+            "units",
+          ],
+          "type": "object",
+        },
+        "strict": true,
+      }
+    `);
+  });
+
+  it('allows description field to be passed in', () => {
+    expect(
+      zodResponseFormat(
+        z.object({
+          city: z.string(),
+        }),
+        'city',
+        { description: 'A city' },
+      ).json_schema,
+    ).toHaveProperty('description', 'A city');
+  });
+
+  test('kitchen sink types', () => {
+    const Table = z.enum(['orders', 'customers', 'products']);
+
+    const Column = z.enum([
+      'id',
+      'status',
+      'expected_delivery_date',
+      'delivered_at',
+      'shipped_at',
+      'ordered_at',
+      'canceled_at',
+    ]);
+
+    const Operator = z.enum(['=', '>', '<', '<=', '>=', '!=']);
+
+    const OrderBy = z.enum(['asc', 'desc']);
+
+    const DynamicValue = z.object({
+      column_name: z.string(),
+    });
+
+    const Condition = z.object({
+      column: z.string(),
+      operator: Operator,
+      value: z.union([z.string(), z.number(), DynamicValue]),
+    });
+
+    const Query = z.object({
+      table_name: Table,
+      columns: z.array(Column),
+      conditions: z.array(Condition),
+      order_by: OrderBy,
+    });
+
+    expect(zodResponseFormat(Query, 'query').json_schema).toMatchInlineSnapshot(`
+      {
+        "name": "query",
+        "schema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "columns": {
+              "items": {
+                "enum": [
+                  "id",
+                  "status",
+                  "expected_delivery_date",
+                  "delivered_at",
+                  "shipped_at",
+                  "ordered_at",
+                  "canceled_at",
+                ],
+                "type": "string",
+              },
+              "type": "array",
+            },
+            "conditions": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "column": {
+                    "type": "string",
+                  },
+                  "operator": {
+                    "enum": [
+                      "=",
+                      ">",
+                      "<",
+                      "<=",
+                      ">=",
+                      "!=",
+                    ],
+                    "type": "string",
+                  },
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                      },
+                      {
+                        "type": "number",
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "column_name": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "column_name",
+                        ],
+                        "type": "object",
+                      },
+                    ],
+                  },
+                },
+                "required": [
+                  "column",
+                  "operator",
+                  "value",
+                ],
+                "type": "object",
+              },
+              "type": "array",
+            },
+            "order_by": {
+              "enum": [
+                "asc",
+                "desc",
+              ],
+              "type": "string",
+            },
+            "table_name": {
+              "enum": [
+                "orders",
+                "customers",
+                "products",
+              ],
+              "type": "string",
+            },
+          },
+          "required": [
+            "table_name",
+            "columns",
+            "conditions",
+            "order_by",
+          ],
+          "type": "object",
+        },
+        "strict": true,
+      }
+    `);
+  });
+
+  it('throws error on optional fields', () => {
+    if (version === 'v3') {
+      expect(() =>
+        zodResponseFormat(
+          z.object({
+            required: z.string(),
+            optional: z.string().optional(),
+            optional_and_nullable: z.string().optional().nullable(),
+          }),
+          'schema',
+        ),
+      ).toThrow(
+        'Zod field at `#/definitions/schema/properties/optional` uses `.optional()` without `.nullable()` which is not supported by the API. See: https://platform.openai.com/docs/guides/structured-outputs?api-mode=responses#all-fields-must-be-required',
+      );
+    } else {
+      expect(() =>
+        zodResponseFormat(
+          z.object({
+            required: z.string(),
+            optional: z.string().optional(),
+            optional_and_nullable: z.string().optional().nullable(),
+          }),
+          'schema',
+        ),
+      ).toThrow(
+        'Schema field at `properties/optional` uses `.optional()` without `.nullable()` which is not supported by the API. See: https://platform.openai.com/docs/guides/structured-outputs?api-mode=responses#all-fields-must-be-required',
+      );
+    }
+  });
+
+  it('throws error on nested optional fields', () => {
+    if (version === 'v3') {
+      expect(() =>
+        zodResponseFormat(
+          z.object({
+            foo: z.object({ bar: z.array(z.object({ can_be_missing: z.boolean().optional() })) }),
+          }),
+          'schema',
+        ),
+      ).toThrow(
+        'Zod field at `#/definitions/schema/properties/foo/properties/bar/items/properties/can_be_missing` uses `.optional()` without `.nullable()` which is not supported by the API. See: https://platform.openai.com/docs/guides/structured-outputs?api-mode=responses#all-fields-must-be-required',
+      );
+    } else {
+      expect(() =>
+        zodResponseFormat(
+          z.object({
+            foo: z.object({ bar: z.array(z.object({ can_be_missing: z.boolean().optional() })) }),
+          }),
+          'schema',
+        ),
+      ).toThrow(
+        'Schema field at `properties/foo/properties/bar/items/properties/can_be_missing` uses `.optional()` without `.nullable()` which is not supported by the API. See: https://platform.openai.com/docs/guides/structured-outputs?api-mode=responses#all-fields-must-be-required',
+      );
+    }
+  });
+
+  it('does not warn on union nullable fields', () => {
+    const consoleSpy = vi.spyOn(console, 'warn');
+    consoleSpy.mockClear();
+
+    zodResponseFormat(
+      z.object({
+        union: z.union([z.string(), z.null()]).optional(),
+      }),
+      'schema',
+    );
+
+    expect(consoleSpy).toHaveBeenCalledTimes(0);
+  });
+
+  if (version === 'v3') {
+    it('fully resolves reused wrapper types', () => {
+      const branded = z.string().brand<'BlockId'>();
+      const defaulted = z.string().default('fallback');
+      const readonly = z.string().readonly();
+      const optionalNullable = z.string().nullable().optional();
+      const lazy = z.lazy(() => z.string());
+      const nullable = z.object({ value: z.string() }).nullable();
+      // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+      const schema = zodTextFormat(
+        z.object({
+          brandedFirst: branded,
+          brandedSecond: branded,
+          defaultedFirst: defaulted,
+          defaultedSecond: defaulted,
+          readonlyFirst: readonly,
+          readonlySecond: readonly,
+          optionalNullableFirst: optionalNullable,
+          optionalNullableSecond: optionalNullable,
+          lazyFirst: lazy,
+          lazySecond: lazy,
+          nullableFirst: nullable,
+          nullableSecond: nullable,
+        }),
+        'wrappers',
+      ).schema as Record<string, unknown>;
+
+      expectDefinitionRefsToResolve(schema);
+
+      // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+      const properties = schema['properties'] as Record<string, { $ref?: string }>;
+      const brandedRef = properties['brandedSecond']?.$ref;
+      expect(brandedRef).toBeDefined();
+
+      // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+      const definitions = schema['definitions'] as Record<string, unknown>;
+      expect(definitions[brandedRef!.replace('#/definitions/', '')]).toMatchObject({ type: 'string' });
+    });
+
+    it('does not rebind shared inner types to wrapper definitions', () => {
+      const base = z.string();
+      const early = z.object({ value: base });
+      const defaulted = base.default('fallback');
+      const late = z.object({ value: base });
+
+      // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+      const schema = zodTextFormat(
+        z.object({
+          earlyFirst: early,
+          earlySecond: early,
+          defaultedFirst: defaulted,
+          defaultedSecond: defaulted,
+          lateFirst: late,
+          lateSecond: late,
+        }),
+        'wrapperState',
+      ).schema as Record<string, any>;
+      // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+      const definitions = schema['definitions'] as Record<string, any>;
+
+      // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+      const lateRef = schema['properties']['lateSecond']['$ref'] as string;
+      const lateDefinition = definitions[lateRef.replace('#/definitions/', '')];
+      // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+      const valueRef = lateDefinition['properties']['value']['$ref'] as string;
+      const valueDefinition = definitions[valueRef.replace('#/definitions/', '')];
+
+      expect(valueDefinition).toEqual({ type: 'string' });
+    });
+
+    it('preserves intentional recursion through lazy types', () => {
+      const recursive: zv3.ZodTypeAny = z.lazy(() =>
+        z.object({
+          value: z.string(),
+          children: z.array(recursive),
+        }),
+      );
+
+      // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+      const schema = zodTextFormat(
+        z.object({
+          first: recursive,
+          second: recursive,
+        }),
+        'recursive',
+      ).schema as Record<string, any>;
+      // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+      const definitions = schema['definitions'] as Record<string, any>;
+
+      // SAFETY: The explicit Zod object fixture creates these schema properties and definitions; this test verifies their emitted references and contents.
+      const recursiveRef = schema['properties']['second']['$ref'] as string;
+      const recursiveDefinition = definitions[recursiveRef.replace('#/definitions/', '')];
+
+      expect(recursiveDefinition).toMatchObject({
+        type: 'object',
+        properties: {
+          children: {
+            type: 'array',
+            items: { $ref: recursiveRef },
+          },
+        },
+      });
+    });
+  }
+});
+
+// oxlint-disable-next-line anti-slop/no-unknown-returns -- This compile-time regression preserves the public optional callback contract for arbitrary results.
+function _typeTests(client: OpenAI, maybeCallback?: (args: { hello: 'world' }) => unknown) {
+  const MiniSchema = zv4Mini.object({ hello: zv4Mini.literal('world') });
+  type ParsedArguments = { hello: 'world' };
+
+  expectType<ParsedArguments>(zodResponseFormat(MiniSchema, 'response').__output);
+  expectType<ParsedArguments>(zodTextFormat(MiniSchema, 'response').__output);
+  const chatTool = zodFunction({
+    name: 'mini_tool',
+    parameters: MiniSchema,
+    function: (args) => expectType<ParsedArguments>(args),
+  });
+  const responseTool = zodResponsesFunction({
+    name: 'mini_tool',
+    parameters: MiniSchema,
+    function: (args) => expectType<ParsedArguments>(args),
+  });
+
+  compareType<Parameters<NonNullable<typeof chatTool.$callback>>[0], ParsedArguments>(true);
+  compareType<ReturnType<typeof chatTool.$parseRaw>, ParsedArguments>(true);
+  compareType<typeof chatTool.__arguments, ParsedArguments>(true);
+  compareType<Parameters<NonNullable<typeof responseTool.$callback>>[0], ParsedArguments>(true);
+  compareType<ReturnType<typeof responseTool.$parseRaw>, ParsedArguments>(true);
+  compareType<typeof responseTool.__arguments, ParsedArguments>(true);
+
+  const explicitGenericTool = zodFunction<typeof MiniSchema>({
+    name: 'explicit_generic',
+    parameters: MiniSchema,
+    function: (args) => {
+      expectType<ParsedArguments>(args);
+      return Promise.resolve(args);
+    },
+  });
+  expectType<true>(explicitGenericTool.__hasFunction);
+  expectType<false>(
+    zodFunction<typeof MiniSchema>({ name: 'explicit_parse_only', parameters: MiniSchema }).__hasFunction,
+  );
+
+  for (const parameters of [
+    zv3.object({ hello: zv3.literal('world') }),
+    zv4.object({ hello: zv4.literal('world') }),
+    MiniSchema,
+  ]) {
+    const options = { name: 'greet', parameters };
+    const runnable = zodFunction({
+      ...options,
+      function: (args) => expectType<ParsedArguments>(args),
+    });
+    const callbackless = zodFunction(options);
+    const undefinedCallback = zodFunction({ ...options, function: undefined });
+    const optionalCallback = zodFunction({ ...options, function: maybeCallback });
+
+    expectType<true>(runnable.__hasFunction);
+    expectType<false>(callbackless.__hasFunction);
+    expectType<false>(undefinedCallback.__hasFunction);
+    expectType<false>(optionalCallback.__hasFunction);
+    expectType<ParsedArguments>(callbackless.__arguments);
+
+    const request = { model: 'gpt-4o', messages: [] };
+    client.chat.completions.runTools({ ...request, tools: [runnable] });
+    client.chat.completions.runTools({ ...request, tools: [runnable], stream: true });
+
+    for (const tool of [callbackless, undefinedCallback, optionalCallback]) {
+      client.chat.completions.parse({ ...request, tools: [tool] });
+      client.chat.completions.stream({ ...request, tools: [tool] });
+      // @ts-expect-error a tool without a guaranteed callback cannot be executed
+      client.chat.completions.runTools({ ...request, tools: [tool] });
+      // @ts-expect-error streaming tool execution also requires a guaranteed callback
+      client.chat.completions.runTools({ ...request, tools: [tool], stream: true });
+    }
+  }
+}

@@ -1,0 +1,81 @@
+import { vi } from 'vitest';
+import type { MockedFunction } from 'vitest';
+import { spawn } from 'node:child_process';
+import { Readable, Writable } from 'node:stream';
+import { playAudio } from 'openai/helpers/audio';
+
+// oxlint-disable-next-line anti-slop/no-module-mocking -- Exercise native pipe and process failure contracts without requiring ffplay or audio hardware.
+vi.mock('node:child_process', () => ({ spawn: vi.fn() }));
+
+// SAFETY: The module mock replaces this import with a Vitest spy before this binding is read.
+const spawnMock = spawn as MockedFunction<typeof spawn>;
+
+function mockFfplay() {
+  const chunks: Buffer[] = [];
+  const stdin = new Writable({
+    write(chunk, _encoding, callback) {
+      chunks.push(Buffer.from(chunk));
+      callback();
+    },
+  });
+  const ffplay = {
+    stdin,
+    kill: vi.fn(),
+    on: vi.fn(),
+  };
+
+  ffplay.on.mockImplementation((event: string, listener: (code: number) => void) => {
+    if (event === 'close') {
+      if (stdin.writableEnded) {
+        queueMicrotask(() => listener(0));
+      } else {
+        stdin.on('finish', () => listener(0));
+      }
+    }
+    return ffplay;
+  });
+  // SAFETY: The subprocess/audio fixture implements the stream and event methods this path uses; the test observes those operations without spawning a real player.
+  spawnMock.mockReturnValue(ffplay as any);
+
+  return { chunks, ffplay };
+}
+
+describe('playAudio', () => {
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('pipes a Response Web ReadableStream body to ffplay', async () => {
+    const { chunks } = mockFfplay();
+
+    await playAudio(new Response('hello'));
+
+    expect(spawnMock).toHaveBeenCalledWith('ffplay', ['-autoexit', '-nodisp', '-i', 'pipe:0']);
+    expect(Buffer.concat(chunks).toString()).toBe('hello');
+  });
+
+  it('keeps Node Readable response bodies on the Node stream path', async () => {
+    const { chunks } = mockFfplay();
+    const response = { body: Readable.from(['hello']) };
+
+    // SAFETY: The subprocess/audio fixture implements the stream and event methods this path uses; the test observes those operations without spawning a real player.
+    await playAudio(response as any);
+
+    expect(Buffer.concat(chunks).toString()).toBe('hello');
+  });
+
+  it('rejects and stops ffplay when a Response Web ReadableStream errors', async () => {
+    const { ffplay } = mockFfplay();
+    const response = new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.error(new Error('stream failed'));
+        },
+      }),
+    );
+
+    await expect(playAudio(response)).rejects.toThrow('stream failed');
+
+    expect(ffplay.kill).toHaveBeenCalled();
+  });
+});

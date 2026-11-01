@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+echo "Script started with $# arguments"
+echo "Arguments: $*"
+echo "Script location: $(dirname "$0")"
+
+cd "$(dirname "$0")/.."
+echo "Changed to directory: $(pwd)"
+
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <file-with-paths> [additional-formatter-args...]"
+    echo "The file should contain one file path per line"
+    exit 1
+fi
+
+FILE_LIST="$1"
+
+echo "Looking for file: $FILE_LIST"
+
+if [ ! -f "$FILE_LIST" ]; then
+    echo "Error: File '$FILE_LIST' not found"
+    exit 1
+fi
+
+echo "==> Fixing generated lint issues"
+node ./scripts/lint-generated.cjs --fix --file-list "$FILE_LIST"
+
+echo "==> Running oxlint --fix"
+# Match the generated linter's line-based input, without letting xargs split paths.
+# Only pass existing literal files; missing paths can be interpreted as globs.
+FILES="$(while IFS= read -r file || [ -n "$file" ]; do
+    file="${file%$'\r'}"
+    if [ -f "$file" ]; then
+        printf '%s\n' "$file"
+    fi
+done < "$FILE_LIST")"
+LINT_FILES="$(printf '%s\n' "$FILES" | grep -E '\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$' || true)"
+if [ -n "$LINT_FILES" ]; then
+   printf '%s\n' "$LINT_FILES" | tr '\n' '\0' | xargs -0 ./node_modules/.bin/oxlint --fix --no-error-on-unmatched-pattern --
+fi
+
+echo "==> Running oxfmt --write"
+if [ -n "$FILES" ]; then
+   printf '%s\n' "$FILES" | tr '\n' '\0' | xargs -0 ./node_modules/.bin/oxfmt --write --no-error-on-unmatched-pattern --
+fi

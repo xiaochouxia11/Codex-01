@@ -1,0 +1,271 @@
+import {
+  zodFunction,
+  zodRealtimeFunction,
+  zodResponseFormat,
+  zodResponsesFunction,
+  zodTextFormat,
+} from 'openai/helpers/zod';
+import { z as zv3 } from 'zod/v3';
+import { z as zv4 } from 'zod/v4';
+import { z as zv4Mini } from 'zod/v4-mini';
+
+type JSONSchemaRecord = Record<string, unknown>;
+
+function schemaProperties(schema: unknown): Record<string, JSONSchemaRecord> {
+  // SAFETY: The explicit Zod fixture defines these object properties, arrays, or defaults; the assertions check their serialized reference/literal representation.
+  return (schema as { properties: Record<string, JSONSchemaRecord> }).properties;
+}
+
+describe.each([
+  { version: 'v3', z: zv3 },
+  // SAFETY: The version matrix uses only the listed shared Zod constructors; the test exercises each real v3/v4 implementation despite incompatible library declarations.
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Run shared schema-factory cases across Zod versions whose nominal class types differ.
+  { version: 'v4', z: zv4 as unknown as typeof zv3 },
+  // SAFETY: The version matrix uses only the listed shared Zod constructors; the test exercises each real v3/v4 implementation despite incompatible library declarations.
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Run shared schema-factory cases across Zod versions whose nominal class types differ.
+  { version: 'v4 Mini', z: zv4Mini as unknown as typeof zv3 },
+])('Zod $version definition names', ({ z }) => {
+  it('keeps raw, pointer-escaped, and percent-escaped definition names distinct on the wire', () => {
+    const Slash = z.object({ slash: z.string() });
+    const Tilde = z.object({ tilde: z.number() });
+    const Percent = z.object({ percent: z.boolean() });
+    const definitions = Object.freeze({
+      'a/b': Slash,
+      'a~1b': Tilde,
+      'a%2Fb': Percent,
+    });
+    const format = zodResponseFormat(
+      z.object({ slash: Slash, tilde: Tilde, percent: Percent }),
+      'escaped_definitions',
+      { schemaDefinitions: definitions },
+    );
+    // SAFETY: The explicit Zod fixture defines these object properties, arrays, or defaults; the assertions check their serialized reference/literal representation.
+    // oxlint-disable-next-line unicorn/prefer-structured-clone -- Check the JSON wire representation.
+    const wireSchema = JSON.parse(JSON.stringify(format.json_schema.schema)) as {
+      properties: Record<string, { $ref: string }>;
+      definitions: Record<string, JSONSchemaRecord>;
+    };
+
+    expect(wireSchema.properties).toEqual({
+      slash: { $ref: '#/definitions/a~1b' },
+      tilde: { $ref: '#/definitions/a~01b' },
+      percent: { $ref: '#/definitions/a%252Fb' },
+    });
+    expect(schemaProperties(wireSchema.definitions['a/b'])).toEqual({ slash: { type: 'string' } });
+    expect(schemaProperties(wireSchema.definitions['a~1b'])).toEqual({ tilde: { type: 'number' } });
+    expect(schemaProperties(wireSchema.definitions['a%2Fb'])).toEqual({ percent: { type: 'boolean' } });
+    expect(definitions['a/b']).toBe(Slash);
+    expect(definitions['a~1b']).toBe(Tilde);
+  });
+});
+
+describe.each([
+  { version: 'v3', z: zv3 },
+  // SAFETY: The version matrix uses only the listed shared Zod constructors; the test exercises each real v3/v4 implementation despite incompatible library declarations.
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Run shared schema-factory cases across Zod versions whose nominal class types differ.
+  { version: 'v4', z: zv4 as unknown as typeof zv3 },
+])('Zod $version schema reference literals', ({ version, z }) => {
+  const referenceLiteral = () => z.object({ $ref: z.string() });
+  const nestedReferenceLiteral = () => z.object({ $ref: z.string(), nested: referenceLiteral() });
+  it('preserves literal defaults and caller-owned objects while escaping real definition references', () => {
+    const Account = z.object({ id: z.string() });
+    const definitionName = 'account/admin~team%2Fowner #';
+    const literalRef = `#/definitions/${definitionName}`;
+    const payload = {
+      $ref: literalRef,
+      tag: 'KEEP',
+      nested: {
+        $ref: literalRef,
+        children: [
+          {
+            default: { $ref: literalRef },
+            const: { $ref: literalRef },
+            enum: [{ $ref: literalRef }],
+            examples: [{ $ref: literalRef }],
+          },
+        ],
+      },
+    };
+    const originalPayload = structuredClone(payload);
+    const Root = z.object({
+      account: Account,
+      nested: z.object({ accounts: z.array(Account) }),
+      payload: z
+        .object({
+          $ref: z.string(),
+          tag: z.string(),
+          nested: z.object({
+            $ref: z.string(),
+            children: z.array(
+              z.object({
+                default: referenceLiteral(),
+                const: referenceLiteral(),
+                enum: z.array(referenceLiteral()),
+                examples: z.array(referenceLiteral()),
+              }),
+            ),
+          }),
+        })
+        .default(payload),
+    });
+
+    const { schema } = zodResponseFormat(Root, 'account_response', {
+      schemaDefinitions: { [definitionName]: Account },
+    }).json_schema;
+    const properties = schemaProperties(schema);
+
+    expect(properties['payload']?.['default']).toEqual(originalPayload);
+    expect(payload).toEqual(originalPayload);
+    expect(Root.parse({ account: { id: 'first' }, nested: { accounts: [] } }).payload).toEqual(
+      originalPayload,
+    );
+
+    const escapedRef = '#/definitions/account~1admin~0team%252Fowner%20%23';
+    expect(properties['account']?.['$ref']).toBe(escapedRef);
+    const nestedProperties = schemaProperties(properties['nested']);
+    // SAFETY: The explicit Zod fixture defines these object properties, arrays, or defaults; the assertions check their serialized reference/literal representation.
+    const nestedArray = nestedProperties['accounts'] as { items: { $ref: string } };
+    expect(nestedArray.items.$ref).toBe(escapedRef);
+  });
+
+  it('preserves frozen defaults across response, text, chat, Responses, and realtime helpers', () => {
+    const payload = Object.freeze({
+      $ref: '#/definitions/account/admin',
+      nested: Object.freeze({ $ref: '#/definitions/account/admin' }),
+    });
+    const Root = z.object({ payload: nestedReferenceLiteral().default(payload) });
+    const helpers = [
+      () => zodResponseFormat(Root, 'account').json_schema.schema,
+      () => zodTextFormat(Root, 'account').schema,
+      () => zodFunction({ name: 'account', parameters: Root }).function.parameters,
+      () => zodResponsesFunction({ name: 'account', parameters: Root }).parameters,
+      () => zodRealtimeFunction({ name: 'account', parameters: Root }).parameters,
+    ];
+
+    for (const generateSchema of helpers) {
+      expect(generateSchema).not.toThrow();
+      expect(schemaProperties(generateSchema())['payload']?.['default']).toEqual(payload);
+    }
+
+    expect(payload.$ref).toBe('#/definitions/account/admin');
+  });
+
+  it('preserves frozen literal defaults while escaping registered schema definitions', () => {
+    const Account = z.object({ id: z.string() });
+    const payload = Object.freeze({
+      $ref: '#/definitions/account/admin',
+      nested: Object.freeze({ $ref: '#/definitions/account/admin' }),
+    });
+    const Root = z.object({ account: Account, payload: nestedReferenceLiteral().default(payload) });
+
+    const { schema } = zodResponseFormat(Root, 'account_response', {
+      schemaDefinitions: { 'account/admin': Account },
+    }).json_schema;
+    const properties = schemaProperties(schema);
+
+    expect(properties['account']?.['$ref']).toBe('#/definitions/account~1admin');
+    expect(properties['payload']?.['default']).toEqual(payload);
+    expect(payload.$ref).toBe('#/definitions/account/admin');
+  });
+
+  if (version === 'v3') {
+    it('preserves shared literal defaults and rejects cyclic JSON values', () => {
+      const Account = z.object({ id: z.string() });
+      const shared = { $ref: '#/definitions/account/admin' };
+      // oxlint-disable-next-line anti-slop/no-known-value-widening -- The optional self field is assigned after creation to form the cyclic JSON regression fixture.
+      const cyclic: { $ref: string; self?: unknown } = { $ref: '#/definitions/account/admin' };
+      cyclic.self = cyclic;
+      const Root = z.object({
+        account: Account,
+        first: referenceLiteral().default(shared),
+        second: referenceLiteral().default(shared),
+      });
+
+      const { schema } = zodResponseFormat(Root, 'account_response', {
+        schemaDefinitions: { 'account/admin': Account },
+      }).json_schema;
+      const properties = schemaProperties(schema);
+      // SAFETY: The explicit Zod fixture defines these object properties, arrays, or defaults; the assertions check their serialized reference/literal representation.
+      const firstDefault = properties['first']?.['default'] as typeof shared;
+      // SAFETY: The explicit Zod fixture defines these object properties, arrays, or defaults; the assertions check their serialized reference/literal representation.
+      const secondDefault = properties['second']?.['default'] as typeof shared;
+
+      expect(properties['account']?.['$ref']).toBe('#/definitions/account~1admin');
+      expect(firstDefault.$ref).toBe('#/definitions/account/admin');
+      expect(secondDefault.$ref).toBe('#/definitions/account/admin');
+      expect(() =>
+        // SAFETY: The fixture intentionally supplies nonstandard literal/default values to test serialization, reference escaping, or circular-value rejection.
+        // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The cyclic default is intentionally outside the string schema type to test serialization rejection.
+        zodResponseFormat(z.object({ value: z.string().default(cyclic as unknown as string) }), 'cyclic'),
+      ).toThrow(/circular JSON value/u);
+      expect(cyclic.self).toBe(cyclic);
+    });
+  }
+});
+
+describe('Zod v4 schema reference literals', () => {
+  it('preserves default, const, enum, and examples metadata payloads', () => {
+    const literal = { $ref: '#/definitions/account/admin', tag: 'KEEP' };
+    const Root = zv4.object({
+      payload: zv4.any().meta({
+        default: literal,
+        const: literal,
+        enum: [literal],
+        examples: [literal],
+      }),
+    });
+
+    const { schema } = zodResponseFormat(Root, 'account_response').json_schema;
+    const properties = schemaProperties(schema);
+
+    expect(properties['payload']).toMatchObject({
+      default: literal,
+      const: literal,
+      enum: [literal],
+      examples: [literal],
+    });
+    expect(literal.$ref).toBe('#/definitions/account/admin');
+  });
+
+  it('preserves object-valued const and enum literals while escaping real references', () => {
+    const Account = zv4.object({ id: zv4.string() });
+    const literal = { $ref: '#/definitions/account/admin', tag: 'KEEP' };
+    const alternateLiteral = { $ref: '#/definitions/account/admin', tag: 'ALSO KEEP' };
+    const Root = zv4.object({
+      account: Account,
+      // SAFETY: The fixture intentionally supplies nonstandard literal/default values to test serialization, reference escaping, or circular-value rejection.
+      // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Preserve object-valued literal fixtures used to verify ref-looking data is never rewritten as a schema ref.
+      constant: zv4.literal(literal as unknown as string),
+      // SAFETY: The fixture intentionally supplies nonstandard literal/default values to test serialization, reference escaping, or circular-value rejection.
+      // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Preserve object-valued literal fixtures used to verify ref-looking data is never rewritten as a schema ref.
+      enumeration: zv4.literal([literal, alternateLiteral] as unknown as readonly string[]),
+    });
+
+    const { schema } = zodResponseFormat(Root, 'account_response', {
+      schemaDefinitions: { 'account/admin': Account },
+    }).json_schema;
+    const properties = schemaProperties(schema);
+
+    expect(properties['account']?.['$ref']).toBe('#/definitions/account~1admin');
+    expect(properties['constant']?.['const']).toEqual(literal);
+    expect(properties['enumeration']?.['enum']).toEqual([literal, alternateLiteral]);
+  });
+});
+
+it('preserves Zod v4 Mini literal defaults while escaping real definition references', () => {
+  const Account = zv4Mini.object({ id: zv4Mini.string() });
+  const definitionName = 'account/admin~team%2Fowner #';
+  const literal = { $ref: `#/definitions/${definitionName}`, tag: 'KEEP' };
+  const Root = zv4Mini.object({
+    account: Account,
+    payload: zv4Mini._default(zv4Mini.any(), literal),
+  });
+
+  const { schema } = zodResponseFormat(Root, 'account_response', {
+    schemaDefinitions: { [definitionName]: Account },
+  }).json_schema;
+  const properties = schemaProperties(schema);
+
+  expect(properties['account']?.['$ref']).toBe('#/definitions/account~1admin~0team%252Fowner%20%23');
+  expect(properties['payload']?.['default']).toEqual(literal);
+});

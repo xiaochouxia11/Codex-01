@@ -1,0 +1,25 @@
+.prism.log
+.stdy.log
+node_modules
+yarn-error.log
+codegen.log
+dist
+/oidc
+/*.tgz
+.idea/
+tmp
+.pack
+ecosystem-tests/deno/package.json
+ecosystem-tests/*/openai.tgz
+.dev.vars
+.eslintcache
+oidc
+/benchmark-results.json
+/benchmark-environment.json
+
+/scripts/steady/.cache/
+
+# Python validation artifacts
+__pycache__/
+*.pyc
+*.pyo

@@ -1,0 +1,45 @@
+packages:
+  - examples
+  - '!ecosystem-tests/**'
+
+scriptShell: bash
+
+minimumReleaseAge: 11520
+minimumReleaseAgeStrict: true
+minimumReleaseAgeExclude:
+  # Security exception: qs 6.16.0 fixes GHSA-4mjr-xmp4-gh2g and GHSA-x5fp-wj9c-mxmx.
+  - 'qs@6.16.0'
+  # Security exception: reviewed source-map-js 1.2.2 fixes GHSA-68fv-2mgg-jv7q.
+  - 'source-map-js@1.2.2'
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  # semver@6.3.1 is an established transitive dependency, but pnpm's trust-policy
+  # check flags it as a trust downgrade because older registry trust signals differ.
+  - 'semver@6.3.1'
+blockExoticSubdeps: true
+strictDepBuilds: true
+trustLockfile: false
+pmOnFail: error
+verifyDepsBeforeRun: error
+
+overrides:
+  # AWS core 3.977.0-3.977.5 are deprecated for a JSON Document parsing bug;
+  # stay on the last unaffected mature release until 3.977.6 clears cooldown.
+  '@aws-sdk/core@>=3.977.0 <3.977.6': 3.976.0
+  # @typespec/ts-http-runtime@0.3.6 currently has incomplete registry metadata in
+  # our registry mirror, which causes pnpm trust-policy warnings. Azure packages
+  # accept 0.3.5 via their declared ranges, and 0.3.5 has clean metadata.
+  '@typespec/ts-http-runtime': 0.3.5
+  # Keep transitive dependencies outside known vulnerable ranges.
+  'js-yaml@<3.15.2': 3.15.2
+  # Keep the existing minimatch security override from the prior Yarn/npm setup.
+  minimatch: ^9.0.9
+  'postcss@<8.5.23': 8.5.23
+  'qs@<6.16.0': 6.16.0
+
+allowBuilds:
+  # Jest's watcher uses optional platform binaries; source builds are unnecessary.
+  '@parcel/watcher': false
+  '@swc/core': true
+  sharp: false
+  unrs-resolver: false

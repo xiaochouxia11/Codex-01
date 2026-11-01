@@ -1,0 +1,1855 @@
+# Shared
+
+Types:
+
+- <code><a href="./src/resources/shared.ts">AllModels</a></code>
+- <code><a href="./src/resources/shared.ts">ChatModel</a></code>
+- <code><a href="./src/resources/shared.ts">ComparisonFilter</a></code>
+- <code><a href="./src/resources/shared.ts">CompoundFilter</a></code>
+- <code><a href="./src/resources/shared.ts">CustomToolInputFormat</a></code>
+- <code><a href="./src/resources/shared.ts">DecisionInputJSON</a></code>
+- <code><a href="./src/resources/shared.ts">DecisionQuestionInputImage</a></code>
+- <code><a href="./src/resources/shared.ts">DecisionQuestionInputPart</a></code>
+- <code><a href="./src/resources/shared.ts">DecisionQuestionInputText</a></code>
+- <code><a href="./src/resources/shared.ts">ErrorObject</a></code>
+- <code><a href="./src/resources/shared.ts">FunctionDefinition</a></code>
+- <code><a href="./src/resources/shared.ts">FunctionParameters</a></code>
+- <code><a href="./src/resources/shared.ts">Metadata</a></code>
+- <code><a href="./src/resources/shared.ts">OAuthErrorCode</a></code>
+- <code><a href="./src/resources/shared.ts">Reasoning</a></code>
+- <code><a href="./src/resources/shared.ts">ReasoningEffort</a></code>
+- <code><a href="./src/resources/shared.ts">ResponseFormatJSONObject</a></code>
+- <code><a href="./src/resources/shared.ts">ResponseFormatJSONSchema</a></code>
+- <code><a href="./src/resources/shared.ts">ResponseFormatText</a></code>
+- <code><a href="./src/resources/shared.ts">ResponseFormatTextGrammar</a></code>
+- <code><a href="./src/resources/shared.ts">ResponseFormatTextPython</a></code>
+- <code><a href="./src/resources/shared.ts">ResponsesModel</a></code>
+
+# Decisions
+
+Types:
+
+- <code><a href="./src/resources/decisions.ts">Decision</a></code>
+- <code><a href="./src/resources/decisions.ts">DecisionInputImage</a></code>
+- <code><a href="./src/resources/decisions.ts">DecisionInputMessage</a></code>
+- <code><a href="./src/resources/decisions.ts">DecisionInputPart</a></code>
+- <code><a href="./src/resources/decisions.ts">DecisionInputText</a></code>
+- <code><a href="./src/resources/decisions.ts">DecisionPromptCacheBreakpoint</a></code>
+- <code><a href="./src/resources/decisions.ts">DecisionInputJson</a></code>
+- <code><a href="./src/resources/decisions.ts">DecisionQuestionInputImage</a></code>
+- <code><a href="./src/resources/decisions.ts">DecisionQuestionInputPart</a></code>
+- <code><a href="./src/resources/decisions.ts">DecisionQuestionInputText</a></code>
+
+Methods:
+
+- <code title="post /decisions">client.decisions.<a href="./src/resources/decisions.ts">create</a>({ ...params }) -> Decision</code>
+
+# Completions
+
+Types:
+
+- <code><a href="./src/resources/completions.ts">Completion</a></code>
+- <code><a href="./src/resources/completions.ts">CompletionChoice</a></code>
+- <code><a href="./src/resources/completions.ts">CompletionUsage</a></code>
+
+Methods:
+
+- <code title="post /completions">client.completions.<a href="./src/resources/completions.ts">create</a>({ ...params }) -> Completion</code>
+
+# Chat
+
+Types:
+
+- <code><a href="./src/resources/chat/chat.ts">ChatModel</a></code>
+
+## Completions
+
+Types:
+
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletion</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionAllowedToolChoice</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionAssistantMessageParam</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionAudio</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionAudioParam</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionChunk</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionContentPart</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionContentPartImage</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionContentPartInputAudio</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionContentPartRefusal</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionContentPartText</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionCustomTool</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionDeleted</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionDeveloperMessageParam</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionFunctionCallOption</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionFunctionMessageParam</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionFunctionTool</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionMessage</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionMessageCustomToolCall</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionMessageFunctionToolCall</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionMessageParam</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionMessageToolCall</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionModality</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionNamedToolChoice</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionNamedToolChoiceCustom</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionPredictionContent</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionRole</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionStoreMessage</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionStreamOptions</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionSystemMessageParam</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionTokenLogprob</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionTool</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionToolChoiceOption</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionToolMessageParam</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionUserMessageParam</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionAllowedTools</a></code>
+- <code><a href="./src/resources/chat/completions/completions.ts">ChatCompletionReasoningEffort</a></code>
+
+Methods:
+
+- <code title="post /chat/completions">client.chat.completions.<a href="./src/resources/chat/completions/completions.ts">create</a>({ ...params }) -> ChatCompletion</code>
+- <code title="get /chat/completions/{completion_id}">client.chat.completions.<a href="./src/resources/chat/completions/completions.ts">retrieve</a>(completionID) -> ChatCompletion</code>
+- <code title="post /chat/completions/{completion_id}">client.chat.completions.<a href="./src/resources/chat/completions/completions.ts">update</a>(completionID, { ...params }) -> ChatCompletion</code>
+- <code title="get /chat/completions">client.chat.completions.<a href="./src/resources/chat/completions/completions.ts">list</a>({ ...params }) -> ChatCompletionsPage</code>
+- <code title="delete /chat/completions/{completion_id}">client.chat.completions.<a href="./src/resources/chat/completions/completions.ts">delete</a>(completionID) -> ChatCompletionDeleted</code>
+
+### Messages
+
+Methods:
+
+- <code title="get /chat/completions/{completion_id}/messages">client.chat.completions.messages.<a href="./src/resources/chat/completions/messages.ts">list</a>(completionID, { ...params }) -> ChatCompletionStoreMessagesPage</code>
+
+# Embeddings
+
+Types:
+
+- <code><a href="./src/resources/embeddings.ts">CreateEmbeddingResponse</a></code>
+- <code><a href="./src/resources/embeddings.ts">Embedding</a></code>
+- <code><a href="./src/resources/embeddings.ts">EmbeddingModel</a></code>
+
+Methods:
+
+- <code title="post /embeddings">client.embeddings.<a href="./src/resources/embeddings.ts">create</a>({ ...params }) -> CreateEmbeddingResponse</code>
+
+# Files
+
+Types:
+
+- <code><a href="./src/resources/files.ts">FileDeleted</a></code>
+- <code><a href="./src/resources/files.ts">FileObject</a></code>
+- <code><a href="./src/resources/files.ts">FilePurpose</a></code>
+- <code><a href="./src/resources/files.ts">FileContent</a></code>
+
+Methods:
+
+- <code title="post /files">client.files.<a href="./src/resources/files.ts">create</a>({ ...params }) -> FileObject</code>
+- <code title="get /files/{file_id}">client.files.<a href="./src/resources/files.ts">retrieve</a>(fileID) -> FileObject</code>
+- <code title="get /files">client.files.<a href="./src/resources/files.ts">list</a>({ ...params }) -> FileObjectsPage</code>
+- <code title="delete /files/{file_id}">client.files.<a href="./src/resources/files.ts">delete</a>(fileID) -> FileDeleted</code>
+- <code title="get /files/{file_id}/content">client.files.<a href="./src/resources/files.ts">content</a>(fileID) -> Response</code>
+- <code>client.files.<a href="./src/resources/files.ts">waitForProcessing</a>(id, { pollInterval = 5000, maxWait = 30 * 60 * 1000 }) -> Promise&lt;FileObject&gt;</code>
+
+# Images
+
+Types:
+
+- <code><a href="./src/resources/images.ts">Image</a></code>
+- <code><a href="./src/resources/images.ts">ImageEditCompletedEvent</a></code>
+- <code><a href="./src/resources/images.ts">ImageEditPartialImageEvent</a></code>
+- <code><a href="./src/resources/images.ts">ImageEditStreamEvent</a></code>
+- <code><a href="./src/resources/images.ts">ImageGenCompletedEvent</a></code>
+- <code><a href="./src/resources/images.ts">ImageGenPartialImageEvent</a></code>
+- <code><a href="./src/resources/images.ts">ImageGenStreamEvent</a></code>
+- <code><a href="./src/resources/images.ts">ImageModel</a></code>
+- <code><a href="./src/resources/images.ts">ImagesResponse</a></code>
+
+Methods:
+
+- <code title="post /images/variations">client.images.<a href="./src/resources/images.ts">createVariation</a>({ ...params }) -> ImagesResponse</code>
+- <code title="post /images/edits">client.images.<a href="./src/resources/images.ts">edit</a>({ ...params }) -> ImagesResponse</code>
+- <code title="post /images/generations">client.images.<a href="./src/resources/images.ts">generate</a>({ ...params }) -> ImagesResponse</code>
+
+# ContentProvenanceChecks
+
+Types:
+
+- <code><a href="./src/resources/content-provenance-checks.ts">ContentProvenanceCheck</a></code>
+
+Methods:
+
+- <code title="post /content_provenance_checks">client.contentProvenanceChecks.<a href="./src/resources/content-provenance-checks.ts">create</a>({ ...params }) -> ContentProvenanceCheck</code>
+
+# Audio
+
+Types:
+
+- <code><a href="./src/resources/audio/audio.ts">AudioModel</a></code>
+- <code><a href="./src/resources/audio/audio.ts">AudioResponseFormat</a></code>
+
+## Transcriptions
+
+Types:
+
+- <code><a href="./src/resources/audio/transcriptions.ts">Transcription</a></code>
+- <code><a href="./src/resources/audio/transcriptions.ts">TranscriptionDiarized</a></code>
+- <code><a href="./src/resources/audio/transcriptions.ts">TranscriptionDiarizedSegment</a></code>
+- <code><a href="./src/resources/audio/transcriptions.ts">TranscriptionInclude</a></code>
+- <code><a href="./src/resources/audio/transcriptions.ts">TranscriptionLanguage</a></code>
+- <code><a href="./src/resources/audio/transcriptions.ts">TranscriptionSegment</a></code>
+- <code><a href="./src/resources/audio/transcriptions.ts">TranscriptionStreamEvent</a></code>
+- <code><a href="./src/resources/audio/transcriptions.ts">TranscriptionTextDeltaEvent</a></code>
+- <code><a href="./src/resources/audio/transcriptions.ts">TranscriptionTextDoneEvent</a></code>
+- <code><a href="./src/resources/audio/transcriptions.ts">TranscriptionTextSegmentEvent</a></code>
+- <code><a href="./src/resources/audio/transcriptions.ts">TranscriptionVerbose</a></code>
+- <code><a href="./src/resources/audio/transcriptions.ts">TranscriptionWord</a></code>
+- <code><a href="./src/resources/audio/transcriptions.ts">TranscriptionCreateResponse</a></code>
+
+Methods:
+
+- <code title="post /audio/transcriptions">client.audio.transcriptions.<a href="./src/resources/audio/transcriptions.ts">create</a>({ ...params }) -> TranscriptionCreateResponse</code>
+
+## Translations
+
+Types:
+
+- <code><a href="./src/resources/audio/translations.ts">Translation</a></code>
+- <code><a href="./src/resources/audio/translations.ts">TranslationVerbose</a></code>
+- <code><a href="./src/resources/audio/translations.ts">TranslationCreateResponse</a></code>
+
+Methods:
+
+- <code title="post /audio/translations">client.audio.translations.<a href="./src/resources/audio/translations.ts">create</a>({ ...params }) -> TranslationCreateResponse</code>
+
+## Speech
+
+Types:
+
+- <code><a href="./src/resources/audio/speech.ts">SpeechModel</a></code>
+
+Methods:
+
+- <code title="post /audio/speech">client.audio.speech.<a href="./src/resources/audio/speech.ts">create</a>({ ...params }) -> Response</code>
+
+## Voices
+
+Types:
+
+- <code><a href="./src/resources/audio/voices.ts">Voice</a></code>
+- <code><a href="./src/resources/audio/voices.ts">VoiceDeleted</a></code>
+
+Methods:
+
+- <code title="post /audio/voices">client.audio.voices.<a href="./src/resources/audio/voices.ts">create</a>({ ...params }) -> Voice</code>
+- <code title="delete /audio/voices/{voice_id}">client.audio.voices.<a href="./src/resources/audio/voices.ts">delete</a>(voiceID) -> VoiceDeleted</code>
+
+## VoiceConsents
+
+Types:
+
+- <code><a href="./src/resources/audio/voice-consents.ts">VoiceConsent</a></code>
+- <code><a href="./src/resources/audio/voice-consents.ts">VoiceConsentDeleted</a></code>
+
+Methods:
+
+- <code title="post /audio/voice_consents">client.audio.voiceConsents.<a href="./src/resources/audio/voice-consents.ts">create</a>({ ...params }) -> VoiceConsent</code>
+- <code title="get /audio/voice_consents/{consent_id}">client.audio.voiceConsents.<a href="./src/resources/audio/voice-consents.ts">retrieve</a>(consentID) -> VoiceConsent</code>
+- <code title="post /audio/voice_consents/{consent_id}">client.audio.voiceConsents.<a href="./src/resources/audio/voice-consents.ts">update</a>(consentID, { ...params }) -> VoiceConsent</code>
+- <code title="get /audio/voice_consents">client.audio.voiceConsents.<a href="./src/resources/audio/voice-consents.ts">list</a>({ ...params }) -> VoiceConsentsPage</code>
+- <code title="delete /audio/voice_consents/{consent_id}">client.audio.voiceConsents.<a href="./src/resources/audio/voice-consents.ts">delete</a>(consentID) -> VoiceConsentDeleted</code>
+
+# Moderations
+
+Types:
+
+- <code><a href="./src/resources/moderations.ts">Moderation</a></code>
+- <code><a href="./src/resources/moderations.ts">ModerationImageURLInput</a></code>
+- <code><a href="./src/resources/moderations.ts">ModerationModel</a></code>
+- <code><a href="./src/resources/moderations.ts">ModerationMultiModalInput</a></code>
+- <code><a href="./src/resources/moderations.ts">ModerationTextInput</a></code>
+- <code><a href="./src/resources/moderations.ts">ModerationCreateResponse</a></code>
+
+Methods:
+
+- <code title="post /moderations">client.moderations.<a href="./src/resources/moderations.ts">create</a>({ ...params }) -> ModerationCreateResponse</code>
+
+# Models
+
+Types:
+
+- <code><a href="./src/resources/models.ts">Model</a></code>
+- <code><a href="./src/resources/models.ts">ModelDeleted</a></code>
+
+Methods:
+
+- <code title="get /models/{model}">client.models.<a href="./src/resources/models.ts">retrieve</a>(model) -> Model</code>
+- <code title="get /models">client.models.<a href="./src/resources/models.ts">list</a>() -> ModelsPage</code>
+- <code title="delete /models/{model}">client.models.<a href="./src/resources/models.ts">delete</a>(model) -> ModelDeleted</code>
+
+# FineTuning
+
+## Methods
+
+Types:
+
+- <code><a href="./src/resources/fine-tuning/methods.ts">DpoHyperparameters</a></code>
+- <code><a href="./src/resources/fine-tuning/methods.ts">DpoMethod</a></code>
+- <code><a href="./src/resources/fine-tuning/methods.ts">ReinforcementHyperparameters</a></code>
+- <code><a href="./src/resources/fine-tuning/methods.ts">ReinforcementMethod</a></code>
+- <code><a href="./src/resources/fine-tuning/methods.ts">SupervisedHyperparameters</a></code>
+- <code><a href="./src/resources/fine-tuning/methods.ts">SupervisedMethod</a></code>
+
+## Jobs
+
+Types:
+
+- <code><a href="./src/resources/fine-tuning/jobs/jobs.ts">FineTuningJob</a></code>
+- <code><a href="./src/resources/fine-tuning/jobs/jobs.ts">FineTuningJobEvent</a></code>
+- <code><a href="./src/resources/fine-tuning/jobs/jobs.ts">FineTuningJobWandbIntegration</a></code>
+- <code><a href="./src/resources/fine-tuning/jobs/jobs.ts">FineTuningJobWandbIntegrationObject</a></code>
+- <code><a href="./src/resources/fine-tuning/jobs/jobs.ts">FineTuningJobIntegration</a></code>
+
+Methods:
+
+- <code title="post /fine_tuning/jobs">client.fineTuning.jobs.<a href="./src/resources/fine-tuning/jobs/jobs.ts">create</a>({ ...params }) -> FineTuningJob</code>
+- <code title="get /fine_tuning/jobs/{fine_tuning_job_id}">client.fineTuning.jobs.<a href="./src/resources/fine-tuning/jobs/jobs.ts">retrieve</a>(fineTuningJobID) -> FineTuningJob</code>
+- <code title="get /fine_tuning/jobs">client.fineTuning.jobs.<a href="./src/resources/fine-tuning/jobs/jobs.ts">list</a>({ ...params }) -> FineTuningJobsPage</code>
+- <code title="post /fine_tuning/jobs/{fine_tuning_job_id}/cancel">client.fineTuning.jobs.<a href="./src/resources/fine-tuning/jobs/jobs.ts">cancel</a>(fineTuningJobID) -> FineTuningJob</code>
+- <code title="get /fine_tuning/jobs/{fine_tuning_job_id}/events">client.fineTuning.jobs.<a href="./src/resources/fine-tuning/jobs/jobs.ts">listEvents</a>(fineTuningJobID, { ...params }) -> FineTuningJobEventsPage</code>
+- <code title="post /fine_tuning/jobs/{fine_tuning_job_id}/pause">client.fineTuning.jobs.<a href="./src/resources/fine-tuning/jobs/jobs.ts">pause</a>(fineTuningJobID) -> FineTuningJob</code>
+- <code title="post /fine_tuning/jobs/{fine_tuning_job_id}/resume">client.fineTuning.jobs.<a href="./src/resources/fine-tuning/jobs/jobs.ts">resume</a>(fineTuningJobID) -> FineTuningJob</code>
+
+### Checkpoints
+
+Types:
+
+- <code><a href="./src/resources/fine-tuning/jobs/checkpoints.ts">FineTuningJobCheckpoint</a></code>
+
+Methods:
+
+- <code title="get /fine_tuning/jobs/{fine_tuning_job_id}/checkpoints">client.fineTuning.jobs.checkpoints.<a href="./src/resources/fine-tuning/jobs/checkpoints.ts">list</a>(fineTuningJobID, { ...params }) -> FineTuningJobCheckpointsPage</code>
+
+## Checkpoints
+
+### Permissions
+
+Types:
+
+- <code><a href="./src/resources/fine-tuning/checkpoints/permissions.ts">PermissionCreateResponse</a></code>
+- <code><a href="./src/resources/fine-tuning/checkpoints/permissions.ts">PermissionRetrieveResponse</a></code>
+- <code><a href="./src/resources/fine-tuning/checkpoints/permissions.ts">PermissionListResponse</a></code>
+- <code><a href="./src/resources/fine-tuning/checkpoints/permissions.ts">PermissionDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /fine_tuning/checkpoints/{fine_tuned_model_checkpoint}/permissions">client.fineTuning.checkpoints.permissions.<a href="./src/resources/fine-tuning/checkpoints/permissions.ts">create</a>(fineTunedModelCheckpoint, { ...params }) -> PermissionCreateResponsesPage</code>
+- <code title="get /fine_tuning/checkpoints/{fine_tuned_model_checkpoint}/permissions">client.fineTuning.checkpoints.permissions.<a href="./src/resources/fine-tuning/checkpoints/permissions.ts">retrieve</a>(fineTunedModelCheckpoint, { ...params }) -> PermissionRetrieveResponse</code>
+- <code title="get /fine_tuning/checkpoints/{fine_tuned_model_checkpoint}/permissions">client.fineTuning.checkpoints.permissions.<a href="./src/resources/fine-tuning/checkpoints/permissions.ts">list</a>(fineTunedModelCheckpoint, { ...params }) -> PermissionListResponsesPage</code>
+- <code title="delete /fine_tuning/checkpoints/{fine_tuned_model_checkpoint}/permissions/{permission_id}">client.fineTuning.checkpoints.permissions.<a href="./src/resources/fine-tuning/checkpoints/permissions.ts">delete</a>(permissionID, { ...params }) -> PermissionDeleteResponse</code>
+
+## Alpha
+
+### Graders
+
+Types:
+
+- <code><a href="./src/resources/fine-tuning/alpha/graders.ts">GraderRunResponse</a></code>
+- <code><a href="./src/resources/fine-tuning/alpha/graders.ts">GraderValidateResponse</a></code>
+
+Methods:
+
+- <code title="post /fine_tuning/alpha/graders/run">client.fineTuning.alpha.graders.<a href="./src/resources/fine-tuning/alpha/graders.ts">run</a>({ ...params }) -> GraderRunResponse</code>
+- <code title="post /fine_tuning/alpha/graders/validate">client.fineTuning.alpha.graders.<a href="./src/resources/fine-tuning/alpha/graders.ts">validate</a>({ ...params }) -> GraderValidateResponse</code>
+
+# Graders
+
+## GraderModels
+
+Types:
+
+- <code><a href="./src/resources/graders/grader-models.ts">GraderInputs</a></code>
+- <code><a href="./src/resources/graders/grader-models.ts">LabelModelGrader</a></code>
+- <code><a href="./src/resources/graders/grader-models.ts">MultiGrader</a></code>
+- <code><a href="./src/resources/graders/grader-models.ts">PythonGrader</a></code>
+- <code><a href="./src/resources/graders/grader-models.ts">ScoreModelGrader</a></code>
+- <code><a href="./src/resources/graders/grader-models.ts">StringCheckGrader</a></code>
+- <code><a href="./src/resources/graders/grader-models.ts">TextSimilarityGrader</a></code>
+
+# VectorStores
+
+Types:
+
+- <code><a href="./src/resources/vector-stores/vector-stores.ts">AutoFileChunkingStrategyParam</a></code>
+- <code><a href="./src/resources/vector-stores/vector-stores.ts">FileChunkingStrategy</a></code>
+- <code><a href="./src/resources/vector-stores/vector-stores.ts">FileChunkingStrategyParam</a></code>
+- <code><a href="./src/resources/vector-stores/vector-stores.ts">OtherFileChunkingStrategyObject</a></code>
+- <code><a href="./src/resources/vector-stores/vector-stores.ts">StaticFileChunkingStrategy</a></code>
+- <code><a href="./src/resources/vector-stores/vector-stores.ts">StaticFileChunkingStrategyObject</a></code>
+- <code><a href="./src/resources/vector-stores/vector-stores.ts">StaticFileChunkingStrategyObjectParam</a></code>
+- <code><a href="./src/resources/vector-stores/vector-stores.ts">VectorStore</a></code>
+- <code><a href="./src/resources/vector-stores/vector-stores.ts">VectorStoreDeleted</a></code>
+- <code><a href="./src/resources/vector-stores/vector-stores.ts">VectorStoreSearchResponse</a></code>
+
+Methods:
+
+- <code title="post /vector_stores">client.vectorStores.<a href="./src/resources/vector-stores/vector-stores.ts">create</a>({ ...params }) -> VectorStore</code>
+- <code title="get /vector_stores/{vector_store_id}">client.vectorStores.<a href="./src/resources/vector-stores/vector-stores.ts">retrieve</a>(vectorStoreID) -> VectorStore</code>
+- <code title="post /vector_stores/{vector_store_id}">client.vectorStores.<a href="./src/resources/vector-stores/vector-stores.ts">update</a>(vectorStoreID, { ...params }) -> VectorStore</code>
+- <code title="get /vector_stores">client.vectorStores.<a href="./src/resources/vector-stores/vector-stores.ts">list</a>({ ...params }) -> VectorStoresPage</code>
+- <code title="delete /vector_stores/{vector_store_id}">client.vectorStores.<a href="./src/resources/vector-stores/vector-stores.ts">delete</a>(vectorStoreID) -> VectorStoreDeleted</code>
+- <code title="post /vector_stores/{vector_store_id}/search">client.vectorStores.<a href="./src/resources/vector-stores/vector-stores.ts">search</a>(vectorStoreID, { ...params }) -> VectorStoreSearchResponsesPage</code>
+
+## Files
+
+Types:
+
+- <code><a href="./src/resources/vector-stores/files.ts">VectorStoreFile</a></code>
+- <code><a href="./src/resources/vector-stores/files.ts">VectorStoreFileDeleted</a></code>
+- <code><a href="./src/resources/vector-stores/files.ts">FileContentResponse</a></code>
+
+Methods:
+
+- <code title="post /vector_stores/{vector_store_id}/files">client.vectorStores.files.<a href="./src/resources/vector-stores/files.ts">create</a>(vectorStoreID, { ...params }) -> VectorStoreFile</code>
+- <code title="get /vector_stores/{vector_store_id}/files/{file_id}">client.vectorStores.files.<a href="./src/resources/vector-stores/files.ts">retrieve</a>(fileID, { ...params }) -> VectorStoreFile</code>
+- <code title="post /vector_stores/{vector_store_id}/files/{file_id}">client.vectorStores.files.<a href="./src/resources/vector-stores/files.ts">update</a>(fileID, { ...params }) -> VectorStoreFile</code>
+- <code title="get /vector_stores/{vector_store_id}/files">client.vectorStores.files.<a href="./src/resources/vector-stores/files.ts">list</a>(vectorStoreID, { ...params }) -> VectorStoreFilesPage</code>
+- <code title="delete /vector_stores/{vector_store_id}/files/{file_id}">client.vectorStores.files.<a href="./src/resources/vector-stores/files.ts">delete</a>(fileID, { ...params }) -> VectorStoreFileDeleted</code>
+- <code title="get /vector_stores/{vector_store_id}/files/{file_id}/content">client.vectorStores.files.<a href="./src/resources/vector-stores/files.ts">content</a>(fileID, { ...params }) -> FileContentResponsesPage</code>
+- <code>client.vectorStores.files.<a href="./src/resources/vector-stores/files.ts">createAndPoll</a>(vectorStoreId, body, options?) -> Promise&lt;VectorStoreFile&gt;</code>
+- <code>client.vectorStores.files.<a href="./src/resources/vector-stores/files.ts">poll</a>(vectorStoreID, fileID, options?) -> Promise&lt;VectorStoreFile&gt;</code>
+- <code>client.vectorStores.files.<a href="./src/resources/vector-stores/files.ts">upload</a>(vectorStoreId, file, options?) -> Promise&lt;VectorStoreFile&gt;</code>
+- <code>client.vectorStores.files.<a href="./src/resources/vector-stores/files.ts">uploadAndPoll</a>(vectorStoreId, file, options?) -> Promise&lt;VectorStoreFile&gt;</code>
+
+## FileBatches
+
+Types:
+
+- <code><a href="./src/resources/vector-stores/file-batches.ts">VectorStoreFileBatch</a></code>
+
+Methods:
+
+- <code title="post /vector_stores/{vector_store_id}/file_batches">client.vectorStores.fileBatches.<a href="./src/resources/vector-stores/file-batches.ts">create</a>(vectorStoreID, { ...params }) -> VectorStoreFileBatch</code>
+- <code title="get /vector_stores/{vector_store_id}/file_batches/{batch_id}">client.vectorStores.fileBatches.<a href="./src/resources/vector-stores/file-batches.ts">retrieve</a>(batchID, { ...params }) -> VectorStoreFileBatch</code>
+- <code title="post /vector_stores/{vector_store_id}/file_batches/{batch_id}/cancel">client.vectorStores.fileBatches.<a href="./src/resources/vector-stores/file-batches.ts">cancel</a>(batchID, { ...params }) -> VectorStoreFileBatch</code>
+- <code>client.vectorStores.fileBatches.<a href="./src/resources/vector-stores/file-batches.ts">createAndPoll</a>(vectorStoreId, body, options?) -> Promise&lt;VectorStoreFileBatch&gt;</code>
+- <code title="get /vector_stores/{vector_store_id}/file_batches/{batch_id}/files">client.vectorStores.fileBatches.<a href="./src/resources/vector-stores/file-batches.ts">listFiles</a>(batchID, { ...params }) -> VectorStoreFilesPage</code>
+- <code>client.vectorStores.fileBatches.<a href="./src/resources/vector-stores/file-batches.ts">poll</a>(vectorStoreID, batchID, options?) -> Promise&lt;VectorStoreFileBatch&gt;</code>
+- <code>client.vectorStores.fileBatches.<a href="./src/resources/vector-stores/file-batches.ts">uploadAndPoll</a>(vectorStoreId, { files, fileIds? }, options?) -> Promise&lt;VectorStoreFileBatch&gt;</code>
+
+<a id="safety-1"></a>
+
+# Safety
+
+## Cases
+
+Types:
+
+- <code><a href="./src/resources/safety/cases.ts">SafetyCase</a></code>
+
+Methods:
+
+- <code title="get /safety/cases/{id}">client.safety.cases.<a href="./src/resources/safety/cases.ts">retrieve</a>(id) -> SafetyCase</code>
+
+<a id="alerts-1"></a>
+
+## Alerts
+
+Types:
+
+- <code><a href="./src/resources/safety/alerts.ts">SafetyAlert</a></code>
+
+Methods:
+
+- <code title="get /safety/alerts/{id}">client.safety.alerts.<a href="./src/resources/safety/alerts.ts">retrieve</a>(id) -> SafetyAlert</code>
+
+# [Webhooks](src/resources/webhooks/api.md)
+
+# Beta
+
+## Agents
+
+Types:
+
+- <code><a href="./src/resources/beta/agents/agents.ts">Agent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentBrowserAuthenticationCancelParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentBrowserAuthenticationSubmitParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentBrowserOriginAccessParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentCloseSubagentCallItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentCommandExecutionItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentContent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentCreateSubagentCallItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentDeleted</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentFunctionCallItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentFunctionCallOutput</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentFunctionCallOutputParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentFunctionCallStatus</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentInterruptSubagentCallItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentMcpCallItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentOutputCommandExecutionOutputDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentOutputItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentOutputItemStatus</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentReasoning</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentReasoningItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentReasoningParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentResumeSubagentCallItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSendSubagentInputCallItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSession</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionAssistantMessage</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionCreatedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionDeleted</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionEnvironmentConnectedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionEnvironmentDisconnectedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionEnvironmentExpiredEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionEnvironmentFailedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionEnvironmentPendingEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionEnvironmentReadyEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionEnvironmentResetEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionEnvironmentState</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionEnvironmentSuspendedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionErrorEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionFailedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionIdleEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionInProgressEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionInputMessageParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionInputParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionMessage</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionMessageContent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionRequiresActionEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionSubagentActiveEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionSubagentClosedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionSubagentCreatedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnCancelledEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnCompletedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnContentPartAddedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnContentPartDoneEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnCreatedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnFailedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnInProgressEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnItemAddedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnItemDoneEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnOutputTextDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnOutputTextDoneEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnReasoningSummaryPartAddedEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnReasoningSummaryPartDoneEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnReasoningSummaryTextDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentSessionTurnReasoningSummaryTextDoneEvent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentText</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentTextParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentTool</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentToolParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentWaitForSubagentsCallItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">AgentWebSearchCallItem</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">Environment</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">EnvironmentParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">HostedEnvironmentFile</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">HostedEnvironmentFileID</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">HostedEnvironmentFileParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">HostedPlugin</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">HostedPluginParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">HostedSkill</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">HostedSkillParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">HostedSkillReference</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">InlineCapabilitySourceParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">InputContent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">InputContentParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">McpTransport</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">McpTransportParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">MultiAgentConfig</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">MultiAgentConfigParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">OutputText</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">PersistedAgentTool</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">PersistedAgentToolParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">PersistedMcpTransport</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">PersistedMcpTransportParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">SessionError</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">SessionTurnError</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">SetupCommandParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">Subagent</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">SummaryText</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">TextFormat</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">TextFormatParam</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">TokenUsage</a></code>
+- <code><a href="./src/resources/beta/agents/agents.ts">WebSearchAction</a></code>
+
+Methods:
+
+- <code title="post /agents">client.beta.agents.<a href="./src/resources/beta/agents/agents.ts">create</a>({ ...params }) -> Agent</code>
+- <code title="get /agents/{agent_id}">client.beta.agents.<a href="./src/resources/beta/agents/agents.ts">retrieve</a>(agentID) -> Agent</code>
+- <code title="post /agents/{agent_id}">client.beta.agents.<a href="./src/resources/beta/agents/agents.ts">update</a>(agentID, { ...params }) -> Agent</code>
+- <code title="get /agents">client.beta.agents.<a href="./src/resources/beta/agents/agents.ts">list</a>({ ...params }) -> AgentsPage</code>
+- <code title="delete /agents/{agent_id}">client.beta.agents.<a href="./src/resources/beta/agents/agents.ts">delete</a>(agentID) -> AgentDeleted</code>
+
+### Automations
+
+Types:
+
+- <code><a href="./src/resources/beta/agents/automations/automations.ts">Automation</a></code>
+- <code><a href="./src/resources/beta/agents/automations/automations.ts">AutomationAgentConfig</a></code>
+- <code><a href="./src/resources/beta/agents/automations/automations.ts">AutomationCreatedBy</a></code>
+- <code><a href="./src/resources/beta/agents/automations/automations.ts">AutomationDeleted</a></code>
+- <code><a href="./src/resources/beta/agents/automations/automations.ts">AutomationEnvironment</a></code>
+- <code><a href="./src/resources/beta/agents/automations/automations.ts">AutomationTarget</a></code>
+- <code><a href="./src/resources/beta/agents/automations/automations.ts">AutomationTargetParam</a></code>
+- <code><a href="./src/resources/beta/agents/automations/automations.ts">OneTimeAutomation</a></code>
+- <code><a href="./src/resources/beta/agents/automations/automations.ts">PeriodicAutomation</a></code>
+
+Methods:
+
+- <code title="post /agents/automations">client.beta.agents.automations.<a href="./src/resources/beta/agents/automations/automations.ts">create</a>({ ...params }) -> Automation</code>
+- <code title="get /agents/automations/{automation_id}">client.beta.agents.automations.<a href="./src/resources/beta/agents/automations/automations.ts">retrieve</a>(automationID) -> Automation</code>
+- <code title="post /agents/automations/{automation_id}">client.beta.agents.automations.<a href="./src/resources/beta/agents/automations/automations.ts">update</a>(automationID, { ...params }) -> Automation</code>
+- <code title="get /agents/automations">client.beta.agents.automations.<a href="./src/resources/beta/agents/automations/automations.ts">list</a>({ ...params }) -> AutomationsPage</code>
+- <code title="delete /agents/automations/{automation_id}">client.beta.agents.automations.<a href="./src/resources/beta/agents/automations/automations.ts">delete</a>(automationID) -> AutomationDeleted</code>
+- <code title="post /agents/automations/{automation_id}/pause">client.beta.agents.automations.<a href="./src/resources/beta/agents/automations/automations.ts">pause</a>(automationID) -> Automation</code>
+- <code title="post /agents/automations/{automation_id}/resume">client.beta.agents.automations.<a href="./src/resources/beta/agents/automations/automations.ts">resume</a>(automationID) -> Automation</code>
+
+#### Invocations
+
+Types:
+
+- <code><a href="./src/resources/beta/agents/automations/invocations.ts">AutomationInvocation</a></code>
+- <code><a href="./src/resources/beta/agents/automations/invocations.ts">AutomationInvocationSource</a></code>
+
+Methods:
+
+- <code title="post /agents/automations/{automation_id}/invocations">client.beta.agents.automations.invocations.<a href="./src/resources/beta/agents/automations/invocations.ts">create</a>(automationID) -> AutomationInvocation</code>
+- <code title="get /agents/automations/{automation_id}/invocations/{invocation_id}">client.beta.agents.automations.invocations.<a href="./src/resources/beta/agents/automations/invocations.ts">retrieve</a>(invocationID, { ...params }) -> AutomationInvocation</code>
+- <code title="get /agents/automations/{automation_id}/invocations">client.beta.agents.automations.invocations.<a href="./src/resources/beta/agents/automations/invocations.ts">list</a>(automationID, { ...params }) -> AutomationInvocationsPage</code>
+
+### Environments
+
+Types:
+
+- <code><a href="./src/resources/beta/agents/environments/environments.ts">EnvironmentInfo</a></code>
+
+Methods:
+
+- <code title="post /agents/environments">client.beta.agents.environments.<a href="./src/resources/beta/agents/environments/environments.ts">create</a>({ ...params }) -> EnvironmentInfo</code>
+- <code title="get /agents/environments/{environment_id}">client.beta.agents.environments.<a href="./src/resources/beta/agents/environments/environments.ts">retrieve</a>(environmentID) -> EnvironmentInfo</code>
+- <code title="get /agents/environments">client.beta.agents.environments.<a href="./src/resources/beta/agents/environments/environments.ts">list</a>({ ...params }) -> EnvironmentInfosPage</code>
+
+#### Files
+
+Types:
+
+- <code><a href="./src/resources/beta/agents/environments/files.ts">EnvironmentFile</a></code>
+
+Methods:
+
+- <code title="post /agents/environments/{environment_id}/files">client.beta.agents.environments.files.<a href="./src/resources/beta/agents/environments/files.ts">create</a>(environmentID, { ...params }) -> EnvironmentFile</code>
+- <code title="get /agents/environments/{environment_id}/files">client.beta.agents.environments.files.<a href="./src/resources/beta/agents/environments/files.ts">list</a>(environmentID, { ...params }) -> EnvironmentFilesPage</code>
+
+#### Templates
+
+Types:
+
+- <code><a href="./src/resources/beta/agents/environments/templates.ts">EnvironmentTemplate</a></code>
+- <code><a href="./src/resources/beta/agents/environments/templates.ts">EnvironmentTemplateDeleted</a></code>
+
+Methods:
+
+- <code title="post /agents/environments/templates">client.beta.agents.environments.templates.<a href="./src/resources/beta/agents/environments/templates.ts">create</a>({ ...params }) -> EnvironmentTemplate</code>
+- <code title="get /agents/environments/templates/{environment_template_id}">client.beta.agents.environments.templates.<a href="./src/resources/beta/agents/environments/templates.ts">retrieve</a>(environmentTemplateID) -> EnvironmentTemplate</code>
+- <code title="post /agents/environments/templates/{environment_template_id}">client.beta.agents.environments.templates.<a href="./src/resources/beta/agents/environments/templates.ts">update</a>(environmentTemplateID, { ...params }) -> EnvironmentTemplate</code>
+- <code title="get /agents/environments/templates">client.beta.agents.environments.templates.<a href="./src/resources/beta/agents/environments/templates.ts">list</a>({ ...params }) -> EnvironmentTemplatesPage</code>
+- <code title="delete /agents/environments/templates/{environment_template_id}">client.beta.agents.environments.templates.<a href="./src/resources/beta/agents/environments/templates.ts">delete</a>(environmentTemplateID) -> EnvironmentTemplateDeleted</code>
+
+### Vaults
+
+Types:
+
+- <code><a href="./src/resources/beta/agents/vaults/vaults.ts">Vault</a></code>
+- <code><a href="./src/resources/beta/agents/vaults/vaults.ts">VaultDeleted</a></code>
+- <code><a href="./src/resources/beta/agents/vaults/vaults.ts">VaultStatus</a></code>
+- <code><a href="./src/resources/beta/agents/vaults/vaults.ts">VaultStatusFilter</a></code>
+
+Methods:
+
+- <code title="post /vaults">client.beta.agents.vaults.<a href="./src/resources/beta/agents/vaults/vaults.ts">create</a>({ ...params }) -> Vault</code>
+- <code title="get /vaults/{vault_id}">client.beta.agents.vaults.<a href="./src/resources/beta/agents/vaults/vaults.ts">retrieve</a>(vaultID) -> Vault</code>
+- <code title="post /vaults/{vault_id}">client.beta.agents.vaults.<a href="./src/resources/beta/agents/vaults/vaults.ts">update</a>(vaultID, { ...params }) -> Vault</code>
+- <code title="get /vaults">client.beta.agents.vaults.<a href="./src/resources/beta/agents/vaults/vaults.ts">list</a>({ ...params }) -> VaultsPage</code>
+- <code title="delete /vaults/{vault_id}">client.beta.agents.vaults.<a href="./src/resources/beta/agents/vaults/vaults.ts">delete</a>(vaultID) -> VaultDeleted</code>
+
+#### Credentials
+
+Types:
+
+- <code><a href="./src/resources/beta/agents/vaults/credentials.ts">Credential</a></code>
+- <code><a href="./src/resources/beta/agents/vaults/credentials.ts">CredentialAuth</a></code>
+- <code><a href="./src/resources/beta/agents/vaults/credentials.ts">CredentialAuthCreateParam</a></code>
+- <code><a href="./src/resources/beta/agents/vaults/credentials.ts">CredentialAuthRotateParam</a></code>
+- <code><a href="./src/resources/beta/agents/vaults/credentials.ts">CredentialDeleted</a></code>
+- <code><a href="./src/resources/beta/agents/vaults/credentials.ts">CredentialNetworking</a></code>
+- <code><a href="./src/resources/beta/agents/vaults/credentials.ts">CredentialNetworkingParam</a></code>
+- <code><a href="./src/resources/beta/agents/vaults/credentials.ts">McpOauthTokenEndpointAuth</a></code>
+- <code><a href="./src/resources/beta/agents/vaults/credentials.ts">McpOauthTokenEndpointAuthCreateParam</a></code>
+- <code><a href="./src/resources/beta/agents/vaults/credentials.ts">McpOauthTokenEndpointAuthRotateParam</a></code>
+
+Methods:
+
+- <code title="post /vaults/{vault_id}/credentials">client.beta.agents.vaults.credentials.<a href="./src/resources/beta/agents/vaults/credentials.ts">create</a>(vaultID, { ...params }) -> Credential</code>
+- <code title="get /vaults/{vault_id}/credentials/{credential_id}">client.beta.agents.vaults.credentials.<a href="./src/resources/beta/agents/vaults/credentials.ts">retrieve</a>(credentialID, { ...params }) -> Credential</code>
+- <code title="post /vaults/{vault_id}/credentials/{credential_id}">client.beta.agents.vaults.credentials.<a href="./src/resources/beta/agents/vaults/credentials.ts">update</a>(credentialID, { ...params }) -> Credential</code>
+- <code title="get /vaults/{vault_id}/credentials">client.beta.agents.vaults.credentials.<a href="./src/resources/beta/agents/vaults/credentials.ts">list</a>(vaultID, { ...params }) -> CredentialsPage</code>
+- <code title="delete /vaults/{vault_id}/credentials/{credential_id}">client.beta.agents.vaults.credentials.<a href="./src/resources/beta/agents/vaults/credentials.ts">delete</a>(credentialID, { ...params }) -> CredentialDeleted</code>
+
+### Sessions
+
+Methods:
+
+- <code title="post /agents/sessions">client.beta.agents.sessions.<a href="./src/resources/beta/agents/sessions/sessions.ts">create</a>({ ...params }) -> AgentSession</code>
+- <code title="get /agents/sessions/{session_id}">client.beta.agents.sessions.<a href="./src/resources/beta/agents/sessions/sessions.ts">retrieve</a>(sessionID) -> AgentSession</code>
+- <code title="post /agents/sessions/{session_id}">client.beta.agents.sessions.<a href="./src/resources/beta/agents/sessions/sessions.ts">update</a>(sessionID, { ...params }) -> AgentSession</code>
+- <code title="get /agents/sessions">client.beta.agents.sessions.<a href="./src/resources/beta/agents/sessions/sessions.ts">list</a>({ ...params }) -> AgentSessionsPage</code>
+- <code title="delete /agents/sessions/{session_id}">client.beta.agents.sessions.<a href="./src/resources/beta/agents/sessions/sessions.ts">delete</a>(sessionID) -> AgentSessionDeleted</code>
+
+#### Subagents
+
+Methods:
+
+- <code title="get /agents/sessions/{session_id}/subagents/{subagent_id}">client.beta.agents.sessions.subagents.<a href="./src/resources/beta/agents/sessions/subagents/subagents.ts">retrieve</a>(subagentID, { ...params }) -> Subagent</code>
+- <code title="get /agents/sessions/{session_id}/subagents">client.beta.agents.sessions.subagents.<a href="./src/resources/beta/agents/sessions/subagents/subagents.ts">list</a>(sessionID, { ...params }) -> SubagentsPage</code>
+
+##### Items
+
+Methods:
+
+- <code title="get /agents/sessions/{session_id}/subagents/{subagent_id}/items">client.beta.agents.sessions.subagents.items.<a href="./src/resources/beta/agents/sessions/subagents/items.ts">list</a>(subagentID, { ...params }) -> AgentSessionItemsPage</code>
+
+##### Turns
+
+Methods:
+
+- <code title="get /agents/sessions/{session_id}/subagents/{subagent_id}/turns/{turn_id}">client.beta.agents.sessions.subagents.turns.<a href="./src/resources/beta/agents/sessions/subagents/turns/turns.ts">retrieve</a>(turnID, { ...params }) -> Turn</code>
+- <code title="get /agents/sessions/{session_id}/subagents/{subagent_id}/turns">client.beta.agents.sessions.subagents.turns.<a href="./src/resources/beta/agents/sessions/subagents/turns/turns.ts">list</a>(subagentID, { ...params }) -> TurnsPage</code>
+
+###### Items
+
+Methods:
+
+- <code title="get /agents/sessions/{session_id}/subagents/{subagent_id}/turns/{turn_id}/items">client.beta.agents.sessions.subagents.turns.items.<a href="./src/resources/beta/agents/sessions/subagents/turns/items.ts">list</a>(turnID, { ...params }) -> AgentSessionItemsPage</code>
+
+#### Artifacts
+
+Types:
+
+- <code><a href="./src/resources/beta/agents/sessions/artifacts.ts">SessionArtifact</a></code>
+- <code><a href="./src/resources/beta/agents/sessions/artifacts.ts">SessionArtifactDeleted</a></code>
+
+Methods:
+
+- <code title="get /agents/sessions/{session_id}/artifacts/{artifact_id}">client.beta.agents.sessions.artifacts.<a href="./src/resources/beta/agents/sessions/artifacts.ts">retrieve</a>(artifactID, { ...params }) -> SessionArtifact</code>
+- <code title="get /agents/sessions/{session_id}/artifacts">client.beta.agents.sessions.artifacts.<a href="./src/resources/beta/agents/sessions/artifacts.ts">list</a>(sessionID, { ...params }) -> SessionArtifactsPage</code>
+- <code title="delete /agents/sessions/{session_id}/artifacts/{artifact_id}">client.beta.agents.sessions.artifacts.<a href="./src/resources/beta/agents/sessions/artifacts.ts">delete</a>(artifactID, { ...params }) -> SessionArtifactDeleted</code>
+- <code title="get /agents/sessions/{session_id}/artifacts/{artifact_id}/content">client.beta.agents.sessions.artifacts.<a href="./src/resources/beta/agents/sessions/artifacts.ts">content</a>(artifactID, { ...params }) -> Response</code>
+
+#### Items
+
+Methods:
+
+- <code title="get /agents/sessions/{session_id}/items">client.beta.agents.sessions.items.<a href="./src/resources/beta/agents/sessions/items.ts">list</a>(sessionID, { ...params }) -> AgentSessionItemsPage</code>
+
+#### Events
+
+Methods:
+
+- <code title="post /agents/sessions/{session_id}/events">client.beta.agents.sessions.events.<a href="./src/resources/beta/agents/sessions/events.ts">create</a>(sessionID, { ...params }) -> void</code>
+- <code title="get /agents/sessions/{session_id}/events">client.beta.agents.sessions.events.<a href="./src/resources/beta/agents/sessions/events.ts">stream</a>(sessionID) -> AgentSessionEvent</code>
+
+#### Traces
+
+Types:
+
+- <code><a href="./src/resources/beta/agents/sessions/traces.ts">SessionTrace</a></code>
+
+Methods:
+
+- <code title="get /agents/sessions/{session_id}/traces">client.beta.agents.sessions.traces.<a href="./src/resources/beta/agents/sessions/traces.ts">list</a>(sessionID, { ...params }) -> SessionTracesPage</code>
+
+#### Turns
+
+Types:
+
+- <code><a href="./src/resources/beta/agents/sessions/turns/turns.ts">Turn</a></code>
+
+Methods:
+
+- <code title="get /agents/sessions/{session_id}/turns/{turn_id}">client.beta.agents.sessions.turns.<a href="./src/resources/beta/agents/sessions/turns/turns.ts">retrieve</a>(turnID, { ...params }) -> Turn</code>
+- <code title="get /agents/sessions/{session_id}/turns">client.beta.agents.sessions.turns.<a href="./src/resources/beta/agents/sessions/turns/turns.ts">list</a>(sessionID, { ...params }) -> TurnsPage</code>
+
+##### Items
+
+Methods:
+
+- <code title="get /agents/sessions/{session_id}/turns/{turn_id}/items">client.beta.agents.sessions.turns.items.<a href="./src/resources/beta/agents/sessions/turns/items.ts">list</a>(turnID, { ...params }) -> AgentSessionItemsConversationCursorPage</code>
+
+## Responses
+
+Types:
+
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaApplyPatchTool</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaCompactedResponse</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaComputerAction</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaComputerActionList</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaComputerTool</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaComputerUsePreviewTool</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaContainerAuto</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaContainerNetworkPolicyAllowlist</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaContainerNetworkPolicyDisabled</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaContainerNetworkPolicyDomainSecret</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaContainerReference</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaCustomTool</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaEasyInputMessage</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaFileSearchTool</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaFunctionShellTool</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaFunctionTool</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaImageDetail</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaInlineSkill</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaInlineSkillSource</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaLocalEnvironment</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaLocalSkill</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaMcpToolCallError</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaNamespaceTool</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponse</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseApplyPatchToolCall</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseApplyPatchToolCallOutput</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseAudioDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseAudioDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseAudioTranscriptDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseAudioTranscriptDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCodeInterpreterCallCodeDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCodeInterpreterCallCodeDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCodeInterpreterCallCompletedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCodeInterpreterCallInProgressEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCodeInterpreterCallInterpretingEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCodeInterpreterToolCall</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCompactionCompactingEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCompactionItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCompactionItemParam</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCompletedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseComputerToolCall</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseComputerToolCallOutputItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseComputerToolCallOutputScreenshot</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseConfigurationUpdateItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseConfigurationUpdateItemParam</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseContainerReference</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseContent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseContentPartAddedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseContentPartDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseConversationParam</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCreatedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCustomToolCall</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCustomToolCallInputDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCustomToolCallInputDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCustomToolCallItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCustomToolCallOutput</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseCustomToolCallOutputItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseError</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseErrorEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFailedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFileSearchCallCompletedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFileSearchCallInProgressEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFileSearchCallSearchingEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFileSearchToolCall</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFormatTextConfig</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFormatTextJSONSchemaConfig</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFunctionCallArgumentsDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFunctionCallArgumentsDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFunctionCallOutputItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFunctionCallOutputItemList</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFunctionShellCallOutputContent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFunctionShellToolCall</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFunctionShellToolCallOutput</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFunctionToolCall</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFunctionToolCallItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFunctionToolCallOutputItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseFunctionWebSearch</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseImageGenCallCompletedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseImageGenCallGeneratingEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseImageGenCallInProgressEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseImageGenCallPartialImageEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInProgressEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseIncludable</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseIncompleteEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInjectCreatedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInjectEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInjectFailedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInput</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInputAudio</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInputContent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInputFile</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInputFileContent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInputImage</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInputImageContent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInputItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInputMessageContentList</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInputMessageItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInputText</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseInputTextContent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseLocalEnvironment</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseMcpCallArgumentsDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseMcpCallArgumentsDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseMcpCallCompletedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseMcpCallFailedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseMcpCallInProgressEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseMcpListToolsCompletedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseMcpListToolsFailedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseMcpListToolsInProgressEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseOutputAudio</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseOutputItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseOutputItemAddedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseOutputItemDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseOutputMessage</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseOutputRefusal</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseOutputText</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseOutputTextAnnotationAddedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponsePrompt</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseQueuedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseReasoningItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseReasoningSummaryPartAddedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseReasoningSummaryPartDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseReasoningSummaryTextDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseReasoningSummaryTextDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseReasoningTextDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseReasoningTextDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseRefusalDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseRefusalDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseShellCallCommandAddedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseShellCallCommandDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseShellCallCommandDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseShellCallOutputContentDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseShellCallOutputContentDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseStatus</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseSteerAcceptedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseSteerErrorCode</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseSteerEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseSteerFailedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseSteerInput</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseSteerInputContent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseSteerPendingEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseSteerPendingReason</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseSteerRequiredInput</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseStreamEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseTextConfig</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseTextDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseTextDoneEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseToolSearchCall</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseToolSearchOutputItem</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseToolSearchOutputItemParam</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseUsage</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseWebSearchCallCompletedEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseWebSearchCallInProgressEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponseWebSearchCallSearchingEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponsesClientEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaResponsesServerEvent</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaServiceTier</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaSkillReference</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaTool</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaToolChoiceAllowed</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaToolChoiceApplyPatch</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaToolChoiceCustom</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaToolChoiceFunction</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaToolChoiceMcp</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaToolChoiceOptions</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaToolChoiceShell</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaToolChoiceTypes</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaToolSearchOutputNamespaceTool</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaToolSearchTool</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaWebSearchPreviewTool</a></code>
+- <code><a href="./src/resources/beta/responses/responses.ts">BetaWebSearchTool</a></code>
+
+Methods:
+
+- <code title="post /responses?beta=true">client.beta.responses.<a href="./src/resources/beta/responses/responses.ts">create</a>({ ...params }) -> BetaResponse</code>
+- <code title="get /responses/{response_id}?beta=true">client.beta.responses.<a href="./src/resources/beta/responses/responses.ts">retrieve</a>(responseID, { ...params }) -> BetaResponse</code>
+- <code title="delete /responses/{response_id}?beta=true">client.beta.responses.<a href="./src/resources/beta/responses/responses.ts">delete</a>(responseID, { ...params }) -> void</code>
+- <code title="post /responses/{response_id}/cancel?beta=true">client.beta.responses.<a href="./src/resources/beta/responses/responses.ts">cancel</a>(responseID, { ...params }) -> BetaResponse</code>
+- <code title="post /responses/compact?beta=true">client.beta.responses.<a href="./src/resources/beta/responses/responses.ts">compact</a>({ ...params }) -> BetaCompactedResponse</code>
+
+### InputItems
+
+Types:
+
+- <code><a href="./src/resources/beta/responses/input-items.ts">BetaResponseItemList</a></code>
+
+Methods:
+
+- <code title="get /responses/{response_id}/input_items?beta=true">client.beta.responses.inputItems.<a href="./src/resources/beta/responses/input-items.ts">list</a>(responseID, { ...params }) -> BetaResponseItemsPage</code>
+
+### InputTokens
+
+Types:
+
+- <code><a href="./src/resources/beta/responses/input-tokens.ts">InputTokenCountResponse</a></code>
+
+Methods:
+
+- <code title="post /responses/input_tokens?beta=true">client.beta.responses.inputTokens.<a href="./src/resources/beta/responses/input-tokens.ts">count</a>({ ...params }) -> InputTokenCountResponse</code>
+
+## ChatKit
+
+Types:
+
+- <code><a href="./src/resources/beta/chatkit/chatkit.ts">ChatKitWorkflow</a></code>
+
+### Sessions
+
+Methods:
+
+- <code title="post /chatkit/sessions">client.beta.chatkit.sessions.<a href="./src/resources/beta/chatkit/sessions.ts">create</a>({ ...params }) -> ChatSession</code>
+- <code title="post /chatkit/sessions/{session_id}/cancel">client.beta.chatkit.sessions.<a href="./src/resources/beta/chatkit/sessions.ts">cancel</a>(sessionID) -> ChatSession</code>
+
+### Threads
+
+Types:
+
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatSession</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatSessionAutomaticThreadTitling</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatSessionChatKitConfiguration</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatSessionChatKitConfigurationParam</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatSessionExpiresAfterParam</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatSessionFileUpload</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatSessionHistory</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatSessionRateLimits</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatSessionRateLimitsParam</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatSessionStatus</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatSessionWorkflowParam</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatKitAttachment</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatKitResponseOutputText</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatKitThread</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatKitThreadAssistantMessageItem</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatKitThreadItemList</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatKitThreadUserMessageItem</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ChatKitWidgetItem</a></code>
+- <code><a href="./src/resources/beta/chatkit/threads.ts">ThreadDeleteResponse</a></code>
+
+Methods:
+
+- <code title="get /chatkit/threads/{thread_id}">client.beta.chatkit.threads.<a href="./src/resources/beta/chatkit/threads.ts">retrieve</a>(threadID) -> ChatKitThread</code>
+- <code title="get /chatkit/threads">client.beta.chatkit.threads.<a href="./src/resources/beta/chatkit/threads.ts">list</a>({ ...params }) -> ChatKitThreadsPage</code>
+- <code title="delete /chatkit/threads/{thread_id}">client.beta.chatkit.threads.<a href="./src/resources/beta/chatkit/threads.ts">delete</a>(threadID) -> ThreadDeleteResponse</code>
+- <code title="get /chatkit/threads/{thread_id}/items">client.beta.chatkit.threads.<a href="./src/resources/beta/chatkit/threads.ts">listItems</a>(threadID, { ...params }) -> ChatKitThreadItemListDataPage</code>
+
+## Assistants
+
+Types:
+
+- <code><a href="./src/resources/beta/assistants.ts">Assistant</a></code>
+- <code><a href="./src/resources/beta/assistants.ts">AssistantDeleted</a></code>
+- <code><a href="./src/resources/beta/assistants.ts">AssistantStreamEvent</a></code>
+- <code><a href="./src/resources/beta/assistants.ts">AssistantTool</a></code>
+- <code><a href="./src/resources/beta/assistants.ts">CodeInterpreterTool</a></code>
+- <code><a href="./src/resources/beta/assistants.ts">FileSearchTool</a></code>
+- <code><a href="./src/resources/beta/assistants.ts">FunctionTool</a></code>
+- <code><a href="./src/resources/beta/assistants.ts">MessageStreamEvent</a></code>
+- <code><a href="./src/resources/beta/assistants.ts">RunStepStreamEvent</a></code>
+- <code><a href="./src/resources/beta/assistants.ts">RunStreamEvent</a></code>
+- <code><a href="./src/resources/beta/assistants.ts">ThreadStreamEvent</a></code>
+
+Methods:
+
+- <code title="post /assistants">client.beta.assistants.<a href="./src/resources/beta/assistants.ts">create</a>({ ...params }) -> Assistant</code>
+- <code title="get /assistants/{assistant_id}">client.beta.assistants.<a href="./src/resources/beta/assistants.ts">retrieve</a>(assistantID) -> Assistant</code>
+- <code title="post /assistants/{assistant_id}">client.beta.assistants.<a href="./src/resources/beta/assistants.ts">update</a>(assistantID, { ...params }) -> Assistant</code>
+- <code title="get /assistants">client.beta.assistants.<a href="./src/resources/beta/assistants.ts">list</a>({ ...params }) -> AssistantsPage</code>
+- <code title="delete /assistants/{assistant_id}">client.beta.assistants.<a href="./src/resources/beta/assistants.ts">delete</a>(assistantID) -> AssistantDeleted</code>
+
+## Threads
+
+Types:
+
+- <code><a href="./src/resources/beta/threads/threads.ts">AssistantResponseFormatOption</a></code>
+- <code><a href="./src/resources/beta/threads/threads.ts">AssistantToolChoice</a></code>
+- <code><a href="./src/resources/beta/threads/threads.ts">AssistantToolChoiceFunction</a></code>
+- <code><a href="./src/resources/beta/threads/threads.ts">AssistantToolChoiceOption</a></code>
+- <code><a href="./src/resources/beta/threads/threads.ts">Thread</a></code>
+- <code><a href="./src/resources/beta/threads/threads.ts">ThreadDeleted</a></code>
+
+Methods:
+
+- <code title="post /threads">client.beta.threads.<a href="./src/resources/beta/threads/threads.ts">create</a>({ ...params }) -> Thread</code>
+- <code title="get /threads/{thread_id}">client.beta.threads.<a href="./src/resources/beta/threads/threads.ts">retrieve</a>(threadID) -> Thread</code>
+- <code title="post /threads/{thread_id}">client.beta.threads.<a href="./src/resources/beta/threads/threads.ts">update</a>(threadID, { ...params }) -> Thread</code>
+- <code title="delete /threads/{thread_id}">client.beta.threads.<a href="./src/resources/beta/threads/threads.ts">delete</a>(threadID) -> ThreadDeleted</code>
+- <code title="post /threads/runs">client.beta.threads.<a href="./src/resources/beta/threads/threads.ts">createAndRun</a>({ ...params }) -> Run</code>
+- <code>client.beta.threads.<a href="./src/resources/beta/threads/threads.ts">createAndRunPoll</a>(body, options?) -> Promise&lt;Run&gt;</code>
+- <code>client.beta.threads.<a href="./src/resources/beta/threads/threads.ts">createAndRunStream</a>(body, options?) -> AssistantStream</code>
+
+### Runs
+
+Types:
+
+- <code><a href="./src/resources/beta/threads/runs/runs.ts">RequiredActionFunctionToolCall</a></code>
+- <code><a href="./src/resources/beta/threads/runs/runs.ts">Run</a></code>
+- <code><a href="./src/resources/beta/threads/runs/runs.ts">RunStatus</a></code>
+
+Methods:
+
+- <code title="post /threads/{thread_id}/runs">client.beta.threads.runs.<a href="./src/resources/beta/threads/runs/runs.ts">create</a>(threadID, { ...params }) -> Run</code>
+- <code title="get /threads/{thread_id}/runs/{run_id}">client.beta.threads.runs.<a href="./src/resources/beta/threads/runs/runs.ts">retrieve</a>(runID, { ...params }) -> Run</code>
+- <code title="post /threads/{thread_id}/runs/{run_id}">client.beta.threads.runs.<a href="./src/resources/beta/threads/runs/runs.ts">update</a>(runID, { ...params }) -> Run</code>
+- <code title="get /threads/{thread_id}/runs">client.beta.threads.runs.<a href="./src/resources/beta/threads/runs/runs.ts">list</a>(threadID, { ...params }) -> RunsPage</code>
+- <code title="post /threads/{thread_id}/runs/{run_id}/cancel">client.beta.threads.runs.<a href="./src/resources/beta/threads/runs/runs.ts">cancel</a>(runID, { ...params }) -> Run</code>
+- <code>client.beta.threads.runs.<a href="./src/resources/beta/threads/runs/runs.ts">createAndPoll</a>(threadId, body, options?) -> Promise&lt;Run&gt;</code>
+- <code>client.beta.threads.runs.<a href="./src/resources/beta/threads/runs/runs.ts">createAndStream</a>(threadId, body, options?) -> AssistantStream</code>
+- <code>client.beta.threads.runs.<a href="./src/resources/beta/threads/runs/runs.ts">poll</a>(runId, params, options?) -> Promise&lt;Run&gt;</code>
+- <code>client.beta.threads.runs.<a href="./src/resources/beta/threads/runs/runs.ts">stream</a>(threadId, body, options?) -> AssistantStream</code>
+- <code title="post /threads/{thread_id}/runs/{run_id}/submit_tool_outputs">client.beta.threads.runs.<a href="./src/resources/beta/threads/runs/runs.ts">submitToolOutputs</a>(runID, { ...params }) -> Run</code>
+- <code>client.beta.threads.runs.<a href="./src/resources/beta/threads/runs/runs.ts">submitToolOutputsAndPoll</a>(runId, params, options?) -> Promise&lt;Run&gt;</code>
+- <code>client.beta.threads.runs.<a href="./src/resources/beta/threads/runs/runs.ts">submitToolOutputsStream</a>(runId, params, options?) -> AssistantStream</code>
+
+#### Steps
+
+Types:
+
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">CodeInterpreterLogs</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">CodeInterpreterOutputImage</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">CodeInterpreterToolCall</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">CodeInterpreterToolCallDelta</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">FileSearchToolCall</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">FileSearchToolCallDelta</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">FunctionToolCall</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">FunctionToolCallDelta</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">MessageCreationStepDetails</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">RunStep</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">RunStepDelta</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">RunStepDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">RunStepDeltaMessageDelta</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">RunStepInclude</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">ToolCall</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">ToolCallDelta</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">ToolCallDeltaObject</a></code>
+- <code><a href="./src/resources/beta/threads/runs/steps.ts">ToolCallsStepDetails</a></code>
+
+Methods:
+
+- <code title="get /threads/{thread_id}/runs/{run_id}/steps/{step_id}">client.beta.threads.runs.steps.<a href="./src/resources/beta/threads/runs/steps.ts">retrieve</a>(stepID, { ...params }) -> RunStep</code>
+- <code title="get /threads/{thread_id}/runs/{run_id}/steps">client.beta.threads.runs.steps.<a href="./src/resources/beta/threads/runs/steps.ts">list</a>(runID, { ...params }) -> RunStepsPage</code>
+
+### Messages
+
+Types:
+
+- <code><a href="./src/resources/beta/threads/messages.ts">Annotation</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">AnnotationDelta</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">FileCitationAnnotation</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">FileCitationDeltaAnnotation</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">FilePathAnnotation</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">FilePathDeltaAnnotation</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">ImageFile</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">ImageFileContentBlock</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">ImageFileDelta</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">ImageFileDeltaBlock</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">ImageURL</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">ImageURLContentBlock</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">ImageURLDelta</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">ImageURLDeltaBlock</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">Message</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">MessageContent</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">MessageContentDelta</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">MessageContentPartParam</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">MessageDeleted</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">MessageDelta</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">MessageDeltaEvent</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">RefusalContentBlock</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">RefusalDeltaBlock</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">Text</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">TextContentBlock</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">TextContentBlockParam</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">TextDelta</a></code>
+- <code><a href="./src/resources/beta/threads/messages.ts">TextDeltaBlock</a></code>
+
+Methods:
+
+- <code title="post /threads/{thread_id}/messages">client.beta.threads.messages.<a href="./src/resources/beta/threads/messages.ts">create</a>(threadID, { ...params }) -> Message</code>
+- <code title="get /threads/{thread_id}/messages/{message_id}">client.beta.threads.messages.<a href="./src/resources/beta/threads/messages.ts">retrieve</a>(messageID, { ...params }) -> Message</code>
+- <code title="post /threads/{thread_id}/messages/{message_id}">client.beta.threads.messages.<a href="./src/resources/beta/threads/messages.ts">update</a>(messageID, { ...params }) -> Message</code>
+- <code title="get /threads/{thread_id}/messages">client.beta.threads.messages.<a href="./src/resources/beta/threads/messages.ts">list</a>(threadID, { ...params }) -> MessagesPage</code>
+- <code title="delete /threads/{thread_id}/messages/{message_id}">client.beta.threads.messages.<a href="./src/resources/beta/threads/messages.ts">delete</a>(messageID, { ...params }) -> MessageDeleted</code>
+
+# Batches
+
+Types:
+
+- <code><a href="./src/resources/batches.ts">Batch</a></code>
+- <code><a href="./src/resources/batches.ts">BatchError</a></code>
+- <code><a href="./src/resources/batches.ts">BatchRequestCounts</a></code>
+- <code><a href="./src/resources/batches.ts">BatchUsage</a></code>
+
+Methods:
+
+- <code title="post /batches">client.batches.<a href="./src/resources/batches.ts">create</a>({ ...params }) -> Batch</code>
+- <code title="get /batches/{batch_id}">client.batches.<a href="./src/resources/batches.ts">retrieve</a>(batchID) -> Batch</code>
+- <code title="get /batches">client.batches.<a href="./src/resources/batches.ts">list</a>({ ...params }) -> BatchesPage</code>
+- <code title="post /batches/{batch_id}/cancel">client.batches.<a href="./src/resources/batches.ts">cancel</a>(batchID) -> Batch</code>
+
+# Uploads
+
+Types:
+
+- <code><a href="./src/resources/uploads/uploads.ts">Upload</a></code>
+
+Methods:
+
+- <code title="post /uploads">client.uploads.<a href="./src/resources/uploads/uploads.ts">create</a>({ ...params }) -> Upload</code>
+- <code title="post /uploads/{upload_id}/cancel">client.uploads.<a href="./src/resources/uploads/uploads.ts">cancel</a>(uploadID) -> Upload</code>
+- <code title="post /uploads/{upload_id}/complete">client.uploads.<a href="./src/resources/uploads/uploads.ts">complete</a>(uploadID, { ...params }) -> Upload</code>
+
+## Parts
+
+Types:
+
+- <code><a href="./src/resources/uploads/parts.ts">UploadPart</a></code>
+
+Methods:
+
+- <code title="post /uploads/{upload_id}/parts">client.uploads.parts.<a href="./src/resources/uploads/parts.ts">create</a>(uploadID, { ...params }) -> UploadPart</code>
+
+# Admin
+
+## Organization
+
+### AuditLogs
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/audit-logs.ts">AuditLogListResponse</a></code>
+
+Methods:
+
+- <code title="get /organization/audit_logs">client.admin.organization.auditLogs.<a href="./src/resources/admin/organization/audit-logs.ts">list</a>({ ...params }) -> AuditLogListResponsesPage</code>
+
+### AdminAPIKeys
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/admin-api-keys.ts">AdminAPIKey</a></code>
+- <code><a href="./src/resources/admin/organization/admin-api-keys.ts">AdminAPIKeyCreateResponse</a></code>
+- <code><a href="./src/resources/admin/organization/admin-api-keys.ts">AdminAPIKeyDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/admin_api_keys">client.admin.organization.adminAPIKeys.<a href="./src/resources/admin/organization/admin-api-keys.ts">create</a>({ ...params }) -> AdminAPIKeyCreateResponse</code>
+- <code title="get /organization/admin_api_keys/{key_id}">client.admin.organization.adminAPIKeys.<a href="./src/resources/admin/organization/admin-api-keys.ts">retrieve</a>(keyID) -> AdminAPIKey</code>
+- <code title="get /organization/admin_api_keys">client.admin.organization.adminAPIKeys.<a href="./src/resources/admin/organization/admin-api-keys.ts">list</a>({ ...params }) -> AdminAPIKeysPage</code>
+- <code title="delete /organization/admin_api_keys/{key_id}">client.admin.organization.adminAPIKeys.<a href="./src/resources/admin/organization/admin-api-keys.ts">delete</a>(keyID) -> AdminAPIKeyDeleteResponse</code>
+
+### Usage
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/usage.ts">CostQuantityUnit</a></code>
+- <code><a href="./src/resources/admin/organization/usage.ts">UsageAudioSpeechesResponse</a></code>
+- <code><a href="./src/resources/admin/organization/usage.ts">UsageAudioTranscriptionsResponse</a></code>
+- <code><a href="./src/resources/admin/organization/usage.ts">UsageCodeInterpreterSessionsResponse</a></code>
+- <code><a href="./src/resources/admin/organization/usage.ts">UsageCompletionsResponse</a></code>
+- <code><a href="./src/resources/admin/organization/usage.ts">UsageCostsResponse</a></code>
+- <code><a href="./src/resources/admin/organization/usage.ts">UsageDecisionsResponse</a></code>
+- <code><a href="./src/resources/admin/organization/usage.ts">UsageEmbeddingsResponse</a></code>
+- <code><a href="./src/resources/admin/organization/usage.ts">UsageFileSearchCallsResponse</a></code>
+- <code><a href="./src/resources/admin/organization/usage.ts">UsageImagesResponse</a></code>
+- <code><a href="./src/resources/admin/organization/usage.ts">UsageModerationsResponse</a></code>
+- <code><a href="./src/resources/admin/organization/usage.ts">UsageVectorStoresResponse</a></code>
+- <code><a href="./src/resources/admin/organization/usage.ts">UsageWebSearchCallsResponse</a></code>
+
+Methods:
+
+- <code title="get /organization/usage/audio_speeches">client.admin.organization.usage.<a href="./src/resources/admin/organization/usage.ts">audioSpeeches</a>({ ...params }) -> UsageAudioSpeechesResponse</code>
+- <code title="get /organization/usage/audio_transcriptions">client.admin.organization.usage.<a href="./src/resources/admin/organization/usage.ts">audioTranscriptions</a>({ ...params }) -> UsageAudioTranscriptionsResponse</code>
+- <code title="get /organization/usage/code_interpreter_sessions">client.admin.organization.usage.<a href="./src/resources/admin/organization/usage.ts">codeInterpreterSessions</a>({ ...params }) -> UsageCodeInterpreterSessionsResponse</code>
+- <code title="get /organization/usage/completions">client.admin.organization.usage.<a href="./src/resources/admin/organization/usage.ts">completions</a>({ ...params }) -> UsageCompletionsResponse</code>
+- <code title="get /organization/costs">client.admin.organization.usage.<a href="./src/resources/admin/organization/usage.ts">costs</a>({ ...params }) -> UsageCostsResponse</code>
+- <code title="get /organization/usage/decisions">client.admin.organization.usage.<a href="./src/resources/admin/organization/usage.ts">decisions</a>({ ...params }) -> UsageDecisionsResponse</code>
+- <code title="get /organization/usage/embeddings">client.admin.organization.usage.<a href="./src/resources/admin/organization/usage.ts">embeddings</a>({ ...params }) -> UsageEmbeddingsResponse</code>
+- <code title="get /organization/usage/file_search_calls">client.admin.organization.usage.<a href="./src/resources/admin/organization/usage.ts">fileSearchCalls</a>({ ...params }) -> UsageFileSearchCallsResponse</code>
+- <code title="get /organization/usage/images">client.admin.organization.usage.<a href="./src/resources/admin/organization/usage.ts">images</a>({ ...params }) -> UsageImagesResponse</code>
+- <code title="get /organization/usage/moderations">client.admin.organization.usage.<a href="./src/resources/admin/organization/usage.ts">moderations</a>({ ...params }) -> UsageModerationsResponse</code>
+- <code title="get /organization/usage/vector_stores">client.admin.organization.usage.<a href="./src/resources/admin/organization/usage.ts">vectorStores</a>({ ...params }) -> UsageVectorStoresResponse</code>
+- <code title="get /organization/usage/web_search_calls">client.admin.organization.usage.<a href="./src/resources/admin/organization/usage.ts">webSearchCalls</a>({ ...params }) -> UsageWebSearchCallsResponse</code>
+
+### Invites
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/invites.ts">Invite</a></code>
+- <code><a href="./src/resources/admin/organization/invites.ts">InviteDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/invites">client.admin.organization.invites.<a href="./src/resources/admin/organization/invites.ts">create</a>({ ...params }) -> Invite</code>
+- <code title="get /organization/invites/{invite_id}">client.admin.organization.invites.<a href="./src/resources/admin/organization/invites.ts">retrieve</a>(inviteID) -> Invite</code>
+- <code title="get /organization/invites">client.admin.organization.invites.<a href="./src/resources/admin/organization/invites.ts">list</a>({ ...params }) -> InvitesPage</code>
+- <code title="delete /organization/invites/{invite_id}">client.admin.organization.invites.<a href="./src/resources/admin/organization/invites.ts">delete</a>(inviteID) -> InviteDeleteResponse</code>
+
+### Users
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/users/users.ts">OrganizationUser</a></code>
+- <code><a href="./src/resources/admin/organization/users/users.ts">UserDeleteResponse</a></code>
+
+Methods:
+
+- <code title="get /organization/users/{user_id}">client.admin.organization.users.<a href="./src/resources/admin/organization/users/users.ts">retrieve</a>(userID) -> OrganizationUser</code>
+- <code title="post /organization/users/{user_id}">client.admin.organization.users.<a href="./src/resources/admin/organization/users/users.ts">update</a>(userID, { ...params }) -> OrganizationUser</code>
+- <code title="get /organization/users">client.admin.organization.users.<a href="./src/resources/admin/organization/users/users.ts">list</a>({ ...params }) -> OrganizationUsersPage</code>
+- <code title="delete /organization/users/{user_id}">client.admin.organization.users.<a href="./src/resources/admin/organization/users/users.ts">delete</a>(userID) -> UserDeleteResponse</code>
+
+#### Roles
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/users/roles.ts">RoleCreateResponse</a></code>
+- <code><a href="./src/resources/admin/organization/users/roles.ts">RoleRetrieveResponse</a></code>
+- <code><a href="./src/resources/admin/organization/users/roles.ts">RoleListResponse</a></code>
+- <code><a href="./src/resources/admin/organization/users/roles.ts">RoleDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/users/{user_id}/roles">client.admin.organization.users.roles.<a href="./src/resources/admin/organization/users/roles.ts">create</a>(userID, { ...params }) -> RoleCreateResponse</code>
+- <code title="get /organization/users/{user_id}/roles/{role_id}">client.admin.organization.users.roles.<a href="./src/resources/admin/organization/users/roles.ts">retrieve</a>(roleID, { ...params }) -> RoleRetrieveResponse</code>
+- <code title="get /organization/users/{user_id}/roles">client.admin.organization.users.roles.<a href="./src/resources/admin/organization/users/roles.ts">list</a>(userID, { ...params }) -> RoleListResponsesPage</code>
+- <code title="delete /organization/users/{user_id}/roles/{role_id}">client.admin.organization.users.roles.<a href="./src/resources/admin/organization/users/roles.ts">delete</a>(roleID, { ...params }) -> RoleDeleteResponse</code>
+
+### Groups
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/groups/groups.ts">Group</a></code>
+- <code><a href="./src/resources/admin/organization/groups/groups.ts">GroupUpdateResponse</a></code>
+- <code><a href="./src/resources/admin/organization/groups/groups.ts">GroupDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/groups">client.admin.organization.groups.<a href="./src/resources/admin/organization/groups/groups.ts">create</a>({ ...params }) -> Group</code>
+- <code title="get /organization/groups/{group_id}">client.admin.organization.groups.<a href="./src/resources/admin/organization/groups/groups.ts">retrieve</a>(groupID) -> Group</code>
+- <code title="post /organization/groups/{group_id}">client.admin.organization.groups.<a href="./src/resources/admin/organization/groups/groups.ts">update</a>(groupID, { ...params }) -> GroupUpdateResponse</code>
+- <code title="get /organization/groups">client.admin.organization.groups.<a href="./src/resources/admin/organization/groups/groups.ts">list</a>({ ...params }) -> GroupsPage</code>
+- <code title="delete /organization/groups/{group_id}">client.admin.organization.groups.<a href="./src/resources/admin/organization/groups/groups.ts">delete</a>(groupID) -> GroupDeleteResponse</code>
+
+#### Users
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/groups/users.ts">OrganizationGroupUser</a></code>
+- <code><a href="./src/resources/admin/organization/groups/users.ts">UserCreateResponse</a></code>
+- <code><a href="./src/resources/admin/organization/groups/users.ts">UserRetrieveResponse</a></code>
+- <code><a href="./src/resources/admin/organization/groups/users.ts">UserDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/groups/{group_id}/users">client.admin.organization.groups.users.<a href="./src/resources/admin/organization/groups/users.ts">create</a>(groupID, { ...params }) -> UserCreateResponse</code>
+- <code title="get /organization/groups/{group_id}/users/{user_id}">client.admin.organization.groups.users.<a href="./src/resources/admin/organization/groups/users.ts">retrieve</a>(userID, { ...params }) -> UserRetrieveResponse</code>
+- <code title="get /organization/groups/{group_id}/users">client.admin.organization.groups.users.<a href="./src/resources/admin/organization/groups/users.ts">list</a>(groupID, { ...params }) -> OrganizationGroupUsersPage</code>
+- <code title="delete /organization/groups/{group_id}/users/{user_id}">client.admin.organization.groups.users.<a href="./src/resources/admin/organization/groups/users.ts">delete</a>(userID, { ...params }) -> UserDeleteResponse</code>
+
+#### Roles
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/groups/roles.ts">RoleCreateResponse</a></code>
+- <code><a href="./src/resources/admin/organization/groups/roles.ts">RoleRetrieveResponse</a></code>
+- <code><a href="./src/resources/admin/organization/groups/roles.ts">RoleListResponse</a></code>
+- <code><a href="./src/resources/admin/organization/groups/roles.ts">RoleDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/groups/{group_id}/roles">client.admin.organization.groups.roles.<a href="./src/resources/admin/organization/groups/roles.ts">create</a>(groupID, { ...params }) -> RoleCreateResponse</code>
+- <code title="get /organization/groups/{group_id}/roles/{role_id}">client.admin.organization.groups.roles.<a href="./src/resources/admin/organization/groups/roles.ts">retrieve</a>(roleID, { ...params }) -> RoleRetrieveResponse</code>
+- <code title="get /organization/groups/{group_id}/roles">client.admin.organization.groups.roles.<a href="./src/resources/admin/organization/groups/roles.ts">list</a>(groupID, { ...params }) -> RoleListResponsesPage</code>
+- <code title="delete /organization/groups/{group_id}/roles/{role_id}">client.admin.organization.groups.roles.<a href="./src/resources/admin/organization/groups/roles.ts">delete</a>(roleID, { ...params }) -> RoleDeleteResponse</code>
+
+### Roles
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/roles.ts">Role</a></code>
+- <code><a href="./src/resources/admin/organization/roles.ts">RoleDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/roles">client.admin.organization.roles.<a href="./src/resources/admin/organization/roles.ts">create</a>({ ...params }) -> Role</code>
+- <code title="get /organization/roles/{role_id}">client.admin.organization.roles.<a href="./src/resources/admin/organization/roles.ts">retrieve</a>(roleID) -> Role</code>
+- <code title="post /organization/roles/{role_id}">client.admin.organization.roles.<a href="./src/resources/admin/organization/roles.ts">update</a>(roleID, { ...params }) -> Role</code>
+- <code title="get /organization/roles">client.admin.organization.roles.<a href="./src/resources/admin/organization/roles.ts">list</a>({ ...params }) -> RolesPage</code>
+- <code title="delete /organization/roles/{role_id}">client.admin.organization.roles.<a href="./src/resources/admin/organization/roles.ts">delete</a>(roleID) -> RoleDeleteResponse</code>
+
+### DataRetention
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/data-retention.ts">OrganizationDataRetention</a></code>
+
+Methods:
+
+- <code title="get /organization/data_retention">client.admin.organization.dataRetention.<a href="./src/resources/admin/organization/data-retention.ts">retrieve</a>() -> OrganizationDataRetention</code>
+- <code title="post /organization/data_retention">client.admin.organization.dataRetention.<a href="./src/resources/admin/organization/data-retention.ts">update</a>({ ...params }) -> OrganizationDataRetention</code>
+
+### ExternalKeys
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/external-keys.ts">ExternalKey</a></code>
+- <code><a href="./src/resources/admin/organization/external-keys.ts">ExternalKeyValidateResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/external_keys">client.admin.organization.externalKeys.<a href="./src/resources/admin/organization/external-keys.ts">create</a>({ ...params }) -> ExternalKey</code>
+- <code title="get /organization/external_keys/{external_key_id}">client.admin.organization.externalKeys.<a href="./src/resources/admin/organization/external-keys.ts">retrieve</a>(externalKeyID) -> ExternalKey</code>
+- <code title="get /organization/external_keys">client.admin.organization.externalKeys.<a href="./src/resources/admin/organization/external-keys.ts">list</a>({ ...params }) -> ExternalKeysPage</code>
+- <code title="delete /organization/external_keys/{external_key_id}">client.admin.organization.externalKeys.<a href="./src/resources/admin/organization/external-keys.ts">delete</a>(externalKeyID) -> ExternalKey</code>
+- <code title="post /organization/external_keys/{external_key_id}/validate">client.admin.organization.externalKeys.<a href="./src/resources/admin/organization/external-keys.ts">validate</a>(externalKeyID) -> ExternalKeyValidateResponse</code>
+
+### ExternalStorage
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/external-storage.ts">AwsExternalStorageProvider</a></code>
+- <code><a href="./src/resources/admin/organization/external-storage.ts">AzureExternalStorageProvider</a></code>
+- <code><a href="./src/resources/admin/organization/external-storage.ts">ExternalStorageConfiguration</a></code>
+- <code><a href="./src/resources/admin/organization/external-storage.ts">ExternalStorageDeleted</a></code>
+- <code><a href="./src/resources/admin/organization/external-storage.ts">GcpExternalStorageProvider</a></code>
+- <code><a href="./src/resources/admin/organization/external-storage.ts">OciExternalStorageProvider</a></code>
+
+Methods:
+
+- <code title="post /organization/external_storage">client.admin.organization.externalStorage.<a href="./src/resources/admin/organization/external-storage.ts">create</a>({ ...params }) -> ExternalStorageConfiguration</code>
+- <code title="get /organization/external_storage/{external_storage_id}">client.admin.organization.externalStorage.<a href="./src/resources/admin/organization/external-storage.ts">retrieve</a>(externalStorageID) -> ExternalStorageConfiguration</code>
+- <code title="get /organization/external_storage">client.admin.organization.externalStorage.<a href="./src/resources/admin/organization/external-storage.ts">list</a>({ ...params }) -> ExternalStorageConfigurationsPage</code>
+- <code title="delete /organization/external_storage/{external_storage_id}">client.admin.organization.externalStorage.<a href="./src/resources/admin/organization/external-storage.ts">delete</a>(externalStorageID) -> ExternalStorageDeleted</code>
+- <code title="post /organization/external_storage/{external_storage_id}/validate">client.admin.organization.externalStorage.<a href="./src/resources/admin/organization/external-storage.ts">validate</a>(externalStorageID) -> ExternalStorageConfiguration</code>
+
+### SpendLimit
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/spend-limit.ts">OrganizationSpendLimit</a></code>
+- <code><a href="./src/resources/admin/organization/spend-limit.ts">OrganizationSpendLimitDeleted</a></code>
+
+Methods:
+
+- <code title="get /organization/spend_limit">client.admin.organization.spendLimit.<a href="./src/resources/admin/organization/spend-limit.ts">retrieve</a>() -> OrganizationSpendLimit</code>
+- <code title="post /organization/spend_limit">client.admin.organization.spendLimit.<a href="./src/resources/admin/organization/spend-limit.ts">update</a>({ ...params }) -> OrganizationSpendLimit</code>
+- <code title="delete /organization/spend_limit">client.admin.organization.spendLimit.<a href="./src/resources/admin/organization/spend-limit.ts">delete</a>() -> OrganizationSpendLimitDeleted</code>
+
+### SpendAlerts
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/spend-alerts.ts">OrganizationSpendAlert</a></code>
+- <code><a href="./src/resources/admin/organization/spend-alerts.ts">OrganizationSpendAlertDeleted</a></code>
+
+Methods:
+
+- <code title="post /organization/spend_alerts">client.admin.organization.spendAlerts.<a href="./src/resources/admin/organization/spend-alerts.ts">create</a>({ ...params }) -> OrganizationSpendAlert</code>
+- <code title="get /organization/spend_alerts/{alert_id}">client.admin.organization.spendAlerts.<a href="./src/resources/admin/organization/spend-alerts.ts">retrieve</a>(alertID) -> OrganizationSpendAlert</code>
+- <code title="post /organization/spend_alerts/{alert_id}">client.admin.organization.spendAlerts.<a href="./src/resources/admin/organization/spend-alerts.ts">update</a>(alertID, { ...params }) -> OrganizationSpendAlert</code>
+- <code title="get /organization/spend_alerts">client.admin.organization.spendAlerts.<a href="./src/resources/admin/organization/spend-alerts.ts">list</a>({ ...params }) -> OrganizationSpendAlertsPage</code>
+- <code title="delete /organization/spend_alerts/{alert_id}">client.admin.organization.spendAlerts.<a href="./src/resources/admin/organization/spend-alerts.ts">delete</a>(alertID) -> OrganizationSpendAlertDeleted</code>
+
+### Certificates
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/certificates.ts">Certificate</a></code>
+- <code><a href="./src/resources/admin/organization/certificates.ts">CertificateListResponse</a></code>
+- <code><a href="./src/resources/admin/organization/certificates.ts">CertificateDeleteResponse</a></code>
+- <code><a href="./src/resources/admin/organization/certificates.ts">CertificateActivateResponse</a></code>
+- <code><a href="./src/resources/admin/organization/certificates.ts">CertificateDeactivateResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/certificates">client.admin.organization.certificates.<a href="./src/resources/admin/organization/certificates.ts">create</a>({ ...params }) -> Certificate</code>
+- <code title="get /organization/certificates/{certificate_id}">client.admin.organization.certificates.<a href="./src/resources/admin/organization/certificates.ts">retrieve</a>(certificateID, { ...params }) -> Certificate</code>
+- <code title="post /organization/certificates/{certificate_id}">client.admin.organization.certificates.<a href="./src/resources/admin/organization/certificates.ts">update</a>(certificateID, { ...params }) -> Certificate</code>
+- <code title="get /organization/certificates">client.admin.organization.certificates.<a href="./src/resources/admin/organization/certificates.ts">list</a>({ ...params }) -> CertificateListResponsesPage</code>
+- <code title="delete /organization/certificates/{certificate_id}">client.admin.organization.certificates.<a href="./src/resources/admin/organization/certificates.ts">delete</a>(certificateID) -> CertificateDeleteResponse</code>
+- <code title="post /organization/certificates/activate">client.admin.organization.certificates.<a href="./src/resources/admin/organization/certificates.ts">activate</a>({ ...params }) -> CertificateActivateResponsesPage</code>
+- <code title="post /organization/certificates/deactivate">client.admin.organization.certificates.<a href="./src/resources/admin/organization/certificates.ts">deactivate</a>({ ...params }) -> CertificateDeactivateResponsesPage</code>
+
+### Projects
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/projects.ts">Project</a></code>
+- <code><a href="./src/resources/admin/organization/projects/projects.ts">ProjectResidency</a></code>
+
+Methods:
+
+- <code title="post /organization/projects">client.admin.organization.projects.<a href="./src/resources/admin/organization/projects/projects.ts">create</a>({ ...params }) -> Project</code>
+- <code title="get /organization/projects/{project_id}">client.admin.organization.projects.<a href="./src/resources/admin/organization/projects/projects.ts">retrieve</a>(projectID) -> Project</code>
+- <code title="post /organization/projects/{project_id}">client.admin.organization.projects.<a href="./src/resources/admin/organization/projects/projects.ts">update</a>(projectID, { ...params }) -> Project</code>
+- <code title="get /organization/projects">client.admin.organization.projects.<a href="./src/resources/admin/organization/projects/projects.ts">list</a>({ ...params }) -> ProjectsPage</code>
+- <code title="post /organization/projects/{project_id}/archive">client.admin.organization.projects.<a href="./src/resources/admin/organization/projects/projects.ts">archive</a>(projectID) -> Project</code>
+
+#### Users
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/users/users.ts">ProjectUser</a></code>
+- <code><a href="./src/resources/admin/organization/projects/users/users.ts">UserDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/projects/{project_id}/users">client.admin.organization.projects.users.<a href="./src/resources/admin/organization/projects/users/users.ts">create</a>(projectID, { ...params }) -> ProjectUser</code>
+- <code title="get /organization/projects/{project_id}/users/{user_id}">client.admin.organization.projects.users.<a href="./src/resources/admin/organization/projects/users/users.ts">retrieve</a>(userID, { ...params }) -> ProjectUser</code>
+- <code title="post /organization/projects/{project_id}/users/{user_id}">client.admin.organization.projects.users.<a href="./src/resources/admin/organization/projects/users/users.ts">update</a>(userID, { ...params }) -> ProjectUser</code>
+- <code title="get /organization/projects/{project_id}/users">client.admin.organization.projects.users.<a href="./src/resources/admin/organization/projects/users/users.ts">list</a>(projectID, { ...params }) -> ProjectUsersPage</code>
+- <code title="delete /organization/projects/{project_id}/users/{user_id}">client.admin.organization.projects.users.<a href="./src/resources/admin/organization/projects/users/users.ts">delete</a>(userID, { ...params }) -> UserDeleteResponse</code>
+
+##### Roles
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/users/roles.ts">RoleCreateResponse</a></code>
+- <code><a href="./src/resources/admin/organization/projects/users/roles.ts">RoleRetrieveResponse</a></code>
+- <code><a href="./src/resources/admin/organization/projects/users/roles.ts">RoleListResponse</a></code>
+- <code><a href="./src/resources/admin/organization/projects/users/roles.ts">RoleDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /projects/{project_id}/users/{user_id}/roles">client.admin.organization.projects.users.roles.<a href="./src/resources/admin/organization/projects/users/roles.ts">create</a>(userID, { ...params }) -> RoleCreateResponse</code>
+- <code title="get /projects/{project_id}/users/{user_id}/roles/{role_id}">client.admin.organization.projects.users.roles.<a href="./src/resources/admin/organization/projects/users/roles.ts">retrieve</a>(roleID, { ...params }) -> RoleRetrieveResponse</code>
+- <code title="get /projects/{project_id}/users/{user_id}/roles">client.admin.organization.projects.users.roles.<a href="./src/resources/admin/organization/projects/users/roles.ts">list</a>(userID, { ...params }) -> RoleListResponsesPage</code>
+- <code title="delete /projects/{project_id}/users/{user_id}/roles/{role_id}">client.admin.organization.projects.users.roles.<a href="./src/resources/admin/organization/projects/users/roles.ts">delete</a>(roleID, { ...params }) -> RoleDeleteResponse</code>
+
+#### ServiceAccounts
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/service-accounts/service-accounts.ts">ProjectServiceAccount</a></code>
+- <code><a href="./src/resources/admin/organization/projects/service-accounts/service-accounts.ts">ServiceAccountCreateResponse</a></code>
+- <code><a href="./src/resources/admin/organization/projects/service-accounts/service-accounts.ts">ServiceAccountDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/projects/{project_id}/service_accounts">client.admin.organization.projects.serviceAccounts.<a href="./src/resources/admin/organization/projects/service-accounts/service-accounts.ts">create</a>(projectID, { ...params }) -> ServiceAccountCreateResponse</code>
+- <code title="get /organization/projects/{project_id}/service_accounts/{service_account_id}">client.admin.organization.projects.serviceAccounts.<a href="./src/resources/admin/organization/projects/service-accounts/service-accounts.ts">retrieve</a>(serviceAccountID, { ...params }) -> ProjectServiceAccount</code>
+- <code title="post /organization/projects/{project_id}/service_accounts/{service_account_id}">client.admin.organization.projects.serviceAccounts.<a href="./src/resources/admin/organization/projects/service-accounts/service-accounts.ts">update</a>(serviceAccountID, { ...params }) -> ProjectServiceAccount</code>
+- <code title="get /organization/projects/{project_id}/service_accounts">client.admin.organization.projects.serviceAccounts.<a href="./src/resources/admin/organization/projects/service-accounts/service-accounts.ts">list</a>(projectID, { ...params }) -> ProjectServiceAccountsPage</code>
+- <code title="delete /organization/projects/{project_id}/service_accounts/{service_account_id}">client.admin.organization.projects.serviceAccounts.<a href="./src/resources/admin/organization/projects/service-accounts/service-accounts.ts">delete</a>(serviceAccountID, { ...params }) -> ServiceAccountDeleteResponse</code>
+
+##### APIKeys
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/service-accounts/api-keys.ts">APIKeyCreateResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/projects/{project_id}/service_accounts/{service_account_id}/api_keys">client.admin.organization.projects.serviceAccounts.apiKeys.<a href="./src/resources/admin/organization/projects/service-accounts/api-keys.ts">create</a>(serviceAccountID, { ...params }) -> APIKeyCreateResponse</code>
+
+#### APIKeys
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/api-keys.ts">ProjectAPIKey</a></code>
+- <code><a href="./src/resources/admin/organization/projects/api-keys.ts">APIKeyDeleteResponse</a></code>
+
+Methods:
+
+- <code title="get /organization/projects/{project_id}/api_keys/{api_key_id}">client.admin.organization.projects.apiKeys.<a href="./src/resources/admin/organization/projects/api-keys.ts">retrieve</a>(apiKeyID, { ...params }) -> ProjectAPIKey</code>
+- <code title="post /organization/projects/{project_id}/api_keys/{api_key_id}">client.admin.organization.projects.apiKeys.<a href="./src/resources/admin/organization/projects/api-keys.ts">update</a>(apiKeyID, { ...params }) -> ProjectAPIKey</code>
+- <code title="get /organization/projects/{project_id}/api_keys">client.admin.organization.projects.apiKeys.<a href="./src/resources/admin/organization/projects/api-keys.ts">list</a>(projectID, { ...params }) -> ProjectAPIKeysPage</code>
+- <code title="delete /organization/projects/{project_id}/api_keys/{api_key_id}">client.admin.organization.projects.apiKeys.<a href="./src/resources/admin/organization/projects/api-keys.ts">delete</a>(apiKeyID, { ...params }) -> APIKeyDeleteResponse</code>
+
+#### RateLimits
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/rate-limits.ts">ProjectRateLimit</a></code>
+
+Methods:
+
+- <code title="get /organization/projects/{project_id}/rate_limits">client.admin.organization.projects.rateLimits.<a href="./src/resources/admin/organization/projects/rate-limits.ts">listRateLimits</a>(projectID, { ...params }) -> ProjectRateLimitsPage</code>
+- <code title="post /organization/projects/{project_id}/rate_limits/{rate_limit_id}">client.admin.organization.projects.rateLimits.<a href="./src/resources/admin/organization/projects/rate-limits.ts">updateRateLimit</a>(rateLimitID, { ...params }) -> ProjectRateLimit</code>
+
+#### ModelPermissions
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/model-permissions.ts">ProjectModelPermissions</a></code>
+- <code><a href="./src/resources/admin/organization/projects/model-permissions.ts">ProjectModelPermissionsDeleted</a></code>
+
+Methods:
+
+- <code title="get /organization/projects/{project_id}/model_permissions">client.admin.organization.projects.modelPermissions.<a href="./src/resources/admin/organization/projects/model-permissions.ts">retrieve</a>(projectID) -> ProjectModelPermissions</code>
+- <code title="post /organization/projects/{project_id}/model_permissions">client.admin.organization.projects.modelPermissions.<a href="./src/resources/admin/organization/projects/model-permissions.ts">update</a>(projectID, { ...params }) -> ProjectModelPermissions</code>
+- <code title="delete /organization/projects/{project_id}/model_permissions">client.admin.organization.projects.modelPermissions.<a href="./src/resources/admin/organization/projects/model-permissions.ts">delete</a>(projectID) -> ProjectModelPermissionsDeleted</code>
+
+#### HostedToolPermissions
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/hosted-tool-permissions.ts">ProjectHostedToolPermissions</a></code>
+
+Methods:
+
+- <code title="get /organization/projects/{project_id}/hosted_tool_permissions">client.admin.organization.projects.hostedToolPermissions.<a href="./src/resources/admin/organization/projects/hosted-tool-permissions.ts">retrieve</a>(projectID) -> ProjectHostedToolPermissions</code>
+- <code title="post /organization/projects/{project_id}/hosted_tool_permissions">client.admin.organization.projects.hostedToolPermissions.<a href="./src/resources/admin/organization/projects/hosted-tool-permissions.ts">update</a>(projectID, { ...params }) -> ProjectHostedToolPermissions</code>
+
+#### Groups
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/groups/groups.ts">ProjectGroup</a></code>
+- <code><a href="./src/resources/admin/organization/projects/groups/groups.ts">GroupDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /organization/projects/{project_id}/groups">client.admin.organization.projects.groups.<a href="./src/resources/admin/organization/projects/groups/groups.ts">create</a>(projectID, { ...params }) -> ProjectGroup</code>
+- <code title="get /organization/projects/{project_id}/groups/{group_id}">client.admin.organization.projects.groups.<a href="./src/resources/admin/organization/projects/groups/groups.ts">retrieve</a>(groupID, { ...params }) -> ProjectGroup</code>
+- <code title="get /organization/projects/{project_id}/groups">client.admin.organization.projects.groups.<a href="./src/resources/admin/organization/projects/groups/groups.ts">list</a>(projectID, { ...params }) -> ProjectGroupsPage</code>
+- <code title="delete /organization/projects/{project_id}/groups/{group_id}">client.admin.organization.projects.groups.<a href="./src/resources/admin/organization/projects/groups/groups.ts">delete</a>(groupID, { ...params }) -> GroupDeleteResponse</code>
+
+##### Roles
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/groups/roles.ts">RoleCreateResponse</a></code>
+- <code><a href="./src/resources/admin/organization/projects/groups/roles.ts">RoleRetrieveResponse</a></code>
+- <code><a href="./src/resources/admin/organization/projects/groups/roles.ts">RoleListResponse</a></code>
+- <code><a href="./src/resources/admin/organization/projects/groups/roles.ts">RoleDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /projects/{project_id}/groups/{group_id}/roles">client.admin.organization.projects.groups.roles.<a href="./src/resources/admin/organization/projects/groups/roles.ts">create</a>(groupID, { ...params }) -> RoleCreateResponse</code>
+- <code title="get /projects/{project_id}/groups/{group_id}/roles/{role_id}">client.admin.organization.projects.groups.roles.<a href="./src/resources/admin/organization/projects/groups/roles.ts">retrieve</a>(roleID, { ...params }) -> RoleRetrieveResponse</code>
+- <code title="get /projects/{project_id}/groups/{group_id}/roles">client.admin.organization.projects.groups.roles.<a href="./src/resources/admin/organization/projects/groups/roles.ts">list</a>(groupID, { ...params }) -> RoleListResponsesPage</code>
+- <code title="delete /projects/{project_id}/groups/{group_id}/roles/{role_id}">client.admin.organization.projects.groups.roles.<a href="./src/resources/admin/organization/projects/groups/roles.ts">delete</a>(roleID, { ...params }) -> RoleDeleteResponse</code>
+
+#### Roles
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/roles.ts">RoleDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /projects/{project_id}/roles">client.admin.organization.projects.roles.<a href="./src/resources/admin/organization/projects/roles.ts">create</a>(projectID, { ...params }) -> Role</code>
+- <code title="get /projects/{project_id}/roles/{role_id}">client.admin.organization.projects.roles.<a href="./src/resources/admin/organization/projects/roles.ts">retrieve</a>(roleID, { ...params }) -> Role</code>
+- <code title="post /projects/{project_id}/roles/{role_id}">client.admin.organization.projects.roles.<a href="./src/resources/admin/organization/projects/roles.ts">update</a>(roleID, { ...params }) -> Role</code>
+- <code title="get /projects/{project_id}/roles">client.admin.organization.projects.roles.<a href="./src/resources/admin/organization/projects/roles.ts">list</a>(projectID, { ...params }) -> RolesPage</code>
+- <code title="delete /projects/{project_id}/roles/{role_id}">client.admin.organization.projects.roles.<a href="./src/resources/admin/organization/projects/roles.ts">delete</a>(roleID, { ...params }) -> RoleDeleteResponse</code>
+
+#### DataRetention
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/data-retention.ts">ProjectDataRetention</a></code>
+
+Methods:
+
+- <code title="get /organization/projects/{project_id}/data_retention">client.admin.organization.projects.dataRetention.<a href="./src/resources/admin/organization/projects/data-retention.ts">retrieve</a>(projectID) -> ProjectDataRetention</code>
+- <code title="post /organization/projects/{project_id}/data_retention">client.admin.organization.projects.dataRetention.<a href="./src/resources/admin/organization/projects/data-retention.ts">update</a>(projectID, { ...params }) -> ProjectDataRetention</code>
+
+#### SpendLimit
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/spend-limit.ts">ProjectSpendLimit</a></code>
+- <code><a href="./src/resources/admin/organization/projects/spend-limit.ts">ProjectSpendLimitDeleted</a></code>
+
+Methods:
+
+- <code title="get /organization/projects/{project_id}/spend_limit">client.admin.organization.projects.spendLimit.<a href="./src/resources/admin/organization/projects/spend-limit.ts">retrieve</a>(projectID) -> ProjectSpendLimit</code>
+- <code title="post /organization/projects/{project_id}/spend_limit">client.admin.organization.projects.spendLimit.<a href="./src/resources/admin/organization/projects/spend-limit.ts">update</a>(projectID, { ...params }) -> ProjectSpendLimit</code>
+- <code title="delete /organization/projects/{project_id}/spend_limit">client.admin.organization.projects.spendLimit.<a href="./src/resources/admin/organization/projects/spend-limit.ts">delete</a>(projectID) -> ProjectSpendLimitDeleted</code>
+
+#### SpendAlerts
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/spend-alerts.ts">ProjectSpendAlert</a></code>
+- <code><a href="./src/resources/admin/organization/projects/spend-alerts.ts">ProjectSpendAlertDeleted</a></code>
+
+Methods:
+
+- <code title="post /organization/projects/{project_id}/spend_alerts">client.admin.organization.projects.spendAlerts.<a href="./src/resources/admin/organization/projects/spend-alerts.ts">create</a>(projectID, { ...params }) -> ProjectSpendAlert</code>
+- <code title="get /organization/projects/{project_id}/spend_alerts/{alert_id}">client.admin.organization.projects.spendAlerts.<a href="./src/resources/admin/organization/projects/spend-alerts.ts">retrieve</a>(alertID, { ...params }) -> ProjectSpendAlert</code>
+- <code title="post /organization/projects/{project_id}/spend_alerts/{alert_id}">client.admin.organization.projects.spendAlerts.<a href="./src/resources/admin/organization/projects/spend-alerts.ts">update</a>(alertID, { ...params }) -> ProjectSpendAlert</code>
+- <code title="get /organization/projects/{project_id}/spend_alerts">client.admin.organization.projects.spendAlerts.<a href="./src/resources/admin/organization/projects/spend-alerts.ts">list</a>(projectID, { ...params }) -> ProjectSpendAlertsPage</code>
+- <code title="delete /organization/projects/{project_id}/spend_alerts/{alert_id}">client.admin.organization.projects.spendAlerts.<a href="./src/resources/admin/organization/projects/spend-alerts.ts">delete</a>(alertID, { ...params }) -> ProjectSpendAlertDeleted</code>
+
+#### Certificates
+
+Types:
+
+- <code><a href="./src/resources/admin/organization/projects/certificates.ts">CertificateListResponse</a></code>
+- <code><a href="./src/resources/admin/organization/projects/certificates.ts">CertificateActivateResponse</a></code>
+- <code><a href="./src/resources/admin/organization/projects/certificates.ts">CertificateDeactivateResponse</a></code>
+
+Methods:
+
+- <code title="get /organization/projects/{project_id}/certificates">client.admin.organization.projects.certificates.<a href="./src/resources/admin/organization/projects/certificates.ts">list</a>(projectID, { ...params }) -> CertificateListResponsesPage</code>
+- <code title="post /organization/projects/{project_id}/certificates/activate">client.admin.organization.projects.certificates.<a href="./src/resources/admin/organization/projects/certificates.ts">activate</a>(projectID, { ...params }) -> CertificateActivateResponsesPage</code>
+- <code title="post /organization/projects/{project_id}/certificates/deactivate">client.admin.organization.projects.certificates.<a href="./src/resources/admin/organization/projects/certificates.ts">deactivate</a>(projectID, { ...params }) -> CertificateDeactivateResponsesPage</code>
+
+# [Responses](src/resources/responses/api.md)
+
+# [Live](src/resources/live/api.md)
+
+# [Realtime](src/resources/realtime/api.md)
+
+# [Conversations](src/resources/conversations/api.md)
+
+# Evals
+
+Types:
+
+- <code><a href="./src/resources/evals/evals.ts">EvalCustomDataSourceConfig</a></code>
+- <code><a href="./src/resources/evals/evals.ts">EvalStoredCompletionsDataSourceConfig</a></code>
+- <code><a href="./src/resources/evals/evals.ts">EvalCreateResponse</a></code>
+- <code><a href="./src/resources/evals/evals.ts">EvalRetrieveResponse</a></code>
+- <code><a href="./src/resources/evals/evals.ts">EvalUpdateResponse</a></code>
+- <code><a href="./src/resources/evals/evals.ts">EvalListResponse</a></code>
+- <code><a href="./src/resources/evals/evals.ts">EvalDeleteResponse</a></code>
+
+Methods:
+
+- <code title="post /evals">client.evals.<a href="./src/resources/evals/evals.ts">create</a>({ ...params }) -> EvalCreateResponse</code>
+- <code title="get /evals/{eval_id}">client.evals.<a href="./src/resources/evals/evals.ts">retrieve</a>(evalID) -> EvalRetrieveResponse</code>
+- <code title="post /evals/{eval_id}">client.evals.<a href="./src/resources/evals/evals.ts">update</a>(evalID, { ...params }) -> EvalUpdateResponse</code>
+- <code title="get /evals">client.evals.<a href="./src/resources/evals/evals.ts">list</a>({ ...params }) -> EvalListResponsesPage</code>
+- <code title="delete /evals/{eval_id}">client.evals.<a href="./src/resources/evals/evals.ts">delete</a>(evalID) -> EvalDeleteResponse</code>
+
+## Runs
+
+Types:
+
+- <code><a href="./src/resources/evals/runs/runs.ts">CreateEvalCompletionsRunDataSource</a></code>
+- <code><a href="./src/resources/evals/runs/runs.ts">CreateEvalJSONLRunDataSource</a></code>
+- <code><a href="./src/resources/evals/runs/runs.ts">EvalAPIError</a></code>
+- <code><a href="./src/resources/evals/runs/runs.ts">RunCreateResponse</a></code>
+- <code><a href="./src/resources/evals/runs/runs.ts">RunRetrieveResponse</a></code>
+- <code><a href="./src/resources/evals/runs/runs.ts">RunListResponse</a></code>
+- <code><a href="./src/resources/evals/runs/runs.ts">RunDeleteResponse</a></code>
+- <code><a href="./src/resources/evals/runs/runs.ts">RunCancelResponse</a></code>
+
+Methods:
+
+- <code title="post /evals/{eval_id}/runs">client.evals.runs.<a href="./src/resources/evals/runs/runs.ts">create</a>(evalID, { ...params }) -> RunCreateResponse</code>
+- <code title="get /evals/{eval_id}/runs/{run_id}">client.evals.runs.<a href="./src/resources/evals/runs/runs.ts">retrieve</a>(runID, { ...params }) -> RunRetrieveResponse</code>
+- <code title="get /evals/{eval_id}/runs">client.evals.runs.<a href="./src/resources/evals/runs/runs.ts">list</a>(evalID, { ...params }) -> RunListResponsesPage</code>
+- <code title="delete /evals/{eval_id}/runs/{run_id}">client.evals.runs.<a href="./src/resources/evals/runs/runs.ts">delete</a>(runID, { ...params }) -> RunDeleteResponse</code>
+- <code title="post /evals/{eval_id}/runs/{run_id}/cancel">client.evals.runs.<a href="./src/resources/evals/runs/runs.ts">cancel</a>(runID, { ...params }) -> RunCancelResponse</code>
+
+### OutputItems
+
+Types:
+
+- <code><a href="./src/resources/evals/runs/output-items.ts">OutputItemRetrieveResponse</a></code>
+- <code><a href="./src/resources/evals/runs/output-items.ts">OutputItemListResponse</a></code>
+
+Methods:
+
+- <code title="get /evals/{eval_id}/runs/{run_id}/output_items/{output_item_id}">client.evals.runs.outputItems.<a href="./src/resources/evals/runs/output-items.ts">retrieve</a>(outputItemID, { ...params }) -> OutputItemRetrieveResponse</code>
+- <code title="get /evals/{eval_id}/runs/{run_id}/output_items">client.evals.runs.outputItems.<a href="./src/resources/evals/runs/output-items.ts">list</a>(runID, { ...params }) -> OutputItemListResponsesPage</code>
+
+# Containers
+
+Types:
+
+- <code><a href="./src/resources/containers/containers.ts">ContainerCreateResponse</a></code>
+- <code><a href="./src/resources/containers/containers.ts">ContainerRetrieveResponse</a></code>
+- <code><a href="./src/resources/containers/containers.ts">ContainerListResponse</a></code>
+
+Methods:
+
+- <code title="post /containers">client.containers.<a href="./src/resources/containers/containers.ts">create</a>({ ...params }) -> ContainerCreateResponse</code>
+- <code title="get /containers/{container_id}">client.containers.<a href="./src/resources/containers/containers.ts">retrieve</a>(containerID) -> ContainerRetrieveResponse</code>
+- <code title="get /containers">client.containers.<a href="./src/resources/containers/containers.ts">list</a>({ ...params }) -> ContainerListResponsesPage</code>
+- <code title="delete /containers/{container_id}">client.containers.<a href="./src/resources/containers/containers.ts">delete</a>(containerID) -> void</code>
+
+## Files
+
+Types:
+
+- <code><a href="./src/resources/containers/files/files.ts">FileCreateResponse</a></code>
+- <code><a href="./src/resources/containers/files/files.ts">FileRetrieveResponse</a></code>
+- <code><a href="./src/resources/containers/files/files.ts">FileListResponse</a></code>
+
+Methods:
+
+- <code title="post /containers/{container_id}/files">client.containers.files.<a href="./src/resources/containers/files/files.ts">create</a>(containerID, { ...params }) -> FileCreateResponse</code>
+- <code title="get /containers/{container_id}/files/{file_id}">client.containers.files.<a href="./src/resources/containers/files/files.ts">retrieve</a>(fileID, { ...params }) -> FileRetrieveResponse</code>
+- <code title="get /containers/{container_id}/files">client.containers.files.<a href="./src/resources/containers/files/files.ts">list</a>(containerID, { ...params }) -> FileListResponsesPage</code>
+- <code title="delete /containers/{container_id}/files/{file_id}">client.containers.files.<a href="./src/resources/containers/files/files.ts">delete</a>(fileID, { ...params }) -> void</code>
+
+### Content
+
+Methods:
+
+- <code title="get /containers/{container_id}/files/{file_id}/content">client.containers.files.content.<a href="./src/resources/containers/files/content.ts">retrieve</a>(fileID, { ...params }) -> Response</code>
+
+# Skills
+
+Types:
+
+- <code><a href="./src/resources/skills/skills.ts">DeletedSkill</a></code>
+- <code><a href="./src/resources/skills/skills.ts">Skill</a></code>
+- <code><a href="./src/resources/skills/skills.ts">SkillList</a></code>
+
+Methods:
+
+- <code title="post /skills">client.skills.<a href="./src/resources/skills/skills.ts">create</a>({ ...params }) -> Skill</code>
+- <code title="get /skills/{skill_id}">client.skills.<a href="./src/resources/skills/skills.ts">retrieve</a>(skillID) -> Skill</code>
+- <code title="post /skills/{skill_id}">client.skills.<a href="./src/resources/skills/skills.ts">update</a>(skillID, { ...params }) -> Skill</code>
+- <code title="get /skills">client.skills.<a href="./src/resources/skills/skills.ts">list</a>({ ...params }) -> SkillsPage</code>
+- <code title="delete /skills/{skill_id}">client.skills.<a href="./src/resources/skills/skills.ts">delete</a>(skillID) -> DeletedSkill</code>
+
+## Content
+
+Methods:
+
+- <code title="get /skills/{skill_id}/content">client.skills.content.<a href="./src/resources/skills/content.ts">retrieve</a>(skillID) -> Response</code>
+
+## Versions
+
+Types:
+
+- <code><a href="./src/resources/skills/versions/versions.ts">DeletedSkillVersion</a></code>
+- <code><a href="./src/resources/skills/versions/versions.ts">SkillVersion</a></code>
+- <code><a href="./src/resources/skills/versions/versions.ts">SkillVersionList</a></code>
+
+Methods:
+
+- <code title="post /skills/{skill_id}/versions">client.skills.versions.<a href="./src/resources/skills/versions/versions.ts">create</a>(skillID, { ...params }) -> SkillVersion</code>
+- <code title="get /skills/{skill_id}/versions/{version}">client.skills.versions.<a href="./src/resources/skills/versions/versions.ts">retrieve</a>(version, { ...params }) -> SkillVersion</code>
+- <code title="get /skills/{skill_id}/versions">client.skills.versions.<a href="./src/resources/skills/versions/versions.ts">list</a>(skillID, { ...params }) -> SkillVersionsPage</code>
+- <code title="delete /skills/{skill_id}/versions/{version}">client.skills.versions.<a href="./src/resources/skills/versions/versions.ts">delete</a>(version, { ...params }) -> DeletedSkillVersion</code>
+
+### Content
+
+Methods:
+
+- <code title="get /skills/{skill_id}/versions/{version}/content">client.skills.versions.content.<a href="./src/resources/skills/versions/content.ts">retrieve</a>(version, { ...params }) -> Response</code>
+
+# Videos
+
+Types:
+
+- <code><a href="./src/resources/videos.ts">ImageInputReferenceParam</a></code>
+- <code><a href="./src/resources/videos.ts">Video</a></code>
+- <code><a href="./src/resources/videos.ts">VideoCreateError</a></code>
+- <code><a href="./src/resources/videos.ts">VideoModel</a></code>
+- <code><a href="./src/resources/videos.ts">VideoSeconds</a></code>
+- <code><a href="./src/resources/videos.ts">VideoSize</a></code>
+- <code><a href="./src/resources/videos.ts">VideoDeleteResponse</a></code>
+- <code><a href="./src/resources/videos.ts">VideoCreateCharacterResponse</a></code>
+- <code><a href="./src/resources/videos.ts">VideoGetCharacterResponse</a></code>
+
+Methods:
+
+- <code title="post /videos">client.videos.<a href="./src/resources/videos.ts">create</a>({ ...params }) -> Video</code>
+- <code title="get /videos/{video_id}">client.videos.<a href="./src/resources/videos.ts">retrieve</a>(videoID) -> Video</code>
+- <code title="get /videos">client.videos.<a href="./src/resources/videos.ts">list</a>({ ...params }) -> VideosPage</code>
+- <code title="delete /videos/{video_id}">client.videos.<a href="./src/resources/videos.ts">delete</a>(videoID) -> VideoDeleteResponse</code>
+- <code title="post /videos/characters">client.videos.<a href="./src/resources/videos.ts">createCharacter</a>({ ...params }) -> VideoCreateCharacterResponse</code>
+- <code title="get /videos/{video_id}/content">client.videos.<a href="./src/resources/videos.ts">downloadContent</a>(videoID, { ...params }) -> Response</code>
+- <code title="post /videos/edits">client.videos.<a href="./src/resources/videos.ts">edit</a>({ ...params }) -> Video</code>
+- <code title="post /videos/extensions">client.videos.<a href="./src/resources/videos.ts">extend</a>({ ...params }) -> Video</code>
+- <code title="get /videos/characters/{character_id}">client.videos.<a href="./src/resources/videos.ts">getCharacter</a>(characterID) -> VideoGetCharacterResponse</code>
+- <code title="post /videos/{video_id}/remix">client.videos.<a href="./src/resources/videos.ts">remix</a>(videoID, { ...params }) -> Video</code>

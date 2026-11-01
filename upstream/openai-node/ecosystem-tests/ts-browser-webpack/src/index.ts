@@ -1,0 +1,249 @@
+import OpenAI, { toFile } from 'openai';
+import { distance } from 'fastest-levenshtein';
+import { bedrock } from 'openai/providers/bedrock';
+import type { ChatCompletion } from 'openai/resources/chat/completions';
+
+type TestCase = {
+  path: string[];
+  run: () => any;
+  timeout?: number;
+};
+
+const tests: TestCase[] = [];
+
+type TestResult = { path: string[]; passed: boolean; error?: string };
+
+async function runTests() {
+  const results: TestResult[] = [];
+  function displayResults() {
+    let pre = document.querySelector('#results');
+    if (!pre) {
+      pre = document.createElement('pre');
+      pre.id = 'results';
+      document.body.append(pre);
+    }
+    pre.textContent = JSON.stringify(results, null, 2);
+  }
+  for (const { path, run, timeout } of tests) {
+    console.log('running', ...path);
+    try {
+      await Promise.race([
+        run(),
+        new Promise((_resolve, reject) =>
+          setTimeout(() => reject(new Error(`Test timed out after ${timeout} ms`)), timeout),
+        ),
+      ]);
+      console.log('passed', ...path);
+      results.push({ path, passed: true });
+    } catch (error) {
+      console.log('error', ...path);
+      console.error(error);
+      results.push({ path, passed: false, error: error instanceof Error ? error.stack : String(error) });
+    }
+    displayResults();
+  }
+  const runningEl = document.querySelector('#running');
+  if (runningEl) {runningEl.remove();}
+}
+
+const testPath: string[] = [];
+
+function describe(description: string, handler: () => void) {
+  testPath.push(description);
+  try {
+    handler();
+  } finally {
+    testPath.pop();
+  }
+}
+
+function it(description: string, run: () => any, timeout = 60_000) {
+  tests.push({ path: [...testPath, description], run, timeout });
+}
+
+function expect(received: any) {
+  return {
+    toEqual(expected: any): void {
+      if (!Object.is(received, expected)) {
+        throw new Error(
+          [`Received: ${JSON.stringify(received)}`, `Expected: ${JSON.stringify(expected)}`].join('\n'),
+        );
+      }
+    },
+    toBeSimilarTo(comparedTo: string, expectedDistance: number) {
+      const actualDistance = distance(received, comparedTo);
+      if (actualDistance < expectedDistance) {return;}
+
+      throw new Error(
+        [
+          `Received: ${JSON.stringify(received)}`,
+          `Expected: ${JSON.stringify(comparedTo)}`,
+          `Expected distance: ${expectedDistance}`,
+          `Received distance: ${actualDistance}`,
+        ].join('\n'),
+      );
+    },
+  };
+}
+
+const url = 'https://audio-samples.github.io/samples/mp3/blizzard_biased/sample-1.mp3';
+const filename = 'sample-1.mp3';
+
+const correctAnswer =
+  'It was anxious to find him no one that expectation of a man who were giving his father enjoyment. But he was avoided in sight in the minister to which indeed,';
+const model = 'whisper-1';
+
+const apiKey = (
+  // SAFETY: The browser test launcher injects this optional global flag; the code handles its absence before running the configured path.
+  globalThis as typeof globalThis & { __OPENAI_ECOSYSTEM_TEST_API_KEY__?: string }
+).__OPENAI_ECOSYSTEM_TEST_API_KEY__;
+
+const client = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+
+it('supports Bedrock bearer authentication without AWS dependencies', async () => {
+  let authorization: string | null = null;
+  const bedrockClient = new OpenAI({
+    provider: bedrock({ region: 'us-east-1', apiKey: 'bedrock-token' }),
+    dangerouslyAllowBrowser: true,
+    fetch: async (_url, init) => {
+      authorization = new Headers(init?.headers).get('authorization');
+      return new Response('{}', { headers: { 'Content-Type': 'application/json' } });
+    },
+  });
+
+  await bedrockClient.request({ method: 'get', path: '/models' });
+
+  expect(authorization).toEqual('Bearer bedrock-token');
+});
+
+async function typeTests() {
+  // @ts-expect-error this should error if the `Uploadable` type was resolved correctly
+  await client.audio.transcriptions.create({ file: { foo: true }, model: 'whisper-1' });
+  // @ts-expect-error this should error if the `Uploadable` type was resolved correctly
+  await client.audio.transcriptions.create({ file: null, model: 'whisper-1' });
+  // @ts-expect-error this should error if the `Uploadable` type was resolved correctly
+  await client.audio.transcriptions.create({ file: 'test', model: 'whisper-1' });
+}
+
+it(`raw response`, async () => {
+  const response = await client.chat.completions
+    .create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: 'Reply with exactly this text and nothing else: This is a test' }],
+    })
+    .asResponse();
+
+  // test that we can use web Response API
+  const { body } = response;
+  if (!body) {throw new Error('expected response.body to be defined');}
+
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let result;
+  do {
+    result = await reader.read();
+    if (!result.done) {chunks.push(result.value);}
+  } while (!result.done);
+
+  reader.releaseLock();
+
+  let offset = 0;
+  const merged = new Uint8Array(chunks.reduce((total, chunk) => total + chunk.length, 0));
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  const json: ChatCompletion = JSON.parse(new TextDecoder().decode(merged));
+  expect(json.choices[0]?.message.content || '').toBeSimilarTo('This is a test', 10);
+});
+
+it(`streaming works`, async () => {
+  const stream = await client.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: 'Reply with exactly this text and nothing else: This is a test' }],
+    stream: true,
+  });
+  const chunks = [];
+  for await (const part of stream) {
+    chunks.push(part);
+  }
+  expect(chunks.map((c) => c.choices[0]?.delta.content || '').join('')).toBeSimilarTo('This is a test', 10);
+});
+
+if (typeof File !== 'undefined') {
+  it('handles builtinFile', async () => {
+    const file = await fetch(url)
+      .then((x) => x.arrayBuffer())
+      .then((x) => new File([x], filename));
+
+    const result = await client.audio.transcriptions.create({ file, model });
+    expect(result.text).toBeSimilarTo(correctAnswer, 12);
+  });
+}
+
+it('handles Response', async () => {
+  const file = await fetch(url);
+
+  const result = await client.audio.transcriptions.create({ file, model });
+  expect(result.text).toBeSimilarTo(correctAnswer, 12);
+});
+
+const fineTune = `{"prompt": "<prompt text>", "completion": "<ideal generated text>"}`;
+
+describe('toFile', () => {
+  if (typeof Blob !== 'undefined') {
+    it('handles builtin Blob', async () => {
+      const result = await client.files.create({
+        file: await toFile(
+          // @ts-ignore avoid DOM lib for testing purposes
+          new Blob([new TextEncoder().encode(fineTune)]),
+          'finetune.jsonl',
+        ),
+        purpose: 'fine-tune',
+      });
+      expect(result.filename).toEqual('finetune.jsonl');
+    });
+  }
+  it('handles Uint8Array', async () => {
+    const result = await client.files.create({
+      file: await toFile(new TextEncoder().encode(fineTune), 'finetune.jsonl'),
+      purpose: 'fine-tune',
+    });
+    expect(result.filename).toEqual('finetune.jsonl');
+  });
+  it('handles ArrayBuffer', async () => {
+    const result = await client.files.create({
+      file: await toFile(new TextEncoder().encode(fineTune).buffer, 'finetune.jsonl'),
+      purpose: 'fine-tune',
+    });
+    expect(result.filename).toEqual('finetune.jsonl');
+  });
+  it('handles DataView', async () => {
+    const result = await client.files.create({
+      file: await toFile(new DataView(new TextEncoder().encode(fineTune).buffer), 'finetune.jsonl'),
+      purpose: 'fine-tune',
+    });
+    expect(result.filename).toEqual('finetune.jsonl');
+  });
+});
+
+const bundleOnly = (
+  // SAFETY: The browser test launcher injects this optional global flag; the code handles its absence before running the configured path.
+  globalThis as typeof globalThis & { __OPENAI_ECOSYSTEM_TEST_BUNDLE_ONLY__?: boolean }
+).__OPENAI_ECOSYSTEM_TEST_BUNDLE_ONLY__;
+
+if (bundleOnly) {
+  try {
+    const unprotectedClient = new OpenAI({ apiKey });
+    throw new Error(`Unexpected unprotected browser client: ${unprotectedClient.constructor.name}`);
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.includes('running in a browser-like environment')) {
+      throw error;
+    }
+  }
+
+  document.querySelector('#running')?.remove();
+} else {
+  runTests();
+}
