@@ -1,0 +1,60 @@
+name: Sync OpenAI repositories
+
+on:
+  schedule:
+    - cron: '41 1 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/sync-openai-repositories.yml
+      - scripts/sync_openai_repository.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-openai-repositories
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [codex-security, codex]
+    steps:
+      - name: Check out synchronization code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: main
+          path: automation
+          persist-credentials: false
+      - name: Check out target branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: sync/${{ matrix.name }}
+          path: target
+      - name: Import upstream tree
+        working-directory: target
+        env:
+          UPSTREAM_NAME: ${{ matrix.name }}
+        run: python3 ../automation/scripts/sync_openai_repository.py "$UPSTREAM_NAME"
+      - name: Commit and push
+        working-directory: target
+        env:
+          UPSTREAM_NAME: ${{ matrix.name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --cached --quiet; then
+            echo "No upstream file changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Sync openai/$UPSTREAM_NAME from upstream"
+          git push origin "HEAD:refs/heads/sync/$UPSTREAM_NAME"
