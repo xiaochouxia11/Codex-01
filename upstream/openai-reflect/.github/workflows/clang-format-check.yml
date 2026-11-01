@@ -1,0 +1,13 @@
+name: clang-format Check
+on: [push, pull_request]
+jobs:
+  formatting-check:
+    name: Formatting Check
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+    - name: Run clang-format style check for C/C++/Protobuf programs.
+      uses: jidicula/clang-format-action@cb23d60ccc80b0e718ee4832b50084ce764a1bd3 # v4.13.0
+      with:
+        clang-format-version: '17'
+        check-path: 'main'
