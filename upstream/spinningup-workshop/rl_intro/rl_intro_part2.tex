@@ -1,0 +1,624 @@
+\documentclass[9pt]{beamer}
+\usepackage{beamerthemesplit}
+%\usepackage{times}
+\usepackage{graphicx}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+%\usepackage{thmtools,thm-restate}
+\usepackage[font=small]{caption}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{animate}
+\usepackage{media9}
+\usepackage{multimedia}
+\usepackage{hyperref}
+\usepackage{cancel}
+
+\usetheme{Madrid}
+
+\graphicspath{{./images/}}
+
+\AtBeginSection[]{
+  \begin{frame}
+  \vfill
+  \centering
+  \begin{beamercolorbox}[sep=8pt,center,shadow=true,rounded=true]{title}
+    \usebeamerfont{title}\insertsectionhead\par%
+  \end{beamercolorbox}
+  \vfill
+  \end{frame}
+}
+
+
+\newcommand{\underE}[2]{\underset{\begin{subarray}{c}#1 \end{subarray}}{\E}\left[ #2 \right]}
+
+
+\newcommand\Fontvi{\fontsize{6}{7.2}\selectfont}
+\renewcommand{\d}[1]{\ensuremath{\operatorname{d}\!{#1}}}
+
+\newcommand{\twocolumns}[4]{
+\begin{columns}
+\begin{column}{#1\textwidth}
+    #3
+\end{column}
+\begin{column}{#2\textwidth}
+	#4
+\end{column}
+\end{columns}
+}
+
+\usepackage{listings}
+\usepackage{color}
+\usepackage{courier}
+ 
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize\ttfamily,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    %numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+ 
+\lstdefinestyle{mystyle2}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\tiny\ttfamily,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    %numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstdefinestyle{mystyle3}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\scriptsize\ttfamily,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    %numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle3}
+
+
+\begin{document}
+\input{exercises_def.tex}
+
+\title{Introduction to Deep RL, Part 2}
+\author{Joshua Achiam}
+\institute{OpenAI}
+\titlegraphic{\includegraphics[height=2cm]{spinning-up-logo2}}
+%\date{March 3, 2018}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+
+\section{2.1: What is RL currently achieving?}
+
+\begin{frame}{What RL Can Currently Do: RL in Simulation}
+
+\twocolumns{0.5}{0.5}{
+If you have infinite simulator data and well-defined rewards, you can make substantial progress on extremely hard problems!
+\begin{itemize}
+\item Atari
+\item Simulated robotics
+\item Go (Deepmind's AlphaZero)
+\item Dota (OpenAI Five)
+\item Starcraft (Deepmind's AlphaStar)
+\end{itemize}
+}{
+\includegraphics[width=\textwidth]{p2-five}
+
+\includegraphics[width=\textwidth]{p2-alphastar}
+}
+\end{frame}
+
+\begin{frame}{Spotlight on AlphaGo}
+
+\twocolumns{0.6}{0.4}{
+\includegraphics[width=\textwidth]{p2-alphago}
+}{
+Hard to overstate what an unbelievable accomplishment this was
+
+\vspace{2em}
+
+Previously: Go was considered unassailable stronghold for human experts, AI 10+ years away
+}
+
+\end{frame}
+
+\begin{frame}{What RL Can Currently Do: RL in the Real World}
+
+\twocolumns{0.5}{0.5}{
+RL is beginning to see profitable real-world applications!
+\begin{itemize}
+\item Facebook uses RL (DQN) for push notifications (Horizon)
+\item DeepMind integrated RL into data center cooling 
+\item Several promising early efforts at applying RL for robotics
+\end{itemize}
+}{
+
+\includegraphics[width=\textwidth]{p2-horizon}
+
+
+\includegraphics[width=\textwidth]{p2-datacenter}
+}
+
+\end{frame}
+
+\section{2.1.1: Spotlight on RL for Real-World Robotics}
+
+
+\begin{frame}{Tasks that can't easily be simulated}
+
+Zhu et al. trained low-cost robots from scratch in the real world on hard-to-simulate tasks using natural policy gradient. (Note: observation space here is hand state and valve state)
+
+\begin{center}
+\movie[width=0.8\textwidth, autostart, loop]{\includegraphics[width=0.8\textwidth]{p2-foamscrew}}{images/p2-foamscrew.mp4}
+\end{center}
+
+
+\footnotemark[1]{Zhu et al, 2018: ``Dexterous Manipulation with Deep Reinforcement Learning: Efficient, General, and Low-Cost"}
+
+\end{frame}
+
+\begin{frame}{Robots that are hard to control conventionally}
+
+Zhang et al. trained a tensegrity robot with deep RL in simulation and demonstrated transfer to the real world
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{p2-tensegrity}
+\end{figure}
+
+
+\footnotemark[1]{Zhang et al, 2016: ``Deep Reinforcement Learning for Tensegrity Robot Locomotion"}
+\end{frame}
+
+\begin{frame}{Soft Actor-Critic}
+
+Haarnoja et al. trained robots in the real world with Soft Actor-Critic, and demonstrated efficient and robust control on hard domains
+
+\twocolumns{0.5}{0.5}{
+\begin{center}
+\movie[width=0.9\textwidth, autostart, loop]{\includegraphics[width=0.9\textwidth]{p2-sac-valve}}{images/p2-sac-valve.mp4}
+\end{center}
+Manipulation from visual input, agent sees lower-right (took 20 hours to learn)
+}{
+\begin{center}
+\movie[width=\textwidth, autostart, loop]{\includegraphics[width=\textwidth]{p2-sac-minitaur}}{images/p2-sac-minitaur.mp4}
+\end{center}
+Robust control of a legged robot (took 2 hours to learn)
+}
+
+\vspace{1em}
+
+\footnotemark[1]{Haarnoja et al, 2018: ``Soft Actor-Critic Algorithms and Applications"}
+
+\end{frame}
+
+\begin{frame}{Anymal}
+
+Hwangbo et al. used real data to learn a better simulator, and then used lots of simulator data to train complex locomotion and recovery policies with TRPO for the Anymal robot:
+
+\begin{center}
+\movie[width=0.8\textwidth, autostart, loop]{\includegraphics[width=0.8\textwidth]{p2-anymal}}{images/p2-anymal.mp4}
+\end{center}
+
+\footnotemark[1]{Hwangbo et al, 2018: ``Learning agile and dynamic motor skills for legged robots"}
+\end{frame}
+
+\begin{frame}{Learning Dexterity}
+
+OpenAI et al. trained policies with PPO to dextrously manipulate a complex hand robot, using sim2real by domain randomization:
+
+\begin{center}
+\movie[width=0.8\textwidth, autostart, loop]{\includegraphics[width=0.8\textwidth]{p2-dexterity}}{images/p2-dexterity.mov}
+\end{center}
+
+\footnotemark[1]{OpenAI et al, 2018: ``Learning Dexterous In-Hand Manipulation"}
+
+\end{frame}
+
+\section{2.2: What are the challenges in modern RL?}
+
+\begin{frame}{Some grand challenges for RL}
+
+Let's talk about where RL fails, what we need that we aren't getting, and what research is happening.
+
+\begin{itemize}
+\item \textbf{Sample efficiency}: Modern deep RL algorithms are very inefficient with data, requiring in some cases 100x or more experience than a human to achieve good performance. How can we make them faster?
+\pause
+\item \textbf{Exploration}: Modern RL is terrible at environments where rewards are very rare---how can we get agents to try out new things?
+\pause
+\item \textbf{Generalization}: Policies trained for one task are brittle and cannot be used outside of training environment: how can we make them generalize?
+\pause
+\item \textbf{Safety}: How can we make sure that agents trained by deep RL behave in ways consistent with human preferences? {\color{red} (I'll let Dario cover this in his talk, but it's a critical challenge and I would be remiss not to mention it.)}
+\end{itemize}
+
+\end{frame}
+
+\section{2.2.1: Research on Improving Sample Efficiency}
+
+\begin{frame}{Combining Model-Free Improvements}
+\twocolumns{0.5}{0.5}{
+\textbf{Rainbow DQN}: combines...
+\begin{itemize}
+\item Dueling architecture
+\item Double Q-Learning
+\item Prioritized experience replay
+\item N-step Q-Learning
+\item Distributional Q-Learning
+\item Parameter-space noise
+\end{itemize}
+}{
+\includegraphics[width=\textwidth]{p2-rainbow}
+}
+\footnotemark[1]{Hessel et al, 2017: ``Rainbow: Combining Improvements in Deep Reinforcement Learning"}
+
+\end{frame}
+
+\begin{frame}{Accelerating Feature Learning with Unsupervised Learning}
+
+\textbf{UNREAL} uses various unsupervised auxilliary tasks to speed up learning:
+
+\twocolumns{0.5}{0.5}{
+\begin{center}
+\includegraphics[width=0.9\textwidth]{p2-unreal2}
+\end{center}
+}{
+\begin{center}
+\includegraphics[width=0.9\textwidth]{p2-unreal-labyrinth}
+\end{center}
+}
+\vspace{1em}
+
+\footnotemark[1]{Jaderberg et al, 2016: ``Reinforcement Learning with Unsupervised Auxiliary Tasks"}
+
+
+%
+%\begin{center}
+%\movie[width=0.8\textwidth, autostart, loop]{\includegraphics[width=0.8\textwidth]{p2-unreal}}{images/p2-unreal.mp4}
+%\end{center}
+
+\end{frame}
+
+\begin{frame}{Combining with Memory Mechanisms}
+
+\textbf{MERLIN} combines unsupervised learning and attention-based memory to improve over baseline architectures:
+
+\twocolumns{0.5}{0.5}{
+\begin{center}
+\includegraphics[width=0.9\textwidth]{p2-merlin1}
+\end{center}
+}{
+\begin{center}
+\includegraphics[width=0.9\textwidth]{p2-merlin2}
+\end{center}
+}
+
+Note: this avenue may not help on arbitrary problems, but seems likely to help on sophisticated partially-observed ones
+\vspace{1em}
+
+\footnotemark[1]{Wayne et al, 2018: ``Unsupervised Predictive Memory in a Goal-Directed Agent"}
+
+\end{frame}
+
+\begin{frame}{Model-Based RL}
+
+Techniques like \textbf{World Models}, that allow an agent to learn from simulated experience, are another way to bring down the needed number of real samples:
+
+\begin{center}
+\movie[width=0.8\textwidth, autostart, loop]{\includegraphics[width=0.8\textwidth]{world_models}}{images/world_models.mp4}
+\end{center}
+
+\footnotemark[1]{Ha and Schmidhuber, 2018: ``World Models"}
+
+\end{frame}
+
+
+\section{2.2.2: Research on Improving Exploration}
+
+\begin{frame}{AKA, the Quest to Solve Montezuma's Revenge}
+
+\begin{center}
+\includegraphics[width=0.9\textwidth]{p2-montezuma}
+\end{center}
+
+\begin{itemize}
+\item Famously hard Atari game
+\item Most RL algorithms do terribly
+\item Very sparse rewards, many actions lead to death
+\item But humans can do just fine!
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Intrinsic Motivation}
+
+Various \textbf{intrinsic motivation} schemes exist, which work by adding a non-environment-dependent reward:
+%
+\begin{equation*}
+R(s,a,s') \to R(s,a,s') + \eta R_{int}(s,a,s')
+\end{equation*}
+
+Usually, intrinsic reward prefers \textbf{new experiences}. Examples:
+%
+\begin{itemize}
+\item Pseudocount-based methods\footnote{Bellemare et al, 2016: ``Unifying Count-Based Exploration and Intrinsic Motivation"}: approximates number of state visitations with density model, rewards are:
+%
+\begin{equation*}
+R_{int}(s,a,s') \propto \frac{1}{\sqrt{N(s)}}
+\end{equation*}
+\item Information gain\footnote{Houthooft et al, 2016: ``Variational Information Maximizing Exploration"}: approximates change in info state about environment model based on new experience
+%
+\begin{equation*}
+R_{int}(s,a,s') \approx D_{KL}(P(\calE|\calD_t,s_{t+1})||P(\calE|\calD_t))
+\end{equation*}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Random Network Distillation}
+
+\textbf{Random Network Distillation}\footnote{Burda et al, 2018: ``Exploration by Random Network Distillation"}: A new and appealingly simple form of intrinsic motivation:
+%
+\begin{equation*}
+R_{int}(s) = \|f_{\phi}(s) - f_{\xi}(s)\|,
+\end{equation*}
+%
+where $f_{\phi}$ is a random neural network (the target) and $f_{\xi}$ is trained to match $f_{\phi}$
+
+\begin{itemize}
+\item Exploits generalization properties of networks: $f_{\phi}$ matches $f_{\xi}$ on old states but not new states!
+\end{itemize}
+
+
+\begin{center}
+\includegraphics[width=0.8\textwidth]{p2-rnd-atari}
+\end{center}
+\end{frame}
+
+\begin{frame}{Go-Explore}
+
+Ecoffet et al, 2018 identify a problem with intrinsic motivation that they call \textbf{detachment}:
+
+\begin{center}
+\includegraphics[width=0.8\textwidth]{p2-detach}
+\end{center}
+
+\end{frame}
+
+\begin{frame}{Go-Explore}
+
+They rectify detachment with \textbf{Go-Explore}\footnote{Ecoffet et al, 2018: ``Go-Explore: a New Approach for Hard-Exploration Problems"} algorithm:
+
+\begin{center}
+\includegraphics[width=0.8\textwidth]{p2-go-explore}
+
+\includegraphics[width=0.4\textwidth]{p2-go-explore2}
+\end{center}
+
+\end{frame}
+
+
+
+\section{2.2.3: Research on Generalization}
+
+\begin{frame}{Hindsight Experience Replay}
+
+Simple idea behind \textbf{HER}\footnote{Andrychowicz et al, 2017: ``Hindsight Experience Replay"}: 
+\begin{itemize}
+\item If you are trying to learn to go to a goal, goals are hard to get to. 
+\item Unless you pretend that the place you ended up was where you meant to go: then you get to goals all the time!
+\end{itemize}
+
+\twocolumns{0.5}{0.5}{
+\begin{center}
+\includegraphics[width=0.9\textwidth]{p2-her}
+\end{center}
+}{
+\begin{center}
+\includegraphics[width=0.9\textwidth]{p2-her2}
+\end{center}
+}
+\end{frame}
+
+
+\begin{frame}{POET}
+
+\textbf{Paired Open-Ended Trailblazer (POET)}\footnote{Wang et al, 2019: ``Paired Open-Ended Trailblazer (POET): Endlessly Generating Increasingly Complex and Diverse Learning Environments and Their Solutions
+"} is an algorithm for evolving populations of agent-environment pairs towards a mix of performance and diversity
+
+\begin{center}
+\includegraphics[width=0.6\textwidth]{p2-poet1}
+
+\includegraphics[width=0.6\textwidth]{p2-poet2}
+\end{center}
+
+Key idea: unboundedly complex environments challenge agents to develop robust, general behaviors
+\end{frame}
+
+\begin{frame}{Using Self-Play Systems}
+
+Competitive multi-agent games create natural curricula that inspire general behaviors (because any fault will get exploited by the opponent). In self-play, agents play games against old versions of themselves to improve:\footnote{Bansal et al, 2017: ``Emergent Complexity via Multi-Agent Competition"}
+
+\begin{center}
+\movie[width=0.5\textwidth, autostart, loop]{\includegraphics[width=0.5\textwidth]{p2-selfplay}}{images/p2-selfplay.mp4}
+\end{center}
+
+
+\end{frame}
+
+\begin{frame}{Generalize by Meta-Learning}
+
+\textbf{Model Agnostic Meta-Learning (MAML)}\footnote{Finn et al, 2017: ``Model-Agnostic Meta-Learning for Fast Adaptation of Deep Networks"} trains a model with an objective describing its adaptability: the model at optimum should only need a few gradient steps to quickly learn a new task.
+
+\begin{center}
+\includegraphics[width=4cm]{p2-maml}
+\end{center}
+
+\end{frame}
+
+\section{2.3: Spinning Up in Deep RL}
+
+\begin{frame}{Getting started}
+
+Whether you intend to be a practitioner or a researcher:
+\begin{itemize}
+\item Brush up on math! Be familiar with vectors, matrices, gradients, gradient descent, random variables, expectations, variance, and a few other things.
+\item Brush up on deep learning! \textbf{As much as you can get.}
+\item Become familiar with TF or PyTorch! \textbf{You need to tinker to learn.}
+\item Stay fresh on RL basics! \textbf{Fundamentals go a long way.}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{For maximum understanding: learn by doing}
+
+\begin{itemize}
+\item Write your own implementations
+\item Simplicity is critical
+\item Start with the basics: VPG, DQN, PPO, DDPG
+\item Focus on understanding: it's the only way you will catch bugs
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{How silent are silent RL bugs? Pop quiz:}
+
+\begin{lstlisting}[language=python]
+    for t in range(total_steps):
+        act = get_action(obs, epsilon)
+        next_obs, rew, done, _ = env.step(act)
+        replay_buffer.store(obs, act, rew, next_obs, done)
+        ep_ret += rew
+        ep_len += 1
+
+        if done:
+            epoch_rets.append(ep_ret)
+            epoch_lens.append(ep_len)
+            obs, rew, done, ep_ret, ep_len = env.reset(), 0, False, 0, 0
+
+        if t > steps_before_training:
+            batch = replay_buffer.sample_batch(batch_size)
+            feed_dict = {obs_ph: batch['obs1'],
+                         obs_targ_ph: batch['obs2'],
+                         act_ph: batch['acts'],
+                         rew_ph: batch['rews'],
+                         done_ph: batch['done']
+                         }
+            step_loss, cur_q, _ = sess.run([loss, q_vals, train_op], feed_dict=feed_dict)
+            epoch_losses.append(step_loss)
+            epoch_qs.append(cur_q)
+
+        if t % target_update_freq == 0:
+            sess.run(target_update_op)
+
+        epsilon = 1 + (final_epsilon - 1)*min(1, t/finish_decay)
+
+        if (t - steps_before_training) % steps_per_epoch == 0 and (t - steps_before_training)>0:
+            # handle logging outputs
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}{For maximum understanding: read the literature critically}
+
+\begin{itemize}
+\item If you read a paper, scour it: read all the ablations and search for tricks!
+\item Skip the hype: find the thing the author's embarassed to admit about why the method doesn't solve the whole field yet
+\item But don't overfit: sometimes researchers load more tricks than necessary and their idea is better than they realize
+\end{itemize}
+\end{frame}
+
+\begin{frame}{For maximum understanding: "Let all results count with you, but none too much"}
+
+\begin{itemize}
+\item Study existing implementations of algorithms, but don't overfit to them: they made trade-offs you don't have to
+\item Iterate fast in simple environments, but don't get too confident if your implementation (or new research idea) works in the simplest thing: everything that isn't bugged beats Cartpole, and so do some bugs
+\item But if it doesn't work, assume there's a bug
+\item Measure everything. But if your measurements say everything is fine while nothing's working, get new things to measure
+\item When things start to work, lean in, scale up!
+\item Keep these habits for research!
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{If you want to hack with RL tools that are out there...}
+
+\begin{itemize}
+\item OpenAI Gym, Baselines, and Spinning Up
+\item Many other algorithm libraries: rllab, rllib, rlkit, Intel's Coach, softlearning, ChainerRL, vel, Stable-Baselines, and more
+\item Very few primitives libraries: TRFL
+\item Note: there's not a ``Tensorflow for RL" yet: if you want it, you have to build it yourself
+\item RL currently ships as solutions as opposed to modular components
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{If you want to do research}
+
+\twocolumns{0.5}{0.5}{
+\begin{itemize}
+\item Do a deep dive in the literature
+\item Find something you enjoy and care about---``keep only those research ideas which spark joy"
+\item Consider approach 1: improve something that exists
+\item Consider approach 2: attack an unsolved benchmark
+\item Consider approach 3: invent a new problem
+\item But whatever you pick, really do a thorough lit review to make sure it's new!
+\end{itemize}
+}{
+\begin{center}
+\includegraphics[width=\textwidth]{virtuous_cycle2}
+\end{center}
+}
+\end{frame}
+
+\begin{frame}{End of Part 2}
+
+Thank you all! Questions?
+\end{frame}
+
+\end{document}
