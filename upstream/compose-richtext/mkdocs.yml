@@ -1,0 +1,37 @@
+site_name: Compose Richtext
+repo_name: compose-richtext
+repo_url: https://github.com/halilozercan/compose-richtext
+site_description: "A collection of Compose libraries for advanced text formatting and alternative display types."
+site_author: Halil Ozercan
+site_url: https://halilibo.com/compose-richtext
+remote_branch: gh-pages
+edit_uri: edit/main/docs/
+
+docs_dir: docs-gen
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.instant
+    - toc.autohide
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - admonition
+
+nav:
+  - index.md
+  - richtext-ui-material.md
+  - richtext-ui-material3.md
+  - richtext-ui.md
+  - richtext-markdown.md
+  - richtext-commonmark.md
+  - printing.md
+  - slideshow.md
+  - 'API Reference': api/
+  - Changelog: https://github.com/halilozercan/compose-richtext/releases

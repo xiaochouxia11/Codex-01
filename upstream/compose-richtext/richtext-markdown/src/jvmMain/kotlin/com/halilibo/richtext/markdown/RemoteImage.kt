@@ -1,0 +1,67 @@
+package com.halilibo.richtext.markdown
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.jetbrains.skia.Image.Companion.makeFromEncoded
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import java.net.HttpURLConnection
+import java.net.URI
+import java.util.Base64
+import javax.imageio.ImageIO
+
+@Composable
+internal actual fun MarkdownImage(
+  url: String,
+  contentDescription: String?,
+  modifier: Modifier,
+  contentScale: ContentScale
+) {
+  val image by produceState<ImageBitmap?>(null, url) {
+    if (url.startsWith("data:image") && url.contains("base64")) {
+      val base64ImageString = url.substringAfter("base64,")
+      value = makeFromEncoded(Base64.getDecoder().decode(base64ImageString)).toComposeImageBitmap()
+    } else {
+      loadFullImage(url)?.let {
+        value = makeFromEncoded(toByteArray(it)).toComposeImageBitmap()
+      }
+    }
+  }
+
+  if (image != null) {
+    Image(
+      bitmap = image!!,
+      contentDescription = contentDescription,
+      modifier = modifier,
+      contentScale = contentScale
+    )
+  }
+}
+
+private fun toByteArray(bitmap: BufferedImage): ByteArray {
+  val baos = ByteArrayOutputStream()
+  ImageIO.write(bitmap, "png", baos)
+  return baos.toByteArray()
+}
+
+private suspend fun loadFullImage(source: String): BufferedImage? = withContext(Dispatchers.IO) {
+  runCatching {
+    val connection = URI(source).toURL().openConnection() as HttpURLConnection
+    connection.connectTimeout = 5000
+    connection.connect()
+    try {
+      connection.inputStream.use(ImageIO::read)
+    } finally {
+      connection.disconnect()
+    }
+  }.getOrNull()
+}

@@ -1,0 +1,29 @@
+name: Doc Site
+
+on:
+  release:
+    # Build docs when a new release is created, so the API docs don't get out of date.
+    types: [ published ]
+  push:
+    branches:
+      # A specific branch to only update docs without going through a release cycle
+      - docs
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: 3.x
+      - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+      - name: Install dependencies
+        run: pip install mkdocs-material
+      - name: Generate docs
+        run: ./gen_dokka_docs.sh
+      - run: mkdocs gh-deploy --force
