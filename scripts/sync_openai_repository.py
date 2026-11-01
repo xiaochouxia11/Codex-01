@@ -40,5 +40,5 @@ def sync(name):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("name", choices=["codex", "codex-security"])
+    parser.add_argument("name", choices=["codex", "codex-security", "plugins"])
     sync(parser.parse_args().name)

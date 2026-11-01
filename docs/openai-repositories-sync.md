@@ -1,5 +1,7 @@
 # OpenAI 项目同步
 
+- openai/plugins → sync/plugins 分支 upstream/plugins/
+
 - openai/codex-security → sync/codex-security 分支 upstream/codex-security/
 - openai/codex → sync/codex 分支 upstream/codex/
 
