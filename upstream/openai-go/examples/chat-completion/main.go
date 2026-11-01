@@ -1,0 +1,35 @@
+package main
+
+import (
+	"context"
+
+	"github.com/openai/openai-go/examples/internal/errutil"
+	"github.com/openai/openai-go/v3"
+)
+
+func main() {
+	client := openai.NewClient()
+
+	ctx := context.Background()
+
+	question := "Write me a haiku"
+
+	print("> ")
+	println(question)
+	println()
+	params := openai.ChatCompletionNewParams{
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.UserMessage(question),
+		},
+		Seed:  openai.Int(0),
+		Model: openai.ChatModelGPT5_2,
+	}
+
+	completion, err := client.Chat.Completions.New(ctx, params)
+
+	if err != nil {
+		panic(errutil.Message(err))
+	}
+
+	println(completion.Choices[0].Message.Content)
+}

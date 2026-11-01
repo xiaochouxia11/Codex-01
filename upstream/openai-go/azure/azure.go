@@ -1,0 +1,728 @@
+// Package azure provides configuration options so you can connect and use Azure OpenAI using the [openai.Client].
+//
+// Typical usage of this package will look like this:
+//
+//	client := openai.NewClient(
+//		azure.WithEndpoint(azureOpenAIEndpoint, azureOpenAIAPIVersion),
+//		azure.WithTokenCredential(azureIdentityTokenCredential),
+//		// or azure.WithAPIKey(azureOpenAIAPIKey),
+//	)
+//
+// Or, if you want to construct a specific service:
+//
+//	client := openai.NewChatCompletionService(
+//		azure.WithEndpoint(azureOpenAIEndpoint, azureOpenAIAPIVersion),
+//		azure.WithTokenCredential(azureIdentityTokenCredential),
+//		// or azure.WithAPIKey(azureOpenAIAPIKey),
+//	)
+package azure
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"mime"
+	"mime/multipart"
+	"net"
+	"net/http"
+	"net/url"
+	"reflect"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
+	"github.com/openai/openai-go/v3/internal/requestconfig"
+	"github.com/openai/openai-go/v3/option"
+)
+
+const (
+	azureProvider            = "Azure"
+	azureAPIKeyAuth          = "azure.WithAPIKey"
+	azureTokenCredentialAuth = "azure.WithTokenCredential"
+)
+
+// WithEndpoint configures this client to connect to an Azure OpenAI endpoint.
+//
+//   - endpoint - the Azure OpenAI endpoint to connect to. Ex: https://<azure-openai-resource>.openai.azure.com
+//   - apiVersion - the Azure OpenAI API version to target (ex: 2024-06-01). See [Azure OpenAI apiversions] for current API versions. This value cannot be empty.
+//
+// Authenticated endpoints must use HTTPS unless [WithUnsafeAllowHTTP] is also
+// configured for a loopback-only local development endpoint.
+// Azure authentication also requires custom networking to use an [*http.Client]
+// with a custom [http.RoundTripper] so every redirect destination can be checked.
+// Trusted option.WithBaseURL overrides select the credential origin before
+// middleware runs; middleware cannot select a different initial origin.
+//
+// When switching an existing OpenAI client or service to Azure, inherited custom
+// headers, including organization and project headers, are removed. Supply any
+// headers needed by Azure in the same option call as Azure authentication or in
+// a later request option call.
+//
+// This function should be paired with a call to authenticate, like [azure.WithAPIKey] or [azure.WithTokenCredential], similar to this:
+//
+//	client := openai.NewClient(
+//		azure.WithEndpoint(azureOpenAIEndpoint, azureOpenAIAPIVersion),
+//		azure.WithTokenCredential(azureIdentityTokenCredential),
+//		// or azure.WithAPIKey(azureOpenAIAPIKey),
+//	)
+//
+// [Azure OpenAI apiversions]: https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#rest-api-versioning
+func WithEndpoint(endpoint string, apiVersion string) option.RequestOption {
+	if !strings.HasSuffix(endpoint, "/") {
+		endpoint += "/"
+	}
+
+	withQueryAdd := option.WithQueryAdd("api-version", apiVersion)
+	withEndpoint := option.WithBaseURL(endpoint)
+
+	withModelMiddleware := requestconfig.RequestOptionFunc(func(rc *requestconfig.RequestConfig) error {
+		// Keep the middleware in its original position, but capture the effective
+		// base path after client- and request-level endpoint options are applied.
+		var endpointPathPrefix string
+		return rc.Apply(
+			requestconfig.WithRequestFinalizer(func(rc *requestconfig.RequestConfig) error {
+				endpointPathPrefix = strings.TrimSuffix(rc.BaseURL.EscapedPath(), "/")
+				return nil
+			}),
+			option.WithMiddleware(func(r *http.Request, mn option.MiddlewareNext) (*http.Response, error) {
+				escapedPath := r.URL.EscapedPath()
+				prefix := ""
+				if relative, ok := strings.CutPrefix(escapedPath, endpointPathPrefix+"/"); ok {
+					prefix, escapedPath = endpointPathPrefix, "/"+relative
+				}
+				replacementPath, err := getReplacementPathWithDeployment(r, escapedPath)
+				if err != nil {
+					return nil, requestconfig.WithNoRetryError(err)
+				}
+				if err := setEscapedPath(r.URL, prefix+replacementPath); err != nil {
+					return nil, requestconfig.WithNoRetryError(err)
+				}
+				return mn(r)
+			}),
+		)
+	})
+
+	endpointOption := requestconfig.RequestOptionFunc(func(rc *requestconfig.RequestConfig) error {
+		if apiVersion == "" {
+			return errors.New("apiVersion is an empty string, but needs to be set. See https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#rest-api-versioning for details.")
+		}
+
+		return rc.Apply(
+			requestconfig.WithProviderEndpointConfigured(azureProvider),
+			withQueryAdd,
+			withEndpoint,
+			withModelMiddleware,
+			requestconfig.WithRequestFinalizer(finalizeAzureProvider),
+		)
+	})
+
+	return requestconfig.WithEnvironmentDefaultsDisabled(endpointOption)
+}
+
+type unsafeAllowHTTPContextKey struct{}
+
+type azureCredentialOriginContextKey struct{}
+
+type azureCredentialOrigin struct {
+	scheme string
+	host   string
+	port   string
+}
+
+// WithUnsafeAllowHTTP permits Azure credentials to be sent over plaintext HTTP
+// only when the final request destination is localhost or a loopback IP address.
+// This option is intended exclusively for local development and testing. It
+// should never be used in production. Plaintext loopback requests always use
+// a direct connection and bypass configured proxies and custom RoundTrippers.
+func WithUnsafeAllowHTTP() option.RequestOption {
+	return option.WithMiddleware(func(req *http.Request, next option.MiddlewareNext) (*http.Response, error) {
+		ctx := context.WithValue(req.Context(), unsafeAllowHTTPContextKey{}, true)
+		return next(req.WithContext(ctx))
+	})
+}
+
+type tokenCredentialConfig struct {
+	Scopes []string
+}
+
+// TokenCredentialOption is the type for any options that can be used to customize
+// [WithTokenCredential], including things like using custom scopes.
+type TokenCredentialOption func(*tokenCredentialConfig) error
+
+// WithTokenCredentialScopes overrides the default scope used when requesting access tokens.
+func WithTokenCredentialScopes(scopes []string) func(*tokenCredentialConfig) error {
+	return func(tc *tokenCredentialConfig) error {
+		tc.Scopes = scopes
+		return nil
+	}
+}
+
+// WithTokenCredential configures this client to authenticate using an [Azure Identity] TokenCredential.
+// This function should be paired with a call to [WithEndpoint] to point to your Azure OpenAI instance.
+//
+// [Azure Identity]: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/azidentity
+func WithTokenCredential(tokenCredential azcore.TokenCredential, options ...TokenCredentialOption) option.RequestOption {
+	directTransports := &azureDirectLoopbackTransportCache{}
+	return requestconfig.RequestOptionFunc(func(rc *requestconfig.RequestConfig) error {
+		if isNilTokenCredential(tokenCredential) {
+			return errors.New("azure: token credential must not be nil")
+		}
+		rc.ClearInheritedProviderHeaders(azureProvider)
+		auth := requestconfig.NewProviderAuthOption(azureProvider, azureTokenCredentialAuth)
+		if err := rc.Apply(requestconfig.WithEndpointProvider(azureProvider), auth); err != nil {
+			return err
+		}
+		rc.ClearInheritedAuthentication()
+		tc := &tokenCredentialConfig{
+			Scopes: []string{"https://cognitiveservices.azure.com/.default"},
+		}
+
+		for _, option := range options {
+			if err := option(tc); err != nil {
+				return err
+			}
+		}
+
+		bearerTokenPolicy := runtime.NewBearerTokenPolicy(tokenCredential, tc.Scopes, nil)
+		unsafeBearerTokenPolicy := runtime.NewBearerTokenPolicy(tokenCredential, tc.Scopes, &policy.BearerTokenOptions{
+			InsecureAllowCredentialWithHTTP: true,
+		})
+
+		// add in a middleware that uses the bearer token generated from the token credential
+		middlewareOption := withAzureCredentialMiddleware(func(req *http.Request, next option.MiddlewareNext) (*http.Response, error) {
+			if !auth.Selected(rc) {
+				return next(req)
+			}
+
+			tokenPolicy := bearerTokenPolicy
+			if azureCredentialHTTPAllowed(req) {
+				tokenPolicy = unsafeBearerTokenPolicy
+			}
+			// The shared request pipeline owns retries and request-body replay.
+			// Apply this both to the pipeline and the request context because azcore
+			// permits a context value to override the pipeline's retry options.
+			retryOptions := policy.RetryOptions{MaxRetries: -1}
+			pipeline := runtime.NewPipeline("azopenai-extensions", version, runtime.PipelineOptions{}, &policy.ClientOptions{
+				Retry: retryOptions,
+				PerRetryPolicies: []policy.Policy{
+					tokenPolicy,
+					policyAdapter(next),
+				},
+			})
+
+			req = req.WithContext(policy.WithRetryOptions(req.Context(), retryOptions))
+			req2, err := runtime.NewRequestFromRequest(req)
+
+			if err != nil {
+				return nil, err
+			}
+
+			return pipeline.Do(req2)
+		}, directTransports)
+
+		return rc.Apply(
+			middlewareOption,
+			requestconfig.WithRequestFinalizer(finalizeAzureProvider),
+		)
+	})
+}
+
+func isNilTokenCredential(tokenCredential azcore.TokenCredential) bool {
+	if tokenCredential == nil {
+		return true
+	}
+	value := reflect.ValueOf(tokenCredential)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
+}
+
+// WithAPIKey configures this client to authenticate using an API key.
+// This function should be paired with a call to [WithEndpoint] to point to your Azure OpenAI instance.
+func WithAPIKey(apiKey string) option.RequestOption {
+	// NOTE: option.WithAPIKey() uses the Authorization header. Azure expects
+	// Api-Key instead.
+	directTransports := &azureDirectLoopbackTransportCache{}
+	return requestconfig.RequestOptionFunc(func(rc *requestconfig.RequestConfig) error {
+		rc.ClearInheritedProviderHeaders(azureProvider)
+		auth := requestconfig.NewProviderAuthOption(azureProvider, azureAPIKeyAuth)
+		if err := rc.Apply(requestconfig.WithEndpointProvider(azureProvider), auth); err != nil {
+			return err
+		}
+		rc.ClearInheritedAuthentication()
+		return rc.Apply(
+			option.WithHeader("Api-Key", apiKey),
+			requestconfig.WithRequestFinalizer(finalizeAzureProvider),
+			withAzureCredentialMiddleware(func(req *http.Request, next option.MiddlewareNext) (*http.Response, error) {
+				return next(req)
+			}, directTransports),
+		)
+	})
+}
+
+func finalizeAzureProvider(rc *requestconfig.RequestConfig) error {
+	if !rc.ProviderEndpointConfigured(azureProvider) {
+		return errors.New("azure: authentication requires azure.WithEndpoint")
+	}
+	if rc.APIKey != "" || rc.AdminAPIKey != "" {
+		return errors.New("azure: Azure authentication cannot be combined with option.WithAPIKey or option.WithAdminAPIKey")
+	}
+
+	auth, ok := rc.ProviderAuth(azureProvider)
+	if !ok {
+		return errors.New("azure: authentication is required; configure exactly one of azure.WithAPIKey or azure.WithTokenCredential")
+	}
+	if nonEmptyHeaderValues(rc.Request.Header, "Authorization") != 0 {
+		return errors.New("azure: Azure authentication cannot be combined with a custom Authorization header")
+	}
+
+	switch auth {
+	case azureAPIKeyAuth:
+		if nonEmptyHeaderValues(rc.Request.Header, "Api-Key") != 1 {
+			return errors.New("azure: exactly one non-empty API key is required")
+		}
+	case azureTokenCredentialAuth:
+		if nonEmptyHeaderValues(rc.Request.Header, "Api-Key") != 0 {
+			return errors.New("azure: token credential authentication cannot be combined with an Api-Key header")
+		}
+	default:
+		return errors.New("azure: invalid authentication mode")
+	}
+	return nil
+}
+
+func nonEmptyHeaderValues(header http.Header, name string) int {
+	count := 0
+	for _, value := range header.Values(name) {
+		if strings.TrimSpace(value) != "" {
+			count++
+		}
+	}
+	return count
+}
+
+func withAzureCredentialMiddleware(authenticate option.Middleware, directTransports *azureDirectLoopbackTransportCache) option.RequestOption {
+	return requestconfig.WithRequestFinalizer(func(rc *requestconfig.RequestConfig) error {
+		if rc.BaseURL == nil {
+			return errors.New("azure: authentication requires azure.WithEndpoint")
+		}
+		if rc.CustomHTTPDoer != nil {
+			return errors.New("azure: custom HTTP clients must use *http.Client with a custom RoundTripper so redirects can be validated")
+		}
+		// Snapshot the effective endpoint after options, including trusted BaseURL
+		// overrides, but before middleware can rewrite the request destination.
+		endpoint := *rc.BaseURL
+		origin := azureCredentialOriginFromURL(&endpoint)
+
+		// Redirects run inside http.Client.Do and don't re-enter SDK middleware.
+		// Clone the selected client so every redirect reaches this guard without
+		// mutating the caller's client or replacing its CheckRedirect policy.
+		client := *rc.HTTPClient
+		transport := client.Transport
+		if transport == nil {
+			transport = http.DefaultTransport
+		}
+		client.Transport = requestconfig.WithCredentialRedirectGuard(
+			newAzureCredentialTransport(transport, directTransports),
+		)
+		rc.HTTPClient = &client
+
+		return option.WithMiddleware(func(req *http.Request, next option.MiddlewareNext) (*http.Response, error) {
+			// Initial requests must retain the configured origin and HTTP authority.
+			// The transport separately preserves the unsafe loopback redirect policy.
+			if !requestconfig.RequestHasOrigin(req, &endpoint) {
+				return requestconfig.RejectRequestOrigin(req)
+			}
+			ctx := context.WithValue(req.Context(), azureCredentialOriginContextKey{}, origin)
+			req = req.WithContext(ctx)
+			if err := validateAzureCredentialTransport(req); err != nil {
+				return nil, err
+			}
+			return authenticate(req, next)
+		}).Apply(rc)
+	})
+}
+
+type azureCredentialTransport struct {
+	base             http.RoundTripper
+	directTransports *azureDirectLoopbackTransportCache
+}
+
+func newAzureCredentialTransport(base http.RoundTripper, directTransports *azureDirectLoopbackTransportCache) azureCredentialTransport {
+	if guarded, ok := requestconfig.UnwrapCredentialRedirectGuard(base); ok {
+		base = guarded
+	}
+	if transport, ok := base.(azureCredentialTransport); ok {
+		return transport
+	}
+	return azureCredentialTransport{
+		base:             base,
+		directTransports: directTransports,
+	}
+}
+
+// azureDirectLoopbackTransportCache lazily gives each HTTP transport used for
+// unsafe loopback HTTP one direct pool for the lifetime of the Azure credential
+// option. Azure finalizers run per request, so constructing the direct transport
+// there would defeat keep-alive reuse and retain ordinary HTTPS overrides.
+type azureDirectLoopbackTransportCache struct {
+	transports sync.Map // map[*http.Transport]*http.Transport
+	fallback   sync.Once
+	direct     *http.Transport
+}
+
+func (c *azureDirectLoopbackTransportCache) get(base http.RoundTripper) *http.Transport {
+	if baseTransport, ok := base.(*http.Transport); ok {
+		if cached, ok := c.transports.Load(baseTransport); ok {
+			return cached.(*http.Transport)
+		}
+		direct := newAzureDirectLoopbackHTTPTransport(baseTransport)
+		cached, _ := c.transports.LoadOrStore(baseTransport, direct)
+		return cached.(*http.Transport)
+	}
+
+	c.fallback.Do(func() {
+		c.direct = newAzureDirectLoopbackHTTPTransport(base)
+	})
+	return c.direct
+}
+
+const (
+	azureDirectResponseHeaderTimeout = 10 * time.Minute
+	azureDirectIdleConnTimeout       = 90 * time.Second
+)
+
+var azureLoopbackDialer = net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
+
+func newAzureDirectLoopbackHTTPTransport(base http.RoundTripper) *http.Transport {
+	var transport *http.Transport
+	if baseTransport, ok := base.(*http.Transport); ok {
+		transport = baseTransport.Clone()
+	} else {
+		transport = &http.Transport{}
+	}
+
+	transport.Proxy = nil
+	transport.DialContext = dialAzureLoopback
+	if transport.ResponseHeaderTimeout <= 0 {
+		// Match the root SDK client's default bound for silent servers.
+		transport.ResponseHeaderTimeout = azureDirectResponseHeaderTimeout
+	}
+	if transport.IdleConnTimeout <= 0 {
+		transport.IdleConnTimeout = azureDirectIdleConnTimeout
+	}
+	if transport.ExpectContinueTimeout <= 0 {
+		transport.ExpectContinueTimeout = time.Second
+	}
+	return transport
+}
+
+func dialAzureLoopback(ctx context.Context, network string, address string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, fmt.Errorf("azure: invalid loopback address %q: %w", address, err)
+	}
+	if host == "localhost" {
+		return dialAzureLocalhost(ctx, network, address, port)
+	}
+	ip := net.ParseIP(host)
+	if ip == nil || !ip.IsLoopback() {
+		return nil, fmt.Errorf("azure: refusing non-loopback plaintext connection to %q", address)
+	}
+	return azureLoopbackDialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+}
+
+func dialAzureLocalhost(ctx context.Context, network string, address string, port string) (net.Conn, error) {
+	type dialResult struct {
+		conn net.Conn
+		err  error
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Avoid DNS and try only fixed loopback addresses. Concurrent attempts keep
+	// localhost usable when either IP family is unavailable or filtered locally.
+	results := make(chan dialResult, 2)
+	for _, host := range []string{"127.0.0.1", "::1"} {
+		go func() {
+			conn, err := azureLoopbackDialer.DialContext(ctx, network, net.JoinHostPort(host, port))
+			results <- dialResult{conn: conn, err: err}
+		}()
+	}
+
+	errs := make([]error, 0, 2)
+	for attempt := range 2 {
+		result := <-results
+		if result.err == nil {
+			cancel()
+			for remaining := attempt + 1; remaining < 2; remaining++ {
+				loser := <-results
+				if loser.conn != nil {
+					_ = loser.conn.Close()
+				}
+			}
+			return result.conn, nil
+		}
+		errs = append(errs, result.err)
+	}
+	return nil, fmt.Errorf("azure: could not connect to loopback address %q: %w", address, errors.Join(errs...))
+}
+
+func (t azureCredentialTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if err := validateAzureCredentialTransport(req); err != nil {
+		return rejectAzureCredentialTransport(req, err)
+	}
+
+	transport := t.base
+	if azureCredentialHTTPAllowed(req) {
+		transport = t.directTransports.get(t.base)
+	}
+	return transport.RoundTrip(req)
+}
+
+func rejectAzureCredentialTransport(req *http.Request, err error) (*http.Response, error) {
+	if req.Body != nil {
+		_ = req.Body.Close()
+	}
+	return nil, err
+}
+
+func validateAzureCredentialTransport(req *http.Request) error {
+	origin, ok := req.Context().Value(azureCredentialOriginContextKey{}).(azureCredentialOrigin)
+	if !ok {
+		return requestconfig.WithNoRetryError(&azureCredentialOriginError{})
+	}
+
+	destination := azureCredentialOriginFromURL(req.URL)
+	if destination.scheme != "https" {
+		// Unsafe mode may redirect between local development servers, but it
+		// must never expand a remote credential origin to a loopback target.
+		if azureCredentialOriginIsLoopback(origin) && azureCredentialHTTPAllowed(req) {
+			if origin.host == destination.host {
+				return nil
+			}
+			return requestconfig.WithNoRetryError(&azureCredentialOriginError{})
+		}
+		return requestconfig.WithNoRetryError(&azureCredentialTransportError{})
+	}
+
+	if destination == origin {
+		return nil
+	}
+	// An explicitly unsafe loopback HTTP origin may upgrade to a loopback TLS
+	// server without weakening the origin rules for ordinary HTTPS endpoints.
+	if origin.scheme == "http" && origin.host == destination.host && azureCredentialUnsafeHTTPConfigured(req) &&
+		azureCredentialOriginIsLoopback(origin) && azureCredentialOriginIsLoopback(destination) {
+		return nil
+	}
+	return requestconfig.WithNoRetryError(&azureCredentialOriginError{})
+}
+
+func azureCredentialOriginFromURL(u *url.URL) azureCredentialOrigin {
+	scheme := strings.ToLower(u.Scheme)
+	host := strings.ToLower(u.Hostname())
+	if ip := net.ParseIP(host); ip != nil {
+		host = ip.String()
+	}
+	port := u.Port()
+	if port == "" {
+		switch scheme {
+		case "http":
+			port = "80"
+		case "https":
+			port = "443"
+		}
+	}
+	return azureCredentialOrigin{scheme: scheme, host: host, port: port}
+}
+
+func azureCredentialOriginIsLoopback(origin azureCredentialOrigin) bool {
+	if origin.host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(origin.host)
+	return ip != nil && ip.IsLoopback()
+}
+
+type azureCredentialTransportError struct{}
+
+func (*azureCredentialTransportError) Error() string {
+	return "azure: authenticated requests require HTTPS; WithUnsafeAllowHTTP permits HTTP only for local development on loopback endpoints"
+}
+
+// NonRetriable implements the marker understood by the Azure pipeline's retry
+// policy. The outer requestconfig marker independently stops SDK retries.
+func (*azureCredentialTransportError) NonRetriable() {}
+
+type azureCredentialOriginError struct{}
+
+func (*azureCredentialOriginError) Error() string {
+	return "azure: authenticated redirects must remain on the original origin"
+}
+
+func (*azureCredentialOriginError) NonRetriable() {}
+
+func azureCredentialHTTPAllowed(req *http.Request) bool {
+	if !strings.EqualFold(req.URL.Scheme, "http") {
+		return false
+	}
+	if !azureCredentialUnsafeHTTPConfigured(req) {
+		return false
+	}
+
+	// Keep this allowlist aligned with net/http's ProxyFromEnvironment bypass.
+	// Other localhost spellings can resolve to loopback but still reach HTTP_PROXY.
+	host := req.URL.Hostname()
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+func azureCredentialUnsafeHTTPConfigured(req *http.Request) bool {
+	allowed, _ := req.Context().Value(unsafeAllowHTTPContextKey{}).(bool)
+	return allowed
+}
+
+// jsonRoutes have JSON payloads - we'll deserialize looking for a .model field in there
+// so we won't have to worry about individual types for completions vs embeddings, etc...
+var jsonRoutes = map[string]bool{
+	"/completions":        true,
+	"/chat/completions":   true,
+	"/embeddings":         true,
+	"/audio/speech":       true,
+	"/images/generations": true,
+}
+
+// multipartRoutes have mime/multipart payloads. These are less generic - we're very much
+// expecting a transcription or translation payload for these.
+var multipartRoutes = map[string]bool{
+	"/audio/transcriptions": true,
+	"/audio/translations":   true,
+	"/images/edits":         true,
+}
+
+// getReplacementPathWithDeployment parses the request body to extract out the Model parameter (or equivalent)
+// (note, the req.Body is fully read as part of this, and is replaced with a bytes.Reader)
+func getReplacementPathWithDeployment(req *http.Request, escapedPath string) (string, error) {
+	path, err := url.PathUnescape(escapedPath)
+	if err != nil {
+		return "", err
+	}
+	if jsonRoutes[path] {
+		return getJSONRoute(req, escapedPath)
+	}
+
+	if multipartRoutes[path] {
+		return getMultipartRoute(req, escapedPath)
+	}
+
+	// If route doesn't require deployment ID substitution, just return path with prefix.
+	return "/openai" + escapedPath, nil
+}
+
+func setEscapedPath(u *url.URL, escapedPath string) error {
+	path, err := url.PathUnescape(escapedPath)
+	if err != nil {
+		return err
+	}
+	u.Path = path
+	u.RawPath = escapedPath
+	return nil
+}
+
+func getJSONRoute(req *http.Request, escapedPath string) (string, error) {
+	if req.Body == nil {
+		return "", errors.New("azure: deployment routing requires a JSON request body")
+	}
+
+	// we need to deserialize the body, partly, in order to read out the model field.
+	jsonBytes, err := io.ReadAll(req.Body)
+
+	if err != nil {
+		return "", fmt.Errorf("azure: could not read JSON request body for deployment routing: %w", err)
+	}
+
+	// make sure we restore the body so it can be used in later middlewares.
+	req.Body = io.NopCloser(bytes.NewReader(jsonBytes))
+
+	var v struct {
+		Model string `json:"model"`
+	}
+
+	if err := json.Unmarshal(jsonBytes, &v); err != nil {
+		return "", fmt.Errorf("azure: could not parse JSON request body for deployment routing: %w", err)
+	}
+	if v.Model == "" {
+		return "", errors.New("azure: deployment routing requires a non-empty model field")
+	}
+
+	// Convert path from /chat/completions to /openai/deployments/{deployment-id}/chat/completions
+	return requestconfig.FormatPath("/openai/deployments/%s", v.Model) + escapedPath, nil
+}
+
+func getMultipartRoute(req *http.Request, escapedPath string) (string, error) {
+	// body is a multipart/mime body type instead.
+	mimeBytes, err := io.ReadAll(req.Body)
+
+	if err != nil {
+		return "", err
+	}
+
+	// make sure we restore the body so it can be used in later middlewares.
+	req.Body = io.NopCloser(bytes.NewReader(mimeBytes))
+
+	_, mimeParams, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
+
+	if err != nil {
+		return "", err
+	}
+
+	mimeReader := multipart.NewReader(
+		io.NopCloser(bytes.NewReader(mimeBytes)),
+		mimeParams["boundary"])
+
+	for {
+		mp, err := mimeReader.NextPart()
+
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return "", errors.New("unable to find the model part in multipart body")
+			}
+
+			return "", err
+		}
+
+		defer func() { _ = mp.Close() }()
+
+		if mp.FormName() == "model" {
+			modelBytes, err := io.ReadAll(mp)
+
+			if err != nil {
+				return "", err
+			}
+
+			// Convert path from /audio/transcriptions to /openai/deployments/{deployment-id}/audio/transcriptions
+			return requestconfig.FormatPath("/openai/deployments/%s", string(modelBytes)) + escapedPath, nil
+		}
+	}
+}
+
+type policyAdapter option.MiddlewareNext
+
+func (mp policyAdapter) Do(req *policy.Request) (*http.Response, error) {
+	return (option.MiddlewareNext)(mp)(req.Raw())
+}
+
+const version = "v.0.1.0"

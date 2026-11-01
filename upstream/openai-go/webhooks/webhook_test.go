@@ -1,0 +1,572 @@
+package webhooks_test
+
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"net/http"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/option"
+)
+
+// Standardized test constants (matches TypeScript implementation)
+const (
+	testPayload   = `{"id": "evt_685c059ae3a481909bdc86819b066fb6", "object": "event", "created_at": 1750861210, "type": "response.completed", "data": {"id": "resp_123"}}`
+	testSecret    = "whsec_RdvaYFYUXuIFuEbvZHwMfYFhUf7aMYjYcmM24+Aj40c="
+	testTimestamp = 1750861210
+	testWebhookID = "wh_685c059ae39c8190af8c71ed1022a24d"
+	testSignature = "v1,gUAg4R2hWouRZqRQG4uJypNS8YK885G838+EHb4nKBY="
+)
+
+// Helper function to create test headers with standardized timestamp
+func createTestHeaders() http.Header {
+	return http.Header{
+		"Webhook-Signature": []string{testSignature},
+		"Webhook-Timestamp": []string{strconv.FormatInt(testTimestamp, 10)},
+		"Webhook-Id":        []string{testWebhookID},
+	}
+}
+
+func createSignedTestHeaders(secret string, timestamp int64) http.Header {
+	timestampString := strconv.FormatInt(timestamp, 10)
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(testWebhookID + "." + timestampString + "." + testPayload))
+	return http.Header{
+		"Webhook-Signature": []string{"v1," + base64.StdEncoding.EncodeToString(h.Sum(nil))},
+		"Webhook-Timestamp": []string{timestampString},
+		"Webhook-Id":        []string{testWebhookID},
+	}
+}
+
+func TestWebhookService_RequestOptionsOverrideClientOptions(t *testing.T) {
+	t.Setenv("OPENAI_WEBHOOK_SECRET", "")
+
+	const (
+		clientSecret  = "client-secret"
+		requestSecret = "request-secret"
+	)
+	timestamp := time.Now().Unix()
+	now := time.Unix(timestamp, 0)
+	clientHeaders := createSignedTestHeaders(clientSecret, timestamp)
+	requestHeaders := createSignedTestHeaders(requestSecret, timestamp)
+	client := openai.NewClient(option.WithWebhookSecret(clientSecret))
+	clientWithoutSecret := openai.NewClient()
+
+	tests := []struct {
+		name string
+		call func(*openai.Client, http.Header, ...option.RequestOption) error
+	}{
+		{
+			name: "VerifySignature",
+			call: func(client *openai.Client, headers http.Header, opts ...option.RequestOption) error {
+				return client.Webhooks.VerifySignature([]byte(testPayload), headers, opts...)
+			},
+		},
+		{
+			name: "VerifySignatureWithTolerance",
+			call: func(client *openai.Client, headers http.Header, opts ...option.RequestOption) error {
+				return client.Webhooks.VerifySignatureWithTolerance([]byte(testPayload), headers, 5*time.Minute, opts...)
+			},
+		},
+		{
+			name: "VerifySignatureWithToleranceAndTime",
+			call: func(client *openai.Client, headers http.Header, opts ...option.RequestOption) error {
+				return client.Webhooks.VerifySignatureWithToleranceAndTime([]byte(testPayload), headers, 5*time.Minute, now, opts...)
+			},
+		},
+		{
+			name: "Unwrap",
+			call: func(client *openai.Client, headers http.Header, opts ...option.RequestOption) error {
+				_, err := client.Webhooks.Unwrap([]byte(testPayload), headers, opts...)
+				return err
+			},
+		},
+		{
+			name: "UnwrapWithTolerance",
+			call: func(client *openai.Client, headers http.Header, opts ...option.RequestOption) error {
+				_, err := client.Webhooks.UnwrapWithTolerance([]byte(testPayload), headers, 5*time.Minute, opts...)
+				return err
+			},
+		},
+		{
+			name: "UnwrapWithToleranceAndTime",
+			call: func(client *openai.Client, headers http.Header, opts ...option.RequestOption) error {
+				_, err := client.Webhooks.UnwrapWithToleranceAndTime([]byte(testPayload), headers, 5*time.Minute, now, opts...)
+				return err
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			requestOption := option.WithWebhookSecret(requestSecret)
+			if err := test.call(&client, requestHeaders, requestOption); err != nil {
+				t.Fatalf("request option should override client option: %v", err)
+			}
+			if err := test.call(&client, clientHeaders, requestOption); err == nil {
+				t.Fatal("client option should not remain active when a request option is provided")
+			}
+			if err := test.call(&clientWithoutSecret, requestHeaders, requestOption); err != nil {
+				t.Fatalf("request option should work without a client option: %v", err)
+			}
+		})
+	}
+}
+
+func createTestHeadersForSecret(secret []byte) http.Header {
+	return createSignedTestHeaders(string(secret), testTimestamp)
+}
+
+func TestWebhookService_VerifySignature_ValidSignature(t *testing.T) {
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(testSecret),
+	)
+
+	// Use the time-aware method with the fixed timestamp for testing
+	fixedTime := time.Unix(testTimestamp, 0)
+	err := client.Webhooks.VerifySignatureWithToleranceAndTime([]byte(testPayload), createTestHeaders(), 5*time.Minute, fixedTime)
+	if err != nil {
+		t.Errorf("VerifySignatureWithToleranceAndTime should have succeeded with valid signature: %v", err)
+	}
+}
+
+func TestWebhookService_VerifySignature_RejectsInvalidPrefixedSecrets(t *testing.T) {
+	validSecret, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(testSecret, "whsec_"))
+	if err != nil {
+		t.Fatalf("failed to decode test secret: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		secret  string
+		key     []byte
+		wantErr string
+	}{
+		{
+			name:    "empty",
+			secret:  "whsec_",
+			key:     nil,
+			wantErr: "invalid webhook secret: decoded secret must be at least 24 bytes",
+		},
+		{
+			name:    "undersized",
+			secret:  "whsec_YQ==",
+			key:     []byte("a"),
+			wantErr: "invalid webhook secret: decoded secret must be at least 24 bytes",
+		},
+		{
+			name:    "non-zero trailing base64 bits",
+			secret:  strings.TrimSuffix(testSecret, "c=") + "d=",
+			key:     validSecret,
+			wantErr: "invalid webhook secret format",
+		},
+		{
+			name:    "non-canonical base64 line break",
+			secret:  strings.Replace(testSecret, "+", "+\n", 1),
+			key:     validSecret,
+			wantErr: "expected canonical base64 encoding",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			client := openai.NewClient(
+				option.WithAPIKey("test-key"),
+				option.WithWebhookSecret(test.secret),
+			)
+
+			err := client.Webhooks.VerifySignatureWithToleranceAndTime(
+				[]byte(testPayload),
+				createTestHeadersForSecret(test.key),
+				5*time.Minute,
+				time.Unix(testTimestamp, 0),
+			)
+			if err == nil || !strings.Contains(err.Error(), test.wantErr) {
+				t.Fatalf("VerifySignatureWithToleranceAndTime error = %v, want error containing %q", err, test.wantErr)
+			}
+		})
+	}
+}
+
+func TestWebhookService_VerifySignature_AcceptsMinimumLengthPrefixedSecret(t *testing.T) {
+	secret := []byte("123456789012345678901234")
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret("whsec_"+base64.StdEncoding.EncodeToString(secret)),
+	)
+
+	err := client.Webhooks.VerifySignatureWithToleranceAndTime(
+		[]byte(testPayload),
+		createTestHeadersForSecret(secret),
+		5*time.Minute,
+		time.Unix(testTimestamp, 0),
+	)
+	if err != nil {
+		t.Fatalf("VerifySignatureWithToleranceAndTime should have accepted a 24-byte prefixed secret: %v", err)
+	}
+}
+
+func TestWebhookService_VerifySignature_AcceptsRawSecret(t *testing.T) {
+	secret := "legacy-raw-secret"
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(secret),
+	)
+
+	err := client.Webhooks.VerifySignatureWithToleranceAndTime(
+		[]byte(testPayload),
+		createTestHeadersForSecret([]byte(secret)),
+		5*time.Minute,
+		time.Unix(testTimestamp, 0),
+	)
+	if err != nil {
+		t.Fatalf("VerifySignatureWithToleranceAndTime should have accepted a valid raw secret: %v", err)
+	}
+}
+
+func TestWebhookService_VerifySignature_RejectsInvalidEnvironmentSecret(t *testing.T) {
+	t.Setenv("OPENAI_WEBHOOK_SECRET", "whsec_")
+	client := openai.NewClient(option.WithAPIKey("test-key"))
+
+	err := client.Webhooks.VerifySignatureWithToleranceAndTime(
+		[]byte(testPayload),
+		createTestHeadersForSecret(nil),
+		5*time.Minute,
+		time.Unix(testTimestamp, 0),
+	)
+	if err == nil || !strings.Contains(err.Error(), "decoded secret must be at least 24 bytes") {
+		t.Fatalf("VerifySignatureWithToleranceAndTime error = %v, want invalid webhook secret error", err)
+	}
+}
+
+func TestWebhookService_VerifySignature_ExplicitSecretOverridesInvalidEnvironmentDefault(t *testing.T) {
+	t.Setenv("OPENAI_WEBHOOK_SECRET", "whsec_")
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(testSecret),
+	)
+
+	err := client.Webhooks.VerifySignatureWithToleranceAndTime(
+		[]byte(testPayload),
+		createTestHeaders(),
+		5*time.Minute,
+		time.Unix(testTimestamp, 0),
+	)
+	if err != nil {
+		t.Fatalf("VerifySignatureWithToleranceAndTime should have accepted the explicit valid secret: %v", err)
+	}
+}
+
+func TestWebhookService_VerifySignature_ValidatesEffectiveRequestSecret(t *testing.T) {
+	t.Setenv("OPENAI_WEBHOOK_SECRET", "")
+	fixedTime := time.Unix(testTimestamp, 0)
+
+	clientWithInvalidSecret := openai.NewClient(option.WithWebhookSecret("whsec_"))
+	err := clientWithInvalidSecret.Webhooks.VerifySignatureWithToleranceAndTime(
+		[]byte(testPayload),
+		createTestHeaders(),
+		5*time.Minute,
+		fixedTime,
+		option.WithWebhookSecret(testSecret),
+	)
+	if err != nil {
+		t.Fatalf("VerifySignatureWithToleranceAndTime should have accepted the valid request secret: %v", err)
+	}
+
+	clientWithValidSecret := openai.NewClient(option.WithWebhookSecret(testSecret))
+	err = clientWithValidSecret.Webhooks.VerifySignatureWithToleranceAndTime(
+		[]byte(testPayload),
+		createTestHeadersForSecret(nil),
+		5*time.Minute,
+		fixedTime,
+		option.WithWebhookSecret("whsec_"),
+	)
+	if err == nil || !strings.Contains(err.Error(), "decoded secret must be at least 24 bytes") {
+		t.Fatalf("VerifySignatureWithToleranceAndTime error = %v, want invalid request secret error", err)
+	}
+}
+
+func TestWebhookService_VerifySignature_InvalidSignature(t *testing.T) {
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(testSecret),
+	)
+
+	// Create headers with an invalid signature
+	invalidHeaders := http.Header{
+		"Webhook-Signature": []string{"v1,invalid_signature_here"},
+		"Webhook-Timestamp": []string{strconv.FormatInt(testTimestamp, 10)},
+		"Webhook-Id":        []string{testWebhookID},
+	}
+
+	// Use time-aware method to avoid timestamp issues
+	fixedTime := time.Unix(testTimestamp, 0)
+	err := client.Webhooks.VerifySignatureWithToleranceAndTime([]byte(testPayload), invalidHeaders, 5*time.Minute, fixedTime)
+	if err == nil {
+		t.Error("VerifySignatureWithToleranceAndTime should have failed with invalid signature")
+	}
+
+	expectedError := "webhook signature verification failed"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
+	}
+}
+
+func TestWebhookService_VerifySignature_MissingSecret(t *testing.T) {
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+	)
+
+	err := client.Webhooks.VerifySignature([]byte(testPayload), createTestHeaders())
+	if err == nil {
+		t.Error("VerifySignature should have failed with missing secret")
+	}
+
+	expectedError := "webhook secret must be provided either in the method call or configured on the client"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
+	}
+}
+
+func TestWebhookService_VerifySignature_InvalidSignatureForInvalidTimestamp(t *testing.T) {
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(testSecret),
+	)
+
+	invalidHeaders := http.Header{
+		"Webhook-Signature": []string{"v1,signature"},
+		"Webhook-Timestamp": []string{"invalid"},
+		"Webhook-Id":        []string{testWebhookID},
+	}
+
+	err := client.Webhooks.VerifySignature([]byte(testPayload), invalidHeaders)
+	if err == nil {
+		t.Error("VerifySignature should have failed with invalid timestamp")
+	}
+
+	// Should fail on timestamp format validation first
+	expectedError := "invalid webhook timestamp format"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
+	}
+}
+
+func TestWebhookService_VerifySignature_SignatureWithoutV1Prefix(t *testing.T) {
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(testSecret),
+	)
+
+	currentTimestamp := strconv.FormatInt(testTimestamp, 10)
+	headersWithoutV1 := http.Header{
+		"Webhook-Signature": []string{"9WlByKQUfBVM08XRYmo3WqR/dQXtjGJkV1edShZZ+C0="},
+		"Webhook-Timestamp": []string{currentTimestamp},
+		"Webhook-Id":        []string{testWebhookID},
+	}
+
+	// Use time-aware method to avoid timestamp issues
+	fixedTime := time.Unix(testTimestamp, 0)
+	err := client.Webhooks.VerifySignatureWithToleranceAndTime([]byte(testPayload), headersWithoutV1, 5*time.Minute, fixedTime)
+	if err == nil {
+		t.Error("VerifySignatureWithToleranceAndTime should have failed on signature verification")
+	}
+
+	// Should fail on signature verification
+	expectedError := "webhook signature verification failed"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
+	}
+}
+
+func TestWebhookService_VerifySignature_TimestampTooOld(t *testing.T) {
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(testSecret),
+	)
+
+	// Use a timestamp that's older than 5 minutes
+	oldTimestamp := strconv.FormatInt(testTimestamp-400, 10) // 6 minutes 40 seconds ago
+	headersOld := http.Header{
+		"Webhook-Signature": []string{"v1,signature"},
+		"Webhook-Timestamp": []string{oldTimestamp},
+		"Webhook-Id":        []string{testWebhookID},
+	}
+
+	// Use the current time for comparison - this should fail because the timestamp is too old
+	currentTime := time.Unix(testTimestamp, 0)
+	err := client.Webhooks.VerifySignatureWithToleranceAndTime([]byte(testPayload), headersOld, 5*time.Minute, currentTime)
+	if err == nil {
+		t.Error("VerifySignatureWithToleranceAndTime should have failed with old timestamp")
+	}
+
+	expectedError := "webhook timestamp is too old"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
+	}
+}
+
+func TestWebhookService_VerifySignature_TimestampTooNew(t *testing.T) {
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(testSecret),
+	)
+
+	// Use a timestamp that's in the future beyond tolerance
+	futureTimestamp := strconv.FormatInt(testTimestamp+400, 10) // 6 minutes 40 seconds in the future
+	headersFuture := http.Header{
+		"Webhook-Signature": []string{"v1,signature"},
+		"Webhook-Timestamp": []string{futureTimestamp},
+		"Webhook-Id":        []string{testWebhookID},
+	}
+
+	// Use the current time for comparison - this should fail because the timestamp is too new
+	currentTime := time.Unix(testTimestamp, 0)
+	err := client.Webhooks.VerifySignatureWithToleranceAndTime([]byte(testPayload), headersFuture, 5*time.Minute, currentTime)
+	if err == nil {
+		t.Error("VerifySignatureWithToleranceAndTime should have failed with future timestamp")
+	}
+
+	expectedError := "webhook timestamp is too new"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
+	}
+}
+
+func TestWebhookService_VerifySignature_InvalidTimestampFormat(t *testing.T) {
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(testSecret),
+	)
+
+	headersInvalid := http.Header{
+		"Webhook-Signature": []string{"v1,signature"},
+		"Webhook-Timestamp": []string{"not_a_number"},
+		"Webhook-Id":        []string{testWebhookID},
+	}
+
+	err := client.Webhooks.VerifySignature([]byte(testPayload), headersInvalid)
+	if err == nil {
+		t.Error("VerifySignature should have failed with invalid timestamp format")
+	}
+
+	expectedError := "invalid webhook timestamp format"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
+	}
+}
+
+func TestWebhookService_VerifySignatureWithTolerance_CustomTolerance(t *testing.T) {
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(testSecret),
+	)
+
+	// Use a timestamp that's older than default tolerance but within custom tolerance
+	oldTimestamp := strconv.FormatInt(testTimestamp-400, 10) // 6 minutes 40 seconds ago
+	headersOld := http.Header{
+		"Webhook-Signature": []string{"v1,signature"},
+		"Webhook-Timestamp": []string{oldTimestamp},
+		"Webhook-Id":        []string{testWebhookID},
+	}
+
+	// Should fail with default tolerance using time-aware method
+	currentTime := time.Unix(testTimestamp, 0)
+	err := client.Webhooks.VerifySignatureWithToleranceAndTime([]byte(testPayload), headersOld, 5*time.Minute, currentTime)
+	if err == nil {
+		t.Error("VerifySignatureWithToleranceAndTime should have failed with default tolerance")
+	}
+	if err.Error() != "webhook timestamp is too old" {
+		t.Errorf("Expected 'webhook timestamp is too old', got '%s'", err.Error())
+	}
+
+	// Should pass timestamp validation with custom tolerance but fail on signature verification
+	err = client.Webhooks.VerifySignatureWithToleranceAndTime([]byte(testPayload), headersOld, 10*time.Minute, currentTime)
+	if err == nil {
+		t.Error("VerifySignatureWithToleranceAndTime should have failed on signature verification")
+	}
+	if err.Error() != "webhook signature verification failed" {
+		t.Errorf("Expected 'webhook signature verification failed', got '%s'", err.Error())
+	}
+}
+
+func TestWebhookService_UnwrapWithToleranceAndTime(t *testing.T) {
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(testSecret),
+	)
+
+	// Use the time-aware method with the fixed timestamp for testing
+	fixedTime := time.Unix(testTimestamp, 0)
+	webhookEvent, err := client.Webhooks.UnwrapWithToleranceAndTime([]byte(testPayload), createTestHeaders(), 5*time.Minute, fixedTime)
+	if err != nil {
+		t.Fatalf("UnwrapWithToleranceAndTime should have succeeded with valid signature: %v", err)
+	}
+
+	if webhookEvent == nil {
+		t.Fatal("UnwrapWithToleranceAndTime should return parsed event")
+	}
+
+	parsed := webhookEvent.AsResponseCompleted()
+	if parsed.ID != "evt_685c059ae3a481909bdc86819b066fb6" {
+		t.Errorf("Expected parsed event ID 'evt_685c059ae3a481909bdc86819b066fb6', got '%s'", parsed.ID)
+	}
+	if parsed.Type != "response.completed" {
+		t.Errorf("Expected parsed event type 'response.completed', got '%s'", parsed.Type)
+	}
+}
+
+func TestWebhookService_VerifySignature_MultipleSignaturesOneValid(t *testing.T) {
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(testSecret),
+	)
+
+	// Test multiple signatures: one invalid, one valid
+	multipleSignatures := "v1,invalid_signature " + testSignature
+	multipleHeaders := http.Header{
+		"Webhook-Signature": []string{multipleSignatures},
+		"Webhook-Timestamp": []string{strconv.FormatInt(testTimestamp, 10)},
+		"Webhook-Id":        []string{testWebhookID},
+	}
+
+	// Use time-aware method with fixed timestamp
+	fixedTime := time.Unix(testTimestamp, 0)
+	err := client.Webhooks.VerifySignatureWithToleranceAndTime([]byte(testPayload), multipleHeaders, 5*time.Minute, fixedTime)
+	if err != nil {
+		t.Errorf("VerifySignatureWithToleranceAndTime should have succeeded when at least one signature is valid: %v", err)
+	}
+}
+
+func TestWebhookService_VerifySignature_MultipleSignaturesAllInvalid(t *testing.T) {
+	client := openai.NewClient(
+		option.WithAPIKey("test-key"),
+		option.WithWebhookSecret(testSecret),
+	)
+
+	// Test multiple invalid signatures
+	multipleInvalidSignatures := "v1,invalid_signature1 v1,invalid_signature2"
+	multipleHeaders := http.Header{
+		"Webhook-Signature": []string{multipleInvalidSignatures},
+		"Webhook-Timestamp": []string{strconv.FormatInt(testTimestamp, 10)},
+		"Webhook-Id":        []string{testWebhookID},
+	}
+
+	// Use time-aware method with fixed timestamp
+	fixedTime := time.Unix(testTimestamp, 0)
+	err := client.Webhooks.VerifySignatureWithToleranceAndTime([]byte(testPayload), multipleHeaders, 5*time.Minute, fixedTime)
+	if err == nil {
+		t.Error("VerifySignatureWithToleranceAndTime should have failed when all signatures are invalid")
+	}
+
+	expectedError := "webhook signature verification failed"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
+	}
+}
