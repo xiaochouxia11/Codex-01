@@ -1,0 +1,77 @@
+{
+  "name": "@openai/mcp-extensions",
+  "version": "0.2.1",
+  "description": "OpenAI extensions for MCP servers and apps.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./app": {
+      "types": "./dist/app/index.d.ts",
+      "import": "./dist/app/index.js"
+    },
+    "./app/styles.css": "./styles.css",
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    }
+  },
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/package.mjs",
+    "types": "tsc --noEmit",
+    "prepack": "pnpm run build",
+    "package:check": "publint",
+    "test": "tsc -p tsconfig.test.json && node --test .test-build/tests/*.test.js",
+    "test:package": "pnpm run build && node scripts/package-smoke.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/core": "^2.0.0",
+    "@cfworker/json-schema": "^4.1.1",
+    "zod": "4.4.3"
+  },
+  "peerDependencies": {
+    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "peerDependenciesMeta": {
+    "@modelcontextprotocol/ext-apps": {
+      "optional": true
+    },
+    "@modelcontextprotocol/server": {
+      "optional": true
+    },
+    "@modelcontextprotocol/sdk": {
+      "optional": true
+    }
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openai/mcp-extensions.git",
+    "directory": "typescript"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "styles.css",
+    "LICENSE"
+  ],
+  "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.0.0"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
+}

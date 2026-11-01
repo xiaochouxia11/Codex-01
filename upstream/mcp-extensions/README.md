@@ -1,0 +1,63 @@
+# OpenAI MCP Extensions
+
+OpenAI MCP Extensions adds ChatGPT-specific capabilities to MCP so developers can build plugins that feel like native, first-class features.
+
+## Try it out
+
+1. Install [Bits & Bolts Remote](https://chatgpt.com/plugins/plugin_asdk_app_6abadab6e7d881919e7491d52c7846e8).
+2. Select the **Bits & Bolts** icon in the sidebar to open the **Parts Library**.
+3. Open **Extensions walkthrough** to explore a demo of each major extension.
+
+   ![Bits & Bolts Parts Library with the Extensions walkthrough tree expanded](resources/01-global-library.png)
+
+## Showcase
+
+### [Sidebar entrypoints](docs/spec.md#mcp-app-entrypoints)
+
+Allow users to access your app from the sidebar.
+
+![Opening an MCP App from the sidebar](resources/sidebar-entrypoint.gif)
+
+### [File extension handlers](docs/spec.md#file-extension-entrypoint)
+
+Render custom file viewers when users open a supported file type.
+
+![Opening a CAD file in a custom file viewer](resources/file-viewer.gif)
+
+### [Composer mentions](docs/spec.md#composer-at-mentions)
+
+Let users search your plugin’s resources from the composer and add references to a message.
+
+![Searching for a CAD part with composer mentions](resources/composer-mentions.gif)
+
+### [Extended forms](docs/spec.md#openai-form-elicitation)
+
+Let users select a CAD part using thumbnail choices.
+
+![Selecting a CAD part in a Bits & Bolts form](resources/image-picker.gif)
+
+## Get started
+
+### 1. Integrate extensions
+
+Ask `@Plugin Creator` in Codex to build a new plugin or improve an existing one for you.
+
+### 2. Install the SDK
+
+- [TypeScript](typescript/README.md#installation): `@openai/mcp-extensions` for MCP servers and Apps.
+- [Python](python/README.md#installation): `openai-mcp-extensions` for MCP servers.
+
+### 3. Learn more
+
+- [docs/spec.md](docs/spec.md) lists all supported extensions.
+- [docs/patterns.md](docs/patterns.md) covers best practices.
+- [CHANGELOG.md](CHANGELOG.md) lists API changes.
+- [Bits & Bolts source](plugins/bits-and-bolts/) shows how to integrate extensions in practice.
+
+### 4. Provide feedback
+
+Notice any gaps in extensions for your plugin? Submit feedback [here](https://github.com/openai/mcp-extensions/issues/new?template=request.yml).
+
+## License
+
+This project is licensed under the [Apache License 2.0](LICENSE).
