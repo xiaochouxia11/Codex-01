@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  merge_group:
+    types: [ checks_requested ]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  build-test-lint:
+    name: Build, Test, and Lint (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22, 24, 26]
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run tests
+        run: npm run test -- --run
+
+      - name: Check lint, formatting, and imports with Biome
+        run: npm run lint
+
+      - name: Build and check docs
+        run: npm run docs:check
+
+  ci-status:
+    name: Build, Test, and Lint
+    if: always()
+    needs: build-test-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check matrix results
+        env:
+          MATRIX_RESULT: ${{ needs.build-test-lint.result }}
+        run: test "$MATRIX_RESULT" = success

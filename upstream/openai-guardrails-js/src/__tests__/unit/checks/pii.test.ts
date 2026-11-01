@@ -1,0 +1,565 @@
+/**
+ * Unit tests for the PII guardrail functionality.
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { _clearDeprecationWarnings, PIIConfig, PIIEntity, pii } from '../../../checks/pii';
+
+describe('pii guardrail', () => {
+  it('keeps defaults independent when a parsed config or result metadata is mutated', async () => {
+    const first = PIIConfig.parse({});
+    const second = PIIConfig.parse({});
+    const defaults = [...second.entities];
+    expect(first.entities).not.toBe(second.entities);
+
+    first.entities.splice(0);
+    expect(second.entities).toEqual(defaults);
+    const result = await pii({}, 'Contact john@example.com', second);
+    const checked = result.info.entity_types_checked as PIIEntity[];
+    checked.splice(0);
+    expect(PIIConfig.parse({}).entities).toEqual(defaults);
+  });
+
+  it('masks detected PII when block=false', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.EMAIL_ADDRESS, PIIEntity.US_SSN],
+      block: false,
+    });
+    const text = 'Contact john@example.com SSN: 111-22-3333';
+
+    const result = await pii({}, text, config);
+
+    expect(result.tripwireTriggered).toBe(false);
+    expect((result.info?.detected_entities as Record<string, string[]>)?.EMAIL_ADDRESS).toEqual([
+      'john@example.com',
+    ]);
+    expect((result.info?.detected_entities as Record<string, string[]>)?.US_SSN).toEqual([
+      '111-22-3333',
+    ]);
+    expect(result.info?.checked_text).toBe('Contact <EMAIL_ADDRESS> SSN: <US_SSN>');
+  });
+
+  it('triggers tripwire when block=true', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.PHONE_NUMBER],
+      block: true,
+    });
+
+    const result = await pii({}, 'Call me at (415) 123-4567', config);
+
+    expect(result.tripwireTriggered).toBe(true);
+    expect(
+      (result.info?.detected_entities as Record<string, string[]>)?.PHONE_NUMBER?.[0]
+    ).toContain('415');
+    expect(result.info?.checked_text).toContain('<PHONE_NUMBER>');
+  });
+
+  it('throws on empty input', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.EMAIL_ADDRESS],
+      block: false,
+    });
+
+    await expect(pii({}, '', config)).rejects.toThrow('Text cannot be empty or null');
+  });
+
+  describe.each([false, true])('Finnish identity codes with block=%s', (block) => {
+    it.each(['+', '-', 'A'])('detects the supported century marker %s', async (marker) => {
+      const config = PIIConfig.parse({
+        entities: [PIIEntity.FI_PERSONAL_IDENTITY_CODE],
+        block,
+      });
+      const identityCode = `010101${marker}0101`;
+      const result = await pii({}, `ID: ${identityCode}`, config);
+
+      expect(result.tripwireTriggered).toBe(block);
+      expect(result.info?.detected_entities).toEqual({
+        FI_PERSONAL_IDENTITY_CODE: [identityCode],
+      });
+      expect(result.info?.checked_text).toBe('ID: <FI_PERSONAL_IDENTITY_CODE>');
+    });
+
+    it.each([',', '.', '/', '0', '9', ':', ';', '<', '=', '>', '?', '@'])(
+      'does not treat %s as a century marker',
+      async (marker) => {
+        const config = PIIConfig.parse({
+          entities: [PIIEntity.FI_PERSONAL_IDENTITY_CODE],
+          block,
+        });
+        const text = `ID: 010101${marker}0101`;
+        const result = await pii({}, text, config);
+
+        expect(result.tripwireTriggered).toBe(false);
+        expect(result.info?.detected_entities).toEqual({});
+        expect(result.info?.checked_text).toBe(text);
+      }
+    );
+  });
+
+  it('detects valid Korean Resident Registration Number (KR_RRN)', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.KR_RRN],
+      block: false,
+    });
+    // Valid format: YYMMDD-GNNNNNN (900101 = Jan 1, 1990, gender digit 1)
+    const text = 'Korean RRN: 900101-1234567';
+
+    const result = await pii({}, text, config);
+
+    expect(result.tripwireTriggered).toBe(false);
+    expect((result.info?.detected_entities as Record<string, string[]>)?.KR_RRN).toEqual([
+      '900101-1234567',
+    ]);
+    expect(result.info?.checked_text).toBe('Korean RRN: <KR_RRN>');
+  });
+
+  it('detects multiple valid KR_RRN formats', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.KR_RRN],
+      block: false,
+    });
+    // Testing different valid date ranges and gender digits (1-4)
+    const text = 'RRNs: 850315-2345678, 001231-3456789, 750628-4123456';
+
+    const result = await pii({}, text, config);
+
+    expect(result.tripwireTriggered).toBe(false);
+    expect((result.info?.detected_entities as Record<string, string[]>)?.KR_RRN).toHaveLength(3);
+    expect((result.info?.detected_entities as Record<string, string[]>)?.KR_RRN).toContain(
+      '850315-2345678'
+    );
+    expect((result.info?.detected_entities as Record<string, string[]>)?.KR_RRN).toContain(
+      '001231-3456789'
+    );
+    expect((result.info?.detected_entities as Record<string, string[]>)?.KR_RRN).toContain(
+      '750628-4123456'
+    );
+  });
+
+  it('does not detect invalid KR_RRN patterns (false positives)', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.KR_RRN],
+      block: false,
+    });
+    // Invalid patterns that should NOT be detected:
+    // - Invalid month (13)
+    // - Invalid day (00, 32)
+    // - Invalid gender digit (0, 5, 9)
+    // - Random tracking numbers
+    const text =
+      'Invalid: 901301-1234567, 900100-1234567, 900132-1234567, 900101-0234567, 900101-5234567, 123456-7890123';
+
+    const result = await pii({}, text, config);
+
+    expect(result.tripwireTriggered).toBe(false);
+    expect(result.info?.detected_entities).toEqual({});
+    expect(result.info?.checked_text).toBe(text); // No masking should occur
+  });
+
+  it('triggers tripwire for KR_RRN when block=true', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.KR_RRN],
+      block: true,
+    });
+    const text = 'Korean RRN: 900101-1234567';
+
+    const result = await pii({}, text, config);
+
+    expect(result.tripwireTriggered).toBe(true);
+    expect((result.info?.detected_entities as Record<string, string[]>)?.KR_RRN).toEqual([
+      '900101-1234567',
+    ]);
+  });
+
+  it('normalizes fullwidth characters for email detection', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.EMAIL_ADDRESS],
+      block: false,
+    });
+    const text = 'Contact: test＠example.com';
+
+    const result = await pii({}, text, config);
+
+    expect(result.tripwireTriggered).toBe(false);
+    expect((result.info?.detected_entities as Record<string, string[]>)?.EMAIL_ADDRESS).toEqual([
+      'test@example.com',
+    ]);
+    expect(result.info?.checked_text).toBe('Contact: <EMAIL_ADDRESS>');
+  });
+
+  it('detects phone numbers with zero-width spaces', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.PHONE_NUMBER],
+      block: false,
+    });
+    const text = 'Call 212\u200B-555\u200B-1234';
+
+    const result = await pii({}, text, config);
+
+    expect(result.tripwireTriggered).toBe(false);
+    expect((result.info?.detected_entities as Record<string, string[]>)?.PHONE_NUMBER).toEqual([
+      '212-555-1234',
+    ]);
+    expect(result.info?.checked_text).toBe('Call <PHONE_NUMBER>');
+  });
+
+  it('detects base64 encoded PII when enabled', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.EMAIL_ADDRESS],
+      block: false,
+      detect_encoded_pii: true,
+    });
+    const text = 'Base64 PII: am9obkBleGFtcGxlLmNvbQ==';
+
+    const result = await pii({}, text, config);
+
+    expect(result.tripwireTriggered).toBe(false);
+    expect((result.info?.detected_entities as Record<string, string[]>)?.EMAIL_ADDRESS).toEqual([
+      'am9obkBleGFtcGxlLmNvbQ==',
+    ]);
+    expect(result.info?.checked_text).toBe('Base64 PII: <EMAIL_ADDRESS_ENCODED>');
+  });
+
+  it('detects URL encoded PII when enabled', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.EMAIL_ADDRESS],
+      block: false,
+      detect_encoded_pii: true,
+    });
+    const text = 'Encoded %6a%61%6e%65%40securemail.net email';
+
+    const result = await pii({}, text, config);
+
+    expect((result.info?.detected_entities as Record<string, string[]>)?.EMAIL_ADDRESS).toEqual([
+      '%6a%61%6e%65%40securemail.net',
+    ]);
+    expect(result.info?.checked_text).toBe('Encoded <EMAIL_ADDRESS_ENCODED> email');
+  });
+
+  it('detects hex encoded PII when enabled', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.EMAIL_ADDRESS],
+      block: false,
+      detect_encoded_pii: true,
+    });
+    const text = 'Hex 6a6f686e406578616d706c652e636f6d string';
+
+    const result = await pii({}, text, config);
+
+    expect((result.info?.detected_entities as Record<string, string[]>)?.EMAIL_ADDRESS).toEqual([
+      '6a6f686e406578616d706c652e636f6d',
+    ]);
+    expect(result.info?.checked_text).toBe('Hex <EMAIL_ADDRESS_ENCODED> string');
+  });
+
+  it('does not detect encoded PII when detection is disabled', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.EMAIL_ADDRESS],
+      block: false,
+      detect_encoded_pii: false,
+    });
+    const text = 'Base64 PII: am9obkBleGFtcGxlLmNvbQ==';
+
+    const result = await pii({}, text, config);
+
+    expect(result.info?.detected_entities).toEqual({});
+    expect(result.info?.checked_text).toBe(text);
+  });
+
+  it('detects CVV codes in free text', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.CVV],
+      block: false,
+    });
+    const text = 'Credit card CVC 274 exp 12/28';
+
+    const result = await pii({}, text, config);
+
+    expect((result.info?.detected_entities as Record<string, string[]>)?.CVV).toEqual(['274']);
+    expect(result.info?.checked_text).toBe('Credit card CVC <CVV> exp 12/28');
+  });
+
+  it('detects CVV codes with equals syntax', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.CVV],
+      block: false,
+    });
+    const text = 'cvv=533';
+
+    const result = await pii({}, text, config);
+
+    expect((result.info?.detected_entities as Record<string, string[]>)?.CVV).toEqual(['533']);
+    expect(result.info?.checked_text).toBe('cvv=<CVV>');
+  });
+
+  it('detects BIC/SWIFT codes with explicit prefixes', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.BIC_SWIFT],
+      block: false,
+    });
+    const text = 'Transfer to BIC DEUTDEFF500 tomorrow.';
+
+    const result = await pii({}, text, config);
+
+    expect((result.info?.detected_entities as Record<string, string[]>)?.BIC_SWIFT).toEqual([
+      'DEUTDEFF500',
+    ]);
+    expect(result.info?.checked_text).toBe('Transfer to BIC <BIC_SWIFT> tomorrow.');
+  });
+
+  it('detects BIC/SWIFT codes from known bank prefixes', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.BIC_SWIFT],
+      block: false,
+    });
+    const text = 'Send funds to CHASUS33 by Friday.';
+
+    const result = await pii({}, text, config);
+
+    expect((result.info?.detected_entities as Record<string, string[]>)?.BIC_SWIFT).toEqual([
+      'CHASUS33',
+    ]);
+    expect(result.info?.checked_text).toBe('Send funds to <BIC_SWIFT> by Friday.');
+  });
+
+  it('does not flag common words as BIC/SWIFT codes', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.BIC_SWIFT],
+      block: false,
+    });
+    const texts = [
+      'The CUSTOMER ordered a product.',
+      'We will REGISTER your account.',
+      'Please CONSIDER this option.',
+      'The DOCUMENT is ready.',
+      'This is ABSTRACT art.',
+    ];
+
+    for (const text of texts) {
+      const result = await pii({}, text, config);
+      expect(
+        (result.info?.detected_entities as Record<string, string[]>)?.BIC_SWIFT
+      ).toBeUndefined();
+      expect(result.info?.pii_detected).toBe(false);
+    }
+  });
+
+  it('detects precise street addresses as location', async () => {
+    const config = PIIConfig.parse({
+      entities: [PIIEntity.LOCATION],
+      block: false,
+    });
+    const text = 'Ship to 782 Maple Ridge Ave, Austin, TX for delivery.';
+
+    const result = await pii({}, text, config);
+
+    expect((result.info?.detected_entities as Record<string, string[]>)?.LOCATION).toContain(
+      '782 Maple Ridge Ave, Austin, TX'
+    );
+    expect(result.info?.checked_text).toBe('Ship to <LOCATION> for delivery.');
+  });
+
+  describe.each([false, true])('LOCATION matching with block=%s', (block) => {
+    it.each([
+      ['Ship to 12 Oak St.', 'Ship to <LOCATION>.'],
+      ['At 45 7th Avenue!', 'At <LOCATION>!'],
+      ['12 Oak St and 34 Pine Rd', '<LOCATION>'],
+      ['12 Oak St; 34 Pine Rd', '<LOCATION>; <LOCATION>'],
+      ['12 Oak, Small Town, TX.', '<LOCATION>.'],
+      ['12 Oak,   Small Town  , TX.', '<LOCATION>.'],
+      ['12 Oak, , TX.', '<LOCATION>.'],
+      ['12 Oak, Town, TX; 34 Pine, City, CA', '<LOCATION>; <LOCATION>'],
+      ['12 Oak, Town, TX 34 Pine, City, CA', '<LOCATION> <LOCATION>'],
+      ['_12 Oak St; 34 Pine Rd', '_12 Oak St; <LOCATION>'],
+      ['１２ Oak St', '<LOCATION>'],
+    ])('preserves replacement spans for %s', async (text, expected) => {
+      const result = await pii(
+        {},
+        text,
+        PIIConfig.parse({ entities: [PIIEntity.LOCATION], block })
+      );
+
+      expect(result.tripwireTriggered).toBe(block);
+      expect(result.info?.checked_text).toBe(expected);
+      expect(result.info?.pii_detected).toBe(true);
+    });
+
+    it.each([
+      '12 apples and 34 pears',
+      '1234567 Oak St',
+      '_12 Oak St',
+      '12 Oak Street_extra',
+      '12 Oak, Town, Texas',
+      '12 Oak, Town',
+      '12 Oak,, TX',
+      '12 Oak, 7 Town, TX',
+    ])('leaves non-address text intact: %s', async (text) => {
+      const result = await pii(
+        {},
+        text,
+        PIIConfig.parse({ entities: [PIIEntity.LOCATION], block })
+      );
+
+      expect(result.tripwireTriggered).toBe(false);
+      expect(result.info?.checked_text).toBe(text);
+      expect(result.info?.detected_entities).toEqual({});
+    });
+
+    it('applies LOCATION matching to decoded text', async () => {
+      const encoded = Buffer.from('782 Maple Ridge Ave').toString('base64');
+      const result = await pii(
+        {},
+        `Address: ${encoded}`,
+        PIIConfig.parse({ entities: [PIIEntity.LOCATION], block, detect_encoded_pii: true })
+      );
+
+      expect(result.tripwireTriggered).toBe(block);
+      expect(result.info?.checked_text).toBe('Address: <LOCATION_ENCODED>');
+    });
+  });
+
+  describe('NRP and PERSON deprecation (Issue #47)', () => {
+    beforeEach(() => {
+      // Clear deprecation warnings before each test to ensure clean state
+      _clearDeprecationWarnings();
+    });
+
+    afterEach(() => {
+      // Restore all mocks to prevent leaking between tests
+      vi.restoreAllMocks();
+    });
+
+    it('excludes NRP and PERSON from default entities', () => {
+      const config = PIIConfig.parse({});
+
+      expect(config.entities).not.toContain(PIIEntity.NRP);
+      expect(config.entities).not.toContain(PIIEntity.PERSON);
+    });
+
+    it('does not mask common two-word phrases when using defaults', async () => {
+      const config = PIIConfig.parse({
+        block: false,
+      });
+      const text = 'crea un nuevo cliente con email test@gmail.com';
+
+      const result = await pii({}, text, config);
+
+      // Should only mask the email, not "crea un" or "nuevo cliente"
+      expect(result.info?.checked_text).toBe('crea un nuevo cliente con email <EMAIL_ADDRESS>');
+      expect((result.info?.detected_entities as Record<string, string[]>)?.NRP).toBeUndefined();
+    });
+
+    it('does not mask capitalized phrases when using defaults', async () => {
+      const config = PIIConfig.parse({
+        block: false,
+      });
+      const text = 'Welcome to New York, The User can access the system.';
+
+      const result = await pii({}, text, config);
+
+      // Should not mask "New York" or "The User"
+      expect(result.info?.checked_text).toBe(
+        'Welcome to New York, The User can access the system.'
+      );
+      expect((result.info?.detected_entities as Record<string, string[]>)?.PERSON).toBeUndefined();
+    });
+
+    it('still detects NRP when explicitly configured', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const config = PIIConfig.parse({
+        entities: [PIIEntity.NRP],
+        block: false,
+      });
+      const text = 'hello world';
+
+      const result = await pii({}, text, config);
+
+      expect((result.info?.detected_entities as Record<string, string[]>)?.NRP).toEqual([
+        'hello world',
+      ]);
+      expect(result.info?.checked_text).toBe('<NRP>');
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('still detects PERSON when explicitly configured', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const config = PIIConfig.parse({
+        entities: [PIIEntity.PERSON],
+        block: false,
+      });
+      const text = 'John Smith lives in New York';
+
+      const result = await pii({}, text, config);
+
+      expect((result.info?.detected_entities as Record<string, string[]>)?.PERSON).toContain(
+        'John Smith'
+      );
+      expect((result.info?.detected_entities as Record<string, string[]>)?.PERSON).toContain(
+        'New York'
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('shows deprecation warning for NRP', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const config = PIIConfig.parse({
+        entities: [PIIEntity.NRP],
+        block: false,
+      });
+
+      await pii({}, 'test data', config);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('DEPRECATION: PIIEntity.NRP')
+      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('more robust implementation')
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('shows deprecation warning for PERSON', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const config = PIIConfig.parse({
+        entities: [PIIEntity.PERSON],
+        block: false,
+      });
+
+      await pii({}, 'test data', config);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('DEPRECATION: PIIEntity.PERSON')
+      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('more robust implementation')
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('only shows deprecation warning once per entity', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const config = PIIConfig.parse({
+        entities: [PIIEntity.NRP, PIIEntity.PERSON],
+        block: false,
+      });
+
+      await pii({}, 'test data', config);
+      await pii({}, 'more test data', config);
+      await pii({}, 'even more data', config);
+
+      // Should only be called once for each entity (2 total)
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
+
+      consoleWarnSpy.mockRestore();
+    });
+  });
+});

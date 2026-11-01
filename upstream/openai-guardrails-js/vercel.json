@@ -1,0 +1,6 @@
+{
+  "buildCommand": "DOCS_BASE=/ npm run docs:build",
+  "outputDirectory": "site",
+  "framework": null,
+  "installCommand": "npm ci"
+}
