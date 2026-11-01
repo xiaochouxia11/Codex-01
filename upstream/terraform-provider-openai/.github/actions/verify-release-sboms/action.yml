@@ -1,0 +1,39 @@
+name: Verify release SBOMs
+description: Build a release snapshot and verify every archive has a valid, checksummed SBOM.
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: go.mod
+        cache: false
+
+    - name: Test release tool authentication
+      shell: bash
+      run: bash .github/actions/setup-release-tools/install_test.sh
+
+    - name: Install authenticated release tools
+      uses: ./.github/actions/setup-release-tools
+
+    - name: Verify release dependencies
+      uses: ./.github/actions/verify-release-dependencies
+
+    - name: Verify trusted release execution environment
+      shell: bash
+      run: python3 .github/actions/verify-release-dependencies/verify-release-environment.py
+      env:
+        GONOPROXY: "none"
+        GOPROXY: "off"
+
+    - name: Build release snapshot and SBOMs
+      shell: bash
+      run: python3 .github/actions/verify-release-sboms/verify-syft-boundary.py
+      env:
+        GONOPROXY: "none"
+        GOPROXY: "off"
+
+    - name: Verify release SBOMs
+      shell: bash
+      run: go run "$GITHUB_ACTION_PATH/verify.go" dist/*_SHA256SUMS
