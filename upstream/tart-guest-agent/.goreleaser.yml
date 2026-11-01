@@ -1,0 +1,107 @@
+---
+version: 2
+project_name: tart-guest-agent
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: darwin
+    main: cmd/main.go
+    flags: >-
+      -trimpath
+    ldflags: >-
+      -s -w
+      -X github.com/cirruslabs/tart-guest-agent/internal/version.Version={{.Version}}
+      -X github.com/cirruslabs/tart-guest-agent/internal/version.Commit={{.ShortCommit}}
+    env:
+      - CGO_ENABLED=1
+    targets:
+      - darwin_amd64
+      - darwin_arm64
+
+  - id: linux
+    main: cmd/main.go
+    flags: >-
+      -trimpath
+    ldflags: >-
+      -s -w
+      -X github.com/cirruslabs/tart-guest-agent/internal/version.Version={{.Version}}
+      -X github.com/cirruslabs/tart-guest-agent/internal/version.Commit={{.ShortCommit}}
+    env:
+      - CGO_ENABLED=0
+    targets:
+      - linux_amd64
+      - linux_arm64
+
+universal_binaries:
+  - replace: true
+    ids:
+      - darwin
+    # GoReleaser's macOS signer uses the executable name as its identifier.
+    name_template: tart-guest-agent
+    hooks:
+      post: '{{ if .IsSnapshot }}codesign --force --sign - --identifier tart-guest-agent --timestamp=none "{{ .Path }}"{{ else }}true{{ end }}'
+
+notarize:
+  macos:
+    - enabled: '{{ not .IsSnapshot }}'
+      sign:
+        certificate: "{{ .Env.MACOS_SIGN_P12 }}"
+        password: "{{ .Env.MACOS_SIGN_PASSWORD }}"
+
+archives:
+  - name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+    formats:
+      - tar.gz
+    hooks:
+      # The built-in macOS signer runs before archiving.
+      before:
+        - cmd: >-
+            {{ if eq .Os "darwin" }}
+            sh -ec 'lipo "$1" -verify_arch arm64 x86_64;
+            codesign --verify --all-architectures --strict "$1";
+            for arch in arm64 x86_64; do codesign --verify --strict --arch "$arch" "$1"; done'
+            _ "{{ .Dist }}/tart-guest-agent_darwin_all/tart-guest-agent"
+            {{ else }}true{{ end }}
+
+release:
+  prerelease: auto
+
+brews:
+  - name: "{{ .ProjectName }}"
+    directory: Formula
+    repository:
+      owner: openai
+      name: homebrew-tools
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+      branch: "{{ .ProjectName }}-{{ .Version }}"
+      pull_request:
+        enabled: true
+    homepage: https://github.com/openai/tart-guest-agent
+    license: FSL-1.1-Apache-2.0
+    description: Guest agent for Tart VMs
+    skip_upload: auto
+
+nfpms:
+  - package_name: "{{ .ProjectName }}"
+    vendor: Cirrus Labs, Inc.
+    homepage: https://github.com/cirruslabs/tart-guest-agent
+    maintainer: support@cirruslabs.org
+    description: Guest agent for Tart VMs
+    section: misc
+    formats:
+      - apk
+      - deb
+      - rpm
+    contents:
+      - src: packaging/tart-guest-agent.service
+        dst: /etc/systemd/system/tart-guest-agent.service
+        file_info:
+          mode: 0644
+
+    scripts:
+      postinstall: packaging/postinstall.sh
+      preremove: packaging/preremove.sh
+      postremove: packaging/postremove.sh
