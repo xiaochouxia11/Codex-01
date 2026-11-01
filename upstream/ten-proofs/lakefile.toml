@@ -1,0 +1,76 @@
+name = "ten-proofs"
+version = "0.1.0"
+keywords = ["math"]
+defaultTargets = [
+  "CompactnessAndDegeneracy",
+  "MulticolorTriangleRamsey",
+  "QuantumParallelRepetition",
+  "SpherePacking",
+  "MetricCodes",
+  "ConnesRigidity",
+  "NonSoficGroup",
+  "GapCVP",
+  "EhrhartVolumeInequality",
+  "Permanent",
+  "ComparatorChallenges",
+]
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.32.0"
+
+[[require]]
+name = "Comparator"
+git = "https://github.com/leanprover/comparator.git"
+rev = "v4.32.0"
+
+[[lean_lib]]
+name = "CompactnessAndDegeneracy"
+
+[[lean_lib]]
+name = "All"
+
+[[lean_lib]]
+name = "MulticolorTriangleRamsey"
+
+[[lean_lib]]
+name = "QuantumParallelRepetition"
+
+[[lean_lib]]
+name = "SpherePacking"
+
+[[lean_lib]]
+name = "MetricCodes"
+
+[[lean_lib]]
+name = "ConnesRigidity"
+
+[[lean_lib]]
+name = "NonSoficGroup"
+
+[[lean_lib]]
+name = "GapCVP"
+
+[[lean_lib]]
+name = "EhrhartVolumeInequality"
+
+[[lean_lib]]
+name = "ComparatorChallenges"
+roots = [
+  "ComparatorChallenges.A_SpherePacking",
+  "ComparatorChallenges.B_BinaryCodes",
+  "ComparatorChallenges.B_SphericalCodes",
+  "ComparatorChallenges.C_PermanentFormulaLowerBound",
+  "ComparatorChallenges.D_NonSoficGroup",
+  "ComparatorChallenges.E_ConnesRigidity",
+  "ComparatorChallenges.F_EhrhartVolumeInequality",
+  "ComparatorChallenges.G_QuantumParallelRepetition",
+  "ComparatorChallenges.H_GapCVP",
+  "ComparatorChallenges.I_MulticolorTriangleRamsey",
+  "ComparatorChallenges.J_CompactnessConjecture",
+  "ComparatorChallenges.J_TwoDegenerateGraphs",
+]
+
+[[lean_lib]]
+name = "Permanent"

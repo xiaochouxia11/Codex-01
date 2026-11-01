@@ -1,0 +1,16 @@
+{
+  "challenge_module": "ComparatorChallenges.I_MulticolorTriangleRamsey",
+  "solution_module": "MulticolorTriangleRamsey",
+  "theorem_names": [
+    "ErdosProblems.MulticolourTriangleRamsey.erdos_183",
+    "ErdosProblems.MulticolourTriangleRamsey.erdos_problem_183_explicit",
+    "ErdosProblems.MulticolourTriangleRamsey.triangleRamseyNumber_log_sharp_coefficients",
+    "ErdosProblems.MulticolourTriangleRamsey.triangleRamseyNumber_log_isTheta"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": true
+}

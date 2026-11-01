@@ -1,0 +1,14 @@
+{
+  "challenge_module": "ComparatorChallenges.E_ConnesRigidity",
+  "solution_module": "ConnesRigidity",
+  "theorem_names": [
+    "ConnesRigidity.exists_nonisomorphic_propertyT_icc_groups_with_isomorphic_factors",
+    "ConnesRigidity.exists_infinite_pairwise_nonisomorphic_propertyT_icc_groups_with_isomorphic_factors"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": true
+}

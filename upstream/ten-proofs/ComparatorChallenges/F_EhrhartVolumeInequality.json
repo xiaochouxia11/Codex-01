@@ -1,0 +1,16 @@
+{
+  "challenge_module": "ComparatorChallenges.F_EhrhartVolumeInequality",
+  "solution_module": "EhrhartVolumeInequality",
+  "theorem_names": [
+    "Ehrhart.Volume.ehrhart_volume_inequality_for_sets",
+    "Ehrhart.SimplexVolume.exists_centeredBody_sharp",
+    "Ehrhart.SimplexVolume.barycenter_centeredSimplex",
+    "Ehrhart.SimplexVolume.normalizedVolume_centeredSimplex"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": true
+}

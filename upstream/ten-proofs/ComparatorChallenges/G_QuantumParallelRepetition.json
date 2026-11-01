@@ -1,0 +1,14 @@
+{
+  "challenge_module": "ComparatorChallenges.G_QuantumParallelRepetition",
+  "solution_module": "QuantumParallelRepetition",
+  "theorem_names": [
+    "QuantumParallelRepetition.distributionUniformExponential",
+    "QuantumParallelRepetition.standardQuantumParallelRepetition"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": true
+}

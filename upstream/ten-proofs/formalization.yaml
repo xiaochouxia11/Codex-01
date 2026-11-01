@@ -1,0 +1,120 @@
+version: "v0.3"
+
+project:
+  name: "ten-proofs"
+  authors:
+    - "OpenAI"
+  license: "Apache-2.0"
+
+sources:
+  - title: "Ten Advances in Mathematics and Theoretical Computer Science"
+    authors:
+      - "OpenAI"
+    id: "https://cdn.openai.com/pdf/ten-proofs-oai.pdf"
+    publication_date: "2026-08-01"
+    type: "paper"
+    author_contacted: "yes"
+    prior_work: |-
+      https://github.com/thefundamentaltheor3m/Sphere-Packing-Lean
+      https://github.com/math-inc/Sphere-Packing-Lean
+
+status:
+  scope: >-
+    Lean formalizations spanning sphere packing, binary and spherical
+    codes, permanent lower bounds, non-sofic groups, Connes rigidity, Ehrhart's
+    volume inequality, quantum parallel repetition, closest-vector hardness,
+    multicolor triangle Ramsey numbers, compactness, and degenerate graphs.
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms:
+    - "propext"
+    - "Classical.choice"
+    - "Quot.sound"
+  main_results:
+    - name: "Sharp Cohn–Elkies sphere-packing asymptotics"
+      declaration: "PackingBounds.sharpFullCohnElkiesManuscriptConclusions"
+      file: "SpherePacking.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "ComparatorChallenges/A_SpherePacking.json"
+    - name: "Strict improvement over the MRRW binary-code bound"
+      declaration: "MetricCodes.Johnson.binaryRate_lt_mrrw"
+      file: "MetricCodes.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "ComparatorChallenges/B_BinaryCodes.json"
+    - name: "Strict hierarchy of improved spherical-code bounds"
+      declaration: "MetricCodes.Spherical.HigherHierarchy.strict_hierarchy"
+      file: "MetricCodes.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "ComparatorChallenges/B_SphericalCodes.json"
+    - name: "Permanent lower bounds for formulas with division"
+      declaration: "PermanentFormulaLowerBound.permanent_rational_formula_logarithmic_lower_bound"
+      file: "Permanent.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "ComparatorChallenges/C_PermanentFormulaLowerBound.json"
+    - name: "Existence of a finitely presented non-sofic group"
+      declaration: "SoficGroups.SourceTopLevelCompressionFinal.exists_finitelyPresented_nonsofic_group"
+      file: "NonSoficGroup.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "ComparatorChallenges/D_NonSoficGroup.json"
+    - name: "Infinitely many nonisomorphic property-(T) groups with isomorphic factors"
+      declaration: "ConnesRigidity.exists_infinite_pairwise_nonisomorphic_propertyT_icc_groups_with_isomorphic_factors"
+      file: "ConnesRigidity.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "ComparatorChallenges/E_ConnesRigidity.json"
+    - name: "Sharp Ehrhart volume inequality"
+      declaration: "Ehrhart.Volume.ehrhart_volume_inequality_for_sets"
+      file: "EhrhartVolumeInequality.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "ComparatorChallenges/F_EhrhartVolumeInequality.json"
+    - name: "Uniform exponential quantum parallel repetition"
+      declaration: "QuantumParallelRepetition.distributionUniformExponential"
+      file: "QuantumParallelRepetition.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "ComparatorChallenges/G_QuantumParallelRepetition.json"
+    - name: "Polynomial-factor NP-hardness of the closest vector problem"
+      declaration: "GapCVP.Comparator.gapCVP400IsNPHard"
+      file: "GapCVP.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "ComparatorChallenges/H_GapCVP.json"
+    - name: "Explicit superexponential lower bound for multicolor triangle Ramsey numbers"
+      declaration: "ErdosProblems.MulticolourTriangleRamsey.erdos_problem_183_explicit"
+      file: "MulticolorTriangleRamsey.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "ComparatorChallenges/I_MulticolorTriangleRamsey.json"
+    - name: "Quantitative counterexample to the Erdős–Simonovits compactness conjecture"
+      declaration: "CompactnessConjecture.quantitativeCompactnessCounterexample"
+      file: "CompactnessAndDegeneracy.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "ComparatorChallenges/J_CompactnessConjecture.json"
+    - name: "Quantitative counterexample for two-degenerate bipartite graphs"
+      declaration: "TwoDegenerateGraphs.twoDegenerateExtremalCounterexample"
+      file: "CompactnessAndDegeneracy.lean"
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "ComparatorChallenges/J_TwoDegenerateGraphs.json"
+
+automation:
+  methods:
+    - method: "agent"
+      models:
+        - "Astra (OpenAI)"
+      framework: "Codex"
+      cost:
+        wall_time: "1 week"
+  notes: "https://openai.com/index/ten-advances-in-mathematics/"
+
+review:
+  status: "agent-reviewed"
+
+acknowledgements: "We thank the authors of the Sphere-Packing-Lean project."

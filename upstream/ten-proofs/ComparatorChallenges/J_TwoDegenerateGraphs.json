@@ -1,0 +1,14 @@
+{
+  "challenge_module": "ComparatorChallenges.J_TwoDegenerateGraphs",
+  "solution_module": "CompactnessAndDegeneracy",
+  "theorem_names": [
+    "TwoDegenerateGraphs.twoDegenerateExtremalCounterexample",
+    "TwoDegenerateGraphs.not_erdos_146"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": true
+}
