@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  merge_group:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.14.0
+          only-new-issues: true
+
+  test-linux:
+    name: Test (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Check out Vetu
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          repository: openai/vetu
+          path: _vetu
+      - name: Build Vetu
+        working-directory: _vetu
+        run: |
+          go build -o "$RUNNER_TEMP/vetu" cmd/vetu/main.go
+          sudo setcap cap_net_raw,cap_net_admin+eip "$RUNNER_TEMP/vetu"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Install Cloud Hypervisor
+        run: |
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/cloud-hypervisor" \
+            https://github.com/cloud-hypervisor/cloud-hypervisor/releases/latest/download/cloud-hypervisor-static
+          chmod +x "$RUNNER_TEMP/cloud-hypervisor"
+      - name: Enable KVM access
+        run: sudo chmod 0666 /dev/kvm
+      - name: Pre-pull default Vetu image
+        run: vetu pull ghcr.io/cirruslabs/ubuntu-amd64:24.04
+      - name: Run tests
+        run: go test -timeout=30m -v -count=1 ./...
+
+  test-macos:
+    name: Test (macOS)
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run unit tests
+        run: go list ./... | grep -v '/internal/tests' | xargs go test -timeout=20m -ldflags="-B gobuildid" -v -count=1
