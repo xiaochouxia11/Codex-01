@@ -1,0 +1,15 @@
+{
+  "challenge_module": "ComparatorChallenges.Brenier",
+  "solution_module": "OAI.Analysis.Brenier.Stability",
+  "theorem_names": [
+    "OAI.Problem358.one_third_stability",
+    "OAI.Problem358.one_third_exponent_is_sharp"
+  ],
+  "definition_names": [],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

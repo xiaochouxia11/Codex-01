@@ -1,0 +1,14 @@
+{
+  "challenge_module": "ComparatorChallenges.Naimark",
+  "solution_module": "OAI.Analysis.Naimark.Tracial",
+  "theorem_names": [
+    "OAI.NaimarkZFC.main"
+  ],
+  "definition_names": [],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

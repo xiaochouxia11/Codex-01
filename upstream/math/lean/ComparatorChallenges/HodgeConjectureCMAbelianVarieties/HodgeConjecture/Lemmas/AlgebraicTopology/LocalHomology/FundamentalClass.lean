@@ -1,0 +1,58 @@
+/-
+Copyright 2026 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+This file has been modified.
+-/
+
+import HodgeConjecture.Definitions.AlgebraicTopology.LocalHomology.FundamentalClass
+
+namespace OAI.AlgebraicTopology.LocalHomology.FundamentalClassBoundary
+
+/-!
+# A standard local fundamental cycle
+
+Lemmas about the definitions in
+`HodgeConjecture.Definitions.AlgebraicTopology.LocalHomology.FundamentalClass`.
+-/
+
+noncomputable section
+
+open _root_.CategoryTheory Limits
+open scoped Simplicial
+
+section
+namespace Singular
+
+variable (R : Type) [CommRing R]
+
+/-- The alternating sum of the faces of the standard affine `(n + 1)`-simplex, regarded as a
+chain in punctured Euclidean space. -/
+def standardSubspaceBoundaryChain (n : ℕ) :
+    ModuleCat.of ℚ ℚ ⟶
+      ((_root_.OAI.AlgebraicTopology.Singular.Cohomology.chainPairFunctor ℚ).obj (_root_.OAI.AlgebraicTopology.LocalHomology.FundamentalClass.Singular.puncturedPair ℝ (n + 1))).left.X n :=
+  ∑ i : Fin (n + 2), (-1) ^ i.val • _root_.OAI.AlgebraicTopology.LocalHomology.FundamentalClass.Singular.standardSubspaceFaceChain ℚ n i
+
+lemma standardLocalCycle_inclusion (d : ℕ) :
+    _root_.OAI.AlgebraicTopology.LocalHomology.FundamentalClass.Singular.standardLocalCycle R d ≫ (_root_.OAI.AlgebraicTopology.LocalHomology.FundamentalClass.Singular.standardLocalRelativeChainComplex R d).iCycles d =
+      _root_.OAI.AlgebraicTopology.LocalHomology.FundamentalClass.Singular.standardLocalChain R d :=
+  (_root_.OAI.AlgebraicTopology.LocalHomology.FundamentalClass.Singular.standardLocalRelativeChainComplex R d).liftCycles_i (_root_.OAI.AlgebraicTopology.LocalHomology.FundamentalClass.Singular.standardLocalChain R d)
+    ((ComplexShape.down ℕ).next d) rfl (_root_.OAI.AlgebraicTopology.LocalHomology.FundamentalClass.Singular.standardLocalChain_boundary R d)
+
+end Singular
+end
+
+end
+
+end OAI.AlgebraicTopology.LocalHomology.FundamentalClassBoundary

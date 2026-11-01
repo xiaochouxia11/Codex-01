@@ -1,0 +1,14 @@
+{
+  "solution_module": "OAI.Combinatorics.KServer.Main",
+  "challenge_module": "ComparatorChallenges.KServer",
+  "theorem_names": [
+    "OAI.KServer.main_theorem"
+  ],
+  "definition_names": [],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

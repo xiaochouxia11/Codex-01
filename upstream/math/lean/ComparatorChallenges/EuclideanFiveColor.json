@@ -1,0 +1,14 @@
+{
+  "challenge_module": "ComparatorChallenges.EuclideanFiveColor",
+  "solution_module": "OAI.Geometry.PlaneColoring.Five",
+  "theorem_names": [
+    "OAI.EuclideanFiveColor.no_proper_five_coloring"
+  ],
+  "definition_names": [],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}

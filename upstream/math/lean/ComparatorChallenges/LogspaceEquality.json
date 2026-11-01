@@ -1,0 +1,14 @@
+{
+  "challenge_module": "ComparatorChallenges.LogspaceEquality",
+  "solution_module": "OAI.Computability.Logspace.Equality",
+  "theorem_names": [
+    "OAI.ExactDerandomization.exact_logarithmic_space_derandomization"
+  ],
+  "definition_names": [],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ],
+  "enable_nanoda": false
+}
