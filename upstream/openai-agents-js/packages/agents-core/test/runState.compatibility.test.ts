@@ -1,0 +1,644 @@
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { z } from 'zod';
+import { Agent } from '../src/agent';
+import type { ModelRequest, ModelResponse } from '../src/model';
+import { Runner } from '../src/run';
+import {
+  CURRENT_SCHEMA_VERSION,
+  RunState,
+  SUPPORTED_SCHEMA_VERSIONS,
+} from '../src/runState';
+import { setDefaultModelProvider } from '../src/providers';
+import { tool } from '../src/tool';
+import { getFunctionToolStateKey } from '../src/toolIdentity';
+import { Usage } from '../src/usage';
+import { ScriptedModel, modelResponse } from '../src/testing';
+
+type FixtureRecord = {
+  scenario: string;
+  kind: 'minimal' | 'feature' | 'resume';
+  path: string;
+  sha256: string;
+};
+
+type WriterSchema = {
+  schemaVersion: string;
+  status: 'published_writer';
+  packageVersion: string;
+  tag: string;
+  commit: string;
+  npmIntegrity: string;
+  fixtures: FixtureRecord[];
+};
+
+type PolicySchema = {
+  schemaVersion: string;
+  status: 'published_reader_only' | 'current_unreleased';
+  reason: string;
+};
+
+type NegativeFixture = {
+  scenario: string;
+  path: string;
+  sha256: string;
+  expectedError: string;
+};
+
+type CorpusManifest = {
+  formatVersion: number;
+  currentSchemaAtCreation: string;
+  schemas: Array<WriterSchema | PolicySchema>;
+  expectedNormalizedFixtures: Array<{
+    sourceSchemaVersion: string;
+    path: string;
+    sha256: string;
+  }>;
+  negativeFixtures: NegativeFixture[];
+};
+
+const fixtureRoot = join(
+  dirname(fileURLToPath(import.meta.url)),
+  'fixtures',
+  'run-state',
+);
+const manifest = readJson<CorpusManifest>('sources.json');
+
+class QueueModel extends ScriptedModel {
+  constructor(outputs: ModelResponse['output'][]) {
+    super(
+      outputs.map((output) => modelResponse({ output, usage: new Usage() })),
+    );
+  }
+
+  get requests(): readonly Readonly<ModelRequest>[] {
+    return this.calls.map((call) => call.request);
+  }
+}
+
+beforeAll(() => {
+  setDefaultModelProvider({
+    getModel() {
+      throw new Error(
+        'Compatibility-test agents require an explicit fake model.',
+      );
+    },
+  });
+});
+
+describe('historical RunState compatibility corpus', () => {
+  it('accounts for every supported schema with explicit release policy', () => {
+    expect(manifest.currentSchemaAtCreation).toBe(CURRENT_SCHEMA_VERSION);
+    expect(manifest.schemas.map((entry) => entry.schemaVersion)).toEqual([
+      ...SUPPORTED_SCHEMA_VERSIONS,
+    ]);
+
+    const writerVersions = manifest.schemas
+      .filter(
+        (entry): entry is WriterSchema => entry.status === 'published_writer',
+      )
+      .map((entry) => entry.schemaVersion);
+    expect(writerVersions).toEqual([
+      '1.0',
+      '1.1',
+      '1.2',
+      '1.4',
+      '1.5',
+      '1.6',
+      '1.7',
+      '1.8',
+      '1.9',
+      '1.10',
+      '1.11',
+      '1.12',
+      '1.13',
+      '1.14',
+      '1.15',
+      '1.17',
+      '1.18',
+      '1.19',
+      '1.20',
+      '1.21',
+      '1.22',
+      '1.23',
+    ]);
+    expect(
+      manifest.schemas
+        .filter((entry) => entry.status === 'published_reader_only')
+        .map((entry) => entry.schemaVersion),
+    ).toEqual(['1.3', '1.16']);
+    expect(
+      manifest.schemas
+        .filter((entry) => entry.status === 'current_unreleased')
+        .map((entry) => entry.schemaVersion),
+    ).toEqual(['1.24']);
+  });
+
+  it('pins every fixture to immutable bytes and complete writer provenance', () => {
+    for (const source of writerSources()) {
+      expect(source.commit).toMatch(/^[0-9a-f]{40}$/);
+      expect(source.tag).toBe(`v${source.packageVersion}`);
+      expect(source.npmIntegrity).toMatch(/^sha512-/);
+      expect(
+        source.fixtures.filter((fixture) => fixture.kind === 'minimal'),
+      ).toHaveLength(1);
+      for (const fixture of source.fixtures) {
+        expect(hashFixture(fixture.path)).toBe(fixture.sha256);
+        expect(
+          readJson<Record<string, unknown>>(fixture.path).$schemaVersion,
+        ).toBe(source.schemaVersion);
+      }
+    }
+    for (const fixture of manifest.negativeFixtures) {
+      expect(hashFixture(fixture.path)).toBe(fixture.sha256);
+    }
+    for (const fixture of manifest.expectedNormalizedFixtures) {
+      expect(hashFixture(fixture.path)).toBe(fixture.sha256);
+    }
+  });
+
+  it.each(
+    writerSources().map((source) => [source.schemaVersion, source] as const),
+  )(
+    'reads, normalizes, and idempotently rewrites released minimal schema %s',
+    async (_schemaVersion, source) => {
+      const fixture = source.fixtures.find(
+        (candidate) => candidate.kind === 'minimal',
+      );
+      expect(fixture).toBeDefined();
+      const bytes = readFixture(fixture!.path);
+      const historical = JSON.parse(bytes) as Record<string, unknown>;
+      const agent = new Agent({ name: 'HistoricalAgent' });
+
+      const restored = await RunState.fromString(agent, bytes);
+      expect(restored._currentTurn).toBe(historical.currentTurn);
+      expect(restored._originalInput).toEqual(historical.originalInput);
+      expect(restored._maxTurns).toBe(historical.maxTurns);
+      expect(restored._context.context).toEqual({ fixture: 'minimal' });
+
+      const firstRewrite = JSON.parse(restored.toString()) as Record<
+        string,
+        unknown
+      >;
+      if (source.schemaVersion === '1.0') {
+        expect(firstRewrite).toEqual(
+          readJson('expected/v1.0-normalized-current.json'),
+        );
+      }
+      expect(firstRewrite.$schemaVersion).toBe('1.23');
+      expectJsonScalars(firstRewrite);
+
+      const rewritten = await RunState.fromString(
+        agent,
+        JSON.stringify(firstRewrite),
+      );
+      expect(JSON.parse(rewritten.toString())).toEqual(firstRewrite);
+    },
+  );
+
+  it.each(['aggregate', 'request'] as const)(
+    'rejects excessively nested %s usage in persisted state',
+    async (location) => {
+      const snapshot = readJson<any>('historical/v1.22-minimal.json');
+      snapshot.$schemaVersion = CURRENT_SCHEMA_VERSION;
+      let details: Record<string, unknown> = { count: 1 };
+      for (let i = 1; i < 4_000; i++) details = { nested: details };
+      if (location === 'aggregate') {
+        snapshot.context.usage.inputTokensDetails = [details];
+      } else {
+        snapshot.context.usage.requestUsageEntries = [
+          {
+            inputTokens: 1,
+            outputTokens: 0,
+            totalTokens: 1,
+            outputTokensDetails: details,
+          },
+        ];
+      }
+      await expect(
+        RunState.fromString(
+          new Agent({ name: 'HistoricalAgent' }),
+          JSON.stringify(snapshot),
+        ),
+      ).rejects.toThrow(/32 levels/);
+    },
+  );
+
+  it.each(['context', 'modelResponse', 'lastModelResponse'] as const)(
+    'chooses the writer version from all %s usage locations',
+    async (location) => {
+      const agent = new Agent({ name: 'HistoricalAgent' });
+      for (const requestEntry of [false, true]) {
+        for (const direction of [
+          'inputTokensDetails',
+          'outputTokensDetails',
+        ] as const) {
+          for (const value of [
+            42,
+            { nested: 42 },
+            'new',
+            true,
+            null,
+            [],
+            [42],
+          ]) {
+            const snapshot = readJson<any>('historical/v1.23-minimal.json');
+            const usage = { ...snapshot.context.usage };
+            const details = { provider: value };
+            if (requestEntry) {
+              usage.requestUsageEntries = [
+                {
+                  inputTokens: 1,
+                  outputTokens: 0,
+                  totalTokens: 1,
+                  [direction]: details,
+                },
+              ];
+            } else {
+              usage[direction] = [details];
+            }
+            if (location === 'context') snapshot.context.usage = usage;
+            else if (location === 'modelResponse')
+              snapshot.modelResponses = [{ usage, output: [] }];
+            else snapshot.lastModelResponse = { usage, output: [] };
+            const restored = await RunState.fromString(
+              agent,
+              JSON.stringify(snapshot),
+            );
+            const written = restored.toJSON();
+            const numeric =
+              typeof value === 'number' ||
+              (value !== null &&
+                !Array.isArray(value) &&
+                typeof value === 'object');
+            expect(written.$schemaVersion).toBe(numeric ? '1.23' : '1.24');
+            const rewritten = await RunState.fromString(
+              agent,
+              JSON.stringify(written),
+            );
+            expect(rewritten.toJSON()).toEqual(written);
+            const savedUsage =
+              location === 'context'
+                ? written.context.usage
+                : location === 'modelResponse'
+                  ? written.modelResponses[0].usage
+                  : written.lastModelResponse!.usage;
+            expect(
+              requestEntry
+                ? savedUsage.requestUsageEntries![0][direction]
+                : savedUsage[direction]![0],
+            ).toEqual(details);
+          }
+        }
+      }
+    },
+  );
+
+  it('propagates newer nested formats without rewriting nested snapshots', async () => {
+    const agent = new Agent({ name: 'HistoricalAgent' });
+    const makeState = () =>
+      RunState.fromString(agent, readFixture('historical/v1.23-minimal.json'));
+    const child = await makeState();
+    const parent = await makeState();
+    child.usage.inputTokensDetails = [{ cached: { tokens: 1 } }];
+    parent._pendingAgentToolRuns.set('child', child.toString());
+    expect(parent.toJSON().$schemaVersion).toBe('1.23');
+    child.usage.inputTokensDetails = [{ provider: 'rich' }];
+    const childBytes = child.toString();
+    parent._pendingAgentToolRuns.set('child', childBytes);
+    expect(parent.toJSON().$schemaVersion).toBe('1.24');
+    expect(parent.toJSON().pendingAgentToolRuns.child).toBe(childBytes);
+    const grandparent = await makeState();
+    grandparent._pendingAgentToolRuns.set('parent', parent.toString());
+    expect(grandparent.toJSON().$schemaVersion).toBe('1.24');
+    for (const opaque of [
+      'invalid',
+      'null',
+      '{}',
+      '{"$schemaVersion":"9.0"}',
+    ]) {
+      parent._pendingAgentToolRuns.set('child', opaque);
+      expect(parent.toJSON().$schemaVersion).toBe('1.24');
+      expect(parent.toJSON().pendingAgentToolRuns.child).toBe(opaque);
+    }
+  });
+
+  it('preserves flat usage when upgrading a schema 1.22 snapshot', async () => {
+    const historical = readJson<any>('historical/v1.22-minimal.json');
+    const entry = {
+      inputTokens: 100,
+      outputTokens: 20,
+      totalTokens: 120,
+      inputTokensDetails: { cached_tokens: 40, cache_write_tokens: 10 },
+      outputTokensDetails: { reasoning_tokens: 5 },
+      endpoint: 'responses.create',
+    };
+    historical.context.usage = {
+      ...entry,
+      requests: 1,
+      inputTokensDetails: [entry.inputTokensDetails],
+      outputTokensDetails: [entry.outputTokensDetails],
+      requestUsageEntries: [entry],
+    };
+    const restored = await RunState.fromString(
+      new Agent({ name: 'HistoricalAgent' }),
+      JSON.stringify(historical),
+    );
+    expect(restored.usage).toMatchObject({
+      requests: 1,
+      totalTokens: 120,
+      inputTokensDetails: [entry.inputTokensDetails],
+      requestUsageEntries: [entry],
+    });
+    expect(restored.toJSON().$schemaVersion).toBe('1.23');
+  });
+
+  it('preserves released mid-turn server continuation identifiers', async () => {
+    const restored = await RunState.fromString(
+      new Agent({ name: 'HistoricalAgent' }),
+      readFixture('historical/v1.1-server-continuation.json'),
+    );
+
+    expect(restored._currentTurnInProgress).toBe(true);
+    expect(restored._conversationId).toBe('conversation-historical');
+    expect(restored._previousResponseId).toBe('response-historical');
+  });
+
+  it('requires a fresh run for released pending functions without input validation evidence', async () => {
+    let executions = 0;
+    const { outerAgent, outerModel } = createNestedApprovalAgents(() => {
+      executions += 1;
+    });
+    const restored = await RunState.fromString(
+      outerAgent,
+      readFixture('historical/v1.2-nested-approval.json'),
+    );
+    const approval = restored.getInterruptions()[0];
+    expect(approval?.agent.name).toBe('NestedAgent');
+
+    restored.approve(approval!);
+    await expect(new Runner().run(outerAgent, restored)).rejects.toThrow(
+      /initial input guardrails is unverified/,
+    );
+    expect(executions).toBe(0);
+    expect(outerModel.requests).toHaveLength(0);
+  });
+
+  it('does not execute an unknown legacy parent even when its child was rejected', async () => {
+    let executions = 0;
+    const { outerAgent } = createNestedApprovalAgents(() => {
+      executions += 1;
+    });
+    const restored = await RunState.fromString(
+      outerAgent,
+      readFixture('historical/v1.2-nested-approval.json'),
+    );
+    const approval = restored.getInterruptions()[0];
+
+    restored.reject(approval!);
+    await expect(new Runner().run(outerAgent, restored)).rejects.toThrow(
+      /initial input guardrails is unverified/,
+    );
+    expect(executions).toBe(0);
+  });
+
+  it('preserves a released pending child rejection but requires a fresh run', async () => {
+    let executions = 0;
+    const { nestedAgent } = createNestedApprovalAgents(() => {
+      executions += 1;
+    });
+    const snapshot = JSON.parse(
+      readFixture('historical/v1.2-nested-approval.json'),
+    );
+    const restored = await RunState.fromString(
+      nestedAgent,
+      snapshot.pendingAgentToolRuns['nested_tool:outer-call'],
+    );
+    restored.reject(restored.getInterruptions()[0], {
+      message: 'historical rejection',
+    });
+    await expect(
+      new Runner({ tracingDisabled: true }).run(nestedAgent, restored),
+    ).rejects.toThrow(/initial input guardrails is unverified/);
+    expect(executions).toBe(0);
+    expect(JSON.stringify(restored.toJSON())).toContain('historical rejection');
+  });
+
+  it('rejects a released checkpoint without replaying its committed side effect', async () => {
+    let executions = 0;
+    const finalModel = new QueueModel([[message('done')]]);
+    const sideEffectTool = tool({
+      name: 'side_effect_tool',
+      description: 'Runs once.',
+      parameters: z.object({}).strict(),
+      execute: async () => {
+        executions += 1;
+        return 'unexpected duplicate';
+      },
+    });
+    const agent = new Agent({
+      name: 'SideEffectAgent',
+      model: finalModel,
+      tools: [sideEffectTool],
+    });
+    const restored = await RunState.fromString(
+      agent,
+      readFixture('historical/v1.17-side-effect-committed.json'),
+    );
+
+    await expect(new Runner().run(agent, restored)).rejects.toThrow(
+      /initial input guardrails is unverified/,
+    );
+    expect(executions).toBe(0);
+    expect(finalModel.requests).toHaveLength(0);
+    expect(JSON.stringify(restored.toJSON())).toContain(
+      'side effect completed',
+    );
+  });
+
+  it('honors an exact rejection from the released schema 1.18 writer', async () => {
+    const approvalTool = tool({
+      name: 'sensitive_tool',
+      description: 'Requires an exact approval decision.',
+      parameters: z.object({}),
+      needsApproval: true,
+      execute: async () => 'unused',
+    });
+    const agent = new Agent({
+      name: 'ApprovalOverrideAgent',
+      tools: [approvalTool],
+    });
+    const buildCall = (callId: string) => ({
+      id: `fc_${callId}`,
+      type: 'function_call' as const,
+      name: approvalTool.name,
+      callId,
+      status: 'completed' as const,
+      arguments: '{}',
+      providerData: {},
+    });
+    const restored = await RunState.fromString(
+      agent,
+      readFixture('historical/v1.18-per-call-approval-override.json'),
+    );
+    const toolName = getFunctionToolStateKey(approvalTool)!;
+    const exceptionCall = buildCall('exception-call');
+
+    expect(
+      restored._context._resolveToolInvocationApproval(
+        agent,
+        toolName,
+        exceptionCall,
+      ),
+    ).toBe(false);
+    expect(
+      restored._context._getToolInvocationRejectionMessage(
+        agent,
+        toolName,
+        exceptionCall,
+      ),
+    ).toBe('Denied exactly.');
+    expect(
+      restored._context._resolveToolInvocationApproval(
+        agent,
+        toolName,
+        buildCall('other-call'),
+      ),
+    ).toBe(true);
+    expect(restored.toJSON().$schemaVersion).toBe('1.23');
+  });
+
+  it.each(manifest.negativeFixtures.filter((fixture) => fixture.expectedError))(
+    'rejects negative fixture $scenario before side effects',
+    async (fixture) => {
+      let toolCalls = 0;
+      const model = new ScriptedModel([
+        modelResponse({
+          output: [message('unexpected')],
+          usage: new Usage(),
+        }),
+      ]);
+      const agent = new Agent({
+        name: 'HistoricalAgent',
+        model,
+        tools: [
+          tool({
+            name: 'side_effect_tool',
+            description: 'Must not run.',
+            parameters: z.object({}).strict(),
+            execute: async () => {
+              toolCalls += 1;
+              return 'unexpected';
+            },
+          }),
+        ],
+      });
+
+      await expect(
+        RunState.fromString(agent, readFixture(fixture.path)),
+      ).rejects.toThrow(fixture.expectedError);
+      expect(model.calls).toHaveLength(0);
+      expect(toolCalls).toBe(0);
+    },
+  );
+
+  it('parses an own __proto__ key without polluting object prototypes', async () => {
+    expect(
+      (Object.prototype as { polluted?: unknown }).polluted,
+    ).toBeUndefined();
+    const restored = await RunState.fromString(
+      new Agent({ name: 'HistoricalAgent' }),
+      readFixture('negative/prototype-key.json'),
+    );
+    const context = restored._context.context as Record<string, unknown>;
+    expect(context.polluted).toBeUndefined();
+    expect(Object.getPrototypeOf(context)).toBe(Object.prototype);
+    expect(
+      (Object.prototype as { polluted?: unknown }).polluted,
+    ).toBeUndefined();
+  });
+});
+
+function writerSources(): WriterSchema[] {
+  return manifest.schemas.filter(
+    (entry): entry is WriterSchema => entry.status === 'published_writer',
+  );
+}
+
+function readFixture(relativePath: string): string {
+  return readFileSync(join(fixtureRoot, relativePath), 'utf8');
+}
+
+function readJson<T>(relativePath: string): T {
+  return JSON.parse(readFixture(relativePath)) as T;
+}
+
+function hashFixture(relativePath: string): string {
+  return createHash('sha256').update(readFixture(relativePath)).digest('hex');
+}
+
+function expectJsonScalars(value: unknown): void {
+  if (value === null) {
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      expectJsonScalars(item);
+    }
+    return;
+  }
+  if (typeof value === 'object') {
+    for (const item of Object.values(value as Record<string, unknown>)) {
+      expectJsonScalars(item);
+    }
+    return;
+  }
+  expect(['string', 'number', 'boolean']).toContain(typeof value);
+  if (typeof value === 'number') {
+    expect(Number.isFinite(value)).toBe(true);
+  }
+}
+
+function createNestedApprovalAgents(onExecute: () => void) {
+  const approvalTool = tool({
+    name: 'secure_tool',
+    description: 'Requires approval.',
+    parameters: z.object({ text: z.string() }),
+    needsApproval: true,
+    execute: async ({ text }) => {
+      onExecute();
+      return `approved:${text}`;
+    },
+  });
+  const nestedAgent = new Agent({
+    name: 'NestedAgent',
+    model: new QueueModel([[message('Nested done')]]),
+    tools: [approvalTool],
+    modelSettings: { toolChoice: 'required' },
+  });
+  const nestedTool = nestedAgent.asTool({
+    toolName: 'nested_tool',
+    toolDescription: 'Nested agent tool.',
+    runOptions: { context: { nested: true } },
+  });
+  const outerModel = new QueueModel([[message('Outer done')]]);
+  const outerAgent = new Agent({
+    name: 'OuterAgent',
+    model: outerModel,
+    tools: [nestedTool],
+    modelSettings: { toolChoice: 'required' },
+  });
+  return { outerAgent, outerModel, nestedAgent };
+}
+
+function message(text: string): ModelResponse['output'][number] {
+  return {
+    type: 'message',
+    role: 'assistant',
+    status: 'completed',
+    content: [{ type: 'output_text', text }],
+  };
+}
