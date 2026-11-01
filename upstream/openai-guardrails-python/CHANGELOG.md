@@ -1,0 +1,79 @@
+# Changelog
+
+## [0.3.6](https://github.com/openai/openai-guardrails-python/compare/v0.3.5...v0.3.6) (2026-10-26)
+
+
+### Bug Fixes
+
+* support synchronous guardrails inside running event loops ([#149](https://github.com/openai/openai-guardrails-python/issues/149)) ([d9c89bb](https://github.com/openai/openai-guardrails-python/commit/d9c89bb6240cb7ae1456d00e063460ee87ad45c2))
+
+## [0.3.5](https://github.com/openai/openai-guardrails-python/compare/v0.3.4...v0.3.5) (2026-10-26)
+
+
+### Chores
+
+* **deps:** bump github/codeql-action/init from 4.38.0 to 4.39.0 ([#145](https://github.com/openai/openai-guardrails-python/issues/145)) ([517b8d2](https://github.com/openai/openai-guardrails-python/commit/517b8d281c91223a30d289a408c7f9e7e62207ad))
+
+## [0.3.4](https://github.com/openai/openai-guardrails-python/compare/v0.3.3...v0.3.4) (2026-10-26)
+
+
+### Bug Fixes
+
+* analyze inline assistant tool calls ([#135](https://github.com/openai/openai-guardrails-python/issues/135)) ([4e3f371](https://github.com/openai/openai-guardrails-python/commit/4e3f3717017cc5575ca7522719f34a340c210029))
+* Bound Secret Keys file-container matching ([#122](https://github.com/openai/openai-guardrails-python/issues/122)) ([cb5893f](https://github.com/openai/openai-guardrails-python/commit/cb5893f5326e09457a383c40178aeee98928fffc))
+* Preserve full coverage of overlapping PII detections ([#119](https://github.com/openai/openai-guardrails-python/issues/119)) ([8fb432b](https://github.com/openai/openai-guardrails-python/commit/8fb432ba91bfe931a3dc02fb67bd3f6bc2c0d7a5))
+* Preserve masked conversation history in output checks ([#121](https://github.com/openai/openai-guardrails-python/issues/121)) ([d539416](https://github.com/openai/openai-guardrails-python/commit/d53941699f35fbc2d3addfdc6fd7274272be919e))
+* reject dot segments in URL path allow lists ([#130](https://github.com/openai/openai-guardrails-python/issues/130)) ([dc18011](https://github.com/openai/openai-guardrails-python/commit/dc180118b2fc6ac8748f738ae4979be19ae7d0f1))
+* Reject PII decoding-limit failures by default ([#120](https://github.com/openai/openai-guardrails-python/issues/120)) ([b2b73e9](https://github.com/openai/openai-guardrails-python/commit/b2b73e974e31bd8140e39d67fa298fc394f1b430))
+* Report empty classifier responses as execution failures ([#133](https://github.com/openai/openai-guardrails-python/issues/133)) ([48b2e58](https://github.com/openai/openai-guardrails-python/commit/48b2e58fd0982c789cb38e66d6fe632e246fc23a))
+* validate list-valued agent outputs ([#134](https://github.com/openai/openai-guardrails-python/issues/134)) ([8913470](https://github.com/openai/openai-guardrails-python/commit/8913470cb3651491e27a9bf8b325329abe5a147b))
+
+
+### Chores
+
+* **deps:** bump actions/create-github-app-token from 3.2.0 to 3.3.0 ([#147](https://github.com/openai/openai-guardrails-python/issues/147)) ([3d8c618](https://github.com/openai/openai-guardrails-python/commit/3d8c61858dd0d287e769236e5743504018e4c9f9))
+* **deps:** bump actions/download-artifact from 8.0.1 to 8.0.2 ([#141](https://github.com/openai/openai-guardrails-python/issues/141)) ([56ca018](https://github.com/openai/openai-guardrails-python/commit/56ca0188792c9903b3a0703de5c38fe31feb7078))
+* **deps:** bump actions/github-script from 8.0.0 to 9.0.0 ([#126](https://github.com/openai/openai-guardrails-python/issues/126)) ([e6ff2c8](https://github.com/openai/openai-guardrails-python/commit/e6ff2c82fed4c267a7bc84cd694032235fe7b6f5))
+* **deps:** bump actions/upload-artifact from 7.0.1 to 7.0.2 ([#143](https://github.com/openai/openai-guardrails-python/issues/143)) ([2ea9b18](https://github.com/openai/openai-guardrails-python/commit/2ea9b182a4afa8b6cd0ec0d1626f87116cd74f20))
+* **deps:** bump actions/upload-pages-artifact from 4.0.0 to 5.0.0 ([#128](https://github.com/openai/openai-guardrails-python/issues/128)) ([7d02a56](https://github.com/openai/openai-guardrails-python/commit/7d02a56ed146b09141aa03426981d8efc034de9c))
+* **deps:** update astral-sh/setup-uv requirement to e4db8464a088ece1b920f60402e813ea4de65b8f ([#127](https://github.com/openai/openai-guardrails-python/issues/127)) ([cb06172](https://github.com/openai/openai-guardrails-python/commit/cb06172728c5af6f584c39b5250ecbe3afd78a9c))
+* require actionable security review before handoff ([#140](https://github.com/openai/openai-guardrails-python/issues/140)) ([1af4d0a](https://github.com/openai/openai-guardrails-python/commit/1af4d0a5ae050696fc0a659c094cfb07be48ca82))
+* require SDK-team ownership for release files ([#125](https://github.com/openai/openai-guardrails-python/issues/125)) ([ede106b](https://github.com/openai/openai-guardrails-python/commit/ede106bb083eb33d4d4c39e461d953a788e84168))
+
+
+### Documentation
+
+* clarify collaborator-only pull request policy ([#132](https://github.com/openai/openai-guardrails-python/issues/132)) ([dcad9eb](https://github.com/openai/openai-guardrails-python/commit/dcad9ebd2b70fe7f7611e750cd4e28900c2dd01e))
+* Tighten README and verify setup examples ([#124](https://github.com/openai/openai-guardrails-python/issues/124)) ([78f2ad7](https://github.com/openai/openai-guardrails-python/commit/78f2ad7b0272a57d2b8da2533fe659bbcbe02a67))
+
+## [0.3.3](https://github.com/openai/openai-guardrails-python/compare/v0.3.2...v0.3.3) (2026-09-10)
+
+
+### Bug Fixes
+
+* bound secret-key extension matching work ([#111](https://github.com/openai/openai-guardrails-python/issues/111)) ([36e37b5](https://github.com/openai/openai-guardrails-python/commit/36e37b509087c68b12c5c449d7c582e32f57d6a2))
+* enforce component restrictions for IP URL allow-list entries ([#116](https://github.com/openai/openai-guardrails-python/issues/116)) ([8bd0fab](https://github.com/openai/openai-guardrails-python/commit/8bd0fabb1aaac830ddaa7ccf4dbd09b7927f27b8))
+* honor strict errors in prompt injection detection ([#114](https://github.com/openai/openai-guardrails-python/issues/114)) ([41f0195](https://github.com/openai/openai-guardrails-python/commit/41f0195fa7cf4d9cb18af64bf1ed36481da87566))
+* mask repeated encoded PII in structured content ([#112](https://github.com/openai/openai-guardrails-python/issues/112)) ([accdd48](https://github.com/openai/openai-guardrails-python/commit/accdd48596dbc41faa850bab6fe7c4005abeb17a))
+* Match safety identifier endpoints by hostname ([#100](https://github.com/openai/openai-guardrails-python/issues/100)) ([6d837ec](https://github.com/openai/openai-guardrails-python/commit/6d837ecf4d219943af065b5ac281ef08c592f596))
+* preserve conversation evaluation provider configuration ([#113](https://github.com/openai/openai-guardrails-python/issues/113)) ([f20be29](https://github.com/openai/openai-guardrails-python/commit/f20be29c03f6c6cb614afee70511daa57a27f271))
+* Restore type checks and enforce them in CI ([#99](https://github.com/openai/openai-guardrails-python/issues/99)) ([039500e](https://github.com/openai/openai-guardrails-python/commit/039500eeb1dd73b13bc26dc915026298bcb0e9bb))
+* retain masked input in PII example history ([#110](https://github.com/openai/openai-guardrails-python/issues/110)) ([9efd83d](https://github.com/openai/openai-guardrails-python/commit/9efd83d2741ff26e53543619069e9bdb1c0181d1))
+* use GITHUB_TOKEN for release automation ([#115](https://github.com/openai/openai-guardrails-python/issues/115)) ([c3e4af5](https://github.com/openai/openai-guardrails-python/commit/c3e4af5d626dd38c13d41112bad2ee1b290906f7))
+
+
+### Chores
+
+* automate releases with release-please ([#95](https://github.com/openai/openai-guardrails-python/issues/95)) ([fbae44a](https://github.com/openai/openai-guardrails-python/commit/fbae44ad1f40a91c54c8b05a23e8e9afb7820fca))
+* Configure CodeQL scanning ([#94](https://github.com/openai/openai-guardrails-python/issues/94)) ([a0389d9](https://github.com/openai/openai-guardrails-python/commit/a0389d96d3c5d045c0fb4a8003db4052e9a7b6ba))
+* configure Dependabot and allow authorized delivery ([#102](https://github.com/openai/openai-guardrails-python/issues/102)) ([b04de65](https://github.com/openai/openai-guardrails-python/commit/b04de65946091cea871912ae8425177af63dac70))
+* restrict GitHub Actions permissions ([#96](https://github.com/openai/openai-guardrails-python/issues/96)) ([f51b6cd](https://github.com/openai/openai-guardrails-python/commit/f51b6cd8ebc67fa14179013c2dc1dfcb8cfcea65))
+* Run required checks for merge queue groups ([#98](https://github.com/openai/openai-guardrails-python/issues/98)) ([dae01c7](https://github.com/openai/openai-guardrails-python/commit/dae01c79033f915b4959f0ea9ca92a9f1707a425))
+* update agent assets ([7437f47](https://github.com/openai/openai-guardrails-python/commit/7437f47a7eb7ae461e159865cfa9fd6a9b77d80e))
+
+
+### Documentation
+
+* add contributor guide ([#97](https://github.com/openai/openai-guardrails-python/issues/97)) ([ec88ba7](https://github.com/openai/openai-guardrails-python/commit/ec88ba705df2ac2e0c39c6236ac7b9b4b102c49a))
+* add package-specific security reporting guidance ([#101](https://github.com/openai/openai-guardrails-python/issues/101)) ([42b99ca](https://github.com/openai/openai-guardrails-python/commit/42b99ca16c802e8940d687dd457a77c55e810771))
+* update readme, docs, and code comments ([741faf9](https://github.com/openai/openai-guardrails-python/commit/741faf905be05558d2a9c2681118fd59b7e5b57c))
