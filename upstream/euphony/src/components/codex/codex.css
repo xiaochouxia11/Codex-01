@@ -1,0 +1,16 @@
+@import '../../css/component-global.css';
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.codex-wrapper {
+  width: 100%;
+}
+
+.empty-state {
+  color: var(--gray-600);
+  font-style: italic;
+  padding: 16px;
+}
