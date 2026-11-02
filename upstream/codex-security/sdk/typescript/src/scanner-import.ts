@@ -1,5 +1,6 @@
 import { hash } from "node:crypto";
 import { readFile, type FileHandle } from "node:fs/promises";
+import { posix } from "node:path";
 import { promisify } from "node:util";
 import { gunzip } from "node:zlib";
 import { CodexSecurityError, errorMessage } from "./errors.js";
@@ -43,6 +44,18 @@ export function relativePath(value: unknown): string | null {
     !path.split("/").includes("..")
     ? path
     : null;
+}
+
+export function repositoryFilePath(value: unknown): string | null {
+  const relative = relativePath(value);
+  if (!relative) return null;
+  const path = posix.normalize(relative);
+  // Anchor the SCP branch at the first eligible @ to avoid rescanning long filenames.
+  return path === "." ||
+    path.endsWith("/") ||
+    /^(?:[a-z][a-z\d+.-]*:|~[^/]*(?:\/|$)|[^/][^/@]*@[^/]+:)/iu.test(path)
+    ? null
+    : path;
 }
 
 export function stableId(prefix: string, fields: unknown[]): string {
@@ -197,17 +210,78 @@ export function sarifRunContextSelector(runContext: Record<string, unknown>) {
   };
 }
 
+type IndexedSarifRule = { rule: Record<string, unknown>; index: number };
+
 /** Duplicate IDs cannot identify a single rule in this run. */
-export function indexSarifRules(rules: Record<string, unknown>[]) {
-  const byId = new Map<
-    unknown,
-    { rule: Record<string, unknown>; index: number } | null
-  >();
-  for (const [index, rule] of rules.entries()) {
+export function indexSarifRules(
+  entries: Iterable<[number, Record<string, unknown>]>,
+) {
+  const byId = new Map<unknown, IndexedSarifRule | null>();
+  for (const [index, rule] of entries) {
     const id = rule["id"];
     byId.set(id, byId.has(id) ? null : { rule, index });
   }
   return byId;
+}
+
+/** Keep the report and producer context shared by individual SARIF results. */
+export function sarifResultContext(
+  document: Record<string, unknown>,
+  run: Record<string, unknown>,
+  tool: Record<string, unknown>,
+  driver: Record<string, unknown>,
+  producer: "Endor" | "Semgrep",
+) {
+  const rules = array(driver["rules"] ?? [], `${producer} rules`).map((rule) =>
+    record(rule, `${producer} rule`),
+  );
+  const rulesById = indexSarifRules(rules.entries());
+  const { runs: _runs, ...documentContext } = document;
+  const { results: _results, tool: _tool, ...runContext } = run;
+  const { rules: _rules, ...driverContext } = driver;
+  const { driver: _driver, ...toolContext } = tool;
+  return {
+    rulesById,
+    selectRunContext: sarifRunContextSelector(runContext),
+    documentContext,
+    runContext,
+    driverContext,
+    toolContext,
+  };
+}
+
+/** The top-level index and nested descriptor must agree with the selected driver rule. */
+export function validateSarifRuleReference(
+  result: Record<string, unknown>,
+  ruleId: string,
+  selected: IndexedSarifRule | undefined,
+  producer: "Endor" | "Semgrep" | "Snyk",
+) {
+  // Snyk's original diagnostics use unqualified SARIF field names.
+  const label = producer === "Snyk" ? "Result" : producer;
+  if (
+    result["ruleIndex"] !== undefined &&
+    result["ruleIndex"] !== selected?.index
+  )
+    throw new Error(`${label} ruleIndex and ruleId disagree.`);
+  if (result["rule"] === undefined) return;
+  const reference = record(
+    result["rule"],
+    producer === "Snyk" ? "Rule reference" : `${producer} rule reference`,
+  );
+  if (
+    reference["toolComponent"] !== undefined ||
+    (reference["id"] !== undefined && reference["id"] !== ruleId) ||
+    (reference["index"] !== undefined &&
+      reference["index"] !== selected?.index) ||
+    (reference["guid"] !== undefined &&
+      reference["guid"] !== selected?.rule["guid"])
+  )
+    throw new Error(
+      producer === "Snyk"
+        ? "Result uses an inconsistent or external rule reference."
+        : `Inconsistent or external ${producer} rule reference.`,
+    );
 }
 
 /** Exclude every colliding record: choosing the first could overwrite another occurrence. */
