@@ -115,6 +115,7 @@ omitted or null output retains only the helper's earlier projections.
 beyond selected text and tool inputs. It contains `stream_id`, `response_id`,
 `terminal_type`, `response` and `output`. `response` is the last observed
 lifecycle response metadata (excluding `output`), or `None` if none arrived.
+This includes `response.queued` and `response.in_progress` refreshes.
 `output` is a list of `{"output_index": index, "item": metadata, "content": rows}`.
 Each content row is `{"content_index": index, "part": observed_fields}`. The
 part's `annotations`, when present as a list, use
@@ -151,6 +152,26 @@ is provisional, not a fabricated validated response or a successful tool result.
 You may mutate this returned view without changing the accumulator, events, or
 earlier snapshots. The original `snapshot()` remains immutable and hashable.
 
+The detailed view also tracks reasoning summary/text, shell commands and output,
+interpreter code, and search, image and MCP call status updates. Reasoning text stays
+separate from the compact snapshot's `output_text`. Full item and part replacements
+override their provisional fields without discarding another part's progress.
+Reasoning `item.content` and its indexed content rows show the same observed text.
+
+Shell output rows also contain `shell_output`, a list of
+`{"command_index": index, "data": observed_fields}` entries. Commands can produce
+output out of order. These indexed rows retain later commands even before earlier
+commands have produced output. A delta adds observed stdout/stderr. A done event
+replaces that command's data with `{"output": [all_received_contents]}`, including
+an empty array. The rows preserve each content's order, outcome and metadata.
+`item.output` retains the received whole-item array: it does not identify command
+boundaries, so the helper does not guess how command progress fits into that array.
+A text delta does not invent an outcome, exit code, or missing stdout/stderr.
+Full-item and terminal replacements clear provisional command facts. A matching
+shell call supplies a command bound; without it, the bound remains unknown.
+Queue and response limits
+are unchanged; the helper never allocates missing slots up to a sparse wire index.
+
 `snapshot()` materializes the entire current projection and joins retained
 fragments. `detailed_snapshot()` also materializes and copies its whole projection.
 Both are proportional to the accumulated output, so requesting either after
@@ -186,7 +207,7 @@ it. After reconnect releases a closed default lane, `session.lane()` (or
 `session.lane(None)`) registers a fresh default and updates `session.default`.
 
 Limits apply only to this opt-in session. Event queues are bounded per lane and
-across the session; overflow reports `ResponsesWebSocketBufferError` and closes
+across the session. By default, overflow reports `ResponsesWebSocketBufferError` and closes
 the owned connection so ordered events are not silently dropped. Queue byte
 counts measure received message bytes before parsing, not Python object overhead or
 transport decoding memory. Response accumulation is uncapped by default:
@@ -194,6 +215,24 @@ omit `max_response_bytes` or set it to `None`. A positive integer opts into a
 budget for the cumulative compatible event bytes passed to an accumulator;
 exceeding it disables that response's collection, while raw events and other
 lanes remain usable. Queue and lane limits still require positive integers.
+
+To keep healthy lanes usable when another lane falls behind, pass
+`isolate_lane_overflow=True` to either session constructor. The default is `False`.
+An overflowing lane loses its queued events and response collection; its reads
+and final-response collection raise the same first `ResponsesWebSocketBufferError`.
+Later events for that failed ID are dropped, and its reservation lasts until
+reconnect. Manual lane detachment and unregistered-stream inspection keep their
+existing default-lane behavior.
+
+For aggregate queue pressure, the session fails the largest existing backlog
+in the pressured unit (bytes first, otherwise events), excluding the incoming
+event. Registration order breaks ties. An individually oversized event fails
+its target lane. The default lane can also fail under this policy: subsequent
+default events, including API error/control events, are then unavailable, while
+registered named lanes remain usable. Physical connection failures and explicit
+session close still end the session. After reconnect, register a new default
+explicitly with `session.lane()` if the old default failed.
+
 Choose budgets for large legitimate outputs. These are application budgets,
 not protocol limits.
 The examples disable the transport's separate 1 MiB message limit with
