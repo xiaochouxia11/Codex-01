@@ -931,7 +931,7 @@ impl CodexThread {
         Ok(())
     }
 
-    /// Review the final injected exec call if approval is required, without executing it.
+    /// Review the final injected exec, patch, or permission request without executing it.
     pub async fn guardian_review(
         &self,
         cancellation: &CancellationToken,
@@ -941,7 +941,10 @@ impl CodexThread {
         }
         let history = self.session.clone_history().await;
         let tool_call = history.raw_items().next_back().cloned().ok_or_else(|| {
-            CodexErr::InvalidRequest("expected a final plaintext exec_command call".into())
+            CodexErr::InvalidRequest(
+                "expected a final plaintext exec_command, apply_patch, or request_permissions call"
+                    .into(),
+            )
         })?;
         crate::guardian::review_tool_call(&self.session, history, &tool_call, cancellation).await
     }
@@ -1366,12 +1369,8 @@ impl CodexThread {
         self.session
             .services
             .mcp_runtime
-            .latest_call_tool(
-                server, tool, /*environment_id*/ None, arguments, meta,
-                /*requested_timeout*/ None, /*wait_for_server*/ true,
-            )
+            .latest_call_tool_without_attribution(server, tool, arguments, meta)
             .await
-            .map(|call| call.result)
     }
 
     pub fn enabled(&self, feature: Feature) -> bool {
@@ -1409,6 +1408,10 @@ impl CodexThread {
         &self,
         control: &dyn AgentControl,
     ) -> CodexResult<()> {
+        // The host checks and reserves capacity when the task starts.
+        if self.session.host_turn_admission().is_some() {
+            return Ok(());
+        }
         if self.session.active_turn.lock().await.is_some() {
             return Ok(());
         }
