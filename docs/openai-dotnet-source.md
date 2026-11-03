@@ -1,8 +1,8 @@
 # openai/openai-dotnet 同步记录
 
 - 上游：https://github.com/openai/openai-dotnet
-- 上游提交：c5a939a56a1c5a44ee80fca4680564e76973d8c1
-- 上游 tree：de032942b820443f46e0e3443f82b1d25b84e348
+- 上游提交：ad7bbb2424779c90d9ec89c2bc0d89b10afb4542
+- 上游 tree：dd1b1c7eaca1454850107eaf37e234ab6cd44f9a
 - 目录：upstream/openai-dotnet/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
