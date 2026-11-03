@@ -10,11 +10,20 @@ If setup says `could not confirm whether the resident started`, Fence doesn't us
 
 Check [current and resolved runner compatibility issues](https://github.com/openai/fence/issues?q=is%3Aissue+in%3Atitle+%22Release+canary%22) for the affected version and a verified replacement pin, if available. A green run on a different runner doesn't mean your issue is fixed. Share the Fence version, runner image version, and error code if needed, not private job logs.
 
-Check that the job runs on a GitHub-hosted x64 runner with `ubuntu-24.04` or `ubuntu-latest`. Self-hosted runners, container jobs, and other architectures are not supported.
+Check that the job runs on a GitHub-hosted x64 runner with `ubuntu-24.04`, `ubuntu-26.04`, or `ubuntu-latest`. Self-hosted runners, container jobs, and other architectures are not supported.
 
 Run Fence first. Checkout, setup actions, and other commands can change the runner before Fence checks it.
 
 `local_control_inventory_unavailable` means Fence could not fully inspect local services and their socket owners. Fence retries read failures within a fixed limit. At startup, it can also retry if the only missing detail is who owns a known socket. It won't accept an unexpected owner or start with incomplete checks, even in audit mode. The setup error can include the scan status, attempt count, and fixed reason codes, without process names or paths. An allowlist change will not fix this error.
+
+When the samples match, socket ownership is the only unavailable input, and the scan stays within its bounds, `startup_check` names the check that stopped setup. The `ownership_detail` field can include more than one reason.
+
+- `no_owner_observed` means Fence found a listener but could not identify any owner.
+- `observed_ownership_incomplete` means Fence found at least one owner but could not verify ownership completely.
+- `identity_not_reviewed` means a listener owner or root container process did not match a reviewed identity.
+- `retry_inventory_mismatch` means that even after allowing for the missing owner, the inventory did not match what that startup check permits.
+
+These fields omit socket and process identifiers.
 
 `dns_proxy_bind_failed` means Fence could not start a required DNS listener. For example, `docker UDP bind: address unavailable` means the required Docker address was not available. If only the error code is shown, the specific listener and reason aren't known. Changing the allowlist will not fix this error.
 

@@ -8,6 +8,7 @@ on:
     paths:
       - .github/workflows/action-drift-canary.yml
       - script/lib/protected_finalization.py
+      - script/lib/release_canary_report.py
       - script/verify-protected-finalization
   workflow_dispatch:
     inputs:
@@ -40,14 +41,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-24.04, ubuntu-latest]
+        runner: [ubuntu-24.04, ubuntu-26.04, ubuntu-latest]
     timeout-minutes: 5
     runs-on: ${{ matrix.runner }}
 
     steps:
       # Keep this first, with no inputs, just as a consumer would use the published pin.
       - name: activate released Fence as the first workflow step
-        uses: openai/fence@1d155dc5b1de0bb52465c972398067a242a6c266 # pin@v0.12.4
+        uses: openai/fence@9d10445098284f8e8bbf67495fc8c2eaa34c28c5 # pin@v0.12.7
 
       - name: check out repository under Fence
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
@@ -86,9 +87,55 @@ jobs:
           echo "::error::Fence did not report rejecting the outside-policy connection"
           exit 1
 
-  verify-released-block:
+  released-audit:
+    name: ${{ matrix.runner }} first-step audit canary
+    if: inputs.action_ref == '' && (github.event_name == 'schedule' || github.event_name == 'pull_request')
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-26.04, ubuntu-latest]
+    timeout-minutes: 5
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: activate released Fence as the first workflow step
+        uses: openai/fence@9d10445098284f8e8bbf67495fc8c2eaa34c28c5 # pin@v0.12.7
+        with:
+          mode: audit
+
+      - name: check out repository under Fence
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: README.md
+          sparse-checkout-cone-mode: false
+
+      - name: check protected checkout and audit observation
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -s README.md
+          sudo --non-interactive /usr/bin/true
+          curl --disable --noproxy '*' --head --fail --silent --show-error --max-time 10 --output /dev/null https://github.com
+
+          directory="/run/fence/fence-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          case "$(jq -er .docker_dns_routing "$directory/dns-report.json")" in
+            local_root_resident_mediator) docker ps --quiet >/dev/null ;;
+            not_present) ;;
+            *) exit 1 ;;
+          esac
+          printf audit >/dev/udp/192.0.2.10/443
+          for ((i = 0; i < 20; i++)); do
+            if jq -e '.resident_health.verification_sequence >= 2 and any(.findings[]; [.remote_address, .protocol, .remote_port, .rule_class, .classification] == ["192.0.2.10", "udp", 443, "undeclared_new_egress", "would_block"])' "$directory/report.json" >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Fence did not report observing the outside-policy connection"
+          exit 1
+
+  verify-released:
     name: verify first-step canary jobs and final reports
-    needs: released-block
+    needs: [released-block, released-audit]
     timeout-minutes: 5
     runs-on: ubuntu-24.04
     permissions:
@@ -107,12 +154,12 @@ jobs:
 
   canary:
     name: ${{ matrix.runner }} ${{ matrix.mode }} canary
-    # Scheduled block runs above. Dispatch and release candidates retain both diagnostic modes.
+    # Scheduled runs retain the mapped-release audit alongside the two first-step modes.
     if: inputs.action_ref != '' || github.event_name != 'pull_request'
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-24.04, ubuntu-latest]
+        runner: [ubuntu-24.04, ubuntu-26.04, ubuntu-latest]
         mode: ${{ fromJSON(inputs.action_ref == '' && github.event_name == 'schedule' && '["audit"]' || '["block", "audit"]') }}
     timeout-minutes: 8
     runs-on: ${{ matrix.runner }}
@@ -354,6 +401,8 @@ jobs:
 
       - name: classify bundled Action host compatibility
         id: bundle-host
+        env:
+          FENCE_ACCEPTANCE_RUNNER: ${{ matrix.runner }}
         run: script/classify-action-bundle-host
 
       - name: require bundled Action activation

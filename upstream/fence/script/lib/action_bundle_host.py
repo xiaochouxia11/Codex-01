@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import os
 import pathlib
 import sys
 import unittest
@@ -520,7 +521,7 @@ def validate_host_observation(observation, accepted):
         "local control inventory is incomplete",
     )
 
-def classify(observation, support, transitions):
+def classify(observation, support, transitions, requested_runner=None):
     require(isinstance(support, dict), "bundle support response is not an object")
     require(support.get("schema_version") == 1, "bundle support schema mismatch")
     require(support.get("command") == "check-support", "bundle support command mismatch")
@@ -534,6 +535,10 @@ def classify(observation, support, transitions):
     accepted = validate_schema3_fingerprint(fingerprint)
     validate_transitions(transitions, accepted["sudo_policy_sources"])
     validate_host_observation(observation, accepted)
+    require(
+        requested_runner in (None, "ubuntu-latest", f"ubuntu-{observation['host']['os_version_id']}"),
+        "observed Ubuntu release differs from the requested runner label",
+    )
     return {"run_bundle": True, "classification": "bundle_compatible"}
 
 
@@ -984,6 +989,16 @@ class ClassificationTests(unittest.TestCase):
                 observation["host"]["os_version_id"] = version
                 with self.assertRaises(ClassificationError):
                     classify(observation, support, transitions)
+
+    def test_fixed_label_requires_its_actual_image(self):
+        observation, support, transitions = fixture()
+        for version, mismatched_label in (("24.04", "ubuntu-26.04"), ("26.04", "ubuntu-24.04")):
+            with self.subTest(version=version):
+                observation["host"]["os_version_id"] = version
+                for label in (f"ubuntu-{version}", "ubuntu-latest"):
+                    self.assertTrue(classify(observation, support, transitions, label)["run_bundle"])
+                with self.assertRaisesRegex(ClassificationError, "differs from the requested runner label"):
+                    classify(observation, support, transitions, mismatched_label)
 
     def test_reviewed_resolver_targets_and_service_owners_may_change(self):
         observation, support, transitions = fixture()
@@ -1443,6 +1458,7 @@ def main(arguments):
             load_json(observation_path),
             load_json(support_path),
             load_json(transitions_path),
+            os.environ.get("FENCE_ACCEPTANCE_RUNNER"),
         )
     except (ClassificationError, KeyError, TypeError, json.JSONDecodeError) as error:
         raise SystemExit(f"Action bundle host classification failed: {error}") from error
