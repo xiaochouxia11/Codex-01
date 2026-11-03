@@ -1,8 +1,8 @@
 # openai/openai-ruby 同步记录
 
 - 上游：https://github.com/openai/openai-ruby
-- 上游提交：b99f7420213a13888a180c33c78177fc06c738c6
-- 上游 tree：aac4553c533b351230c60beb70a731287a9d509a
+- 上游提交：385fef85fc3b56aa695b041b7574b912b5e200ea
+- 上游 tree：6b5434e21f06d888c385f1de4f49cb31ce7df25e
 - 目录：upstream/openai-ruby/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
