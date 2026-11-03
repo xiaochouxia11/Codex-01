@@ -1,19 +1,20 @@
-import { isNumberObject } from "node:util/types";
 import { CodexSecurityError } from "./errors.js";
 import {
   forwardExternalImportSetting,
   requireExternalImports,
 } from "./external-imports-feature.js";
 import {
+  cloneImportPreview,
   snapshotImportOptions,
+  snapshotNormalizedFindings,
   snapshotSourceRepositories,
   type ExternalFindings,
   type ExternalSourceRepository,
 } from "./external-findings.js";
 import {
   cloudRepositoryUrlKey,
+  requireSafeJsonInteger,
   repositoryUrlKey,
-  validateExternalReport,
 } from "./external-import-contract.js";
 import type {
   ExternalFindingEvidence,
@@ -36,6 +37,7 @@ import {
   isGitSsh,
   parseGitRemote,
 } from "./git-remote.js";
+import { continuumReportRepositories } from "./continuum-findings.js";
 import { veracodeReportRepositories } from "./veracode-findings.js";
 import { inspectorReportRepository } from "./inspector-findings.js";
 import { declaredScannerRepositoryUrl } from "./scanner-repository-url.js";
@@ -123,6 +125,14 @@ function requireIdentity(
     throw new CodexSecurityError(
       `${field} must be nonempty and contain no NUL characters.`,
     );
+}
+
+function checkStoredNumber(value: number): void {
+  if (!Number.isFinite(value))
+    throw new TypeError(
+      "Stored finding JSON cannot contain non-finite numbers.",
+    );
+  requireSafeJsonInteger(value, "Stored finding JSON");
 }
 
 const gitTransportPorts: Readonly<Record<string, string>> = {
@@ -517,6 +527,7 @@ async function requireMatchingRepository(
     ));
   const boundProvider =
     provider === "sonar" ||
+    provider === "continuum" ||
     provider === "inspector" ||
     provider === "blackduck" ||
     provider === "veracode";
@@ -650,8 +661,7 @@ export async function prepareLocalImport(
   fetchRemotes?: readonly ConfiguredFetchRemote[],
 ): Promise<PreparedLocalExternalImport> {
   requireIdentity(options.sourceKey, "Source key");
-  const current = structuredClone(input);
-  validateExternalReport(current.report);
+  const current = snapshotNormalizedFindings(input, checkStoredNumber);
   let dependabotSource: string | undefined;
   const identities = new Set<string>();
   for (const finding of current.findings) {
@@ -744,13 +754,18 @@ export async function prepareLocalImport(
     "local",
     sameRepositories,
   );
-  for (const source of veracodeReportRepositories(
-    options.provider,
-    current.findings,
-    "local",
-    sameRepositories,
-  ).values()) {
-    sources.set(source.url, source);
+  for (const repositories of [
+    veracodeReportRepositories,
+    continuumReportRepositories,
+  ]) {
+    for (const source of repositories(
+      options.provider,
+      current.findings,
+      "local",
+      sameRepositories,
+    ).values()) {
+      sources.set(source.url, source);
+    }
   }
   const strictSources = new Map<string, Provider>();
   const known = new Set<string>(parsedSources.map(({ url }) => url));
@@ -903,26 +918,19 @@ export async function prepareLocalImport(
   );
   dependencies.signal?.throwIfAborted();
   const preview = {
-    ...structuredClone(current),
+    ...cloneImportPreview(current),
     repository,
     source: { provider: options.provider, source_key: options.sourceKey },
   };
-  const payload = JSON.stringify(
-    {
-      repository,
-      provider: options.provider,
-      sourceKey: options.sourceKey,
-      findings: current.findings,
-    },
-    (_key, value: unknown) => {
-      if (isNumberObject(value)) value = +value;
-      if (typeof value === "number" && !Number.isFinite(value))
-        throw new TypeError(
-          "Stored finding JSON cannot contain non-finite numbers.",
-        );
-      return value;
-    },
-  );
+  const payload = JSON.stringify({
+    repository,
+    provider: options.provider,
+    sourceKey: options.sourceKey,
+    findings: current.findings.map(({ source_finding_id, evidence }) => ({
+      source_finding_id,
+      evidence,
+    })),
+  });
   return {
     matchesRepositoryRemote,
     preview,
@@ -966,7 +974,7 @@ export async function prepareLocalImport(
         read: current.read,
         ...(current.report === undefined
           ? {}
-          : { report: structuredClone(current.report) }),
+          : snapshotNormalizedFindings({ report: current.report })),
         ready: current.findings.length,
         excluded: structuredClone(current.excluded),
         findings: result["findings"] as unknown as StoredExternalFinding[],

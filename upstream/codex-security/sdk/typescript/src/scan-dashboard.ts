@@ -59,6 +59,7 @@ const COMPONENT_STATUS = {
 } as const;
 
 interface DashboardStream {
+  readonly writableNeedDrain?: boolean;
   write(chunk: string, callback?: (error?: Error | null) => void): unknown;
   on?(event: "error", listener: (error: Error) => void): unknown;
   off?(event: "error", listener: (error: Error) => void): unknown;
@@ -726,7 +727,7 @@ export class ScanDashboard {
   }
 
   #refresh(): void {
-    if (this.#timer === null) return;
+    if (this.#timer === null || this.#stream.writableNeedDrain) return;
     try {
       this.#stream.write(this.#frame());
     } catch {}
@@ -975,7 +976,7 @@ export class ScanDashboard {
       findings: string,
       cost: string,
     ): string =>
-      `  ${marker} ${fitCell(terminalText(name), nameWidth)} ${fitCell(terminalText(status), statusWidth)} ${progress.padStart(progressWidth)} ${findings.padStart(8)}${this.#showCost ? ` ${cost.padStart(8)}` : ""}`;
+      `  ${marker} ${fitCell(terminalText(name), nameWidth)} ${fitCell(terminalText(status), statusWidth)} ${progress.padStart(progressWidth)} ${findings.padStart(8)}${this.#showCost ? ` ${cost}` : ""}`;
     const table = visible.map(
       ({ receipt, dashboard, status, progress }, index) =>
         row(
