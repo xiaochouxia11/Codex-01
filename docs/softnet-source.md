@@ -1,8 +1,8 @@
 # openai/softnet 同步记录
 
 - 上游：https://github.com/openai/softnet
-- 上游提交：f9bdedb4db7686f466abc93f0b0a39e511a9cec1
-- 上游 tree：e255cb98abaf2baa256c841a57a8c8dfd5e1a936
+- 上游提交：81b28dc7cac9bf27f4b0c9533b6980c8ac1fff9f
+- 上游 tree：ec6666fec070e4648bf7ae771ec404b2f6ee5c21
 - 目录：upstream/softnet/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
