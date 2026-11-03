@@ -4,16 +4,19 @@ from pathlib import Path
 import subprocess
 
 def git(*args):
+    """Run Git and return its stripped output."""
     return subprocess.check_output(["git", *args], text=True).strip()
 
 def sync(name):
+    """Stage an upstream tree and source record in a clean checkout."""
     prefix = "upstream/" + name
     if git("status", "--porcelain"):
         raise SystemExit("Checkout must be clean.")
     git("fetch", "--no-tags", "--depth=1", "https://github.com/openai/" + name + ".git", "HEAD")
     sha = git("rev-parse", "FETCH_HEAD")
     tree = git("rev-parse", "FETCH_HEAD^{tree}")
-    current = subprocess.run(["git", "rev-parse", "HEAD:" + prefix], text=True, capture_output=True)
+    current = subprocess.run(["git", "rev-parse", "HEAD:" + prefix], text=True, capture_output=True,
+                             check=False)
     if current.returncode == 0 and current.stdout.strip() == tree:
         print("No upstream file changes.")
         return

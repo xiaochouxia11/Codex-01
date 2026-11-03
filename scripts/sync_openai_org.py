@@ -3,32 +3,38 @@ import argparse
 import base64
 import json
 import os
-from pathlib import Path
 import re
 import subprocess
 import tempfile
 import time
 import urllib.request
+import urllib.error
 
 def request(url):
+    """Read a GitHub JSON response, retrying transient request failures."""
     headers = {"User-Agent": "Codex-01-org-sync", "Accept": "application/vnd.github+json"}
     token = os.environ.get("GH_TOKEN")
     if token:
         headers["Authorization"] = "Bearer " + token
     for attempt in range(3):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=60) as response:
+            query = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(query, timeout=60) as response:
                 return json.load(response)
-        except Exception:
+        except (OSError, urllib.error.URLError, json.JSONDecodeError):
             if attempt == 2:
                 raise
             time.sleep(5 * (attempt + 1))
+    raise RuntimeError("Request retries exhausted.")
 
 def discover():
+    """Write a matrix of all public OpenAI repositories to the Actions output."""
     repos = {}
     page = 1
     while True:
-        batch = request(f"https://api.github.com/orgs/openai/repos?type=public&sort=full_name&per_page=100&page={page}")
+        batch = request(
+            "https://api.github.com/orgs/openai/repos"
+            f"?type=public&sort=full_name&per_page=100&page={page}")
         for repo in batch:
             if repo["owner"]["login"].lower() == "openai" and not repo["private"]:
                 repos[repo["id"]] = {"name": repo["name"], "default_branch": repo["default_branch"]}
@@ -42,26 +48,31 @@ def discover():
     matrix = {"include": [{"group": i + 1, "repos": group} for i, group in enumerate(groups)]}
     with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
         output.write("matrix=" + json.dumps(matrix, separators=(",", ":")) + "\n")
-    print(f"Discovered {len(names)} public repositories, including archived repositories and forks.")
+    print(f"Discovered {len(names)} public repositories, "
+          "including archived repositories and forks.")
 
 def git(directory, *args, authenticated=False, stdin=None):
+    """Run Git with noninteractive Actions identity and optional authentication."""
     env = os.environ.copy()
     env.update({"GIT_TERMINAL_PROMPT": "0", "GIT_LFS_SKIP_SMUDGE": "1",
                 "GIT_AUTHOR_NAME": "github-actions[bot]",
                 "GIT_AUTHOR_EMAIL": "41898282+github-actions[bot]@users.noreply.github.com",
                 "GIT_COMMITTER_NAME": "github-actions[bot]",
-                "GIT_COMMITTER_EMAIL": "41898282+github-actions[bot]@users.noreply.github.com"})
+                "GIT_COMMITTER_EMAIL":
+                    "41898282+github-actions[bot]@users.noreply.github.com"})
     if authenticated:
         value = base64.b64encode(("x-access-token:" + env["GH_TOKEN"]).encode()).decode()
-        env.update({"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
+        env.update({"GIT_CONFIG_COUNT": "1",
+                    "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
                     "GIT_CONFIG_VALUE_0": "AUTHORIZATION: basic " + value})
     result = subprocess.run(["git", "-C", str(directory), *args], input=stdin,
-                            text=True, capture_output=True, env=env, timeout=1200)
+                            text=True, capture_output=True, env=env, timeout=1200, check=False)
     if result.returncode:
         raise RuntimeError(result.stderr[-3000:] or "Git operation failed.")
     return result.stdout.strip()
 
 def mirror(repo, directory):
+    """Import an upstream tree and push a verified commit when files change."""
     name = repo["name"]
     if not re.fullmatch(r"[A-Za-z0-9_.-]+", name) or name in (".", ".."):
         raise ValueError("Invalid repository name.")
@@ -95,6 +106,13 @@ def mirror(repo, directory):
         git(directory, "read-tree", "--empty")
     # Work only in Git's index: upstream hooks, workflows and scripts are never run.
     git(directory, "read-tree", "--prefix=" + prefix + "/", sha)
+    return commit_mirror(directory, name, sha, source_tree, parent)
+
+def commit_mirror(directory, name, sha, source_tree, parent):
+    """Verify the staged import, record its source, and publish its commit."""
+    prefix = "upstream/" + name
+    remote = "https://github.com/" + os.environ["GITHUB_REPOSITORY"] + ".git"
+    branch = "refs/heads/sync/" + name
     staged = git(directory, "write-tree")
     if git(directory, "rev-parse", staged + ":" + prefix) != source_tree:
         raise RuntimeError("Imported tree differs from upstream.")
@@ -106,7 +124,8 @@ def mirror(repo, directory):
             "同步目录内自定义修改会在上游文件变化后被替换；目录外文件保留。"
             "不执行上游代码。上游移除或转为私有后保留已有快照。\n")
     blob = git(directory, "hash-object", "-w", "--stdin", stdin=text)
-    git(directory, "update-index", "--add", "--cacheinfo", "100644", blob, "docs/" + name + "-source.md")
+    git(directory, "update-index", "--add", "--cacheinfo",
+        "100644", blob, "docs/" + name + "-source.md")
     tree = git(directory, "write-tree")
     args = ["commit-tree", tree, "-m", f"Sync openai/{name} at {sha[:12]}"]
     if parent:
@@ -116,13 +135,15 @@ def mirror(repo, directory):
     return "updated " + sha[:12]
 
 def worker():
+    """Process every assigned repository and report failures after the batch."""
     failures = []
     rows = []
     for repo in json.loads(os.environ["SYNC_REPOS"]):
         try:
             with tempfile.TemporaryDirectory(prefix="openai-mirror-") as directory:
                 status = mirror(repo, directory)
-        except Exception as error:
+        # Isolate repository failures so remaining imports still run.
+        except (OSError, RuntimeError, ValueError, KeyError, subprocess.SubprocessError) as error:
             status = "FAILED: " + str(error).replace("\n", " ")[:2000]
             failures.append(repo["name"])
         print(repo["name"] + ": " + status, flush=True)
@@ -136,4 +157,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=["discover", "worker"])
     mode = parser.parse_args().mode
-    discover() if mode == "discover" else worker()
+    if mode == "discover":
+        discover()
+    else:
+        worker()
