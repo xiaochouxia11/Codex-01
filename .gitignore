@@ -1,2 +1,6 @@
 __pycache__/
 *.py[cod]
+node_modules/
+apps/sync-dashboard/frontend/dist/
+*.sqlite3
+*.sqlite3-journal

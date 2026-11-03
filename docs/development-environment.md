@@ -3,13 +3,18 @@
 此 Linux 云环境用于脚本、代码、插件/技能文件、网页和视频工具的开发。
 自动同步工作流仍在 GitHub Actions 执行，不需要在云环境启动定时任务。
 
+新增独立 Web 应用及数据库、构建、服务启动说明见
+[Codex Sync 全栈示例](../apps/sync-dashboard/README.md)。
+它不替代现有同步脚本；后端数据与 Python 环境均位于仓库外。
+
 ## 当前仓库
 
 ```bash
 cd /workspace/Codex-01
 source /workspace/.venvs/codex-01/bin/activate
 PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -v
-PYLINTHOME=/tmp/codex-01-pylint pylint $(git ls-files '*.py')
+# 全仓静态检查需要独立 Web 应用的依赖环境
+PYTHONPATH=apps/sync-dashboard PYLINTHOME=/tmp/codex-01-pylint /workspace/.venvs/codex-01-dashboard/bin/pylint $(git ls-files '*.py')
 ```
 
 离线测试使用模拟 API 和临时 Git 仓库，覆盖分页与分组、空结果、重试、
