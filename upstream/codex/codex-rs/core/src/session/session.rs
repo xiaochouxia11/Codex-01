@@ -20,6 +20,7 @@ use crate::mcp_tool_call::McpToolApprovalContext;
 use crate::responses_metadata::CodexResponsesMetadata;
 use crate::responses_metadata::CodexResponsesRequestKind;
 use crate::responses_metadata::CompactionTurnMetadata;
+use crate::runtime_auth::RuntimeAuthSlot;
 use crate::shell_snapshot::ShellSnapshot;
 use crate::shell_snapshot::SnapshotCredentialBrokerState;
 use crate::state::ActiveTurn;
@@ -32,6 +33,8 @@ use codex_http_client::RouteAwareClientPool;
 use codex_login::auth::AgentIdentityAuthPolicy;
 use codex_model_provider::SharedModelProvider;
 use codex_prompts::render_model_instructions;
+use codex_protocol::ContextWindowId;
+use codex_protocol::ItemIdGenerator;
 use codex_protocol::SessionId;
 use codex_protocol::capabilities::SelectedCapabilityRoot;
 use codex_protocol::config_types::ShellEnvironmentPolicy;
@@ -62,6 +65,7 @@ type McpToolApprovalMetadataMap =
 /// A session has at most 1 running task at a time, and can be interrupted by user input.
 pub(crate) struct Session {
     pub(crate) thread_id: ThreadId,
+    pub(crate) item_id_generator: ItemIdGenerator,
     pub(crate) agent_runtime: AgentRuntimeServices,
     pub(crate) installation_id: String,
     pub(super) tx_event: Sender<Event>,
@@ -335,6 +339,9 @@ impl SessionConfiguration {
             service_tier: self.step_settings.service_tier.clone(),
             approval_policy: self.step_settings.approval_policy.value(),
             approvals_reviewer: self.step_settings.approvals_reviewer,
+            requested_approvals_reviewer: self
+                .original_config_do_not_use
+                .requested_approvals_reviewer,
             permission_profile: self.materialized_permission_profile(environment_selections),
             active_permission_profile: self.active_permission_profile(),
             cwd: self.legacy_fallback_cwd.clone(),
@@ -368,6 +375,9 @@ impl SessionConfiguration {
             ),
             approval_policy: Some(self.step_settings.approval_policy.value()),
             approvals_reviewer: Some(self.step_settings.approvals_reviewer),
+            requested_approvals_reviewer: self
+                .original_config_do_not_use
+                .requested_approvals_reviewer,
             permission_profile: Some(self.permission_profile()),
             active_permission_profile: self.active_permission_profile(),
             windows_sandbox_level: Some(self.windows_sandbox_level),
@@ -574,6 +584,17 @@ impl SessionConfiguration {
             &updates.step_settings,
             &next_configuration.step_settings_constraints(next_environments),
         )?);
+        if let Some(reviewer) = updates
+            .requested_approvals_reviewer
+            .or(updates.step_settings.approvals_reviewer)
+            && next_configuration
+                .original_config_do_not_use
+                .requested_approvals_reviewer
+                != Some(reviewer)
+        {
+            Arc::make_mut(&mut next_configuration.original_config_do_not_use)
+                .requested_approvals_reviewer = Some(reviewer);
+        }
         Ok(next_configuration)
     }
 
@@ -623,6 +644,7 @@ pub(crate) struct SessionSettingsCommit {
 #[derive(Default, Clone)]
 pub(crate) struct SessionSettingsUpdate {
     pub(crate) step_settings: StepSettingsUpdate,
+    pub(crate) requested_approvals_reviewer: Option<ApprovalsReviewer>,
     /// Omission preserves the current data; an empty initializer clears it.
     pub(crate) turn_extension_init: Option<ExtensionDataInit>,
     pub(crate) environments: Option<TurnEnvironmentSelections>,
@@ -670,8 +692,18 @@ async fn warm_plugins_and_skills_for_session_init(
         effective_skill_roots,
         turn_environments,
     );
+    let access =
+        fs.map(|environment| environment.fs_accessor(/*additional_permissions*/ None));
     skills_service
-        .snapshot_for_config(&skills_input, fs)
+        .snapshot_for_config_on_executor(
+            &skills_input,
+            fs.zip(access.as_ref()).map(|(environment, access)| {
+                (
+                    environment.environment().filesystem_ref(),
+                    access as &dyn codex_file_system::EnvironmentAccess,
+                )
+            }),
+        )
         .await
         .outcome()
         .errors
@@ -679,6 +711,10 @@ async fn warm_plugins_and_skills_for_session_init(
 }
 
 impl Session {
+    pub(crate) fn new_item_id_generator() -> ItemIdGenerator {
+        Arc::new(|prefix| ResponseItemId::with_suffix(prefix, uuid::Uuid::now_v7()))
+    }
+
     pub(super) async fn effective_thread_config_snapshot(
         &self,
         configuration: &SessionConfiguration,
@@ -780,7 +816,7 @@ impl Session {
         &self,
         turn_context: &TurnContext,
         compaction_metadata: CompactionTurnMetadata,
-        (window_id, window_number, context_window_id): (String, u64, uuid::Uuid),
+        (window_id, window_number, context_window_id): (String, u64, ContextWindowId),
     ) -> CodexResponsesMetadata {
         let responses_metadata = turn_context.turn_metadata_state.to_responses_metadata(
             self.installation_id.clone(),
@@ -800,7 +836,7 @@ impl Session {
         turn_context: &TurnContext,
         responses_metadata: CodexResponsesMetadata,
         window_number: u64,
-        context_window_id: uuid::Uuid,
+        context_window_id: ContextWindowId,
     ) -> CodexResponsesMetadata {
         CodexResponsesMetadata {
             history_initialization: Some(self.history_initialization),
@@ -833,6 +869,7 @@ impl Session {
         mut instructions: SessionInstructions,
         installation_id: String,
         auth_manager: Arc<AuthManager>,
+        runtime_auth: RuntimeAuthSlot,
         models_manager: SharedModelsManager,
         git_root_discovery: Arc<GitRootDiscovery>,
         model_info: CatalogModel,
@@ -934,8 +971,13 @@ impl Session {
             session_configuration.thread_source.as_ref(),
             Some(ThreadSource::Subagent | ThreadSource::GuardianReview)
         );
+        let item_id_generator = Arc::clone(&agent_control.runtime().item_id_generator);
         if let InitialHistory::Forked(items) = &mut initial_history {
-            Self::assign_missing_rollout_response_item_ids(items);
+            for record in items {
+                if let RolloutItem::ResponseItem(item) = record {
+                    assign_missing_item_id(&mut item.item, &item_id_generator);
+                }
+            }
         }
         let multi_agent_version = multi_agent_version.map(OnceLock::from).unwrap_or_default();
         let initial_multi_agent_version = multi_agent_version.get().copied();
@@ -1590,10 +1632,11 @@ impl Session {
             session_configuration.thread_name = thread_name.clone();
             let mut state = SessionState::new_with_auto_compact_window_ids(
                 session_configuration.clone(),
-                initial_auto_compact_window_ids,
+                initial_auto_compact_window_ids.clone(),
                 ContextManager::for_session(
                     session_configuration.root_capabilities_restricted,
                     &config.features,
+                    Arc::clone(&item_id_generator),
                 ),
             );
             if matches!(initial_history, InitialHistory::Resumed(_)) {
@@ -1794,6 +1837,49 @@ impl Session {
                 );
             let reasoning_effort_override_enabled =
                 config.features.enabled(Feature::ReasoningEffortOverride) && !title_request;
+            let model_client = ModelClient::new(
+                Arc::clone(&session_configuration.provider),
+                if config.features.enabled(Feature::UseAgentIdentity) {
+                    AgentIdentityAuthPolicy::ChatGptAuth
+                } else {
+                    AgentIdentityAuthPolicy::JwtOnly
+                },
+                thread_id,
+                Arc::clone(&item_id_generator),
+                session_configuration.session_source.clone(),
+                session_configuration.originator.clone(),
+                config.model_verbosity,
+                config.features.enabled(Feature::ContentItemKinds),
+                reasoning_effort_override_enabled,
+                config.features.enabled(Feature::EnableRequestCompression),
+                config.features.enabled(Feature::RuntimeMetrics),
+                Self::build_model_client_beta_features_header(config.as_ref()),
+                /*concurrent_reasoning_summaries_enabled*/
+                config
+                    .features
+                    .enabled(Feature::ConcurrentReasoningSummaries),
+                config.features.enabled(Feature::OutputTokenReplay),
+                attestation_provider.clone(),
+                config.http_client_factory(),
+                workspace_routing.as_ref().clone(),
+                extensions.model_request_contributors().to_vec(),
+            )
+            .with_executed_tool_calls(executed_tool_calls.clone())
+            .with_restored_history(matches!(
+                &initial_history,
+                InitialHistory::Resumed(_) | InitialHistory::Forked(_)
+            ))
+            .with_session_context(
+                prompt_cache_key,
+                crate::guardian::prompt_cache_key_override_for_review_session(
+                    &session_configuration.session_source,
+                    session_configuration.parent_thread_id,
+                )
+                .or(fork_cache_key),
+                tx_event.clone(),
+                codex_responses_headers,
+                crate::cyber_access_program::ApiKeyCyberAccessPrograms::from_config(&config),
+            );
             // Once tracing starts, startup cleanup must own the session before the next await.
             let rollout_thread_trace = if matches!(
                 session_configuration.session_source,
@@ -1832,6 +1918,7 @@ impl Session {
                 show_raw_agent_reasoning: config.show_raw_agent_reasoning,
                 exec_policy,
                 auth_manager: Arc::clone(&auth_manager),
+                runtime_auth,
                 openai_file_upload_client_pool: RouteAwareClientPool::new_without_request_logging(
                     config.http_client_factory(),
                     ClientRouteClass::Api,
@@ -1866,49 +1953,7 @@ impl Session {
                 thread_store: Arc::clone(&thread_store),
                 attestation_provider: attestation_provider.clone(),
                 time_provider,
-                model_client: ModelClient::new(
-                    Some(Arc::clone(&auth_manager)),
-                    if config.features.enabled(Feature::UseAgentIdentity) {
-                        AgentIdentityAuthPolicy::ChatGptAuth
-                    } else {
-                        AgentIdentityAuthPolicy::JwtOnly
-                    },
-                    thread_id,
-                    session_configuration.provider.info().clone(),
-                    session_configuration.session_source.clone(),
-                    session_configuration.originator.clone(),
-                    config.model_verbosity,
-                    config.features.enabled(Feature::ContentItemKinds),
-                    reasoning_effort_override_enabled,
-                    config.features.enabled(Feature::EnableRequestCompression),
-                    config.features.enabled(Feature::RuntimeMetrics),
-                    Self::build_model_client_beta_features_header(config.as_ref()),
-                    /*concurrent_reasoning_summaries_enabled*/
-                    config
-                        .features
-                        .enabled(Feature::ConcurrentReasoningSummaries),
-                    config.features.enabled(Feature::OutputTokenReplay),
-                    attestation_provider,
-                    config.http_client_factory(),
-                    workspace_routing.as_ref().clone(),
-                    extensions.model_request_contributors().to_vec(),
-                )
-                .with_executed_tool_calls(executed_tool_calls.clone())
-                .with_restored_history(matches!(
-                    &initial_history,
-                    InitialHistory::Resumed(_) | InitialHistory::Forked(_)
-                ))
-                .with_session_context(
-                    prompt_cache_key,
-                    crate::guardian::prompt_cache_key_override_for_review_session(
-                        &session_configuration.session_source,
-                        session_configuration.parent_thread_id,
-                    )
-                    .or(fork_cache_key),
-                    tx_event.clone(),
-                    codex_responses_headers,
-                    crate::cyber_access_program::ApiKeyCyberAccessPrograms::from_config(&config),
-                ),
+                model_client,
                 executed_tool_calls: executed_tool_calls.clone(),
                 code_mode_service: crate::tools::code_mode::CodeModeService::new(
                     thread_id,
@@ -1922,6 +1967,7 @@ impl Session {
             let (mcp_prewarm_tx, mcp_prewarm_rx) = async_channel::bounded(1);
             let sess = Arc::new(Session {
                 thread_id,
+                item_id_generator,
                 agent_runtime,
                 installation_id,
                 tx_event: tx_event.clone(),

@@ -76,6 +76,7 @@ use codex_features::Features;
 use codex_features::FeaturesToml;
 use codex_features::MultiAgentV2ConfigToml;
 use codex_features::NetworkProxyConfigToml;
+use codex_features::RuntimeAuthMode;
 use codex_features::SleepToolMode;
 use codex_features::TokenBudgetConfigToml;
 use codex_git_utils::resolve_root_git_project_for_trust;
@@ -167,6 +168,7 @@ use toml_edit::DocumentMut;
 
 mod auth_keyring;
 pub mod edit;
+mod guardian_policy;
 mod managed_features;
 mod metrics;
 mod network_config;
@@ -178,6 +180,7 @@ mod permission_profile_selection;
 mod permissions;
 mod requirements;
 mod resolved_permission_profile;
+pub(crate) use guardian_policy::resolve_guardian_reviewer;
 mod runtime_refresh;
 pub(crate) use runtime_refresh::RuntimeConfigRefresh;
 #[cfg(test)]
@@ -692,6 +695,9 @@ pub struct Config {
     /// been escalated. This does not disable separate safety checks such as
     /// ARC.
     pub approvals_reviewer: ApprovalsReviewer,
+    /// Requested reviewer when managed requirements replace the effective choice.
+    /// `None` uses `approvals_reviewer`, including programmatically constructed configs.
+    pub requested_approvals_reviewer: Option<ApprovalsReviewer>,
 
     /// enforce_residency means web traffic cannot be routed outside of a
     /// particular geography. HTTP clients should direct their requests
@@ -1166,6 +1172,8 @@ pub struct Config {
     pub current_time_reminder: Option<CurrentTimeReminderConfig>,
     /// How the sleep tool is selected when its feature gate is enabled.
     pub sleep_tool_mode: SleepToolMode,
+    /// Authentication mode used when runtime agent instances are enabled.
+    pub runtime_auth_mode: RuntimeAuthMode,
 
     /// Centralized feature flags; source of truth for feature gating.
     pub features: ManagedFeatures,
@@ -3990,6 +3998,7 @@ impl Config {
         let mut approvals_reviewer = approvals_reviewer_override
             .or(cfg.approvals_reviewer)
             .unwrap_or(ApprovalsReviewer::User);
+        let requested_approvals_reviewer = approvals_reviewer;
         if !approvals_reviewer_was_explicit
             && let Err(err) = constrained_approvals_reviewer.can_set(&approvals_reviewer)
         {
@@ -4028,6 +4037,15 @@ impl Config {
             .features
             .as_ref()
             .and_then(|features| features.sleep_tool.as_ref())
+            .and_then(|feature| match feature {
+                FeatureToml::Enabled(_) => None,
+                FeatureToml::Config(config) => config.mode,
+            })
+            .unwrap_or_default();
+        let runtime_auth_mode = cfg
+            .features
+            .as_ref()
+            .and_then(|features| features.runtime_agent_instances.as_ref())
             .and_then(|feature| match feature {
                 FeatureToml::Enabled(_) => None,
                 FeatureToml::Config(config) => config.mode,
@@ -4581,6 +4599,9 @@ impl Config {
             explicit_permission_profile_mode,
             custom_permission_profiles,
             approvals_reviewer: constrained_approvals_reviewer.value(),
+            requested_approvals_reviewer: (requested_approvals_reviewer
+                != constrained_approvals_reviewer.value())
+            .then_some(requested_approvals_reviewer),
             enforce_residency: enforce_residency.value,
             notify: cfg.notify,
             base_instructions,
@@ -4754,6 +4775,7 @@ impl Config {
             rollout_budget,
             current_time_reminder,
             sleep_tool_mode,
+            runtime_auth_mode,
             features,
             runtime_feature_defaults: BTreeMap::new(),
             suppress_unstable_features_warning: cfg

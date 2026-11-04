@@ -2,7 +2,7 @@ pub(crate) mod startup;
 
 use crate::PromptCacheKey;
 use crate::WithTurnExtensionData;
-use std::borrow::Cow;
+use crate::runtime_auth::RuntimeAuthSlot;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -235,7 +235,6 @@ use crate::thread_rollout_truncation::initial_history_has_prior_user_turns;
 use codex_config::CONFIG_TOML_FILE;
 use codex_config::ConfigLayerSource;
 use codex_config::types::McpServerConfig;
-use codex_model_provider::create_model_provider;
 use codex_model_provider_info::ModelProviderInfo;
 use codex_protocol::error::CodexErr;
 use codex_protocol::error::CodexErrorDetails;
@@ -245,6 +244,9 @@ use codex_protocol::error::Result as CodexResult;
 use codex_protocol::exec_output::StreamOutput;
 
 pub(crate) mod async_compaction;
+pub(crate) mod file_audio;
+pub(crate) use file_audio::FileAudioDurations;
+
 mod code_mode_warning;
 mod config_refresh;
 pub(crate) mod context_window;
@@ -365,6 +367,7 @@ use codex_mcp::effective_mcp_servers;
 use codex_otel::SessionTelemetry;
 use codex_otel::THREAD_STARTED_METRIC;
 use codex_otel::TelemetryAuthMode;
+use codex_protocol::ContextWindowId;
 use codex_protocol::ResponseItemId;
 use codex_protocol::approvals::ExecApprovalKind;
 use codex_protocol::config_types::CollaborationMode;
@@ -509,6 +512,7 @@ pub(crate) struct SessionSpawnArgs {
     pub(crate) instructions: SessionInstructions,
     pub(crate) installation_id: String,
     pub(crate) auth_manager: Arc<AuthManager>,
+    pub(crate) runtime_auth: RuntimeAuthSlot,
     pub(crate) models_manager: SharedModelsManager,
     pub(crate) git_root_discovery: Arc<GitRootDiscovery>,
     pub(crate) environment_manager: Arc<EnvironmentManager>,
@@ -579,6 +583,17 @@ pub(crate) const SUBMISSION_CHANNEL_CAPACITY: usize = 512;
 const CYBER_VERIFY_URL: &str = "https://chatgpt.com/cyber";
 const CYBER_SAFETY_URL: &str = "https://developers.openai.com/codex/concepts/cyber-safety";
 
+pub(crate) fn assign_missing_item_id(
+    item: &mut ResponseItem,
+    item_id_generator: &codex_protocol::ItemIdGenerator,
+) {
+    if item.id().is_none_or(|id| id.is_empty())
+        && let Some(prefix) = item.id_prefix()
+    {
+        item.set_id(Some(item_id_generator(prefix)));
+    }
+}
+
 impl Session {
     /// Spawn and initialize a new session.
     /// Hide the concrete startup future from callers while keeping initialization lazy.
@@ -630,6 +645,7 @@ impl Session {
             instructions,
             installation_id,
             auth_manager,
+            runtime_auth,
             models_manager,
             git_root_discovery,
             environment_manager,
@@ -758,12 +774,19 @@ impl Session {
         };
 
         let mut config = Arc::new(config);
+        let configured_runtime = crate::runtime_auth::runtime_for_config(
+            &runtime_auth,
+            config.as_ref(),
+            Arc::clone(&auth_manager),
+            &installation_id,
+        );
         let refresh_strategy = if session_source.is_non_root_agent() {
             codex_models_manager::manager::RefreshStrategy::Offline
         } else {
             codex_models_manager::manager::RefreshStrategy::OnlineIfUncached
         };
-        if config.model.is_none()
+        if configured_runtime.is_some()
+            || config.model.is_none()
             || !matches!(
                 refresh_strategy,
                 codex_models_manager::manager::RefreshStrategy::Offline
@@ -786,6 +809,9 @@ impl Session {
                 "No models are available. Set `model` explicitly or check your model catalog configuration.".to_string(),
             ));
         }
+        let requested_approvals_reviewer = config
+            .requested_approvals_reviewer
+            .unwrap_or(config.approvals_reviewer);
         let trusted_guardian_reviewer = crate::guardian::is_basic_session_source(&session_source)
             && !matches!(conversation_history, InitialHistory::Resumed(_));
         if config
@@ -812,13 +838,17 @@ impl Session {
                     );
                 }
             }
-            config
-                .config_layer_stack
-                .requirements()
-                .approvals_reviewer
-                .can_set(&ApprovalsReviewer::AutoReview)
-                .map_err(|err| CodexErr::InvalidRequest(err.to_string()))?;
-            config.approvals_reviewer = ApprovalsReviewer::AutoReview;
+        }
+        let reviewer = crate::config::resolve_guardian_reviewer(
+            requested_approvals_reviewer,
+            (!trusted_guardian_reviewer).then_some(model.as_str()),
+            config.config_layer_stack.requirements(),
+        )
+        .map_err(|err| CodexErr::InvalidRequest(err.to_string()))?;
+        {
+            let config = Arc::make_mut(&mut config);
+            config.requested_approvals_reviewer = Some(requested_approvals_reviewer);
+            config.approvals_reviewer = reviewer;
         }
         if allow_provider_model_fallback
             && let Some(requested_model) = config.model.as_ref()
@@ -951,12 +981,15 @@ impl Session {
         let enable_full_access_form_input = !root_capabilities_restricted
             && matches!(thread_source.as_ref(), Some(ThreadSource::User))
             && client_mcp_extensions.contains(OPENAI_STANDARD_FORM_INPUT_EXTENSION_ID);
+        let provider_auth = codex_model_provider::ProviderAuthContext {
+            credentials: Arc::clone(&auth_manager),
+            runtime_auth: configured_runtime.map(|runtime| (runtime, config.runtime_auth_mode)),
+        };
+        // Replace any inherited context before startup hooks see this thread's effective auth.
+        thread_extension_init.insert(provider_auth.clone());
         let session_configuration = SessionConfiguration {
             turn_extension_init,
-            provider: create_model_provider(
-                config.model_provider.clone(),
-                Some(Arc::clone(&auth_manager)),
-            ),
+            provider: provider_auth.model_provider(config.model_provider.clone()),
             step_settings: Arc::new(StepSettings {
                 collaboration_mode,
                 reasoning_summary: config.model_reasoning_summary,
@@ -1014,6 +1047,7 @@ impl Session {
             instructions,
             installation_id,
             auth_manager.clone(),
+            runtime_auth,
             models_manager.clone(),
             git_root_discovery,
             model_info,
@@ -1798,7 +1832,11 @@ impl Session {
             }
             InitialHistory::Forked(mut rollout_items) => {
                 let turn_context = self.new_default_turn().await;
-                Self::assign_missing_rollout_response_item_ids(&mut rollout_items);
+                for record in &mut rollout_items {
+                    if let RolloutItem::ResponseItem(envelope) = record {
+                        self.assign_missing_response_item_id(&mut envelope.item);
+                    }
+                }
                 self.apply_rollout_reconstruction(&turn_context, &rollout_items)
                     .await;
 
@@ -1896,6 +1934,7 @@ impl Session {
     ) -> Option<PreviousTurnSettings> {
         let rollout_reconstruction::RolloutReconstruction {
             mut history,
+            rejected_audio_file_ids,
             retained_context,
             guardian_history,
             last_started_turn_id,
@@ -1942,7 +1981,8 @@ impl Session {
             .zip(metadata)
             .map(|(item, metadata)| ResponseItemEnvelope { item, metadata })
             .collect();
-        // Ordinary replay needs no reviewer or network refresh. Only an opaque
+        file_audio::resolve(self, file_audio::file_ids(&history).cloned().collect()).await;
+        // Ordinary replay needs no reviewer refresh. Only an opaque
         // checkpoint can make reconstruction depend on reviewer compatibility.
         let reviewer_compaction_hash = if codex_history::CompactionCheckpoint::latest(&history)
             .is_some_and(codex_history::CompactionCheckpoint::is_usable)
@@ -1964,6 +2004,9 @@ impl Session {
                 reference_context_item,
                 HistoryReplacement::Reset,
             );
+            state
+                .history
+                .restore_rejected_audio_file_ids(rejected_audio_file_ids);
             state.history.restore_review_context(
                 Some(&retained_context),
                 guardian_history.as_ref(),
@@ -1975,11 +2018,11 @@ impl Session {
                 state.history.set_world_state_baseline(world_state);
             }
             let fallback_ids = state.auto_compact_window_ids();
-            let window_id = window_id.unwrap_or(fallback_ids.window_id);
+            let window_id = window_id.unwrap_or_else(|| fallback_ids.window_id.clone());
             state.restore_auto_compact_window(
                 window_number,
                 AutoCompactWindowIds {
-                    first_window_id: first_window_id.unwrap_or(window_id),
+                    first_window_id: first_window_id.unwrap_or_else(|| window_id.clone()),
                     previous_window_id,
                     window_id,
                 },
@@ -2569,7 +2612,7 @@ impl Session {
     }
 
     /// Persist the event to rollout and send it to clients.
-    pub(crate) async fn send_event(&self, turn_context: &TurnContext, msg: EventMsg) {
+    pub(crate) async fn send_event(&self, turn_context: &TurnContext, mut msg: EventMsg) {
         if let Some((item_id, started_at_ms)) = msg.command_approval_start() {
             // The client can see the command before execution. Keep its first start
             // for the canonical lifecycle events that will be saved in history.
@@ -2578,19 +2621,32 @@ impl Session {
                 .record_item_started(item_id.to_owned(), started_at_ms)
                 .await;
         }
-        let legacy_source = msg.clone();
-        if let EventMsg::Error(error) = &legacy_source
+        if let EventMsg::TurnComplete(completed) = &msg
+            && completed.error.is_some()
+        {
+            self.state
+                .lock()
+                .await
+                .history
+                .record_rejected_file_audio(completed);
+        }
+        if let EventMsg::Error(error) = &mut msg
             && error
                 .codex_error_info
                 .as_ref()
                 .is_some_and(CodexErrorInfo::affects_turn_status)
         {
-            turn_context
-                .terminal_error
-                .lock()
-                .await
-                .replace(error.clone());
+            let mut terminal_error = turn_context.terminal_error.lock().await;
+            if let Some(previous) = terminal_error.as_ref() {
+                for file_id in &previous.rejected_audio_file_ids {
+                    if !error.rejected_audio_file_ids.contains(file_id) {
+                        error.rejected_audio_file_ids.push(file_id.clone());
+                    }
+                }
+            }
+            terminal_error.replace(error.clone());
         }
+        let legacy_source = msg.clone();
         self.services
             .rollout_thread_trace
             .record_codex_turn_event(&turn_context.sub_id, &legacy_source);
@@ -3781,12 +3837,12 @@ impl Session {
     }
 
     /// Prepares media using the originating model and preserves existing item identity.
-    pub(crate) async fn prepare_conversation_items_for_history<'a>(
+    pub(crate) async fn prepare_conversation_items_for_history(
         &self,
         turn_context: &TurnContext,
         model_info: &ModelInfo,
-        items: &'a [ResponseItem],
-    ) -> (Cow<'a, [ResponseItem]>, Vec<ImagePreparationMetadata>) {
+        items: &[ResponseItem],
+    ) -> (Vec<ResponseItem>, Vec<ImagePreparationMetadata>) {
         let mut items = items.to_vec();
         let image_preparation_mode =
             if unified_image_budget_enabled(&turn_context.config.features, model_info) {
@@ -3817,44 +3873,13 @@ impl Session {
         // Most response items get their passthrough turn ID at the durable history boundary.
         for item in &mut items {
             Self::stamp_response_item_for_history(item, &turn_context.sub_id);
+            self.assign_missing_response_item_id(item);
         }
-        let items = Cow::Owned(items);
-        (
-            Self::assign_missing_response_item_ids(items),
-            image_preparations,
-        )
+        (items, image_preparations)
     }
 
-    fn assign_missing_response_item_ids(items: Cow<'_, [ResponseItem]>) -> Cow<'_, [ResponseItem]> {
-        if items
-            .iter()
-            .all(|item| item.id().is_some_and(|id| !id.is_empty()))
-        {
-            return items;
-        }
-        let mut items = items;
-        for item in items.to_mut() {
-            Self::assign_missing_response_item_id(item);
-        }
-        items
-    }
-
-    pub(crate) fn assign_missing_response_item_id(item: &mut ResponseItem) {
-        if item.id().is_some_and(|id| !id.is_empty()) {
-            return;
-        }
-        let Some(prefix) = item.id_prefix() else {
-            return;
-        };
-        item.set_id(Some(ResponseItemId::new(prefix)));
-    }
-
-    fn assign_missing_rollout_response_item_ids(items: &mut [RolloutItem]) {
-        for item in items {
-            if let RolloutItem::ResponseItem(response_item) = item {
-                Self::assign_missing_response_item_id(&mut response_item.item);
-            }
-        }
+    pub(crate) fn assign_missing_response_item_id(&self, item: &mut ResponseItem) {
+        assign_missing_item_id(item, &self.item_id_generator);
     }
 
     pub(crate) fn response_item_from_user_input(&self, input: Vec<UserInput>) -> ResponseItem {
@@ -3914,11 +3939,7 @@ impl Session {
         let (items, image_preparations) = self
             .prepare_conversation_items_for_history(turn_context, model_info, items)
             .await;
-        let items = items
-            .into_owned()
-            .into_iter()
-            .map(ResponseItemEnvelope::new)
-            .collect();
+        let items = items.into_iter().map(ResponseItemEnvelope::new).collect();
         self.record_prepared_conversation_items(
             turn_context,
             model_info,
@@ -4023,6 +4044,9 @@ impl Session {
                         });
                 }
             }
+            state
+                .pending_audio_duration_ids
+                .extend(file_audio::file_ids(&items).cloned());
             state
                 .history
                 .record_annotated_items(&mut items, model_info.truncation_policy.into());
@@ -4272,7 +4296,22 @@ impl Session {
             }
             let extension_data =
                 codex_extension_api::ExtensionData::new(turn_context.sub_id.clone());
+            extension_data.insert(extension_metrics::from_session_telemetry(
+                session_telemetry.clone(),
+            ));
             extension_data.insert_arc(Arc::clone(&settings.model_info.model));
+            extension_data.insert_arc(
+                self.host_skills_for_step(&turn_context, &environments)
+                    .await,
+            );
+            if turn_context
+                .config
+                .features
+                .enabled(Feature::SkillCatalogDeltas)
+                && let Some(grants) = turn_context.turn_skill_filesystem_grants(&environments)
+            {
+                extension_data.insert(grants);
+            }
             if let Some(messages) = settings
                 .model_info
                 .model_messages
@@ -4357,11 +4396,30 @@ impl Session {
                     &turn_context.disabled_plugin_ids,
                 )
                 .await;
+            let mut filesystem_access = HashMap::new();
+            for environment in environments.turn_environments() {
+                let environment_id = &environment.selection.environment_id;
+                let grants = turn_context.granted_permissions(environment_id);
+                filesystem_access.insert(environment_id, environment.fs_accessor(grants));
+            }
+            let accessed_roots = ready_selected_capability_roots
+                .iter()
+                .filter_map(|root| {
+                    let codex_protocol::capabilities::CapabilityRootLocation::Environment {
+                        environment_id,
+                        ..
+                    } = &root.location;
+                    Some(codex_extension_api::AccessedSelectedCapabilityRoot {
+                        root,
+                        fs: filesystem_access.get(environment_id)?,
+                    })
+                })
+                .collect::<Vec<_>>();
             for contributor in self.services.extensions.tool_contributors() {
                 contributor
                     .prepare_for_step(codex_extension_api::StepPreparationInput {
                         turn_id: &turn_context.sub_id,
-                        ready_selected_capability_roots: &ready_selected_capability_roots,
+                        ready_selected_capability_roots: &accessed_roots,
                         executor_capability_discovery: executor_capability_discovery.as_deref(),
                         executor_capability_discovery_v2: executor_capability_discovery_v2
                             .as_deref(),
@@ -4431,14 +4489,6 @@ impl Session {
         communication: impl Into<crate::PendingAgentMessage>,
     ) {
         let communication = communication.into();
-        // Agent-message dependencies are not captured by direct-tool timing.
-        if turn_context
-            .config
-            .features
-            .enabled(Feature::CriticalPathTiming)
-        {
-            turn_context.turn_timing_state.invalidate_critical_path();
-        }
         let mut response_item = communication.to_model_input_item();
         if let ResponseItem::AgentMessage {
             content,
@@ -4471,7 +4521,6 @@ impl Session {
                 std::slice::from_ref(&response_item),
             )
             .await;
-        let items = items.as_ref();
         let mut response_item = ResponseItemEnvelope::new(items[0].clone());
         // A send confirmed after the pending snapshot must not reach the rollout
         // before this boundary; older readers assign deliveries by physical order.
@@ -4499,7 +4548,7 @@ impl Session {
         }
         {
             let mut state = self.state.lock().await;
-            state.current_time_reminder.note_recorded_items(items);
+            state.current_time_reminder.note_recorded_items(&items);
             state.history.record_annotated_items(
                 std::slice::from_mut(&mut response_item),
                 model_info.truncation_policy.into(),
@@ -4516,7 +4565,7 @@ impl Session {
         ])
         .await;
         drop(boundary);
-        self.send_raw_response_items(turn_context, items).await;
+        self.send_raw_response_items(turn_context, &items).await;
     }
 
     async fn maybe_warn_on_server_model_mismatch(
@@ -4595,6 +4644,7 @@ impl Session {
         mut items: Vec<ResponseItemEnvelope>,
         reference_context_item: TurnContextItem,
         mut world_state_baseline: WorldStateSnapshot,
+        rejected_audio_file_ids: std::collections::BTreeSet<String>,
         installation: impl Into<CompactedHistoryInstallation<'a>>,
     ) -> bool {
         let installation = installation.into();
@@ -4700,7 +4750,7 @@ impl Session {
                 }
             };
             for envelope in &mut items {
-                Self::assign_missing_response_item_id(&mut envelope.item);
+                self.assign_missing_response_item_id(&mut envelope.item);
             }
             // Goal edits are published outside the running task. Keep edits accepted after
             // the compaction input snapshot, in their original order, after its replacement.
@@ -4724,6 +4774,9 @@ impl Session {
                 );
             }
             let replacement_history = items.clone();
+            state
+                .history
+                .extend_rejected_audio_file_ids(rejected_audio_file_ids);
             state.replace_annotated_history(
                 items,
                 Some(reference_context_item.clone()),
@@ -4751,6 +4804,7 @@ impl Session {
                 compaction_response_id: metadata.compaction_response_id,
                 latest_token_usage_record: state.latest_token_usage_record.clone(),
                 resume_metadata: Some(CompactionResumeMetadata {
+                    rejected_audio_file_ids: state.history.rejected_audio_file_ids(),
                     dynamic_tools: Some(Box::new(DynamicToolsSnapshot {
                         thread_id: self.thread_id(),
                         tools: state.persisted_dynamic_tools.to_vec(),
@@ -4899,7 +4953,7 @@ impl Session {
             let state = self.state.lock().await;
             (
                 state.session_configuration.session_source.clone(),
-                state.auto_compact_window_ids(),
+                state.auto_compact_window_ids().clone(),
             )
         };
         let separate_guardian_developer_message =
@@ -5201,15 +5255,18 @@ impl Session {
         self.current_window().await.0
     }
 
-    pub(crate) async fn current_window(&self) -> (String, u64, Uuid) {
+    pub(crate) async fn current_window(&self) -> (String, u64, ContextWindowId) {
         let state = self.state.lock().await;
         self.current_window_from_state(&state)
     }
 
-    pub(crate) fn current_window_from_state(&self, state: &SessionState) -> (String, u64, Uuid) {
+    pub(crate) fn current_window_from_state(
+        &self,
+        state: &SessionState,
+    ) -> (String, u64, ContextWindowId) {
         let thread_id = self.thread_id;
         let window_number = state.auto_compact_window_number();
-        let context_window_id = state.auto_compact_window_ids().window_id;
+        let context_window_id = state.auto_compact_window_ids().window_id.clone();
         (
             format!("{thread_id}:{window_number}"),
             window_number,
@@ -5256,6 +5313,7 @@ impl Session {
                     .cloned()
                     .collect(),
                 crate::compact_remote_v2::RETAINED_MESSAGE_TOKEN_BUDGET,
+                &history.file_audio_durations,
             );
         let window = {
             let mut state = self.state.lock().await;
@@ -5276,6 +5334,7 @@ impl Session {
             context_items,
             turn_context_item,
             world_state_snapshot,
+            /*rejected_audio_file_ids*/ Default::default(),
             CompactedHistoryMetadata {
                 input_goal_ids,
                 message: String::new(),

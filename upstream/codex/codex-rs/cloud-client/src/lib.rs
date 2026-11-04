@@ -4,16 +4,34 @@
 //! a timeout or disconnect can leave Resume admitted. Attach delivers live events only;
 //! dropping its stream detaches without interrupting the thread or answering approvals.
 
+mod activation;
+mod activation_wire;
 mod history;
 mod history_wire;
 mod item_wire;
 mod items;
 mod transcript;
 mod transcript_wire;
+mod turns;
 mod turns_wire;
 mod types;
 mod wire;
 
+pub use activation::ActivePermissionProfile;
+pub use activation::ApprovalPolicy;
+pub use activation::ApprovalsReviewer;
+pub use activation::CollaborationMode;
+pub use activation::CollaborationSettings;
+pub use activation::NetworkAccess;
+pub use activation::SandboxPolicy;
+pub use activation::SessionSource;
+pub use activation::SubAgentSource;
+pub use activation::ThreadActivation;
+pub use activation::ThreadActiveFlag;
+pub use activation::ThreadEnvironment;
+pub use activation::ThreadHistoryMode;
+pub use activation::ThreadSnapshot;
+pub use activation::ThreadStatus;
 pub use history::HistoryAccess;
 pub use history::HistoryItem;
 pub use history::HistoryOrder;
@@ -38,6 +56,12 @@ pub use transcript::TranscriptUpdate;
 pub use transcript::TurnFailure;
 pub use transcript::TurnStatus;
 pub use transcript::TurnSummary;
+pub use turns::AddUserMessageRequest;
+pub use turns::Admission;
+pub use turns::AdmissionOutcome;
+pub use turns::InterruptTurnRequest;
+pub use turns::MutationError;
+pub use turns::SubmissionMode;
 pub use types::Credentials;
 pub use types::Error;
 pub use types::Event;
@@ -72,6 +96,29 @@ pub struct Client {
 }
 
 impl Client {
+    async fn raw_unary<T: prost::Message + Send + 'static>(
+        &self,
+        value: T,
+        path: &'static str,
+    ) -> Result<bytes::Bytes, Error> {
+        let mut grpc = self.grpc.clone();
+        let mut request = tonic::Request::new(value);
+        *request.metadata_mut() =
+            tonic::metadata::MetadataMap::from_headers(self.credentials.headers.clone());
+        let response = tokio::time::timeout(
+            REQUEST_TIMEOUT,
+            grpc.unary(
+                request,
+                http::uri::PathAndQuery::from_static(path),
+                wire::RawResponseCodec::<T>(std::marker::PhantomData),
+            ),
+        )
+        .await
+        .map_err(|_| Error::Timeout)?
+        .map_err(Error::from)?;
+        Ok(response.into_inner())
+    }
+
     pub fn new(
         factory: &HttpClientFactory,
         endpoint: &str,

@@ -10,6 +10,7 @@ use codex_history::InitialHistory;
 use codex_history::ResponseItemEnvelope;
 use codex_history::ResumedHistory;
 use codex_protocol::AgentPath;
+use codex_protocol::ContextWindowId;
 use codex_protocol::ThreadId;
 use codex_protocol::models::ContentItem;
 use codex_protocol::models::ResponseItem;
@@ -21,6 +22,7 @@ use codex_protocol::protocol::ThreadRolledBackEvent;
 use codex_protocol::protocol::WorldStateItem;
 use codex_protocol::security_risk::SecurityRiskScore;
 use codex_protocol::turn_input::CyberAccessProgram;
+use codex_protocol_test_support::uuid_v7_item_id_generator_for_test;
 use codex_rollout::ModelContextScan;
 use codex_rollout::ModelContextScanProgress;
 use core_test_support::responses::strip_metadata_from_items;
@@ -29,7 +31,6 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use test_case::test_case;
-use uuid::Uuid;
 
 #[tokio::test]
 async fn recorded_questions_share_queued_input_order_across_resume() {
@@ -128,6 +129,7 @@ async fn sender_context_follows_its_delivery_through_checkpoint_and_rollback() {
     let mut live = ContextManager::for_session(
         /*root_capabilities_restricted*/ false,
         &crate::config::ManagedFeatures::from(codex_features::Features::with_defaults()),
+        uuid_v7_item_id_generator_for_test(),
     );
     let mut items = Vec::new();
     let mut snapshots = Vec::new();
@@ -1442,7 +1444,7 @@ async fn record_initial_history_resumed_does_not_seed_reference_context_item_aft
 async fn reconstruct_history_restores_initial_window_from_session_meta() {
     let (session, turn_context) = make_session_and_context().await;
     let thread_id = ThreadId::default();
-    let initial_window_id = Uuid::now_v7();
+    let initial_window_id = ContextWindowId::new_uuid_v7();
     let rollout_items = vec![RolloutItem::SessionMeta(Box::new(SessionMetaLine {
         meta: SessionMeta {
             session_id: thread_id.into(),
@@ -1460,7 +1462,10 @@ async fn reconstruct_history_restores_initial_window_from_session_meta() {
         .await;
 
     assert_eq!(reconstructed.window_number, 0);
-    assert_eq!(reconstructed.first_window_id, Some(initial_window_id));
+    assert_eq!(
+        reconstructed.first_window_id.as_ref(),
+        Some(&initial_window_id)
+    );
     assert_eq!(reconstructed.previous_window_id, None);
     assert_eq!(reconstructed.window_id, Some(initial_window_id));
 }
@@ -1469,10 +1474,10 @@ async fn reconstruct_history_restores_initial_window_from_session_meta() {
 async fn reconstruct_history_prefers_compacted_window_over_session_meta() {
     let (session, turn_context) = make_session_and_context().await;
     let thread_id = ThreadId::default();
-    let initial_window_id = Uuid::now_v7();
-    let compacted_first_window_id = Uuid::now_v7();
-    let compacted_previous_window_id = Uuid::now_v7();
-    let compacted_window_id = Uuid::now_v7();
+    let initial_window_id = ContextWindowId::new_uuid_v7();
+    let compacted_first_window_id = ContextWindowId::new_uuid_v7();
+    let compacted_previous_window_id = ContextWindowId::new_uuid_v7();
+    let compacted_window_id = ContextWindowId::new_uuid_v7();
     let rollout_items = vec![
         RolloutItem::SessionMeta(Box::new(SessionMetaLine {
             meta: SessionMeta {
@@ -1591,7 +1596,11 @@ async fn bounded_replay_matches_full_replay_after_empty_turn_compactions(
             user_message("original task").into(),
         )],
     ));
-    let window_ids = [Uuid::now_v7(), Uuid::now_v7(), Uuid::now_v7()];
+    let window_ids = [
+        ContextWindowId::new_uuid_v7(),
+        ContextWindowId::new_uuid_v7(),
+        ContextWindowId::new_uuid_v7(),
+    ];
     let current = matches!(compaction_format, CompactionFormat::Current);
     let mut latest_compaction_index = 0;
     for window_number in 1..=2 {
@@ -1622,6 +1631,7 @@ async fn bounded_replay_matches_full_replay_after_empty_turn_compactions(
                     compaction_response_id: None,
                     latest_token_usage_record: None,
                     resume_metadata: current.then(|| codex_history::CompactionResumeMetadata {
+                        rejected_audio_file_ids: Default::default(),
                         dynamic_tools: None,
                         multi_agent_version: None,
                         last_started_turn_id: Some(format!("wake-{window_number}")),
@@ -1958,7 +1968,7 @@ async fn completed_turn_suffix_after_compaction_overrides_resume_metadata(
 async fn reconstruct_history_preserves_legacy_compaction_count_with_session_meta_window() {
     let (session, turn_context) = make_session_and_context().await;
     let thread_id = ThreadId::default();
-    let initial_window_id = Uuid::now_v7();
+    let initial_window_id = ContextWindowId::new_uuid_v7();
     let rollout_items = vec![
         RolloutItem::SessionMeta(Box::new(SessionMetaLine {
             meta: SessionMeta {
@@ -2023,8 +2033,9 @@ async fn reconstruct_history_legacy_compaction_without_replacement_history_does_
             complete: false,
         },
         codex_history::RetainedInputSource::Local(None),
+        &uuid_v7_item_id_generator_for_test(),
     );
-    retained.record(&answer);
+    retained.record(&answer, &uuid_v7_item_id_generator_for_test());
     let rollout_items = vec![
         RolloutItem::ResponseItem(user_message("before compact").into()),
         RolloutItem::ResponseItem(assistant_message("assistant reply").into()),
