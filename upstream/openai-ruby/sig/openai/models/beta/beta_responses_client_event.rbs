@@ -19,6 +19,7 @@ module OpenAI
             ?context_management: ::Array[OpenAI::Beta::BetaResponsesClientEvent::ResponseCreate::ContextManagement]?,
             ?conversation: OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::conversation?,
             ?generate: bool,
+            ?image: OpenAI::Beta::BetaResponsesClientEvent::ResponseCreate::Image,
             ?include: ::Array[OpenAI::Models::Beta::beta_response_includable]?,
             ?input: OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::input,
             ?instructions: String?,
@@ -85,6 +86,14 @@ module OpenAI
           # to false to prepare request state without model output; the response ID can be
           # used as previous_response_id on a later turn.
           def generate=: (bool) -> bool
+
+          # Request level image options.
+          attr_reader image: OpenAI::Beta::BetaResponsesClientEvent::ResponseCreate::Image?
+
+          # Request level image options.
+          def image=: (
+            OpenAI::Beta::BetaResponsesClientEvent::ResponseCreate::Image
+          ) -> OpenAI::Beta::BetaResponsesClientEvent::ResponseCreate::Image
 
           # Specify additional output data to include in the model response. Currently
           # supported values are:
@@ -202,7 +211,7 @@ module OpenAI
           # request can write up to four breakpoints. For cache matching, OpenAI considers
           # up to the latest 80 breakpoints in the conversation, without a content-block
           # lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The
-          # `ttl` defaults to `30m`, which is currently the only supported value. See the
+          # `ttl` defaults to `30m`. Supported lifetimes depend on the API. See the
           # [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching)
           # for current details.
           attr_reader prompt_cache_options: OpenAI::Beta::BetaResponsesClientEvent::ResponseCreate::PromptCacheOptions?
@@ -213,7 +222,7 @@ module OpenAI
           # request can write up to four breakpoints. For cache matching, OpenAI considers
           # up to the latest 80 breakpoints in the conversation, without a content-block
           # lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The
-          # `ttl` defaults to `30m`, which is currently the only supported value. See the
+          # `ttl` defaults to `30m`. Supported lifetimes depend on the API. See the
           # [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching)
           # for current details.
           def prompt_cache_options=: (
@@ -441,6 +450,8 @@ module OpenAI
           #   Whether to generate output for this response. Defaults to true when omitted. Set
           #   to false to prepare request state without model output; the response ID can be
           #   used as previous_response_id on a later turn.
+          # @param image
+          #   Request level image options.
           # @param include
           #   Specify additional output data to include in the model response. Currently
           #   supported values are:
@@ -523,7 +534,7 @@ module OpenAI
           #   request can write up to four breakpoints. For cache matching, OpenAI considers
           #   up to the latest 80 breakpoints in the conversation, without a content-block
           #   lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The
-          #   `ttl` defaults to `30m`, which is currently the only supported value. See the
+          #   `ttl` defaults to `30m`. Supported lifetimes depend on the API. See the
           #   [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching)
           #   for current details.
           # @param prompt_cache_retention
@@ -669,6 +680,7 @@ module OpenAI
             ?context_management: ::Array[OpenAI::Beta::BetaResponsesClientEvent::ResponseCreate::ContextManagement]?,
             ?conversation: OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::conversation?,
             ?generate: bool,
+            ?image: OpenAI::Beta::BetaResponsesClientEvent::ResponseCreate::Image,
             ?include: ::Array[OpenAI::Models::Beta::beta_response_includable]?,
             ?input: OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::input,
             ?instructions: String?,
@@ -709,6 +721,7 @@ module OpenAI
             ?context_management: ::Array[OpenAI::Beta::BetaResponsesClientEvent::ResponseCreate::ContextManagement]?,
             ?conversation: OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::conversation?,
             ?generate: bool,
+            ?image: OpenAI::Beta::BetaResponsesClientEvent::ResponseCreate::Image,
             ?include: ::Array[OpenAI::Models::Beta::beta_response_includable]?,
             ?input: OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::input,
             ?instructions: String?,
@@ -831,6 +844,49 @@ module OpenAI
             extend OpenAI::Internal::Type::Union
 
             def self?.variants: -> ::Array[OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::conversation]
+          end
+
+          type image =
+            {
+              ?context_compression: OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::Image::context_compression
+            }
+
+          class Image < OpenAI::Internal::Type::BaseModel
+            # Controls image context optimization. Defaults to `auto`, which uses the model,
+            # transport, and input to select a policy. Use `enabled` to require compression
+            # support or `disabled` to turn it off.
+            attr_reader context_compression: OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::Image::context_compression?
+
+            # Controls image context optimization. Defaults to `auto`, which uses the model,
+            # transport, and input to select a policy. Use `enabled` to require compression
+            # support or `disabled` to turn it off.
+            def context_compression=: (
+              OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::Image::context_compression
+            ) -> OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::Image::context_compression
+
+            # @param context_compression
+            #   Controls image context optimization. Defaults to `auto`, which uses the model,
+            #   transport, and input to select a policy. Use `enabled` to require compression
+            #   support or `disabled` to turn it off.
+            def initialize: (
+              ?context_compression: OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::Image::context_compression
+            ) -> void
+
+            def to_hash: -> {
+              ?context_compression: OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::Image::context_compression
+            }
+
+            type context_compression = :auto | :enabled | :disabled
+
+            module ContextCompression
+              extend OpenAI::Internal::Type::Enum
+
+              AUTO: :auto
+              ENABLED: :enabled
+              DISABLED: :disabled
+
+              def self?.values: -> ::Array[OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::Image::context_compression]
+            end
           end
 
           type input = String | OpenAI::Models::Beta::beta_response_input
@@ -1268,13 +1324,13 @@ module OpenAI
             def prewarm=: (bool) -> bool
 
             # The minimum lifetime applied to every implicit and explicit cache breakpoint
-            # written by the request. Defaults to `30m`, which is currently the only supported
-            # value. The backend may retain cache entries for longer.
+            # written by the request. Supported values are `30m` (the default) and `12h`. The
+            # backend may retain cache entries for longer.
             attr_reader ttl: OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::PromptCacheOptions::ttl?
 
             # The minimum lifetime applied to every implicit and explicit cache breakpoint
-            # written by the request. Defaults to `30m`, which is currently the only supported
-            # value. The backend may retain cache entries for longer.
+            # written by the request. Supported values are `30m` (the default) and `12h`. The
+            # backend may retain cache entries for longer.
             def ttl=: (
               OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::PromptCacheOptions::ttl
             ) -> OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::PromptCacheOptions::ttl
@@ -1294,8 +1350,8 @@ module OpenAI
             #   set to `true`, overrides the `generate` field to `false`.
             # @param ttl
             #   The minimum lifetime applied to every implicit and explicit cache breakpoint
-            #   written by the request. Defaults to `30m`, which is currently the only supported
-            #   value. The backend may retain cache entries for longer.
+            #   written by the request. Supported values are `30m` (the default) and `12h`. The
+            #   backend may retain cache entries for longer.
             def initialize: (
               ?comparison_response_id: String?,
               ?mode: OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::PromptCacheOptions::mode,
@@ -1321,12 +1377,13 @@ module OpenAI
               def self?.values: -> ::Array[OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::PromptCacheOptions::mode]
             end
 
-            type ttl = :"30m"
+            type ttl = :"30m" | :"12h"
 
             module Ttl
               extend OpenAI::Internal::Type::Enum
 
               TTL_30M: :"30m"
+              TTL_12H: :"12h"
 
               def self?.values: -> ::Array[OpenAI::Models::Beta::BetaResponsesClientEvent::ResponseCreate::PromptCacheOptions::ttl]
             end

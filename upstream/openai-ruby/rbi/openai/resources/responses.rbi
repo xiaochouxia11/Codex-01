@@ -57,6 +57,7 @@ module OpenAI
           background: T.nilable(T::Boolean),
           context_management: T.nilable(T::Array[OpenAI::Responses::ResponseCreateParams::ContextManagement::OrHash]),
           conversation: T.nilable(T.any(String, OpenAI::Responses::ResponseConversationParam::OrHash)),
+          image: OpenAI::Responses::ResponseCreateParams::Image::OrHash,
           include: T.nilable(T::Array[OpenAI::Responses::ResponseIncludable::OrSymbol]),
           input: OpenAI::Responses::ResponseCreateParams::Input::Variants,
           instructions: T.nilable(String),
@@ -131,6 +132,8 @@ module OpenAI
         # items from this response are automatically added to this conversation after this
         # response completes.
         conversation: nil,
+        # Request level image options.
+        image: nil,
         # Specify additional output data to include in the model response. Currently
         # supported values are:
         #
@@ -210,7 +213,7 @@ module OpenAI
         # request can write up to four breakpoints. For cache matching, OpenAI considers
         # up to the latest 80 breakpoints in the conversation, without a content-block
         # lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The
-        # `ttl` defaults to `30m`, which is currently the only supported value. See the
+        # `ttl` defaults to `30m`. Supported lifetimes depend on the API. See the
         # [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching)
         # for current details.
         prompt_cache_options: nil,
@@ -362,6 +365,7 @@ module OpenAI
           background: T.nilable(T::Boolean),
           context_management: T.nilable(T::Array[OpenAI::Responses::ResponseCreateParams::ContextManagement::OrHash]),
           conversation: T.nilable(T.any(String, OpenAI::Responses::ResponseConversationParam::OrHash)),
+          image: OpenAI::Responses::ResponseCreateParams::Image::OrHash,
           include: T.nilable(T::Array[OpenAI::Responses::ResponseIncludable::OrSymbol]),
           input: OpenAI::Responses::ResponseCreateParams::Input::Variants,
           instructions: T.nilable(String),
@@ -442,6 +446,8 @@ module OpenAI
         # items from this response are automatically added to this conversation after this
         # response completes.
         conversation: nil,
+        # Request level image options.
+        image: nil,
         # Specify additional output data to include in the model response. Currently
         # supported values are:
         #
@@ -521,7 +527,7 @@ module OpenAI
         # request can write up to four breakpoints. For cache matching, OpenAI considers
         # up to the latest 80 breakpoints in the conversation, without a content-block
         # lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The
-        # `ttl` defaults to `30m`, which is currently the only supported value. See the
+        # `ttl` defaults to `30m`. Supported lifetimes depend on the API. See the
         # [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching)
         # for current details.
         prompt_cache_options: nil,
@@ -777,6 +783,7 @@ module OpenAI
       sig {
         params(
           model: T.nilable(T.any(OpenAI::Responses::ResponseCompactParams::Model::OrSymbol, String)),
+          image: OpenAI::Responses::ResponseCompactParams::Image::OrHash,
           input: T.nilable(OpenAI::Responses::ResponseCompactParams::Input::Variants),
           instructions: T.nilable(String),
           previous_response_id: T.nilable(String),
@@ -795,6 +802,8 @@ module OpenAI
         # [model guide](https://developers.openai.com/api/docs/models) to browse and
         # compare available models.
         model:,
+        # Request level image options.
+        image: nil,
         # Text, image, or file inputs to the model, used to generate a response
         input: nil,
         # A system (or developer) message inserted into the model's context. When used
@@ -815,7 +824,7 @@ module OpenAI
         # request can write up to four breakpoints. For cache matching, OpenAI considers
         # up to the latest 80 breakpoints in the conversation, without a content-block
         # lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The
-        # `ttl` defaults to `30m`, which is currently the only supported value. See the
+        # `ttl` defaults to `30m`. Supported lifetimes depend on the API. See the
         # [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching)
         # for current details.
         prompt_cache_options: nil,
@@ -865,6 +874,7 @@ module OpenAI
               ),
               conversation: T.nilable(T.any(String, OpenAI::Responses::ResponseConversationParam::OrHash)),
               generate: T::Boolean,
+              image: OpenAI::Responses::ResponsesClientEvent::ResponseCreate::Image::OrHash,
               include: T.nilable(T::Array[OpenAI::Responses::ResponseIncludable::OrSymbol]),
               input: OpenAI::Responses::ResponsesClientEvent::ResponseCreate::Input::Variants,
               instructions: T.nilable(String),
@@ -935,6 +945,7 @@ module OpenAI
             context_management: nil,
             conversation: nil,
             generate: nil,
+            image: nil,
             include: nil,
             input: nil,
             instructions: nil,
