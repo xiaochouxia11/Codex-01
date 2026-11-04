@@ -1,5 +1,60 @@
 # Changelog
 
+## [1.49.0](https://github.com/openai/openai-cli/compare/v1.48.1...v1.49.0) (2026-11-04)
+
+
+### Features
+
+* **images:** use native Konsole previews in Expand ([#692](https://github.com/openai/openai-cli/pull/692)) ([7975acf](https://github.com/openai/openai-cli/commit/7975acf86fbaa89145a31c9f008954e698ef5302))
+* **api:** add GPT-6 Rosalind to the model catalog ([#690](https://github.com/openai/openai-cli/issues/690)) ([2be784c](https://github.com/openai/openai-cli/commit/2be784cb368503f7a4ea93cc1aba8f15221e19db))
+
+
+### Chores
+
+* **deps:** update openai-go to v3.94.0 ([#691](https://github.com/openai/openai-cli/issues/691)) ([c3501d6](https://github.com/openai/openai-cli/commit/c3501d62a2e44e185770275bce52eafb5d36a07e))
+
+## [1.48.1](https://github.com/openai/openai-cli/compare/v1.48.0...v1.48.1) (2026-11-04)
+
+
+### Chores
+
+* **deps:** update openai-go to v3.93.0 ([#688](https://github.com/openai/openai-cli/issues/688)) ([73f547c](https://github.com/openai/openai-cli/commit/73f547c0783ef520c8091316a71dcddf210b09e1))
+
+## [1.48.0](https://github.com/openai/openai-cli/compare/v1.47.1...v1.48.0) (2026-11-03)
+
+
+### Features
+
+* Help coding agents find and use OpenAI CLI commands. ([#684](https://github.com/openai/openai-cli/pull/684)) ([e21cea4](https://github.com/openai/openai-cli/commit/e21cea48))
+* Make CLI installation and Homebrew upgrades easier to verify. ([#682](https://github.com/openai/openai-cli/pull/682)) ([4198c247](https://github.com/openai/openai-cli/commit/4198c247))
+* Improve the tokenizer editor and support piped request files. ([#686](https://github.com/openai/openai-cli/pull/686)) ([7c55da9a](https://github.com/openai/openai-cli/commit/7c55da9a))
+* enable automatic updates during macOS and Linux archive setup ([#683](https://github.com/openai/openai-cli/issues/683)) ([236b9c3](https://github.com/openai/openai-cli/commit/236b9c30888cec5b7f2efb0a5bcba4883c89cf76))
+
+
+### Bug Fixes
+
+* **api:** clarify Responses prompt-cache lifetime help ([#687](https://github.com/openai/openai-cli/issues/687)) ([9deddac](https://github.com/openai/openai-cli/commit/9deddace717875cb8913c28f0b7fa5958bda37d4))
+
+
+### Chores
+
+* **deps:** update openai-go to v3.92.0 ([#681](https://github.com/openai/openai-cli/issues/681)) ([f2de487](https://github.com/openai/openai-cli/commit/f2de4874d6cc7ba03e596b5c844801ba35791cdb))
+
+## [1.47.1](https://github.com/openai/openai-cli/compare/v1.47.0...v1.47.1) (2026-11-03)
+
+
+### Features
+
+* Add Voice studio and date search for text-to-speech. ([#676](https://github.com/openai/openai-cli/pull/676)) ([d4420d1](https://github.com/openai/openai-cli/commit/d4420d17))
+
+
+### Chores
+
+* **api:** update Live Responses delegation API reference ([#680](https://github.com/openai/openai-cli/issues/680)) ([c51f9d8](https://github.com/openai/openai-cli/commit/c51f9d83bfe371c76880ff741e7c1b30d523f52b))
+* **deps:** bump github.com/tiktoken-go/tokenizer from 0.8.1 to 0.10.0 in the go-minor-and-patch group across 1 directory ([#677](https://github.com/openai/openai-cli/issues/677)) ([14d52e5](https://github.com/openai/openai-cli/commit/14d52e5f69e29852344906f1a9178dfddbfb857c))
+* **deps:** bump the codeql group across 1 directory with 2 updates ([#678](https://github.com/openai/openai-cli/issues/678)) ([fdb8fc6](https://github.com/openai/openai-cli/commit/fdb8fc67a4418bff69dc1611590176265bccdb13))
+* **deps:** update openai-go to v3.91.1 ([#675](https://github.com/openai/openai-cli/issues/675)) ([239b7a8](https://github.com/openai/openai-cli/commit/239b7a88726c117be2160b5c3bd1683ac35ec454))
+
 ## [1.47.0](https://github.com/openai/openai-cli/compare/v1.46.0...v1.47.0) (2026-10-31)
 
 

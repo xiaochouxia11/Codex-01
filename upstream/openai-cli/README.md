@@ -16,19 +16,108 @@
   <img src="./assets/openai-cli.png" alt="OpenAI CLI terminal showing commands for images, files, batches, and JSON output" width="80%">
 </p>
 
-Call the OpenAI REST API from your terminal or shell scripts. Generate images, upload
-files, submit batches, and inspect API results without writing an application.
+> Looking for the coding agent? Use [Codex CLI](https://developers.openai.com/codex/cli).
 
-> [!NOTE]
-> **OpenAI CLI or Codex CLI?** Use `openai` when you want to call a specific API
-> or put API operations in a script. Use [Codex CLI](https://developers.openai.com/codex/cli)
-> (`codex`) when you want a coding agent to work on a project: read and edit code,
-> run commands, and help implement or debug a change.
+<!-- x-release-please-start-version -->
+
+## Installation
+
+[macOS](#macos) · [Linux](#linux) · [Windows](#windows)
+
+<a id="installing-with-homebrew"></a>
+
+### macOS
+
+With Homebrew and zsh, paste both lines together in Terminal. This installs the CLI and enables automatic updates.
+
+```zsh
+brew update && brew install --cask openai/tools/openai &&
+source "$(brew --prefix)/bin/openai-enable-updates.zsh"
+```
+
+Use the same paste for an older Homebrew installation. [When automatic updates run](docs/automatic-updates.md#eligible-invocations).
+
+<details>
+<summary>Terminal says “no such file” for the update helper</summary>
+
+Your Homebrew package lacks the setup helper. You can use the installed CLI now, even if another copy comes first.
+
+```zsh
+"$(brew --prefix)/bin/openai" --help
+```
+
+Repeat the installation once Homebrew offers a version with the helper. [Check the installed CLI version](docs/installation.md#installing-with-homebrew).
+
+</details>
+
+Using another shell? [Install with Homebrew](docs/installation.md#installing-with-homebrew). Without Homebrew, use the [macOS ZIP](docs/installation.md#installing-a-prebuilt-binary).
+
+<a id="installing-a-prebuilt-binary"></a>
+
+### Linux
+
+For automatic updates, [install the release archive](docs/automatic-updates.md#from-an-extracted-archive). It requires GitHub CLI (`gh`).
+If you prefer a Debian or RPM package, [install it with your package manager](docs/installation.md#linux). Upgrade it manually.
+
+### Windows
+
+[Install the Windows ZIP](docs/installation.md#windows). To upgrade, download and extract a newer ZIP.
+
+<!-- x-release-please-end -->
+
+## Authentication
+
+Check the installation without an API key.
+
+```sh
+openai --help
+```
+
+To make API requests, follow the instructions this command prints for your shell.
+
+```sh
+openai help setup
+```
+
+On Windows, use `.\openai.exe` from the extracted directory.
+For scripts, supply `OPENAI_API_KEY` through your environment or secret manager. [Create an API key](https://platform.openai.com/settings/organization/api-keys)
+
+## Use the CLI from a coding agent
+
+The optional [OpenAI CLI skill](skills/openai-cli/SKILL.md) helps a shell agent choose API commands and interpret their output.
+Install the CLI in the environment where the agent runs.
+
+From your project, use GitHub CLI to install the skill from a tagged release that includes it:
+
+```sh
+gh skill install openai/openai-cli openai-cli --agent codex --scope project
+```
+
+Choose your agent with `--agent`. Options include `claude-code`, `cursor`, `gemini-cli`, and `github-copilot`.
+Run `gh skill install --help` for the full list. Use `--scope user` to share the skill across your projects.
+
+For an unreleased checkout, use its local path instead:
+
+```sh
+gh skill install /path/to/openai-cli openai-cli --from-local --agent codex --scope project
+```
+
+For manual installation, copy the entire `skills/openai-cli` folder into the appropriate skills directory.
+
+| Agent | Current project | All projects for this user |
+| --- | --- | --- |
+| Codex | `.agents/skills/` | `~/.agents/skills/` |
+| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
+
+Start a new agent session in the target project. For example, ask “Upload requests.jsonl to OpenAI for a future batch.”
 
 ## Things to try
 
-These examples use an API key; see [installation](#installation) and
-[authentication](#authentication) below.
+### Send a request
+
+```sh
+openai responses create --model gpt-5.5 --input "Say this is a test"
+```
 
 ### Generate an image and save it locally
 
@@ -58,8 +147,7 @@ Submit a JSONL request file, then wait for the batch and download its results:
 
 ```sh
 openai files upload requests.jsonl --purpose batch
-openai batches create --input-file-id file-example \
-  --endpoint /v1/responses --completion-window 24h
+openai batches create --input-file-id file-example --endpoint /v1/responses --completion-window 24h
 openai batches wait batch_example --output-dir ./results
 ```
 
@@ -76,80 +164,6 @@ openai files list --format json > files.json
 Choose `--format json` for a JSON document or `--format jsonl` for records.
 The default output is readable text, **even in pipes**. The first example uses
 [jq](https://jqlang.org/).
-
-<!-- x-release-please-start-version -->
-
-## Installation
-
-### Installing a prebuilt binary
-
-Download the archive for your operating system and architecture from
-[GitHub Releases](https://github.com/openai/openai-cli/releases/latest).
-Binaries are available for macOS, Linux, and Windows. Extract the archive and
-place `openai` (`openai.exe` on Windows) in a directory on your `PATH`.
-
-### Installing with Homebrew
-
-```sh
-brew install openai/tools/openai
-```
-
-### Installing with Go
-
-Requires [Go 1.26 or later](https://go.dev/doc/install).
-
-```sh
-go install 'github.com/openai/openai-cli/cmd/openai@latest'
-```
-
-Once you have run `go install`, the binary is placed in your Go bin directory:
-
-- **Default location**: `$HOME/go/bin` (or `$GOPATH/bin` if GOPATH is set)
-- **Check your path**: Run `go env GOPATH` to see the base directory
-
-If commands aren't found after installation, add the Go bin directory to your PATH:
-
-```sh
-# Add to your shell profile (.zshrc, .bashrc, etc.)
-export PATH="$PATH:$(go env GOPATH)/bin"
-```
-
-<!-- x-release-please-end -->
-
-Supported self-managed release installations prepare automatic updates during eligible interactive runs.
-Package-manager and Go installations retain update notices and their existing installation ownership.
-Set `OPENAI_CLI_NO_AUTO_UPDATE=1` to disable automatic installation, or `OPENAI_CLI_NO_UPDATE_CHECK=1` to disable all update checks.
-See [automatic updates](docs/automatic-updates.md) for installation requirements, exact-version pins, and activation behavior.
-
-## Authentication
-
-Run the setup guide to enter your API key safely:
-
-```sh
-openai help setup
-```
-
-For scripts, supply `OPENAI_API_KEY` through your environment or secret manager.
-Create a key in [API settings](https://platform.openai.com/settings/organization/api-keys).
-
-Try a request:
-
-```sh
-openai responses create \
-  --model gpt-5.5 \
-  --input "Say this is a test"
-```
-
-Admin endpoints use `OPENAI_ADMIN_KEY`, a separate
-[admin API key](https://platform.openai.com/settings/organization/admin-keys).
-For example, retrieve one day of organization usage:
-
-```sh
-openai admin organization usage completions \
-  --start-time 1735689600 \
-  --end-time 1735776000 \
-  --bucket-width 1d
-```
 
 ## Usage
 
@@ -170,6 +184,16 @@ openai admin organization --help
 `openai help COMMAND` and `openai COMMAND --help` show the same page.
 Existing colon-separated commands, such as `openai admin:organization:usage completions`,
 also work.
+
+### Admin requests
+
+Admin endpoints use `OPENAI_ADMIN_KEY`, a separate
+[admin API key](https://platform.openai.com/settings/organization/admin-keys).
+For example, retrieve one day of organization usage:
+
+```sh
+openai admin organization usage completions --start-time 1735689600 --end-time 1735776000 --bucket-width 1d
+```
 
 ### Output and errors
 
@@ -204,6 +228,10 @@ file with `@path`:
 openai files upload report.txt --purpose user_data
 openai responses create --model gpt-5.5 --input @prompt.txt
 ```
+
+For a complete request, `responses create` and `chat completions create` accept `--request-file request.json`.
+Use `--request-file -` to wait for a pipeline, including delayed producers.
+Run `openai help piping` for tokenizer, upload, and script examples.
 
 Use `OPENAI_UNTRUSTED_STDIN=1` when piping JSON or YAML from an untrusted source
 so input cannot cause local file reads. In that mode, provide upload paths
@@ -242,6 +270,10 @@ In PowerShell, press Enter after `openai images generate` to open the picker.
 > as infrastructure as code.
 
 ## Development
+
+<a id="installing-with-go"></a>
+
+To install from source, follow the [Go installation instructions](docs/installation.md#installing-with-go).
 
 `scripts/run` is a development helper for running the CLI from a cloned checkout:
 
