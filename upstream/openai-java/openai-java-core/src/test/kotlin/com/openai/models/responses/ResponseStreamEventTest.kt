@@ -1039,6 +1039,11 @@ internal class ResponseStreamEventTest {
                         .background(true)
                         .completedAt(0.0)
                         .conversation(Response.Conversation.builder().id("id").build())
+                        .image(
+                            Response.Image.builder()
+                                .contextCompression(Response.Image.ContextCompression.ENABLED)
+                                .build()
+                        )
                         .maxOutputTokens(0L)
                         .maxToolCalls(0L)
                         .moderation(
@@ -1195,6 +1200,13 @@ internal class ResponseStreamEventTest {
                                     ResponseUsage.InputTokensDetails.builder()
                                         .cacheWriteTokens(0L)
                                         .cachedTokens(0L)
+                                        .cacheWriteTokensDetails(
+                                            ResponseUsage.InputTokensDetails.CacheWriteTokensDetails
+                                                .builder()
+                                                .ttl12hTokens(0L)
+                                                .ttl30mTokens(0L)
+                                                .build()
+                                        )
                                         .build()
                                 )
                                 .outputTokens(0L)
@@ -1386,6 +1398,11 @@ internal class ResponseStreamEventTest {
                             .background(true)
                             .completedAt(0.0)
                             .conversation(Response.Conversation.builder().id("id").build())
+                            .image(
+                                Response.Image.builder()
+                                    .contextCompression(Response.Image.ContextCompression.ENABLED)
+                                    .build()
+                            )
                             .maxOutputTokens(0L)
                             .maxToolCalls(0L)
                             .moderation(
@@ -1554,6 +1571,14 @@ internal class ResponseStreamEventTest {
                                         ResponseUsage.InputTokensDetails.builder()
                                             .cacheWriteTokens(0L)
                                             .cachedTokens(0L)
+                                            .cacheWriteTokensDetails(
+                                                ResponseUsage.InputTokensDetails
+                                                    .CacheWriteTokensDetails
+                                                    .builder()
+                                                    .ttl12hTokens(0L)
+                                                    .ttl30mTokens(0L)
+                                                    .build()
+                                            )
                                             .build()
                                     )
                                     .outputTokens(0L)
@@ -1983,6 +2008,11 @@ internal class ResponseStreamEventTest {
                         .background(true)
                         .completedAt(0.0)
                         .conversation(Response.Conversation.builder().id("id").build())
+                        .image(
+                            Response.Image.builder()
+                                .contextCompression(Response.Image.ContextCompression.ENABLED)
+                                .build()
+                        )
                         .maxOutputTokens(0L)
                         .maxToolCalls(0L)
                         .moderation(
@@ -2139,6 +2169,13 @@ internal class ResponseStreamEventTest {
                                     ResponseUsage.InputTokensDetails.builder()
                                         .cacheWriteTokens(0L)
                                         .cachedTokens(0L)
+                                        .cacheWriteTokensDetails(
+                                            ResponseUsage.InputTokensDetails.CacheWriteTokensDetails
+                                                .builder()
+                                                .ttl12hTokens(0L)
+                                                .ttl30mTokens(0L)
+                                                .build()
+                                        )
                                         .build()
                                 )
                                 .outputTokens(0L)
@@ -2330,6 +2367,11 @@ internal class ResponseStreamEventTest {
                             .background(true)
                             .completedAt(0.0)
                             .conversation(Response.Conversation.builder().id("id").build())
+                            .image(
+                                Response.Image.builder()
+                                    .contextCompression(Response.Image.ContextCompression.ENABLED)
+                                    .build()
+                            )
                             .maxOutputTokens(0L)
                             .maxToolCalls(0L)
                             .moderation(
@@ -2498,6 +2540,14 @@ internal class ResponseStreamEventTest {
                                         ResponseUsage.InputTokensDetails.builder()
                                             .cacheWriteTokens(0L)
                                             .cachedTokens(0L)
+                                            .cacheWriteTokensDetails(
+                                                ResponseUsage.InputTokensDetails
+                                                    .CacheWriteTokensDetails
+                                                    .builder()
+                                                    .ttl12hTokens(0L)
+                                                    .ttl30mTokens(0L)
+                                                    .build()
+                                            )
                                             .build()
                                     )
                                     .outputTokens(0L)
@@ -3714,6 +3764,11 @@ internal class ResponseStreamEventTest {
                         .background(true)
                         .completedAt(0.0)
                         .conversation(Response.Conversation.builder().id("id").build())
+                        .image(
+                            Response.Image.builder()
+                                .contextCompression(Response.Image.ContextCompression.ENABLED)
+                                .build()
+                        )
                         .maxOutputTokens(0L)
                         .maxToolCalls(0L)
                         .moderation(
@@ -3870,6 +3925,13 @@ internal class ResponseStreamEventTest {
                                     ResponseUsage.InputTokensDetails.builder()
                                         .cacheWriteTokens(0L)
                                         .cachedTokens(0L)
+                                        .cacheWriteTokensDetails(
+                                            ResponseUsage.InputTokensDetails.CacheWriteTokensDetails
+                                                .builder()
+                                                .ttl12hTokens(0L)
+                                                .ttl30mTokens(0L)
+                                                .build()
+                                        )
                                         .build()
                                 )
                                 .outputTokens(0L)
@@ -4061,6 +4123,11 @@ internal class ResponseStreamEventTest {
                             .background(true)
                             .completedAt(0.0)
                             .conversation(Response.Conversation.builder().id("id").build())
+                            .image(
+                                Response.Image.builder()
+                                    .contextCompression(Response.Image.ContextCompression.ENABLED)
+                                    .build()
+                            )
                             .maxOutputTokens(0L)
                             .maxToolCalls(0L)
                             .moderation(
@@ -4229,6 +4296,14 @@ internal class ResponseStreamEventTest {
                                         ResponseUsage.InputTokensDetails.builder()
                                             .cacheWriteTokens(0L)
                                             .cachedTokens(0L)
+                                            .cacheWriteTokensDetails(
+                                                ResponseUsage.InputTokensDetails
+                                                    .CacheWriteTokensDetails
+                                                    .builder()
+                                                    .ttl12hTokens(0L)
+                                                    .ttl30mTokens(0L)
+                                                    .build()
+                                            )
                                             .build()
                                     )
                                     .outputTokens(0L)
@@ -4364,6 +4439,11 @@ internal class ResponseStreamEventTest {
                         .background(true)
                         .completedAt(0.0)
                         .conversation(Response.Conversation.builder().id("id").build())
+                        .image(
+                            Response.Image.builder()
+                                .contextCompression(Response.Image.ContextCompression.ENABLED)
+                                .build()
+                        )
                         .maxOutputTokens(0L)
                         .maxToolCalls(0L)
                         .moderation(
@@ -4520,6 +4600,13 @@ internal class ResponseStreamEventTest {
                                     ResponseUsage.InputTokensDetails.builder()
                                         .cacheWriteTokens(0L)
                                         .cachedTokens(0L)
+                                        .cacheWriteTokensDetails(
+                                            ResponseUsage.InputTokensDetails.CacheWriteTokensDetails
+                                                .builder()
+                                                .ttl12hTokens(0L)
+                                                .ttl30mTokens(0L)
+                                                .build()
+                                        )
                                         .build()
                                 )
                                 .outputTokens(0L)
@@ -4711,6 +4798,11 @@ internal class ResponseStreamEventTest {
                             .background(true)
                             .completedAt(0.0)
                             .conversation(Response.Conversation.builder().id("id").build())
+                            .image(
+                                Response.Image.builder()
+                                    .contextCompression(Response.Image.ContextCompression.ENABLED)
+                                    .build()
+                            )
                             .maxOutputTokens(0L)
                             .maxToolCalls(0L)
                             .moderation(
@@ -4879,6 +4971,14 @@ internal class ResponseStreamEventTest {
                                         ResponseUsage.InputTokensDetails.builder()
                                             .cacheWriteTokens(0L)
                                             .cachedTokens(0L)
+                                            .cacheWriteTokensDetails(
+                                                ResponseUsage.InputTokensDetails
+                                                    .CacheWriteTokensDetails
+                                                    .builder()
+                                                    .ttl12hTokens(0L)
+                                                    .ttl30mTokens(0L)
+                                                    .build()
+                                            )
                                             .build()
                                     )
                                     .outputTokens(0L)
@@ -5014,6 +5114,11 @@ internal class ResponseStreamEventTest {
                         .background(true)
                         .completedAt(0.0)
                         .conversation(Response.Conversation.builder().id("id").build())
+                        .image(
+                            Response.Image.builder()
+                                .contextCompression(Response.Image.ContextCompression.ENABLED)
+                                .build()
+                        )
                         .maxOutputTokens(0L)
                         .maxToolCalls(0L)
                         .moderation(
@@ -5170,6 +5275,13 @@ internal class ResponseStreamEventTest {
                                     ResponseUsage.InputTokensDetails.builder()
                                         .cacheWriteTokens(0L)
                                         .cachedTokens(0L)
+                                        .cacheWriteTokensDetails(
+                                            ResponseUsage.InputTokensDetails.CacheWriteTokensDetails
+                                                .builder()
+                                                .ttl12hTokens(0L)
+                                                .ttl30mTokens(0L)
+                                                .build()
+                                        )
                                         .build()
                                 )
                                 .outputTokens(0L)
@@ -5361,6 +5473,11 @@ internal class ResponseStreamEventTest {
                             .background(true)
                             .completedAt(0.0)
                             .conversation(Response.Conversation.builder().id("id").build())
+                            .image(
+                                Response.Image.builder()
+                                    .contextCompression(Response.Image.ContextCompression.ENABLED)
+                                    .build()
+                            )
                             .maxOutputTokens(0L)
                             .maxToolCalls(0L)
                             .moderation(
@@ -5529,6 +5646,14 @@ internal class ResponseStreamEventTest {
                                         ResponseUsage.InputTokensDetails.builder()
                                             .cacheWriteTokens(0L)
                                             .cachedTokens(0L)
+                                            .cacheWriteTokensDetails(
+                                                ResponseUsage.InputTokensDetails
+                                                    .CacheWriteTokensDetails
+                                                    .builder()
+                                                    .ttl12hTokens(0L)
+                                                    .ttl30mTokens(0L)
+                                                    .build()
+                                            )
                                             .build()
                                     )
                                     .outputTokens(0L)
@@ -8544,6 +8669,11 @@ internal class ResponseStreamEventTest {
                         .background(true)
                         .completedAt(0.0)
                         .conversation(Response.Conversation.builder().id("id").build())
+                        .image(
+                            Response.Image.builder()
+                                .contextCompression(Response.Image.ContextCompression.ENABLED)
+                                .build()
+                        )
                         .maxOutputTokens(0L)
                         .maxToolCalls(0L)
                         .moderation(
@@ -8700,6 +8830,13 @@ internal class ResponseStreamEventTest {
                                     ResponseUsage.InputTokensDetails.builder()
                                         .cacheWriteTokens(0L)
                                         .cachedTokens(0L)
+                                        .cacheWriteTokensDetails(
+                                            ResponseUsage.InputTokensDetails.CacheWriteTokensDetails
+                                                .builder()
+                                                .ttl12hTokens(0L)
+                                                .ttl30mTokens(0L)
+                                                .build()
+                                        )
                                         .build()
                                 )
                                 .outputTokens(0L)
@@ -8891,6 +9028,11 @@ internal class ResponseStreamEventTest {
                             .background(true)
                             .completedAt(0.0)
                             .conversation(Response.Conversation.builder().id("id").build())
+                            .image(
+                                Response.Image.builder()
+                                    .contextCompression(Response.Image.ContextCompression.ENABLED)
+                                    .build()
+                            )
                             .maxOutputTokens(0L)
                             .maxToolCalls(0L)
                             .moderation(
@@ -9059,6 +9201,14 @@ internal class ResponseStreamEventTest {
                                         ResponseUsage.InputTokensDetails.builder()
                                             .cacheWriteTokens(0L)
                                             .cachedTokens(0L)
+                                            .cacheWriteTokensDetails(
+                                                ResponseUsage.InputTokensDetails
+                                                    .CacheWriteTokensDetails
+                                                    .builder()
+                                                    .ttl12hTokens(0L)
+                                                    .ttl30mTokens(0L)
+                                                    .build()
+                                            )
                                             .build()
                                     )
                                     .outputTokens(0L)

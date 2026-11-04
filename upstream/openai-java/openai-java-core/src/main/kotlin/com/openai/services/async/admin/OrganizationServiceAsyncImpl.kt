@@ -31,6 +31,8 @@ import com.openai.services.async.admin.organization.UsageServiceAsync
 import com.openai.services.async.admin.organization.UsageServiceAsyncImpl
 import com.openai.services.async.admin.organization.UserServiceAsync
 import com.openai.services.async.admin.organization.UserServiceAsyncImpl
+import com.openai.services.async.admin.organization.WorkloadIdentityProviderServiceAsync
+import com.openai.services.async.admin.organization.WorkloadIdentityProviderServiceAsyncImpl
 import java.util.function.Consumer
 
 class OrganizationServiceAsyncImpl internal constructor(private val clientOptions: ClientOptions) :
@@ -62,6 +64,10 @@ class OrganizationServiceAsyncImpl internal constructor(private val clientOption
 
     private val externalKeys: ExternalKeyServiceAsync by lazy {
         ExternalKeyServiceAsyncImpl(clientOptions)
+    }
+
+    private val workloadIdentityProviders: WorkloadIdentityProviderServiceAsync by lazy {
+        WorkloadIdentityProviderServiceAsyncImpl(clientOptions)
     }
 
     private val externalStorage: ExternalStorageServiceAsync by lazy {
@@ -105,6 +111,9 @@ class OrganizationServiceAsyncImpl internal constructor(private val clientOption
     override fun dataRetention(): DataRetentionServiceAsync = dataRetention
 
     override fun externalKeys(): ExternalKeyServiceAsync = externalKeys
+
+    override fun workloadIdentityProviders(): WorkloadIdentityProviderServiceAsync =
+        workloadIdentityProviders
 
     override fun externalStorage(): ExternalStorageServiceAsync = externalStorage
 
@@ -155,6 +164,11 @@ class OrganizationServiceAsyncImpl internal constructor(private val clientOption
             ExternalKeyServiceAsyncImpl.WithRawResponseImpl(clientOptions)
         }
 
+        private val workloadIdentityProviders:
+            WorkloadIdentityProviderServiceAsync.WithRawResponse by lazy {
+            WorkloadIdentityProviderServiceAsyncImpl.WithRawResponseImpl(clientOptions)
+        }
+
         private val externalStorage: ExternalStorageServiceAsync.WithRawResponse by lazy {
             ExternalStorageServiceAsyncImpl.WithRawResponseImpl(clientOptions)
         }
@@ -200,6 +214,9 @@ class OrganizationServiceAsyncImpl internal constructor(private val clientOption
         override fun dataRetention(): DataRetentionServiceAsync.WithRawResponse = dataRetention
 
         override fun externalKeys(): ExternalKeyServiceAsync.WithRawResponse = externalKeys
+
+        override fun workloadIdentityProviders():
+            WorkloadIdentityProviderServiceAsync.WithRawResponse = workloadIdentityProviders
 
         override fun externalStorage(): ExternalStorageServiceAsync.WithRawResponse =
             externalStorage

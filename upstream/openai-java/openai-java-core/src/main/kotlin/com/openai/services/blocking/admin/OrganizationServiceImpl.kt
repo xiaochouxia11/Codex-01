@@ -31,6 +31,8 @@ import com.openai.services.blocking.admin.organization.UsageService
 import com.openai.services.blocking.admin.organization.UsageServiceImpl
 import com.openai.services.blocking.admin.organization.UserService
 import com.openai.services.blocking.admin.organization.UserServiceImpl
+import com.openai.services.blocking.admin.organization.WorkloadIdentityProviderService
+import com.openai.services.blocking.admin.organization.WorkloadIdentityProviderServiceImpl
 import java.util.function.Consumer
 
 class OrganizationServiceImpl internal constructor(private val clientOptions: ClientOptions) :
@@ -59,6 +61,10 @@ class OrganizationServiceImpl internal constructor(private val clientOptions: Cl
     }
 
     private val externalKeys: ExternalKeyService by lazy { ExternalKeyServiceImpl(clientOptions) }
+
+    private val workloadIdentityProviders: WorkloadIdentityProviderService by lazy {
+        WorkloadIdentityProviderServiceImpl(clientOptions)
+    }
 
     private val externalStorage: ExternalStorageService by lazy {
         ExternalStorageServiceImpl(clientOptions)
@@ -95,6 +101,9 @@ class OrganizationServiceImpl internal constructor(private val clientOptions: Cl
     override fun dataRetention(): DataRetentionService = dataRetention
 
     override fun externalKeys(): ExternalKeyService = externalKeys
+
+    override fun workloadIdentityProviders(): WorkloadIdentityProviderService =
+        workloadIdentityProviders
 
     override fun externalStorage(): ExternalStorageService = externalStorage
 
@@ -145,6 +154,11 @@ class OrganizationServiceImpl internal constructor(private val clientOptions: Cl
             ExternalKeyServiceImpl.WithRawResponseImpl(clientOptions)
         }
 
+        private val workloadIdentityProviders:
+            WorkloadIdentityProviderService.WithRawResponse by lazy {
+            WorkloadIdentityProviderServiceImpl.WithRawResponseImpl(clientOptions)
+        }
+
         private val externalStorage: ExternalStorageService.WithRawResponse by lazy {
             ExternalStorageServiceImpl.WithRawResponseImpl(clientOptions)
         }
@@ -190,6 +204,9 @@ class OrganizationServiceImpl internal constructor(private val clientOptions: Cl
         override fun dataRetention(): DataRetentionService.WithRawResponse = dataRetention
 
         override fun externalKeys(): ExternalKeyService.WithRawResponse = externalKeys
+
+        override fun workloadIdentityProviders(): WorkloadIdentityProviderService.WithRawResponse =
+            workloadIdentityProviders
 
         override fun externalStorage(): ExternalStorageService.WithRawResponse = externalStorage
 
