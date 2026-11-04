@@ -23506,6 +23506,575 @@
         }
       }
     },
+    "/organization/workload_identity_providers": {
+      "get": {
+        "summary": "List Platform workload identity providers",
+        "description": "List OIDC providers in the authenticated Admin API key's organization.",
+        "operationId": "ListPlatformworkloadidentityproviders",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "default": "asc",
+                  "x-stainless-const": true,
+                  "type": "string",
+                  "enum": [
+                    "asc"
+                  ]
+                },
+                {
+                  "default": "desc",
+                  "x-stainless-const": true,
+                  "type": "string",
+                  "enum": [
+                    "desc"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformProviderListResource"
+                }
+              }
+            }
+          }
+        },
+        "x-oaiMeta": {
+          "group": "administration",
+          "examples": {
+            "request": {
+              "curl": "curl -X GET \"https://api.openai.com/v1/organization/workload_identity_providers?limit=20&order=asc\" \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\"\n"
+            },
+            "response": "{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"object\": \"organization.workload_identity_provider\",\n      \"id\": \"wip_example\",\n      \"type\": \"oidc\",\n      \"name\": \"CI provider\",\n      \"issuer\": \"https://issuer.example.com\",\n      \"audience\": \"openai\",\n      \"verification\": {\n        \"type\": \"discovery\",\n        \"discovery_url\": null\n      },\n      \"description\": null,\n      \"attribute_transformations\": [],\n      \"enabled\": true,\n      \"created_at\": 1793664000,\n      \"updated_at\": 1793664000\n    }\n  ],\n  \"first_id\": \"wip_example\",\n  \"last_id\": \"wip_example\",\n  \"has_more\": false\n}\n"
+          }
+        },
+        "security": [
+          {
+            "AdminApiKeyAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Platform workload identity provider",
+        "description": "Register an OIDC provider for keyless project service-account authentication.",
+        "operationId": "CreatePlatformworkloadidentityprovider",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlatformWorkloadIdentityProviderBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformProvider"
+                }
+              }
+            }
+          }
+        },
+        "x-oaiMeta": {
+          "group": "administration",
+          "examples": {
+            "request": {
+              "curl": "curl -X POST \"https://api.openai.com/v1/organization/workload_identity_providers\" \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"name\": \"CI provider\",\n  \"type\": \"oidc\",\n  \"issuer\": \"https://issuer.example.com\",\n  \"audience\": \"openai\"\n}'\n"
+            },
+            "response": "{\n  \"object\": \"organization.workload_identity_provider\",\n  \"id\": \"wip_example\",\n  \"type\": \"oidc\",\n  \"name\": \"CI provider\",\n  \"issuer\": \"https://issuer.example.com\",\n  \"audience\": \"openai\",\n  \"verification\": {\n    \"type\": \"discovery\",\n    \"discovery_url\": null\n  },\n  \"description\": null,\n  \"attribute_transformations\": [],\n  \"enabled\": true,\n  \"created_at\": 1793664000,\n  \"updated_at\": 1793664000\n}\n"
+          }
+        },
+        "security": [
+          {
+            "AdminApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/organization/workload_identity_providers/{workload_identity_provider_id}": {
+      "get": {
+        "summary": "Retrieve Platform workload identity provider",
+        "description": "Retrieve an OIDC provider in the authenticated organization.",
+        "operationId": "RetrievePlatformworkloadidentityprovider",
+        "parameters": [
+          {
+            "name": "workload_identity_provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformProvider"
+                }
+              }
+            }
+          }
+        },
+        "x-oaiMeta": {
+          "group": "administration",
+          "examples": {
+            "request": {
+              "curl": "curl -X GET \"https://api.openai.com/v1/organization/workload_identity_providers/wip_example\" \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\"\n"
+            },
+            "response": "{\n  \"object\": \"organization.workload_identity_provider\",\n  \"id\": \"wip_example\",\n  \"type\": \"oidc\",\n  \"name\": \"CI provider\",\n  \"issuer\": \"https://issuer.example.com\",\n  \"audience\": \"openai\",\n  \"verification\": {\n    \"type\": \"discovery\",\n    \"discovery_url\": null\n  },\n  \"description\": null,\n  \"attribute_transformations\": [],\n  \"enabled\": true,\n  \"created_at\": 1793664000,\n  \"updated_at\": 1793664000\n}\n"
+          }
+        },
+        "security": [
+          {
+            "AdminApiKeyAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Update Platform workload identity provider",
+        "description": "Update supplied provider fields, preserving omitted fields.",
+        "operationId": "UpdatePlatformworkloadidentityprovider",
+        "parameters": [
+          {
+            "name": "workload_identity_provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlatformWorkloadIdentityProviderBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformProvider"
+                }
+              }
+            }
+          }
+        },
+        "x-oaiMeta": {
+          "group": "administration",
+          "examples": {
+            "request": {
+              "curl": "curl -X POST \"https://api.openai.com/v1/organization/workload_identity_providers/wip_example\" \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"enabled\": false\n}'\n"
+            },
+            "response": "{\n  \"object\": \"organization.workload_identity_provider\",\n  \"id\": \"wip_example\",\n  \"type\": \"oidc\",\n  \"name\": \"CI provider\",\n  \"issuer\": \"https://issuer.example.com\",\n  \"audience\": \"openai\",\n  \"verification\": {\n    \"type\": \"discovery\",\n    \"discovery_url\": null\n  },\n  \"description\": null,\n  \"attribute_transformations\": [],\n  \"enabled\": false,\n  \"created_at\": 1793664000,\n  \"updated_at\": 1793664000\n}\n"
+          }
+        },
+        "security": [
+          {
+            "AdminApiKeyAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Platform workload identity provider",
+        "description": "Delete a provider after deleting all its federation rules.",
+        "operationId": "DeletePlatformworkloadidentityprovider",
+        "parameters": [
+          {
+            "name": "workload_identity_provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformProviderDeletedResource"
+                }
+              }
+            }
+          }
+        },
+        "x-oaiMeta": {
+          "group": "administration",
+          "examples": {
+            "request": {
+              "curl": "curl -X DELETE \"https://api.openai.com/v1/organization/workload_identity_providers/wip_example\" \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\"\n"
+            },
+            "response": "{\n  \"object\": \"organization.workload_identity_provider.deleted\",\n  \"id\": \"wip_example\",\n  \"deleted\": true\n}\n"
+          }
+        },
+        "security": [
+          {
+            "AdminApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/organization/workload_identity_providers/{workload_identity_provider_id}/federation_rules": {
+      "get": {
+        "summary": "List Platform workload identity federation rules",
+        "description": "List the provider's federation rules to project service accounts.",
+        "operationId": "ListPlatformworkloadidentityfederationrules",
+        "parameters": [
+          {
+            "name": "workload_identity_provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "default": "asc",
+                  "x-stainless-const": true,
+                  "type": "string",
+                  "enum": [
+                    "asc"
+                  ]
+                },
+                {
+                  "default": "desc",
+                  "x-stainless-const": true,
+                  "type": "string",
+                  "enum": [
+                    "desc"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "service_account_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformFederationRuleListResource"
+                }
+              }
+            }
+          }
+        },
+        "x-oaiMeta": {
+          "group": "administration",
+          "examples": {
+            "request": {
+              "curl": "curl -X GET \"https://api.openai.com/v1/organization/workload_identity_providers/wip_example/federation_rules?limit=20&order=asc\" \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\"\n"
+            },
+            "response": "{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"object\": \"organization.workload_identity_federation_rule\",\n      \"id\": \"wifr_example\",\n      \"workload_identity_provider_id\": \"wip_example\",\n      \"project_id\": \"proj_example\",\n      \"service_account_id\": \"svc_acct_example\",\n      \"name\": null,\n      \"description\": null,\n      \"attribute_matchers\": {\n        \"sub\": \"ci:release\"\n      },\n      \"permissions\": {\n        \"type\": \"service_account_default\"\n      },\n      \"enabled\": true,\n      \"created_at\": 1793664000,\n      \"updated_at\": 1793664000\n    }\n  ],\n  \"first_id\": \"wifr_example\",\n  \"last_id\": \"wifr_example\",\n  \"has_more\": false\n}\n"
+          }
+        },
+        "security": [
+          {
+            "AdminApiKeyAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Platform workload identity federation rule",
+        "description": "Bind verified token attributes to an existing project service account.",
+        "operationId": "CreatePlatformworkloadidentityfederationrule",
+        "parameters": [
+          {
+            "name": "workload_identity_provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlatformWorkloadIdentityFederationRuleBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformFederationRule"
+                }
+              }
+            }
+          }
+        },
+        "x-oaiMeta": {
+          "group": "administration",
+          "examples": {
+            "request": {
+              "curl": "curl -X POST \"https://api.openai.com/v1/organization/workload_identity_providers/wip_example/federation_rules\" \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"project_id\": \"proj_example\",\n  \"service_account_id\": \"svc_acct_example\",\n  \"attribute_matchers\": {\n    \"sub\": \"ci:release\"\n  }\n}'\n"
+            },
+            "response": "{\n  \"object\": \"organization.workload_identity_federation_rule\",\n  \"id\": \"wifr_example\",\n  \"workload_identity_provider_id\": \"wip_example\",\n  \"project_id\": \"proj_example\",\n  \"service_account_id\": \"svc_acct_example\",\n  \"name\": null,\n  \"description\": null,\n  \"attribute_matchers\": {\n    \"sub\": \"ci:release\"\n  },\n  \"permissions\": {\n    \"type\": \"service_account_default\"\n  },\n  \"enabled\": true,\n  \"created_at\": 1793664000,\n  \"updated_at\": 1793664000\n}\n"
+          }
+        },
+        "security": [
+          {
+            "AdminApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/organization/workload_identity_providers/{workload_identity_provider_id}/federation_rules/{workload_identity_federation_rule_id}": {
+      "get": {
+        "summary": "Retrieve Platform workload identity federation rule",
+        "description": "Retrieve a federation rule owned by the authenticated organization and provider.",
+        "operationId": "RetrievePlatformworkloadidentityfederationrule",
+        "parameters": [
+          {
+            "name": "workload_identity_provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "workload_identity_federation_rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformFederationRule"
+                }
+              }
+            }
+          }
+        },
+        "x-oaiMeta": {
+          "group": "administration",
+          "examples": {
+            "request": {
+              "curl": "curl -X GET \"https://api.openai.com/v1/organization/workload_identity_providers/wip_example/federation_rules/wifr_example\" \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\"\n"
+            },
+            "response": "{\n  \"object\": \"organization.workload_identity_federation_rule\",\n  \"id\": \"wifr_example\",\n  \"workload_identity_provider_id\": \"wip_example\",\n  \"project_id\": \"proj_example\",\n  \"service_account_id\": \"svc_acct_example\",\n  \"name\": null,\n  \"description\": null,\n  \"attribute_matchers\": {\n    \"sub\": \"ci:release\"\n  },\n  \"permissions\": {\n    \"type\": \"service_account_default\"\n  },\n  \"enabled\": true,\n  \"created_at\": 1793664000,\n  \"updated_at\": 1793664000\n}\n"
+          }
+        },
+        "security": [
+          {
+            "AdminApiKeyAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Update Platform workload identity federation rule",
+        "description": "Update supplied matcher, permission, metadata, or enabled fields.",
+        "operationId": "UpdatePlatformworkloadidentityfederationrule",
+        "parameters": [
+          {
+            "name": "workload_identity_provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "workload_identity_federation_rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlatformWorkloadIdentityFederationRuleBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformFederationRule"
+                }
+              }
+            }
+          }
+        },
+        "x-oaiMeta": {
+          "group": "administration",
+          "examples": {
+            "request": {
+              "curl": "curl -X POST \"https://api.openai.com/v1/organization/workload_identity_providers/wip_example/federation_rules/wifr_example\" \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n  \"enabled\": false\n}'\n"
+            },
+            "response": "{\n  \"object\": \"organization.workload_identity_federation_rule\",\n  \"id\": \"wifr_example\",\n  \"workload_identity_provider_id\": \"wip_example\",\n  \"project_id\": \"proj_example\",\n  \"service_account_id\": \"svc_acct_example\",\n  \"name\": null,\n  \"description\": null,\n  \"attribute_matchers\": {\n    \"sub\": \"ci:release\"\n  },\n  \"permissions\": {\n    \"type\": \"service_account_default\"\n  },\n  \"enabled\": false,\n  \"created_at\": 1793664000,\n  \"updated_at\": 1793664000\n}\n"
+          }
+        },
+        "security": [
+          {
+            "AdminApiKeyAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Platform workload identity federation rule",
+        "description": "Delete a federation rule to a project service account.",
+        "operationId": "DeletePlatformworkloadidentityfederationrule",
+        "parameters": [
+          {
+            "name": "workload_identity_provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "workload_identity_federation_rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformFederationRuleDeletedResource"
+                }
+              }
+            }
+          }
+        },
+        "x-oaiMeta": {
+          "group": "administration",
+          "examples": {
+            "request": {
+              "curl": "curl -X DELETE \"https://api.openai.com/v1/organization/workload_identity_providers/wip_example/federation_rules/wifr_example\" \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\"\n"
+            },
+            "response": "{\n  \"object\": \"organization.workload_identity_federation_rule.deleted\",\n  \"id\": \"wifr_example\",\n  \"deleted\": true\n}\n"
+          }
+        },
+        "security": [
+          {
+            "AdminApiKeyAuth": []
+          }
+        ]
+      }
+    },
     "/organization/usage/decisions": {
       "get": {
         "summary": "Decisions",
@@ -24623,6 +25192,104 @@
               "curl": "curl -X POST https://api.openai.com/v1/organization/projects/proj_abc/spend_limit \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n      \"threshold_amount\": 10000,\n      \"currency\": \"USD\",\n      \"interval\": \"month\"\n  }'\n"
             },
             "response": "{\n    \"object\": \"project.spend_limit\",\n    \"threshold_amount\": 10000,\n    \"currency\": \"USD\",\n    \"interval\": \"month\",\n    \"enforcement\": {\n        \"status\": \"enforcing\"\n    }\n}\n"
+          }
+        },
+        "security": [
+          {
+            "AdminApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/organization/projects/{project_id}/service_tier_settings": {
+      "get": {
+        "summary": "Retrieve project service tier settings",
+        "description": "Retrieve the configured default and enabled service tiers for a project.",
+        "operationId": "Retrieveprojectservicetiersettings",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "description": "The ID of the project",
+            "required": true,
+            "schema": {
+              "description": "The ID of the project",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectServiceTierSettingsResource"
+                }
+              }
+            }
+          }
+        },
+        "x-oaiMeta": {
+          "group": "administration",
+          "examples": {
+            "request": {
+              "curl": "curl https://api.openai.com/v1/organization/projects/proj_abc/service_tier_settings \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\"\n"
+            },
+            "response": "{\n  \"object\": \"project.service_tier_settings\",\n  \"default\": \"standard\",\n  \"enabled_tiers\": \"all\"\n}\n"
+          }
+        },
+        "security": [
+          {
+            "AdminApiKeyAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Update project service tier settings",
+        "description": "Update the default or enabled service tiers atomically. Supply at least one field. Omitted fields keep their current values.",
+        "operationId": "Updateprojectservicetiersettings",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "description": "The ID of the project",
+            "required": true,
+            "schema": {
+              "description": "The ID of the project",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectServiceTierSettingsBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectServiceTierSettingsResource"
+                }
+              }
+            }
+          }
+        },
+        "x-oaiMeta": {
+          "group": "administration",
+          "examples": {
+            "request": {
+              "curl": "curl https://api.openai.com/v1/organization/projects/proj_abc/service_tier_settings \\\n  -H \"Authorization: Bearer $OPENAI_ADMIN_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"default\":\"standard\",\"enabled_tiers\":[]}'\n"
+            },
+            "response": "{\n  \"object\": \"project.service_tier_settings\",\n  \"default\": \"standard\",\n  \"enabled_tiers\": []\n}\n"
           }
         },
         "security": [
@@ -41721,6 +42388,9 @@
           {
             "type": "object",
             "properties": {
+              "prompt_cache_options": {
+                "$ref": "#/components/schemas/PromptCacheOptionsParam"
+              },
               "messages": {
                 "description": "A list of messages comprising the conversation so far. Depending on the\n[model](https://developers.openai.com/api/docs/models) you use, different message types (modalities) are\nsupported, like [text](https://developers.openai.com/api/docs/guides/text),\n[images](https://developers.openai.com/api/docs/guides/images-vision), and [audio](https://developers.openai.com/api/docs/guides/audio).\n",
                 "type": "array",
@@ -44452,9 +45122,6 @@
           {
             "type": "object",
             "properties": {
-              "prompt_cache_options": {
-                "$ref": "#/components/schemas/PromptCacheOptionsParam"
-              },
               "top_logprobs": {
                 "description": "An integer between 0 and 20 specifying the maximum number of most likely\ntokens to return at each token position, each with an associated log\nprobability. In some cases, the number of returned tokens may be fewer than\nrequested.\n",
                 "type": "integer",
@@ -44956,6 +45623,9 @@
             "properties": {
               "access_programs": {
                 "$ref": "#/components/schemas/AccessProgramsParam"
+              },
+              "image": {
+                "$ref": "#/components/schemas/ImageOptionsParam"
               },
               "prompt_cache_options": {
                 "$ref": "#/components/schemas/ResponsePromptCacheOptionsParam"
@@ -55080,7 +55750,8 @@
               "gpt-daybreak-blue-latest",
               "gpt-daybreak-red-latest",
               "gpt-5.6-cyber",
-              "gpt-rosalind-research"
+              "gpt-rosalind-research",
+              "gpt-6-rosalind"
             ],
             "x-openai-enum-deprecations": {
               "o1-pro": {
@@ -67790,6 +68461,9 @@
           {
             "type": "object",
             "properties": {
+              "image": {
+                "$ref": "#/components/schemas/ResolvedImageOptions"
+              },
               "service_tier": {
                 "$ref": "#/components/schemas/ServiceTierResponses"
               },
@@ -71436,6 +72110,9 @@
               "cache_write_tokens": {
                 "type": "integer",
                 "description": "The number of input tokens that were written to the cache."
+              },
+              "cache_write_tokens_details": {
+                "$ref": "#/components/schemas/CacheWriteTokensDetails"
               }
             },
             "required": [
@@ -80852,7 +81529,7 @@
         "type": "object",
         "required": [],
         "title": "Prompt cache options",
-        "description": "Options for prompt caching. Supported for `gpt-5.6` and later models. By default, OpenAI automatically chooses one implicit cache breakpoint. You can add explicit breakpoints to content blocks with `prompt_cache_breakpoint`. Each request can write up to four breakpoints. For cache matching, OpenAI considers up to the latest 80 breakpoints in the conversation, without a content-block lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The `ttl` defaults to `30m`, which is currently the only supported value. See the [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) for current details."
+        "description": "Options for prompt caching. Supported for `gpt-5.6` and later models. By default, OpenAI automatically chooses one implicit cache breakpoint. You can add explicit breakpoints to content blocks with `prompt_cache_breakpoint`. Each request can write up to four breakpoints. For cache matching, OpenAI considers up to the latest 80 breakpoints in the conversation, without a content-block lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The `ttl` defaults to `30m`. Supported lifetimes depend on the API. See the [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) for current details."
       },
       "PromptCacheBreakpointParam": {
         "properties": {
@@ -88939,11 +89616,35 @@
         "required": [],
         "description": "Domain-specific access programs to use for this request."
       },
+      "ImageContextCompression": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "enabled",
+          "disabled"
+        ]
+      },
+      "ImageOptionsParam": {
+        "properties": {
+          "context_compression": {
+            "$ref": "#/components/schemas/ImageContextCompression",
+            "description": "Controls image context optimization. Defaults to `auto`, which uses the model, transport, and input to select a policy. Use `enabled` to require compression support or `disabled` to turn it off."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [],
+        "description": "Request level image options."
+      },
       "ResponsePromptCacheOptionsParam": {
         "properties": {
           "ttl": {
-            "$ref": "#/components/schemas/PromptCacheTTLEnum",
-            "description": "The minimum lifetime applied to every implicit and explicit cache breakpoint written by the request. Defaults to `30m`, which is currently the only supported value. The backend may retain cache entries for longer."
+            "type": "string",
+            "enum": [
+              "30m",
+              "12h"
+            ],
+            "description": "The minimum lifetime applied to every implicit and explicit cache breakpoint written by the request. Supported values are `30m` (the default) and `12h`. The backend may retain cache entries for longer."
           },
           "mode": {
             "$ref": "#/components/schemas/PromptCacheModeEnum",
@@ -88969,7 +89670,7 @@
         "type": "object",
         "required": [],
         "title": "Prompt cache options",
-        "description": "Options for prompt caching. Supported for `gpt-5.6` and later models. By default, OpenAI automatically chooses one implicit cache breakpoint. You can add explicit breakpoints to content blocks with `prompt_cache_breakpoint`. Each request can write up to four breakpoints. For cache matching, OpenAI considers up to the latest 80 breakpoints in the conversation, without a content-block lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The `ttl` defaults to `30m`, which is currently the only supported value. See the [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) for current details."
+        "description": "Options for prompt caching. Supported for `gpt-5.6` and later models. By default, OpenAI automatically chooses one implicit cache breakpoint. You can add explicit breakpoints to content blocks with `prompt_cache_breakpoint`. Each request can write up to four breakpoints. For cache matching, OpenAI considers up to the latest 80 breakpoints in the conversation, without a content-block lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The `ttl` defaults to `30m`. Supported lifetimes depend on the API. See the [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) for current details."
       },
       "ReasoningModeEnum": {
         "anyOf": [
@@ -89024,6 +89725,25 @@
           "type"
         ]
       },
+      "ResolvedImageContextCompressionEnum": {
+        "type": "string",
+        "enum": [
+          "enabled",
+          "disabled"
+        ]
+      },
+      "ResolvedImageOptions": {
+        "properties": {
+          "context_compression": {
+            "$ref": "#/components/schemas/ResolvedImageContextCompressionEnum",
+            "description": "Effective image context optimization policy."
+          }
+        },
+        "type": "object",
+        "required": [
+          "context_compression"
+        ]
+      },
       "AccessProgramsBody": {
         "properties": {
           "cyber": {
@@ -89034,6 +89754,23 @@
         "type": "object",
         "required": [
           "cyber"
+        ]
+      },
+      "CacheWriteTokensDetails": {
+        "properties": {
+          "ttl_30m_tokens": {
+            "type": "integer",
+            "description": "The number of input tokens written with 30-minute retention."
+          },
+          "ttl_12h_tokens": {
+            "type": "integer",
+            "description": "The number of input tokens written with 12-hour retention."
+          }
+        },
+        "type": "object",
+        "required": [
+          "ttl_30m_tokens",
+          "ttl_12h_tokens"
         ]
       },
       "CachedUsageDetails": {
@@ -89124,7 +89861,11 @@
       "PromptCacheOptions": {
         "properties": {
           "ttl": {
-            "$ref": "#/components/schemas/PromptCacheTTLEnum",
+            "type": "string",
+            "enum": [
+              "30m",
+              "12h"
+            ],
             "description": "The minimum lifetime applied to each cache breakpoint."
           },
           "mode": {
@@ -90152,6 +90893,773 @@
           "status"
         ]
       },
+      "DiscoveryVerification": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "discovery"
+            ],
+            "default": "discovery",
+            "x-stainless-const": true
+          },
+          "discovery_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "discovery_url"
+        ]
+      },
+      "UploadedJwksVerification": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "uploaded_jwks"
+            ],
+            "default": "uploaded_jwks",
+            "x-stainless-const": true
+          },
+          "jwks": {
+            "additionalProperties": {},
+            "type": "object",
+            "x-oaiTypeLabel": "map"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "jwks"
+        ]
+      },
+      "Transformation": {
+        "properties": {
+          "attribute": {
+            "type": "string"
+          },
+          "expression": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attribute",
+          "expression"
+        ]
+      },
+      "PlatformProvider": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": [
+              "organization.workload_identity_provider"
+            ],
+            "default": "organization.workload_identity_provider",
+            "x-stainless-const": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "oidc"
+            ],
+            "default": "oidc",
+            "x-stainless-const": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "audience": {
+            "type": "string"
+          },
+          "verification": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiscoveryVerification"
+              },
+              {
+                "$ref": "#/components/schemas/UploadedJwksVerification"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attribute_transformations": {
+            "items": {
+              "$ref": "#/components/schemas/Transformation"
+            },
+            "type": "array"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "integer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "type",
+          "name",
+          "issuer",
+          "audience",
+          "verification",
+          "description",
+          "attribute_transformations",
+          "enabled",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "PlatformProviderListResource": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": [
+              "list"
+            ],
+            "default": "list",
+            "x-stainless-const": true
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformProvider"
+            },
+            "type": "array"
+          },
+          "first_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "has_more": {
+            "type": "boolean"
+          }
+        },
+        "type": "object",
+        "required": [
+          "object",
+          "data",
+          "first_id",
+          "last_id",
+          "has_more"
+        ]
+      },
+      "DiscoveryVerificationParam": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "discovery"
+            ],
+            "default": "discovery",
+            "x-stainless-const": true
+          },
+          "discovery_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "discovery_url"
+        ]
+      },
+      "UploadedJwksVerificationParam": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "uploaded_jwks"
+            ],
+            "default": "uploaded_jwks",
+            "x-stainless-const": true
+          },
+          "jwks": {
+            "additionalProperties": {},
+            "type": "object",
+            "x-oaiTypeLabel": "map"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "jwks"
+        ]
+      },
+      "TransformationParam": {
+        "properties": {
+          "attribute": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1
+          },
+          "expression": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 1
+          }
+        },
+        "type": "object",
+        "required": [
+          "attribute",
+          "expression"
+        ]
+      },
+      "CreatePlatformWorkloadIdentityProviderBody": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "oidc"
+            ],
+            "default": "oidc",
+            "x-stainless-const": true
+          },
+          "issuer": {
+            "type": "string",
+            "minLength": 1
+          },
+          "audience": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verification": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiscoveryVerificationParam"
+              },
+              {
+                "$ref": "#/components/schemas/UploadedJwksVerificationParam"
+              }
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "attribute_transformations": {
+            "items": {
+              "$ref": "#/components/schemas/TransformationParam"
+            },
+            "type": "array",
+            "maxItems": 20
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "type",
+          "issuer",
+          "audience"
+        ]
+      },
+      "UpdatePlatformWorkloadIdentityProviderBody": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "issuer": {
+            "type": "string",
+            "minLength": 1
+          },
+          "audience": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verification": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiscoveryVerificationParam"
+              },
+              {
+                "$ref": "#/components/schemas/UploadedJwksVerificationParam"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attribute_transformations": {
+            "items": {
+              "$ref": "#/components/schemas/TransformationParam"
+            },
+            "type": "array",
+            "maxItems": 20
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "type": "object",
+        "required": []
+      },
+      "PlatformProviderDeletedResource": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": [
+              "organization.workload_identity_provider.deleted"
+            ],
+            "default": "organization.workload_identity_provider.deleted",
+            "x-stainless-const": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "deleted"
+        ]
+      },
+      "DefaultPermissions": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "service_account_default"
+            ],
+            "default": "service_account_default",
+            "x-stainless-const": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "type"
+        ]
+      },
+      "RestrictedPermissions": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "restricted"
+            ],
+            "default": "restricted",
+            "x-stainless-const": true
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "scopes"
+        ]
+      },
+      "PlatformFederationRule": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": [
+              "organization.workload_identity_federation_rule"
+            ],
+            "default": "organization.workload_identity_federation_rule",
+            "x-stainless-const": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "workload_identity_provider_id": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "service_account_id": {
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attribute_matchers": {
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                }
+              ]
+            },
+            "type": "object",
+            "x-oaiTypeLabel": "map"
+          },
+          "permissions": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DefaultPermissions"
+              },
+              {
+                "$ref": "#/components/schemas/RestrictedPermissions"
+              }
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "integer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "workload_identity_provider_id",
+          "project_id",
+          "service_account_id",
+          "name",
+          "description",
+          "attribute_matchers",
+          "permissions",
+          "enabled",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "PlatformFederationRuleListResource": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": [
+              "list"
+            ],
+            "default": "list",
+            "x-stainless-const": true
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformFederationRule"
+            },
+            "type": "array"
+          },
+          "first_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "has_more": {
+            "type": "boolean"
+          }
+        },
+        "type": "object",
+        "required": [
+          "object",
+          "data",
+          "first_id",
+          "last_id",
+          "has_more"
+        ]
+      },
+      "DefaultPermissionsParam": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "service_account_default"
+            ],
+            "default": "service_account_default",
+            "x-stainless-const": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "type"
+        ]
+      },
+      "RestrictedPermissionsParam": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "restricted"
+            ],
+            "default": "restricted",
+            "x-stainless-const": true
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "scopes"
+        ]
+      },
+      "CreatePlatformWorkloadIdentityFederationRuleBody": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "service_account_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "attribute_matchers": {
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                }
+              ]
+            },
+            "type": "object",
+            "x-oaiTypeLabel": "map"
+          },
+          "permissions": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DefaultPermissionsParam"
+              },
+              {
+                "$ref": "#/components/schemas/RestrictedPermissionsParam"
+              }
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "service_account_id",
+          "attribute_matchers"
+        ]
+      },
+      "UpdatePlatformWorkloadIdentityFederationRuleBody": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attribute_matchers": {
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                }
+              ]
+            },
+            "type": "object",
+            "x-oaiTypeLabel": "map"
+          },
+          "permissions": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DefaultPermissionsParam"
+              },
+              {
+                "$ref": "#/components/schemas/RestrictedPermissionsParam"
+              }
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "type": "object",
+        "required": []
+      },
+      "PlatformFederationRuleDeletedResource": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": [
+              "organization.workload_identity_federation_rule.deleted"
+            ],
+            "default": "organization.workload_identity_federation_rule.deleted",
+            "x-stainless-const": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "deleted"
+        ]
+      },
       "DecisionsUsageBucketWidth": {
         "type": "string",
         "enum": [
@@ -91111,6 +92619,104 @@
           "deleted"
         ],
         "description": "Confirmation payload returned after deleting a project hard spend limit."
+      },
+      "ProjectDefaultServiceTier": {
+        "type": "string",
+        "enum": [
+          "standard",
+          "fast",
+          "scale"
+        ]
+      },
+      "ProjectOptionalServiceTier": {
+        "type": "string",
+        "enum": [
+          "flex",
+          "fast",
+          "ultrafast"
+        ]
+      },
+      "ProjectServiceTierSettingsResource": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": [
+              "project.service_tier_settings"
+            ],
+            "default": "project.service_tier_settings",
+            "x-stainless-const": true
+          },
+          "default": {
+            "$ref": "#/components/schemas/ProjectDefaultServiceTier",
+            "description": "Default tier for requests that omit service_tier or use auto."
+          },
+          "enabled_tiers": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "all"
+                ],
+                "default": "all",
+                "x-stainless-const": true
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ProjectOptionalServiceTier"
+                },
+                "type": "array"
+              }
+            ],
+            "description": "Additional service tiers enabled for this project. \"all\" includes future tiers. An empty array allows only Standard. Organization policy and eligibility still apply."
+          }
+        },
+        "type": "object",
+        "required": [
+          "object",
+          "default",
+          "enabled_tiers"
+        ]
+      },
+      "UpdateProjectServiceTierSettingsBody": {
+        "anyOf": [
+          {
+            "required": [
+              "default"
+            ]
+          },
+          {
+            "required": [
+              "enabled_tiers"
+            ]
+          }
+        ],
+        "properties": {
+          "default": {
+            "$ref": "#/components/schemas/ProjectDefaultServiceTier",
+            "description": "Default tier for requests that omit service_tier or use auto."
+          },
+          "enabled_tiers": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "all"
+                ],
+                "default": "all",
+                "x-stainless-const": true
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ProjectOptionalServiceTier"
+                },
+                "type": "array"
+              }
+            ],
+            "description": "Additional service tiers enabled for this project. \"all\" includes future tiers. An empty array allows only Standard. Organization policy and eligibility still apply."
+          }
+        },
+        "type": "object",
+        "required": []
       },
       "CreateProjectServiceAccountApiKeyBody": {
         "properties": {
@@ -92225,6 +93831,10 @@
               }
             ]
           },
+          "image": {
+            "$ref": "#/components/schemas/ImageOptionsParam",
+            "description": "Request level image options."
+          },
           "prompt_cache_key": {
             "anyOf": [
               {
@@ -92372,6 +93982,9 @@
       },
       "CompactResource": {
         "properties": {
+          "image": {
+            "$ref": "#/components/schemas/ResolvedImageOptions"
+          },
           "id": {
             "type": "string",
             "description": "The unique identifier for the compacted response."
@@ -92414,6 +94027,9 @@
         "example": {
           "id": "resp_001",
           "object": "response.compaction",
+          "image": {
+            "context_compression": "disabled"
+          },
           "output": [
             {
               "id": "msg_001",
@@ -102541,6 +104157,7 @@
         "type": "string",
         "enum": [
           "context_length_exceeded",
+          "max_output_tokens",
           "session_budget_exceeded",
           "usage_limit_exceeded",
           "project_spend_limit_exceeded",
@@ -102566,6 +104183,7 @@
         ],
         "x-enumDescriptions": [
           "The request exceeds the model's context window.",
+          "The model reached its output token limit before finishing the response.",
           "The session has reached its usage budget.",
           "The organization has reached a usage, plan, or billing limit.",
           "The project has reached its enforced spend limit.",
@@ -122441,6 +124059,10 @@
               }
             ]
           },
+          "image": {
+            "$ref": "#/components/schemas/BetaImageOptionsParam",
+            "description": "Request level image options."
+          },
           "prompt_cache_key": {
             "anyOf": [
               {
@@ -122516,7 +124138,7 @@
         "type": "object",
         "required": [],
         "title": "Prompt cache options",
-        "description": "Options for prompt caching. Supported for `gpt-5.6` and later models. By default, OpenAI automatically chooses one implicit cache breakpoint. You can add explicit breakpoints to content blocks with `prompt_cache_breakpoint`. Each request can write up to four breakpoints. For cache matching, OpenAI considers up to the latest 80 breakpoints in the conversation, without a content-block lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The `ttl` defaults to `30m`, which is currently the only supported value. See the [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) for current details."
+        "description": "Options for prompt caching. Supported for `gpt-5.6` and later models. By default, OpenAI automatically chooses one implicit cache breakpoint. You can add explicit breakpoints to content blocks with `prompt_cache_breakpoint`. Each request can write up to four breakpoints. For cache matching, OpenAI considers up to the latest 80 breakpoints in the conversation, without a content-block lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The `ttl` defaults to `30m`. Supported lifetimes depend on the API. See the [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) for current details."
       },
       "BetaPromptCacheModeEnum": {
         "type": "string",
@@ -122536,6 +124158,26 @@
         "enum": [
           "in_memory",
           "24h"
+        ]
+      },
+      "BetaImageOptionsParam": {
+        "properties": {
+          "context_compression": {
+            "$ref": "#/components/schemas/BetaImageContextCompression",
+            "description": "Controls image context optimization. Defaults to `auto`, which uses the model, transport, and input to select a policy. Use `enabled` to require compression support or `disabled` to turn it off."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [],
+        "description": "Request level image options."
+      },
+      "BetaImageContextCompression": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "enabled",
+          "disabled"
         ]
       },
       "BetaModelIdsCompaction": {
@@ -122581,7 +124223,8 @@
               "gpt-daybreak-blue-latest",
               "gpt-daybreak-red-latest",
               "gpt-5.6-cyber",
-              "gpt-rosalind-research"
+              "gpt-rosalind-research",
+              "gpt-6-rosalind"
             ],
             "x-openai-enum-deprecations": {
               "o1-pro": {
@@ -124799,6 +126442,9 @@
       },
       "BetaCompactResource": {
         "properties": {
+          "image": {
+            "$ref": "#/components/schemas/BetaResolvedImageOptions"
+          },
           "id": {
             "type": "string",
             "description": "The unique identifier for the compacted response."
@@ -124841,6 +126487,9 @@
         "example": {
           "id": "resp_001",
           "object": "response.compaction",
+          "image": {
+            "context_compression": "disabled"
+          },
           "output": [
             {
               "id": "msg_001",
@@ -124906,6 +126555,9 @@
               "cache_write_tokens": {
                 "type": "integer",
                 "description": "The number of input tokens that were written to the cache."
+              },
+              "cache_write_tokens_details": {
+                "$ref": "#/components/schemas/BetaCacheWriteTokensDetails"
               }
             },
             "required": [
@@ -124941,6 +126593,23 @@
           "output_tokens",
           "output_tokens_details",
           "total_tokens"
+        ]
+      },
+      "BetaCacheWriteTokensDetails": {
+        "properties": {
+          "ttl_30m_tokens": {
+            "type": "integer",
+            "description": "The number of input tokens written with 30-minute retention."
+          },
+          "ttl_12h_tokens": {
+            "type": "integer",
+            "description": "The number of input tokens written with 12-hour retention."
+          }
+        },
+        "type": "object",
+        "required": [
+          "ttl_30m_tokens",
+          "ttl_12h_tokens"
         ]
       },
       "BetaItemField": {
@@ -125153,6 +126822,25 @@
           "incomplete"
         ]
       },
+      "BetaResolvedImageOptions": {
+        "properties": {
+          "context_compression": {
+            "$ref": "#/components/schemas/BetaResolvedImageContextCompressionEnum",
+            "description": "Effective image context optimization policy."
+          }
+        },
+        "type": "object",
+        "required": [
+          "context_compression"
+        ]
+      },
+      "BetaResolvedImageContextCompressionEnum": {
+        "type": "string",
+        "enum": [
+          "enabled",
+          "disabled"
+        ]
+      },
       "BetaResponseCustomToolCallInputDoneEvent": {
         "title": "ResponseCustomToolCallInputDone",
         "type": "object",
@@ -125317,6 +127005,9 @@
           {
             "type": "object",
             "properties": {
+              "image": {
+                "$ref": "#/components/schemas/BetaResolvedImageOptions"
+              },
               "service_tier": {
                 "$ref": "#/components/schemas/BetaServiceTierResponses"
               },
@@ -125890,7 +127581,11 @@
       "BetaPromptCacheOptions": {
         "properties": {
           "ttl": {
-            "$ref": "#/components/schemas/BetaPromptCacheTTLEnum",
+            "type": "string",
+            "enum": [
+              "30m",
+              "12h"
+            ],
             "description": "The minimum lifetime applied to each cache breakpoint."
           },
           "mode": {
@@ -131737,6 +133432,9 @@
               "access_programs": {
                 "$ref": "#/components/schemas/BetaAccessProgramsParam"
               },
+              "image": {
+                "$ref": "#/components/schemas/BetaImageOptionsParam"
+              },
               "prompt_cache_options": {
                 "$ref": "#/components/schemas/BetaResponsePromptCacheOptionsParam"
               },
@@ -132041,8 +133739,12 @@
       "BetaResponsePromptCacheOptionsParam": {
         "properties": {
           "ttl": {
-            "$ref": "#/components/schemas/BetaPromptCacheTTLEnum",
-            "description": "The minimum lifetime applied to every implicit and explicit cache breakpoint written by the request. Defaults to `30m`, which is currently the only supported value. The backend may retain cache entries for longer."
+            "type": "string",
+            "enum": [
+              "30m",
+              "12h"
+            ],
+            "description": "The minimum lifetime applied to every implicit and explicit cache breakpoint written by the request. Supported values are `30m` (the default) and `12h`. The backend may retain cache entries for longer."
           },
           "mode": {
             "$ref": "#/components/schemas/BetaPromptCacheModeEnum",
@@ -132068,7 +133770,7 @@
         "type": "object",
         "required": [],
         "title": "Prompt cache options",
-        "description": "Options for prompt caching. Supported for `gpt-5.6` and later models. By default, OpenAI automatically chooses one implicit cache breakpoint. You can add explicit breakpoints to content blocks with `prompt_cache_breakpoint`. Each request can write up to four breakpoints. For cache matching, OpenAI considers up to the latest 80 breakpoints in the conversation, without a content-block lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The `ttl` defaults to `30m`, which is currently the only supported value. See the [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) for current details."
+        "description": "Options for prompt caching. Supported for `gpt-5.6` and later models. By default, OpenAI automatically chooses one implicit cache breakpoint. You can add explicit breakpoints to content blocks with `prompt_cache_breakpoint`. Each request can write up to four breakpoints. For cache matching, OpenAI considers up to the latest 80 breakpoints in the conversation, without a content-block lookback limit. Set `mode` to `explicit` to disable the implicit breakpoint. The `ttl` defaults to `30m`. Supported lifetimes depend on the API. See the [prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) for current details."
       },
       "BetaAccessProgramsParam": {
         "properties": {
@@ -132090,9 +133792,6 @@
           {
             "type": "object",
             "properties": {
-              "prompt_cache_options": {
-                "$ref": "#/components/schemas/BetaPromptCacheOptionsParam"
-              },
               "top_logprobs": {
                 "description": "An integer between 0 and 20 specifying the maximum number of most likely\ntokens to return at each token position, each with an associated log\nprobability. In some cases, the number of returned tokens may be fewer than\nrequested.\n",
                 "type": "integer",
