@@ -1,9 +1,9 @@
-# plugins 同步记录
+# openai/plugins 同步记录
 
 - 上游：https://github.com/openai/plugins
-- 上游提交：0722921d5542fc593105c27bd52630babd8b8c2a
-- Git tree：9a86ccbd60c5a7367adab82067678673ffffe1f8
-- 保存目录：upstream/plugins/
+- 上游提交：b767f8fa3be1a22b093127dd59956c91ecffca9d
+- 上游 tree：e880337f1613a9523ab1e91d22b1d6516d7a3ede
+- 目录：upstream/plugins/
 
-完整同步默认分支的受版本控制文件，包含文件删除、文件模式及原始授权说明；不包含历史、Release 附件或子模块内容。导入目录 Git tree 与上游一致。只保存第三方文件，不执行上游代码。
-每天自动检查，亦可从 Actions 手动运行。无文件变化时不提交。本目录内的自定义修改会被下次同步替换；自定义内容请放在目录外。
+每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
+同步目录内自定义修改会在上游文件变化后被替换；目录外文件保留。不执行上游代码。上游移除或转为私有后保留已有快照。
