@@ -1,5 +1,6 @@
 import Foundation
 import ArgumentParser
+import Virtualization
 import XCTest
 @testable import tart
 
@@ -239,6 +240,39 @@ final class CommandBehaviorTests: XCTestCase {
     }
   }
 
+  func testRenameRejectsRunningVM() async throws {
+    try await withTemporaryTartHome {
+      let vmDir = try makeStandaloneVM(named: "vm", diskContents: "vm")
+
+      // Hold the VM's PID lock from another process, like "tart run" does
+      let holder = Process()
+      holder.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
+      holder.arguments = [
+        "-MFcntl", "-e",
+        #"open(my $f, "+<", shift) or die; fcntl($f, F_SETLK, pack("qqiss", 0, 0, 0, F_WRLCK, SEEK_SET)) or die; $| = 1; print "locked\n"; sleep"#,
+        vmDir.configURL.path,
+      ]
+      let stdout = Pipe()
+      holder.standardOutput = stdout
+      try holder.run()
+      defer {
+        holder.terminate()
+        holder.waitUntilExit()
+      }
+      _ = stdout.fileHandleForReading.availableData
+
+      do {
+        try await Rename.parse(["vm", "renamed"]).run()
+        XCTFail("expected renaming a running VM to be rejected")
+      } catch let error as RuntimeError {
+        XCTAssertEqual(error.description, "VM \"vm\" is running")
+      }
+
+      XCTAssertTrue(try VMStorageLocal().exists("vm"))
+      XCTAssertFalse(try VMStorageLocal().exists("renamed"))
+    }
+  }
+
   func testClonePreservesIncompleteDestination() async throws {
     try await withTemporaryTartHome {
       _ = try makeStandaloneVM(named: "source", diskContents: "source")
@@ -356,6 +390,25 @@ final class CommandBehaviorTests: XCTestCase {
 
       try Config().gc()
       XCTAssertTrue(try temporaryEntries().isEmpty)
+    }
+  }
+
+  func testRemoteAdditionalDiskHonorsDiskOptions() throws {
+    try withTemporaryTartHome {
+      let storage = try VMStorageOCI()
+      let name = try RemoteName("example.com/org/image:latest")
+      let cachedImage = try storage.create(name)
+      try config().save(toURL: cachedImage.configURL)
+      XCTAssertTrue(FileManager.default.createFile(atPath: cachedImage.nvramURL.path, contents: Data()))
+      XCTAssertTrue(FileManager.default.createFile(
+        atPath: cachedImage.diskURL.path,
+        contents: Data(repeating: 0, count: 4096)
+      ))
+
+      let additionalDisk = try AdditionalDisk(parseFrom: "\(name):caching=cached,sync=none")
+      let attachment = try XCTUnwrap(additionalDisk.configuration.attachment as? VZDiskImageStorageDeviceAttachment)
+      XCTAssertEqual(attachment.cachingMode, .cached)
+      XCTAssertEqual(attachment.synchronizationMode, .none)
     }
   }
 
