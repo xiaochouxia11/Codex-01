@@ -48,6 +48,7 @@ import {
   normalizeRecords,
   record as scannerRecord,
   hostedRepositoryPath,
+  repositoryFilePath,
   requiredText,
   scannerSeverity,
   stableId,
@@ -65,8 +66,11 @@ const issueTimestamp = new RegExp(
   regexes.datetime({ offset: true }).source,
   "i",
 );
-const apiVersion = "2026-03-25";
-const formatVersion = { format: SNYK_REST_ISSUES_FORMAT, apiVersion } as const;
+export const snykRestApiVersion = "2026-03-25";
+const formatVersion = {
+  format: SNYK_REST_ISSUES_FORMAT,
+  apiVersion: snykRestApiVersion,
+} as const;
 const defaultOrigin = "https://api.snyk.io";
 const origins = new Set([
   defaultOrigin,
@@ -145,7 +149,7 @@ type Resource = Record<string, unknown>;
 
 export interface SnykIssuesExport extends SnykScope {
   format: typeof SNYK_REST_ISSUES_FORMAT;
-  apiVersion: typeof apiVersion;
+  apiVersion: typeof snykRestApiVersion;
   apiOrigin: string;
   complete: true;
   projectJson: string;
@@ -194,7 +198,7 @@ function endpoint(selected: Scope, route: string) {
     `/rest/orgs/${selected.organizationId}/${route}`,
     selected.apiOrigin,
   );
-  url.searchParams.set("version", apiVersion);
+  url.searchParams.set("version", snykRestApiVersion);
   return url;
 }
 
@@ -790,10 +794,10 @@ function savedContext(
 ) {
   if (
     document["format"] !== SNYK_REST_ISSUES_FORMAT ||
-    document["apiVersion"] !== apiVersion
+    document["apiVersion"] !== snykRestApiVersion
   )
     throw new Error(
-      `Expected ${SNYK_REST_ISSUES_FORMAT} for API version ${apiVersion}.`,
+      `Expected ${SNYK_REST_ISSUES_FORMAT} for API version ${snykRestApiVersion}.`,
     );
   const selected = scope(document, document["apiOrigin"]);
   const project = record(
@@ -880,7 +884,7 @@ function linkedSnykResources(
     )
       return { issue };
   }
-  if (!hosted && data["apiVersion"] !== apiVersion) return;
+  if (!hosted && data["apiVersion"] !== snykRestApiVersion) return;
   const project = originalSnykResource(data, "project", json);
   const attributes = project?.["attributes"];
   const nativeProject =
@@ -1023,7 +1027,7 @@ function bindSnykFinding(
   finding: ExternalFinding,
   references: readonly ExternalSourceRepository[],
   originals: ReturnType<typeof snykRowEvidence>,
-  report?: Resource,
+  report?: { fields: Resource; asset: ReturnType<typeof savedContext> },
   retain?: (finding: ExternalFinding, source: Resource) => void,
 ) {
   const retained = record(
@@ -1043,7 +1047,10 @@ function bindSnykFinding(
     throw new Error(
       "A normalized Snyk row cannot claim both v1 and v2 native representations.",
     );
-  const document = readSnykRestDocument({ ...retained, format }, report);
+  const document = readSnykRestDocument(
+    { ...retained, format },
+    report?.fields,
+  );
   const issue =
     (format === SNYK_REST_ISSUES_FORMAT ? originals?.v2?.issue : undefined) ??
     parseHostedScannerJson(
@@ -1052,13 +1059,21 @@ function bindSnykFinding(
   // A selected issue can retain any of its original monitor fields. Fill only those it omitted.
   let projected = false;
   if (report && (originals?.v1?.issue || originals?.v2?.issue)) {
-    for (const [field, value] of Object.entries(report)) {
+    for (const [field, value] of Object.entries(report.fields)) {
       if (document[field] !== undefined) continue;
       document[field] = value;
       projected = true;
     }
   }
-  const asset = savedContext(document, references);
+  // Complete v2 selections normally carry the same verified monitor and native assets on every row.
+  const asset =
+    format === SNYK_REST_ISSUES_FORMAT &&
+    report &&
+    Object.entries(report.fields).every(
+      ([key, value]) => document[key] === value,
+    )
+      ? report.asset
+      : savedContext(document, references);
   const { source, repository } = asset;
   const { id: issueId, attributes } = selectedIssue(
     scopedIssue(issue, source),
@@ -1165,8 +1180,8 @@ function problemIds(entries: Resource[], type?: string) {
 
 function findingFilePath(value: unknown, v2: boolean) {
   const path = hostedRepositoryPath(value);
-  const filename = path?.split("/").at(-1);
-  return v2 && (!filename || filename === ".") ? null : path;
+  if (v2 && (path?.endsWith("/.") || !repositoryFilePath(path))) return null;
+  return path;
 }
 
 function packageEvidence(
@@ -1384,9 +1399,12 @@ export function snykRestImportRepository(
     project !== undefined || rows.some(({ originals }) => originals);
   if (!hosted && !declaredCloudRepository) return;
   const context = project && {
-    ...project.source,
-    projectJson: JSON.stringify(project.project),
-    targetJson: JSON.stringify(project.target),
+    asset: project,
+    fields: {
+      ...project.source,
+      projectJson: JSON.stringify(project.project),
+      targetJson: JSON.stringify(project.target),
+    },
   };
   const retainedIssues: { finding: ExternalFinding; issue: Resource }[] = [];
   const retainedRows: Resource[] = [];

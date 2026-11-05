@@ -199,9 +199,9 @@ do not. Use `python -m pytest -n 0` to reproduce Python failures serially.
 
 Each week `test-quality` runs the mutation trial on Linux. On Linux, macOS, and
 Windows it runs the test files that import the shared property options, using
-the workflow run number as the property seed. The filesystem properties read
-the plugin's checked-in schemas and example scan. Each platform uploads its JUnit
-report. To replay the weekly jobs, dispatch with `compare-layouts` disabled.
+the workflow run number as the property seed. The filesystem properties use the
+same bundled plugin as the SDK tests to read the example scan and validate its
+sealed artifacts. Each platform uploads its JUnit report. To replay the weekly jobs, dispatch with `compare-layouts` disabled.
 Ordinary source pull requests run focused contracts for the shard runner, timing
 metadata, report comparator, and Windows test-root helper in the required SDK suite.
 
@@ -246,10 +246,12 @@ runtime are not necessarily part of Bun's import graph.
 
 Mutation tests require Node 22.18+ or 24.11+ because Stryker 10 uses Babel 8.
 CI runs this tooling on Node 24.15.0. The SDK itself still supports Node 22.13+.
+The commands below install Stryker from the separate, frozen `sdk/mutation`
+lockfile and run it from the SDK directory.
 
 ```sh
 pnpm run test:mutation
-pnpm exec stryker run --mutate src/worker-progress.ts
+pnpm run test:mutation --mutate src/worker-progress.ts
 ```
 
 The initial Stryker trial covers progress parsing, safe error messages, and
