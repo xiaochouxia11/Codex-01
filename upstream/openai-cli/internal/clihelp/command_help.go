@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/openai/openai-cli/internal/commandsuggest"
+	"github.com/openai/openai-cli/internal/request"
 	"github.com/urfave/cli/v3"
 )
 
@@ -17,6 +18,7 @@ type Content struct {
 	InputNote         string
 	Description       string
 	Examples          []Example
+	BashExamples      bool // Examples explicitly labeled for Bash or zsh keep their authored shell syntax.
 	GlobalOptionsNote string
 	Notes             string
 }
@@ -106,6 +108,14 @@ func commandHelpAtWidths(command *cli.Command, invocation, path string, width, n
 		out.WriteByte('\n')
 		out.WriteString(wrapDescription(note, "  ", width))
 	}
+	if request.RequestFileFlag(command) != nil {
+		out.WriteByte('\n')
+		out.WriteString(wrapDescription("Read JSON or YAML from a pipe with --request-file -. Example for Bash, zsh, Fish, or PowerShell:", "  ", width))
+		run := NativeInvocation(command.Root(), invocation)
+		if example := requestPipeExample(run, path); example != "" {
+			fmt.Fprintf(&out, "    $ %s\n", commandsuggest.Record(command, example))
+		}
+	}
 	description := content.Description
 	if strings.Join(strings.Fields(plainUsage), " ") != strings.Join(strings.Fields(summary), " ") {
 		description = joinHelpDescriptions(usage, description)
@@ -122,14 +132,18 @@ func commandHelpAtWidths(command *cli.Command, invocation, path string, width, n
 		if explore := command.Command("explore"); explore != nil && !explore.Hidden {
 			content.Examples = append(content.Examples, Example{"Find image commands and examples offline:", "explore images"})
 		}
+		if help := command.Command("help"); help != nil && help.Command("piping") != nil {
+			content.Examples = append(content.Examples, Example{"Pipe text, files, and API requests:", "help piping"})
+		}
 	}
 	if len(content.Examples) > 0 {
+		run := ExampleInvocation(command, invocation, NativeInvocation(command.Root(), invocation))
 		var names []string
 		for _, child := range VisibleCommands(command) {
 			names = append(names, child.Name)
 		}
 		for _, example := range content.Examples {
-			names = append(names, invocation+" "+example.Command)
+			names = append(names, run+" "+example.Command)
 		}
 		column := helpDescriptionColumn(navigationWidth, names)
 		title := "EXAMPLES"
@@ -142,15 +156,15 @@ func commandHelpAtWidths(command *cli.Command, invocation, path string, width, n
 				if column == 0 && i > 0 {
 					out.WriteByte('\n')
 				}
-				label := commandsuggest.Record(command, invocation+" "+example.Command)
-				out.WriteString(style.entry(invocation+" "+example.Command, strings.TrimSuffix(example.Description, ":")+".", label, navigationWidth, column))
+				label := commandsuggest.Record(command, run+" "+example.Command)
+				out.WriteString(style.entry(run+" "+example.Command, strings.TrimSuffix(example.Description, ":")+".", label, navigationWidth, column))
 				continue
 			}
 			if i > 0 {
 				out.WriteByte('\n')
 			}
 			out.WriteString(wrapDescription(example.Description, "  ", width))
-			fmt.Fprintf(&out, "    $ %s\n", commandsuggest.Record(command, invocation+" "+example.Command))
+			fmt.Fprintf(&out, "    $ %s\n", commandsuggest.Record(command, run+" "+example.Command))
 		}
 		if !supplied && (path == "files create" || path == "files upload") {
 			out.WriteString(wrapDescription("example.txt is the path to your existing file. Replace it with your file's path.", "  ", width))

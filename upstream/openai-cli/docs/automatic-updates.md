@@ -4,7 +4,7 @@ Supported self-managed installations prepare release updates automatically. Othe
 
 ## Install from a release archive
 
-On macOS or Linux, the official release executable can update itself. GitHub CLI (`gh`) verifies each future download.
+The managed release executable can update itself on macOS, Linux, and Windows. GitHub CLI (`gh`) verifies each future download.
 
 ### Set up automatic updates with Homebrew on macOS
 
@@ -20,7 +20,7 @@ The updater uses a compatible GitHub CLI from the selected Homebrew installation
 It can use this verifier even when your shell selects an older `gh`.
 Setup installs GitHub CLI through Homebrew only when it needs a compatible verifier.
 It also adds the selection to your zsh startup file. Homebrew continues to own its separate copy.
-For other shells or a linked zsh startup file, use the [archive instructions](#from-an-extracted-archive).
+For other shells or a linked `.zshrc`, use the [archive instructions](#from-an-extracted-archive).
 
 If the helper is missing, refresh the tap and upgrade the cask explicitly.
 
@@ -48,20 +48,31 @@ If you install a newer system package, rerun setup to select that version immedi
 If your private copy already upgraded further, setup keeps the newer version.
 To return to the system copy, remove the added PATH line from your shell profiles and start a fresh shell.
 
+### Set up automatic updates on Windows
+
+Use the [Windows installation block](installation.md#windows) from the extracted official ZIP.
+Setup selects the managed executable in your current PowerShell and registers its directory in your user PATH.
+Setup uses a compatible GitHub CLI when available. Otherwise, it installs a verified private copy for the updater.
+Future eligible commands use the managed executable at `%LOCALAPPDATA%\OpenAI\CLI\bin\openai.exe`.
+
+Running setup from a newer ZIP upgrades that executable immediately. Running setup from an older ZIP keeps the newer installed version.
+If another process locks the executable, close that CLI process before retrying setup.
+An alias, function, or machine PATH command can take precedence. Setup reports the conflict and a direct invocation.
+
 ### From an extracted archive
 
 1. Install a compatible [GitHub CLI](https://cli.github.com/).
 2. Download your platform archive from the newest [stable release with downloads](https://github.com/openai/openai-cli/releases).
 3. Extract the archive.
 
-In zsh, paste this block from the extracted directory. It selects the CLI in current and future terminals.
+In zsh, paste this block from the extracted directory. It selects the CLI now and configures your zsh startup files.
 
 ```zsh
 sh ./install.sh --require-gh --zsh "${ZDOTDIR:-$HOME}" &&
 export PATH="$HOME/.openai/bin:$PATH"
 ```
 
-For Bash or a linked zsh startup file, paste this command instead. It selects the CLI in this terminal.
+For Bash or a linked `.zshrc`, paste this command instead. It selects the CLI in this terminal.
 
 ```sh
 sh ./install.sh --require-gh && export PATH="$HOME/.openai/bin:$PATH"
@@ -74,6 +85,12 @@ An alias or function can take precedence. Use `"$HOME/.openai/bin/openai"` direc
 ### Keep this selection in a new terminal
 
 If your new terminal already selects `$HOME/.openai/bin/openai`, setup is complete.
+An interactive zsh login shell reads `.zlogin` after `.zshrc`.
+If `${ZDOTDIR:-$HOME}/.zlogin` exists and passes setup checks, setup appends a PATH selection for interactive login shells.
+An early `return` in that file can skip the selection. You can move the appended selection before your `return`.
+To check the result, run `command -v openai` in a new login shell.
+Use `"$HOME/.openai/bin/openai"` directly if that shell selects another executable.
+
 If installation succeeded but shell selection failed, keep the installed executable.
 Run `export PATH="$HOME/.openai/bin:$PATH"` to select it in this shell. Use its full path if an alias still wins.
 For zsh, put this line in your interactive startup file (`${ZDOTDIR:-$HOME}/.zshrc`).
@@ -82,7 +99,7 @@ For zsh, put this line in your interactive startup file (`${ZDOTDIR:-$HOME}/.zsh
 export PATH="$HOME/.openai/bin:$PATH"
 ```
 
-For Bash, add the same export to your interactive startup file. Only the explicit `--zsh` option edits a profile.
+For Bash, add the same export to your interactive startup file. Standalone archive setup edits profiles only with `--zsh`.
 
 ### Older installations and interrupted setup
 
@@ -98,7 +115,7 @@ A forced stop can leave a private `.openai-install.*` staging directory. Remove 
 
 ## Supported installations
 
-Automatic installation requires all these conditions:
+Automatic installation requires these conditions on macOS and Linux. The Windows ZIP setup checks the corresponding Windows account and directory permissions.
 
 - macOS or Linux, running as an ordinary user.
 - An official release built with the automatic-update release metadata.
@@ -118,7 +135,7 @@ Capability checks retry at most every four hours, so upgrading GitHub CLI can re
 
 Package-managed executables, Go installations, unknown locations, and development builds keep their existing update method.
 A symlink from `$HOME/.openai/bin/openai` to a Go installation remains owned by Go.
-Windows retains update notices. This implementation does not replace running Windows executables.
+Portable Windows ZIPs use update notices. Managed Windows installations use a separate worker to replace the executable after it closes.
 
 Existing v1.40.4 binaries lack the new release metadata. They require a manual upgrade before using this feature.
 Do not copy a development build into your normal installation to enable automatic updates.
@@ -185,7 +202,7 @@ To stop such work immediately, terminate that helper before changing or removing
 
 ## Integrity, recovery, and withdrawal
 
-The helper uses a permanent, nonblocking process lock under `$HOME/.openai/bin/.update`.
+The helper locks the managed installation’s `.update` directory. Windows keeps this directory beside the managed `openai.exe`.
 It binds selection to the release ID, asset ID, SHA-256 digest, size, timestamp, version, and tag commit.
 GitHub CLI authenticates the archive against this repository's publishing workflow on `main` using GitHub-hosted runners.
 The helper also requires the authenticated workflow run attempt to have completed successfully.
