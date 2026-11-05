@@ -120,6 +120,7 @@ mod worktree_background_terminals_tests;
 
 use super::agent_navigation::AgentPickerThreadVisibility;
 use super::owned_transcript::tests::buffer_text;
+use super::owned_transcript::tests::mouse;
 use super::test_support::enable_side_retention;
 use super::test_support::side_frame;
 use super::*;
@@ -3329,6 +3330,16 @@ async fn handle_start_side_seeds_navigation_before_thread_started() -> Result<()
         "[tui]\nstatus_line = ['model-with-reasoning', 'thread-name']\n",
     )?;
     let config = app.chat_widget.config_ref().clone();
+    let model =
+        app_test_support::create_mock_responses_server_repeating_assistant("Side answer").await;
+    std::fs::write(
+        config.codex_home.join("config.toml"),
+        // Each thread reloads this footer. Omit the platform-specific working directory.
+        format!(
+            "openai_base_url = '{}/v1'\n[tui]\nstatus_line = ['model-with-reasoning']",
+            model.uri()
+        ),
+    )?;
     let parent_thread_id = ThreadId::from_string(
         &app_test_support::create_fake_rollout(
             config.codex_home.as_path(),
@@ -3381,7 +3392,7 @@ async fn handle_start_side_seeds_navigation_before_thread_started() -> Result<()
         &mut tui,
         &mut app_server,
         parent_thread_id,
-        /*user_message*/ None,
+        Some("Side question".into()),
     ))
     .await?;
 
@@ -3399,8 +3410,27 @@ async fn handle_start_side_seeds_navigation_before_thread_started() -> Result<()
             .is_closed
     );
 
+    // Give Ctrl-/ its earliest opportunity to switch back after /btw queues the prompt.
+    while !app.can_read_terminal_after_thread_switch(&tui, &app_event_rx) {
+        let event = app_event_rx.try_recv()?;
+        boxed_future!(app.handle_event(&mut tui, &mut app_server, event)).await?;
+    }
+    macro_rules! keys {
+        ($($key:expr),+) => {{
+            for key in [$($key),+] {
+                boxed_future!(app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Key(key))).await?;
+            }
+            drain_app_events(&mut app, &mut tui, &mut app_server, &mut app_event_rx).await?;
+        }};
+    }
+    let toggle = KeyEvent::new(KeyCode::Char('/'), KeyModifiers::CONTROL);
+    for expected in [parent_thread_id, side_thread_id] {
+        keys!(toggle);
+        assert_eq!(app.active_thread_id, Some(expected));
+    }
+
     let mut saw_thread_started = false;
-    for _ in 0..20 {
+    loop {
         let event = time::timeout(
             std::time::Duration::from_secs(/*secs*/ 2),
             app_server.next_event(),
@@ -3410,11 +3440,19 @@ async fn handle_start_side_seeds_navigation_before_thread_started() -> Result<()
         .expect("app-server event stream should remain open");
         if let codex_app_server_client::AppServerEvent::ServerNotification(notification) =
             event.event
-            && let ServerNotification::ThreadStarted(notification) = notification.as_ref()
-            && notification.thread.id == side_thread_id.to_string()
         {
-            saw_thread_started = true;
-            break;
+            match notification.as_ref() {
+                ServerNotification::ThreadStarted(started)
+                    if started.thread.id == side_thread_id.to_string() =>
+                {
+                    saw_thread_started = true;
+                }
+                ServerNotification::TurnStarted(started) => {
+                    assert_eq!(started.thread_id, side_thread_id.to_string());
+                    break;
+                }
+                _ => {}
+            }
         }
     }
 
@@ -3433,16 +3471,15 @@ async fn handle_start_side_seeds_navigation_before_thread_started() -> Result<()
         .await?;
     app.select_agents_overview_thread(&mut tui, &mut app_server, parent_thread_id)
         .await?;
-    Box::pin(app.handle_start_side(
-        &mut tui,
-        &mut app_server,
+    drain_app_events(&mut app, &mut tui, &mut app_server, &mut app_event_rx).await?;
+    app.app_event_tx.send(AppEvent::StartSide {
         parent_thread_id,
-        /*user_message*/ None,
-    ))
-    .await?;
+        user_message: None,
+    });
+    assert!(!app.can_read_terminal_after_thread_switch(&tui, &app_event_rx));
+    drain_app_events(&mut app, &mut tui, &mut app_server, &mut app_event_rx).await?;
     assert_eq!(app.active_thread_id, Some(side_thread_id));
     assert_eq!(app.side_threads.len(), 1);
-    drain_app_events(&mut app, &mut tui, &mut app_server, &mut app_event_rx).await?;
     enable_side_retention(&mut app)?;
     tui.set_owned_screen(/*owned*/ true)?;
     read_side_history(&mut app, &mut tui, "child")?;
@@ -3533,14 +3570,6 @@ async fn handle_start_side_seeds_navigation_before_thread_started() -> Result<()
         ))
     );
 
-    macro_rules! keys {
-        ($($key:expr),+) => {{
-            for key in [$($key),+] {
-                boxed_future!(app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Key(key))).await?;
-            }
-            drain_app_events(&mut app, &mut tui, &mut app_server, &mut app_event_rx).await?;
-        }};
-    }
     let leader = KeyEvent::new(KeyCode::Char('x'), KeyModifiers::CONTROL);
     let [minus, repeat, release] = [
         KeyEventKind::Press,
@@ -3582,12 +3611,12 @@ async fn handle_start_side_seeds_navigation_before_thread_started() -> Result<()
             || {
                 side_frame(app, tui, size)?;
                 let buffer = tui.terminal.previous_buffer();
-                let divider = 62;
+                let divider = 63;
                 let row = (0..size.height)
-                    .find(|&y| buffer[(divider + 2, y)].symbol() == "›")
+                    .find(|&y| buffer[(divider + 1, y)].symbol() == "›")
                     .expect("right composer prompt");
                 let snapshot_row = |y| {
-                    (divider..=divider + 2)
+                    (divider - 1..=divider + 1)
                         .map(|x| {
                             let cell = &buffer[(x, y)];
                             format!("{:?} {:?}", cell.symbol(), cell.bg)
@@ -3605,7 +3634,6 @@ async fn handle_start_side_seeds_navigation_before_thread_started() -> Result<()
     };
     let inactive = composer_gutter(&mut app, &mut tui)?;
 
-    let toggle = KeyEvent::new(KeyCode::Char('/'), KeyModifiers::CONTROL);
     keys!(toggle);
     assert_eq!(app.current_displayed_thread_id(), Some(side_thread_id));
     let wide = side_frame(&mut app, &mut tui, size)?;
@@ -3806,35 +3834,79 @@ async fn handle_start_side_seeds_navigation_before_thread_started() -> Result<()
         selected
     );
     app.transcript_view.end_select_mode();
-    // Ctrl-/ preserves interaction, so it exposes whether right actually cleaned up the parent.
-    keys!(toggle);
+    keys!(prefix, KeyCode::Left.into());
     assert_eq!(app.current_displayed_thread_id(), Some(parent_thread_id));
-    assert!(!app.transcript_view.has_active_interaction());
+    assert!(app.transcript_view.is_select_mode());
+    assert_eq!(
+        app.transcript_view.selected_text(&app.transcript_cells),
+        parent_text
+    );
+
+    keys!(prefix, main);
+    app.transcript_view.begin_search();
+    assert!(app.transcript_view.paste_search(parent_row));
+    keys!(KeyCode::Left.into());
+    let find = app.transcript_view.search_footer(size.width).unwrap();
+    keys!(prefix, KeyCode::Right.into());
+    keys!(prefix, KeyCode::Left.into());
+    assert_eq!(app.transcript_view.search_footer(size.width), Some(find));
+    keys!(KeyCode::Char('x').into());
+    let frame = side_frame(&mut app, &mut tui, size)?;
+    assert_app_snapshot!(
+        "direction_restores_parent_find",
+        frame.lines().find(|row| row.contains("Find:")).unwrap()
+    );
+
+    // Explicit composer focus ends Find. Scrolling alone keeps the composer active.
+    keys!(prefix, main);
+    read_side_history(&mut app, &mut tui, "parent")?;
+    keys!(prefix, KeyCode::Right.into());
+    keys!(prefix, KeyCode::Left.into());
+    assert!(side_frame(&mut app, &mut tui, size)?.contains(parent_row));
+    // End flushes the composer's pending paste-burst character.
+    keys!(KeyCode::Char('!').into(), KeyCode::End.into());
+    assert_eq!(
+        app.chat_widget.composer_text_with_pending(),
+        "parent draft-!"
+    );
+    app.chat_widget.insert_str("\nsecond line\nlast line");
     keys!(toggle);
 
-    read_side_history(&mut app, &mut tui, "child")?;
-    // The upload finishes before the app event loop can park the now-inactive child.
-    app.app_event_tx.send(AppEvent::FeedbackSubmitted {
-        origin_thread_id: Some(side_thread_id),
-        category: FeedbackCategory::Bug,
-        include_logs: false,
-        result: Ok("uploaded-thread".to_string()),
-    });
-    app.select_agent_thread(&mut tui, &mut app_server, parent_thread_id)
-        .await?;
-    drain_app_events(&mut app, &mut tui, &mut app_server, &mut app_event_rx).await?;
-    app.select_agent_thread(&mut tui, &mut app_server, side_thread_id)
-        .await?;
-    drain_app_events(&mut app, &mut tui, &mut app_server, &mut app_event_rx).await?;
-    let frame = side_frame(&mut app, &mut tui, size)?;
-    assert!(
-        frame.contains(child_row) && frame.contains("New activity"),
-        "{frame}"
-    );
-    assert!(app.transcript_cells.iter().any(|cell| {
-        lines_to_single_string(&cell.display_lines(/*width*/ 120))
-            .contains("Feedback recorded (no logs).")
-    }));
+    // Mouse dispatch samples the backend size again after thread replay.
+    let terminal_at = |size| {
+        crate::tui::Terminal::with_screen_size_and_cursor_position_for_test(
+            ratatui::backend::CrosstermBackend::new(std::io::stdout()),
+            size,
+            Default::default(),
+        )
+    };
+    tui.terminal = terminal_at(size);
+    for (target, draft) in [
+        (parent_thread_id, "parent draft-!\nsecond line\nlast line"),
+        (side_thread_id, "child draft!"),
+    ] {
+        let frame = side_frame(&mut app, &mut tui, size)?;
+        let (column, row) = frame
+            .lines()
+            .enumerate()
+            .find_map(|(row, line)| {
+                let (prefix, _) = line.split_once(draft.lines().next()?)?;
+                Some((prefix.chars().count() as u16, row as u16))
+            })
+            .expect("passive draft is visible");
+        let left = MouseButton::Left;
+        for kind in [MouseEventKind::Down(left), MouseEventKind::Up(left)] {
+            let event = mouse(kind, column, row);
+            boxed_future!(app.handle_tui_event(&mut tui, &mut app_server, event)).await?;
+            drain_app_events(&mut app, &mut tui, &mut app_server, &mut app_event_rx).await?;
+        }
+        assert_eq!(app.current_displayed_thread_id(), Some(target));
+        keys!(KeyCode::Char('x').into(), KeyCode::End.into());
+        assert_eq!(
+            app.chat_widget.composer_text_with_pending(),
+            format!("x{draft}")
+        );
+    }
 
     // A delta queued just before switching must appear once in the inactive pane.
     app.transcript_view.jump_to_latest();
@@ -3853,6 +3925,373 @@ async fn handle_start_side_seeds_navigation_before_thread_started() -> Result<()
     drain_app_events(&mut app, &mut tui, &mut app_server, &mut app_event_rx).await?;
     let frame = side_frame(&mut app, &mut tui, size)?;
     assert_eq!(frame.matches("unfinished answer").count(), 1, "{frame}");
+
+    // A text drag reflows immediately. With retained graphics only the guide moves.
+    let wide = Size::new(/*width*/ 300, /*height*/ 18);
+    tui.terminal = terminal_at(wide);
+    keys!(toggle);
+    let path = app.local_settings.user_config_path.clone();
+    let before = std::fs::read(&path).ok();
+    let divider_at = |tui: &tui::Tui, y| {
+        (0..wide.width)
+            .find(|&x| tui.terminal.previous_buffer()[(x, y)].symbol() == "│")
+            .expect("painted divider")
+    };
+    let mut previews = Vec::new();
+    for with_image in [false, true] {
+        if with_image {
+            let image_path = app.config.codex_home.join("divider.png");
+            image::RgbaImage::from_pixel(8, 16, image::Rgba([80, 30, 20, 255]))
+                .save(&image_path)?;
+            app.chat_widget.set_pet_image_support_for_tests(
+                crate::pets::PetImageSupport::Supported(crate::pets::ImageProtocol::Kitty),
+            );
+            app.transcript_cells
+                .push(Arc::new(history_cell::new_image_generation_call(
+                    "divider".into(),
+                    "completed",
+                    /*revised_prompt*/ None,
+                    Some(image_path),
+                )));
+            app.transcript_view.jump_to_latest();
+        }
+        side_frame(&mut app, &mut tui, wide)?;
+        let divider = divider_at(&tui, 0);
+        for (x, highlighted) in [(divider - 1, false), (divider, true), (divider + 1, false)] {
+            boxed_future!(app.handle_tui_event(
+                &mut tui,
+                &mut app_server,
+                mouse(MouseEventKind::Moved, x, /*row*/ 4)
+            ))
+            .await?;
+            side_frame(&mut app, &mut tui, wide)?;
+            let style = tui.terminal.previous_buffer()[(divider, 4)].style();
+            assert_eq!(
+                style.add_modifier.contains(ratatui::style::Modifier::BOLD),
+                highlighted
+            );
+        }
+        let image = tui.retained_images.first().map(|p| p.area);
+        assert_eq!(image.is_some(), with_image);
+        keys!(prefix);
+        assert!(app.key_chord_matcher.is_pending());
+        let left = MouseButton::Left;
+        for (kind, x) in [
+            (MouseEventKind::Down(left), divider),
+            (MouseEventKind::Drag(left), divider - 1),
+        ] {
+            boxed_future!(app.handle_tui_event(
+                &mut tui,
+                &mut app_server,
+                mouse(kind, x, /*row*/ 4)
+            ))
+            .await?;
+        }
+        side_frame(&mut app, &mut tui, wide)?;
+        assert!(!app.key_chord_matcher.is_pending());
+        let columns: Vec<_> = (0..wide.height).map(|y| divider_at(&tui, y)).collect();
+        previews.push(*columns.iter().min().unwrap());
+        assert_eq!(std::fs::read(&path).ok(), before);
+        if let Some(area) = image {
+            assert_eq!(tui.retained_images[0].area, area);
+            assert_eq!(columns[usize::from(area.y)], divider);
+            previews.push(columns[usize::from(area.y)]);
+            boxed_future!(app.handle_tui_event(
+                &mut tui,
+                &mut app_server,
+                mouse(MouseEventKind::Up(left), divider - 1, /*row*/ 4)
+            ))
+            .await?;
+        } else {
+            assert!(columns.iter().all(|x| *x == divider - 2));
+            // A fresh transcript press cancels a drag whose release was lost.
+            for kind in [MouseEventKind::Down(left), MouseEventKind::Up(left)] {
+                boxed_future!(app.handle_tui_event(
+                    &mut tui,
+                    &mut app_server,
+                    mouse(kind, wide.width - 3, /*row*/ 4)
+                ))
+                .await?;
+            }
+            assert_eq!(std::fs::read(&path).ok(), before);
+            side_frame(&mut app, &mut tui, wide)?;
+            assert_eq!(divider_at(&tui, 0), divider);
+        }
+    }
+    // Text preview, graphics guide, and the divider on the protected image row.
+    insta::assert_snapshot!(format!("{previews:?}"), @"[197, 197, 199]");
+    side_frame(&mut app, &mut tui, wide)?;
+    assert_eq!(divider_at(&tui, 0), 197);
+    let saved: toml::Value = toml::from_str(&std::fs::read_to_string(&path)?)?;
+    assert_eq!(saved["tui"]["sidebar_width_percent"].as_integer(), Some(34));
+
+    // The drag scenario used a temporary image path. Keep the keyboard frames portable.
+    app.transcript_cells.pop();
+    for (key, column) in [('H', 191), ('L', 197)] {
+        keys!(prefix, KeyCode::Char(key).into());
+        side_frame(&mut app, &mut tui, wide)?;
+        assert_eq!(divider_at(&tui, 0), column);
+    }
+    let zoom = KeyEvent::from(KeyCode::Char('z'));
+    keys!(prefix, zoom);
+    let zoomed = side_frame(&mut app, &mut tui, wide)?;
+    keys!(prefix, zoom);
+    let restored = side_frame(&mut app, &mut tui, wide)?;
+    assert_eq!(divider_at(&tui, 0), 197);
+    keys!(prefix, zoom);
+    keys!(toggle);
+    keys!(toggle);
+    side_frame(&mut app, &mut tui, wide)?;
+    assert_eq!(divider_at(&tui, 0), 197);
+    assert_eq!(app.current_displayed_thread_id(), Some(side_thread_id));
+
+    let even = Size::new(/*width*/ 200, wide.height);
+    tui.terminal = terminal_at(even);
+    keys!(prefix, zoom);
+    keys!(prefix, KeyCode::Char('=').into());
+    let equalized = side_frame(&mut app, &mut tui, even)?;
+    assert_app_snapshot!(
+        "keyboard_pane_widths",
+        format!("Zoomed\n{zoomed}\nRestored\n{restored}\nEqualized\n{equalized}")
+    );
+    assert_eq!(divider_at(&tui, 0), 99);
+
+    // Minimize and maximize the side, move left, then maximize and minimize the main pane.
+    for (key, width) in [(',', 36), ('.', 135), ('h', 64), ('.', 163), (',', 64)] {
+        keys!(prefix, KeyCode::Char(key).into());
+        side_frame(&mut app, &mut tui, even)?;
+        assert_eq!(app.conversation_area(even.into()).width, width);
+    }
+    app.local_settings.tui.sidebar_width_percent = Some(30);
+    side_frame(&mut app, &mut tui, even)?;
+    assert_eq!(app.conversation_area(even.into()).width, 139);
+    keys!(prefix, KeyCode::Char('r').into(), KeyCode::Left.into());
+    let resizing = side_frame(&mut app, &mut tui, even)?;
+    let hint = resizing
+        .lines()
+        .filter_map(|row| row.split_once('│'))
+        .map(|(main, _)| main.trim())
+        .find(|main| main.starts_with("Resize"));
+    insta::assert_snapshot!(hint.expect("resize hint in main pane"), @"Resize · ←/h →/l · Shift+←/→ 10 cols · Enter/Esc done");
+    let divider_bold = |tui: &tui::Tui| {
+        let cell = &tui.terminal.previous_buffer()[(divider_at(tui, 4), 4)];
+        cell.modifier.contains(ratatui::style::Modifier::BOLD)
+    };
+    let resizing_bold = divider_bold(&tui);
+    assert_eq!(app.conversation_area(even.into()).width, 138);
+    assert_eq!(app.local_settings.tui.sidebar_width_percent, Some(30));
+    keys!(KeyEvent::new(KeyCode::Left, KeyModifiers::SHIFT));
+    side_frame(&mut app, &mut tui, even)?;
+    assert_eq!(app.conversation_area(even.into()).width, 128);
+    keys!(KeyCode::Esc.into());
+    assert_eq!(app.local_settings.tui.sidebar_width_percent, Some(36));
+    side_frame(&mut app, &mut tui, even)?;
+    assert_eq!(app.conversation_area(even.into()).width, 128);
+    insta::assert_snapshot!(format!("{resizing_bold} -> {}", divider_bold(&tui)), @"true -> false");
+
+    let confirmed = std::fs::read(&path)?;
+    for interrupt in [
+        TuiEvent::FocusLost,
+        TuiEvent::Resize(Size::new(80, even.height)),
+    ] {
+        keys!(
+            prefix,
+            KeyCode::Char('r').into(),
+            KeyEvent::new(KeyCode::Right, KeyModifiers::SHIFT)
+        );
+        side_frame(&mut app, &mut tui, even)?;
+        assert_eq!(app.conversation_area(even.into()).width, 138);
+        assert!(!app.handle_pane_resize(&tui, &interrupt).await);
+        side_frame(&mut app, &mut tui, even)?;
+        assert_eq!(app.conversation_area(even.into()).width, 128);
+        assert_eq!(std::fs::read(&path)?, confirmed);
+    }
+
+    keys!(prefix, main);
+    // A divider shortcut with main focus passes its final key back to the composer.
+    let upper_h = KeyEvent::from(KeyCode::Char('H'));
+    assert_eq!(app.route_key_chord_event(&mut tui, prefix), None);
+    assert_eq!(app.route_key_chord_event(&mut tui, upper_h), Some(upper_h));
+    // Park a streaming parent through the normal focus shortcut, then finish it while parked.
+    let parent = parent_thread_id;
+    let turn = "live-parent";
+    app.transcript_view.jump_to_latest();
+    for event in [
+        turn_started_notification(parent, turn),
+        agent_message_delta_notification(parent, turn, "reply", "Already visible "),
+    ] {
+        app.enqueue_thread_notification(parent, event).await?;
+    }
+    keys!(prefix, side);
+    assert_eq!(app.current_displayed_thread_id(), Some(side_thread_id));
+    let delta = agent_message_delta_notification(parent, turn, "reply", "while unfocused");
+    app.enqueue_thread_notification(parent, delta).await?;
+    let streaming = side_frame(&mut app, &mut tui, size)?;
+    let item = ThreadItemPayload::AgentMessage {
+        id: "reply".into(),
+        text: "Already visible while unfocused.".into(),
+        phase: None,
+        memory_citation: None,
+        delivery: None,
+        questions: None,
+    };
+    // The transport may drop ItemCompleted and the last delta; TurnCompleted still carries the answer.
+    app.enqueue_thread_notification(
+        parent,
+        ServerNotification::TurnCompleted(TurnCompletedNotification {
+            thread_id: parent.to_string(),
+            turn: Turn {
+                completed_at: Some(0),
+                duration_ms: Some(1),
+                ..test_turn(turn, TurnStatus::Completed, vec![item])
+            },
+        }),
+    )
+    .await?;
+    let completed = side_frame(&mut app, &mut tui, size)?;
+    // Normalize the changing timer while preserving any shortcut hint.
+    let visible_turn = |frame: &str| {
+        frame
+            .lines()
+            .filter_map(|row| {
+                let (main, _) = row.split_once('│')?;
+                let line = main.trim();
+                if let Some((_, timer)) = line.split_once("Working (") {
+                    let (_, suffix) = timer.split_once('s')?;
+                    Some(format!("Working ([elapsed]{suffix}"))
+                } else if line.starts_with("Worked for ") {
+                    line.split_once(" • ")
+                        .map(|(elapsed, _)| elapsed.to_owned())
+                } else {
+                    line.contains("Already visible").then(|| line.to_owned())
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    insta::assert_snapshot!(format!("{}\n---\n{}", visible_turn(&streaming), visible_turn(&completed)), @"
+    Already visible while unfocused
+    Working ([elapsed])
+    ---
+    • Already visible while unfocused.
+    Worked for <1s
+    ");
+
+    keys!(prefix, main);
+    let focused = side_frame(&mut app, &mut tui, size)?;
+    for frame in [&completed, &focused] {
+        let text = visible_turn(frame);
+        assert_eq!(
+            text.matches("Already visible while unfocused.").count(),
+            1,
+            "{frame}"
+        );
+        assert_eq!(text.matches("Worked for").count(), 1, "{frame}");
+    }
+
+    // A command already running at handoff belongs before replies received while parked.
+    let turn = "command-turn";
+    let cwd = app.config.cwd.clone();
+    let command = |status| ThreadItemPayload::CommandExecution {
+        id: "cmd".into(),
+        command: "echo sidebar-check".into(),
+        cwd: cwd.clone().into(),
+        status,
+        source: Default::default(),
+        command_actions: Vec::new(),
+        model_context: None,
+        sandbox_type: None,
+        process_id: None,
+        plugin_id: None,
+        script_path: None,
+        aggregated_output: None,
+        exit_code: None,
+        duration_ms: None,
+    };
+    use codex_app_server_protocol::CommandExecutionStatus;
+    for event in [
+        turn_started_notification(parent, turn),
+        ServerNotification::ItemStarted(ItemStartedNotification::new(
+            parent.to_string(),
+            turn.into(),
+            command(CommandExecutionStatus::InProgress),
+            /*started_at_ms*/ 0,
+        )),
+    ] {
+        app.enqueue_thread_notification(parent, event).await?;
+    }
+    keys!(prefix, side);
+    let running = side_frame(&mut app, &mut tui, size)?;
+    assert!(running.contains("Running echo sidebar-check"), "{running}");
+    app.enqueue_thread_notification(
+        parent,
+        agent_message_delta_notification(parent, turn, "after-command", "Command finished."),
+    )
+    .await?;
+    side_frame(&mut app, &mut tui, size)?;
+    app.enqueue_thread_notification(
+        parent,
+        ServerNotification::ItemCompleted(
+            codex_app_server_protocol::ItemCompletedNotification::new(
+                parent.to_string(),
+                turn.into(),
+                command(CommandExecutionStatus::Completed),
+                /*started_at_ms*/ None,
+                /*completed_at_ms*/ 0,
+            ),
+        ),
+    )
+    .await?;
+    let finished = side_frame(&mut app, &mut tui, size)?;
+    let (_, after_command) = finished
+        .split_once("Ran echo sidebar-check")
+        .unwrap_or_else(|| panic!("{finished}"));
+    assert!(after_command.contains("Command finished."), "{finished}");
+    assert_eq!(
+        finished.matches("echo sidebar-check").count(),
+        1,
+        "{finished}"
+    );
+    // Check feedback after capturing the layout snapshots and before the clipboard toast appears.
+    app.select_agent_thread(&mut tui, &mut app_server, side_thread_id)
+        .await?;
+    drain_app_events(&mut app, &mut tui, &mut app_server, &mut app_event_rx).await?;
+    read_side_history(&mut app, &mut tui, "child")?;
+    // The upload finishes before the app event loop can park the now-inactive child.
+    app.app_event_tx.send(AppEvent::FeedbackSubmitted {
+        origin_thread_id: Some(side_thread_id),
+        category: FeedbackCategory::Bug,
+        include_logs: false,
+        result: Ok("uploaded-thread".to_string()),
+    });
+    app.select_agent_thread(&mut tui, &mut app_server, parent_thread_id)
+        .await?;
+    drain_app_events(&mut app, &mut tui, &mut app_server, &mut app_event_rx).await?;
+    app.select_agent_thread(&mut tui, &mut app_server, side_thread_id)
+        .await?;
+    drain_app_events(&mut app, &mut tui, &mut app_server, &mut app_event_rx).await?;
+    let frame = side_frame(&mut app, &mut tui, even)?;
+    assert!(
+        frame.contains(child_row) && frame.contains("New activity"),
+        "{frame}"
+    );
+    assert!(app.transcript_cells.iter().any(|cell| {
+        lines_to_single_string(&cell.display_lines(/*width*/ 120))
+            .contains("Feedback recorded (no logs).")
+    }));
+
+    // Copy a retained range with the child composer still focused.
+    app.transcript_view.jump_to_latest();
+    let parent = app.side_companions.get_mut(&parent_thread_id).unwrap();
+    parent.view.jump_to_latest();
+    assert!(parent.view.begin_select_mode(&parent.cells));
+    for key in [KeyCode::Char('v'), KeyCode::Right] {
+        parent.view.handle_key(key.into(), &parent.cells);
+    }
+    assert!(parent.view.has_selection_range());
+    keys!(KeyEvent::new(KeyCode::Insert, KeyModifiers::CONTROL));
+    assert!(tui.clipboard.is_busy());
+    assert_eq!(app.current_displayed_thread_id(), Some(side_thread_id));
 
     app_server.shutdown().await?;
     Ok(())
@@ -7129,6 +7568,11 @@ async fn make_test_app() -> Box<App> {
         agents_overview: Default::default(),
         side_threads: HashMap::new(),
         side_companions: HashMap::new(),
+        zoomed_thread: None,
+        exact_sidebar_width: None,
+        divider_drag: None,
+        pane_resize: None,
+        passive_link_drag: None,
         abandoned_side_threads: HashSet::new(),
         active_thread_id: None,
         active_thread_rx: None,
@@ -7261,6 +7705,11 @@ pub(super) async fn make_test_app_with_channels() -> (
             agents_overview: Default::default(),
             side_threads: HashMap::new(),
             side_companions: HashMap::new(),
+            zoomed_thread: None,
+            exact_sidebar_width: None,
+            divider_drag: None,
+            pane_resize: None,
+            passive_link_drag: None,
             abandoned_side_threads: HashSet::new(),
             active_thread_id: None,
             active_thread_rx: None,

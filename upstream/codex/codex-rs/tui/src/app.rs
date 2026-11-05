@@ -169,6 +169,8 @@ use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyEventKind;
 use crossterm::event::KeyModifiers;
+use crossterm::event::MouseButton;
+use crossterm::event::MouseEventKind;
 use ratatui::layout::Rect;
 use ratatui::layout::Size;
 use ratatui::style::Stylize;
@@ -252,6 +254,7 @@ mod permission_shortcuts;
 mod pets;
 mod platform_actions;
 mod plugin_mentions;
+pub(crate) mod provider;
 mod rate_limit_refresh;
 mod realtime_delivery;
 mod realtime_settings;
@@ -270,6 +273,7 @@ mod server_version_notice;
 mod session_lifecycle;
 mod session_picker;
 mod side;
+mod side_companion;
 mod side_focus;
 mod side_pane;
 mod startup;
@@ -302,10 +306,10 @@ use self::loaded_threads::find_loaded_subagent_threads_for_primary;
 use self::pending_interactive_replay::PendingInteractiveReplayState;
 pub(crate) use self::platform_actions::WindowsSandboxHost;
 use self::platform_actions::*;
-use self::side::SideCompanion;
 use self::side::SideParentStatus;
 use self::side::SideParentStatusChange;
 use self::side::SideThreadState;
+use self::side_companion::SideCompanion;
 use self::startup_prompts::*;
 use self::thread_events::*;
 
@@ -651,6 +655,12 @@ pub(crate) struct App {
     side_threads: HashMap<ThreadId, SideThreadState>,
     /// A parked parent view survives child cleanup until its own replay finishes.
     side_companions: HashMap<ThreadId, SideCompanion>,
+    zoomed_thread: Option<ThreadId>,
+    /// Exact sidebar allocation at the terminal width where the width preset was applied.
+    exact_sidebar_width: Option<(u16, u16)>,
+    divider_drag: Option<side_pane::DividerDrag>,
+    pane_resize: Option<side_pane::PaneResize>,
+    passive_link_drag: Option<(ThreadId, Rect)>,
     abandoned_side_threads: HashSet<ThreadId>,
     active_thread_id: Option<ThreadId>,
     active_thread_rx: Option<mpsc::Receiver<ThreadBufferedEvent>>,
@@ -878,6 +888,9 @@ impl App {
         self.transcript_view
             .sync_patch_approval(self.chat_widget.current_patch_approval());
         tui.link_hover.observe(&event);
+        if self.handle_pane_resize(tui, &event).await {
+            return Ok(AppRunControl::Continue);
+        }
         self.refresh_link_hover(tui)?;
         self.invalidate_right_click_paste(&event);
         self.finish_clipboard(tui, &event);
@@ -917,7 +930,10 @@ impl App {
             }
             self.backtrack.select_exit_key = None;
         }
-        if self.handle_rendered_selection_event(tui, &event)? {
+        if self.continue_passive_link_drag(tui, &event)?
+            || self.handle_divider_event(tui, &event).await?
+            || self.handle_rendered_selection_event(tui, &event)?
+        {
             return Ok(AppRunControl::Continue);
         }
         if matches!(&event, TuiEvent::Key(_))
@@ -945,6 +961,19 @@ impl App {
             }
             _ => false,
         };
+        if let TuiEvent::Key(key) = &event
+            && crate::text_selection::is_copy_key(*key)
+            && !transcript_owns_input
+            && self.conversation_focus_available(tui)
+            && let Some(painted) = &self.conversation_frame.side_pane
+            && let Some(current) =
+                side_pane::layout(self, tui, tui.terminal.last_known_screen_size.into())
+            && current.passive_thread == painted.passive_thread
+            && self.handle_passive_transcript_event(tui, current.passive_thread, &event)
+        {
+            self.cancel_pending_key_chord();
+            return Ok(AppRunControl::Continue);
+        }
         if self.reconnect.offline
             && !transcript_owns_input
             && !self.chat_widget.keymap_contexts().is_warnings()
@@ -1015,6 +1044,52 @@ impl App {
         if let TuiEvent::Key(key) = &event
             && self.handle_side_focus_key(tui, app_server, *key).await
         {
+            return Ok(AppRunControl::Continue);
+        }
+        if let TuiEvent::Mouse(press) = &event
+            && press.kind == MouseEventKind::Down(MouseButton::Left)
+            && self.conversation_focus_available(tui)
+            && let Some(painted) = &self.conversation_frame.side_pane
+            && painted.passive.contains((press.column, press.row).into())
+        {
+            // A hidden, resized or replaced pane can still be in the last painted frame.
+            let size = tui.prepare_draw_size()?;
+            if let Some(current) = side_pane::layout(self, tui, size.into())
+                && current.passive_thread == painted.passive_thread
+                && current.passive == painted.passive
+            {
+                if let Some(url) = self.transcript_link_at(*press) {
+                    if press.modifiers.is_empty() {
+                        self.passive_link_drag = Some((current.passive_thread, current.passive));
+                        self.handle_passive_transcript_event(tui, current.passive_thread, &event);
+                    } else {
+                        self.open_url_in_browser(url);
+                    }
+                    return Ok(AppRunControl::Continue);
+                }
+                if self.reconnect.offline {
+                    return Ok(AppRunControl::Continue);
+                }
+                let draft_cursor = self
+                    .side_companions
+                    .get_mut(&current.passive_thread)
+                    .and_then(|pane| {
+                        let draft = &mut pane.display.draft;
+                        draft
+                            .handle_mouse(*press, Default::default())
+                            .then(|| draft.cursor())
+                    });
+                if let Err(err) = self.toggle_side_conversation(tui, app_server).await {
+                    self.chat_widget.add_error_message(err.to_string());
+                } else if self.current_displayed_thread_id() == Some(current.passive_thread) {
+                    self.app_event_tx.send(AppEvent::SidePanePressAfterReplay {
+                        draft_cursor,
+                        thread_id: current.passive_thread,
+                        area: current.passive,
+                        press: *press,
+                    });
+                }
+            }
             return Ok(AppRunControl::Continue);
         }
         self.cancel_primed_browsing_for_event(&event);
@@ -1221,24 +1296,7 @@ impl App {
                     {
                         self.discard_startup_modal_input(tui)?;
                     }
-                    if self.chat_widget.ambient_pet_image_enabled() {
-                        let ambient_pet_area = self.conversation_area(screen_size.into());
-                        if let Err(err) = tui.draw_ambient_pet_image(
-                            self.chat_widget
-                                .ambient_pet_draw(ambient_pet_area, rendered_area.bottom()),
-                        ) {
-                            self.handle_ambient_pet_image_render_error(tui, err)?;
-                        }
-                    }
-                    if let Some(request) = self.chat_widget.pet_picker_preview_draw() {
-                        if let Err(err) = tui.draw_pet_picker_preview_image(Some(request)) {
-                            self.handle_pet_picker_preview_image_render_error(tui, err)?;
-                        }
-                    } else if self.chat_widget.should_clear_pet_picker_preview_image()
-                        && let Err(err) = tui.draw_pet_picker_preview_image(/*request*/ None)
-                    {
-                        self.handle_pet_picker_preview_image_render_error(tui, err)?;
-                    }
+                    self.draw_pet_images(tui, screen_size, rendered_area)?;
                     if self.chat_widget.external_editor_state() == ExternalEditorState::Requested {
                         self.chat_widget
                             .set_external_editor_state(ExternalEditorState::Active);

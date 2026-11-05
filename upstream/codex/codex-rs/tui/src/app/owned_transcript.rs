@@ -25,16 +25,23 @@ use crate::transcript_image::ImagePlacement;
 use crate::transcript_view::TranscriptView;
 use crate::transcript_view::ViewAction;
 use crate::turn_tip::TurnTip;
+use crossterm::event::MouseEventKind;
 use ratatui::widgets::Widget;
 
 /// Remember the last conversation bounds and neighboring content for input-triggered redraws.
 #[derive(Default)]
 pub(super) struct ConversationFrame {
     inset: Option<Rect>,
-    side_pane: bool,
+    pub(super) side_pane: Option<side_pane::SidePaneLayout>,
     /// A dialog can obscure neighboring content in the terminal's completed buffer.
     behind_dialog: Option<ratatui::buffer::Buffer>,
     caller_images: Vec<ImagePlacement>,
+}
+
+impl ConversationFrame {
+    pub(super) fn has_caller_inset(&self) -> bool {
+        self.inset.is_some() && self.side_pane.is_none()
+    }
 }
 
 pub(super) struct PreparedConversation {
@@ -157,7 +164,6 @@ impl App {
     }
 
     pub(super) fn sync_owned_transcript(&mut self, width: u16) -> bool {
-        self.transcript_view.image_protocol = self.prepare_frame_images();
         let chat_widget = &self.chat_widget;
         let transcript_width = chat_widget.history_wrap_width(width);
         let view = &mut self.transcript_view;
@@ -195,20 +201,25 @@ impl App {
         tui: &mut tui::Tui,
         screen_size: Size,
     ) -> Result<Rect> {
+        self.transcript_view.image_protocol = self.prepare_frame_images();
         let frames = tui.frame_requester();
-        if self.conversation_frame.side_pane {
+        if self.conversation_frame.side_pane.is_some() {
             // Recompute our own inset on every frame, including the first narrow frame.
             self.conversation_frame = ConversationFrame::default();
         }
         let caller_inset = self.conversation_frame.inset;
-        let dock = if caller_inset.is_none() {
-            side_pane::layout(self, tui, screen_size.into())
-        } else {
-            None
-        };
+        let dock = side_pane::layout(self, tui, screen_size.into());
+        if self.divider_drag.is_some_and(|drag| {
+            !drag.matches(screen_size.into(), dock.as_ref())
+                || !self.conversation_focus_available(tui)
+        }) {
+            self.divider_drag = None;
+        }
         let inset = caller_inset.or_else(|| dock.as_ref().map(|panes| panes.focused));
         let prepared = self.prepare_conversation(screen_size.into(), inset, &frames);
-        self.conversation_frame.side_pane = dock.is_some();
+        self.conversation_frame.side_pane = dock;
+        let highlight_divider =
+            self.pane_resize.is_some() || tui.link_hover.shape == tui::PointerShape::Resize;
         // An input refresh opens a fresh terminal buffer. Carry the outer owner's
         // completed cells through it when only the conversation is being redrawn.
         let backdrop = caller_inset.map(|_| {
@@ -236,11 +247,17 @@ impl App {
                 }
             }
             painted = self.paint_conversation(frame, &prepared);
-            if let Some(panes) = dock
+            if let Some(panes) = &self.conversation_frame.side_pane
                 && let Some(companion) = self.side_companions.get_mut(&panes.passive_thread)
             {
                 companion.view.image_protocol = self.transcript_view.image_protocol;
-                panes.paint_companion(companion, frame);
+                panes.paint_companion(
+                    companion,
+                    frame,
+                    self.divider_drag,
+                    highlight_divider,
+                    &frames,
+                );
             }
             self.paint_centered_dialog(frame);
         })?;
@@ -254,7 +271,7 @@ impl App {
         frames: &tui::FrameRequester,
     ) -> PreparedConversation {
         self.conversation_frame.inset = conversation_inset;
-        self.conversation_frame.side_pane = false;
+        self.conversation_frame.side_pane = None;
         let area = self.conversation_area(viewport);
         if let Some((previous, reflowed)) = self.chat_widget.resize_owned_conversation(area.width) {
             self.transcript_view
@@ -332,7 +349,15 @@ impl App {
         let mut composer_gap = (!self.chat_widget.has_active_view()
             && !self.chat_widget.is_external_writer_view())
         .then(crate::bottom_pane::ComposerGap::default);
-        let prompt_footer = self.prompt_navigation_footer(area.width.saturating_sub(/*rhs*/ 2));
+        let prompt_footer = if self.pane_resize.is_some() {
+            Some(crate::bottom_pane::TranscriptFooter {
+                text: "Resize · ←/h →/l · Shift+←/→ 10 cols · Enter/Esc done".into(),
+                cursor_column: None,
+                is_interactive: true,
+            })
+        } else {
+            self.prompt_navigation_footer(area.width.saturating_sub(/*rhs*/ 2))
+        };
         let chat_widget = &self.chat_widget;
         let view = &mut self.transcript_view;
         let active_key = chat_widget.active_cell_transcript_key();
@@ -347,7 +372,6 @@ impl App {
             .min(area.height);
         let options = |interacting| ComposerRenderOptions {
             max_height: Some(max_composer_height),
-            extend_composer_background_left: self.conversation_frame.side_pane && area.x > 0,
             overlay_top: area.top(),
             command_popup_placement: if interacting {
                 CommandPopupPlacement::Hidden
@@ -504,7 +528,7 @@ impl App {
     ) -> Result<Rect> {
         if self.conversation_frame.behind_dialog.is_none() {
             self.conversation_frame.caller_images.clear();
-            if self.conversation_frame.inset.is_some() && !self.conversation_frame.side_pane {
+            if self.conversation_frame.has_caller_inset() {
                 self.conversation_frame.caller_images.extend(
                     tui.retained_images
                         .iter()
@@ -534,7 +558,7 @@ impl App {
             return;
         };
         let area = frame.area();
-        if self.conversation_frame.side_pane {
+        if self.conversation_frame.side_pane.is_some() {
             let covered = dialog.area(area);
             frame
                 .image_placements
@@ -566,8 +590,8 @@ impl App {
 
     pub(super) fn refresh_owned_transcript(&mut self, tui: &mut tui::Tui) -> Result<()> {
         let size = tui.prepare_draw_size()?;
-        self.render_owned_transcript(tui, size)?;
-        Ok(())
+        let rendered_area = self.render_owned_transcript(tui, size)?;
+        self.draw_pet_images(tui, size, rendered_area)
     }
 
     /// Keep modal input ownership while allowing selection, copying, and disclosure in the visible transcript.
@@ -578,11 +602,11 @@ impl App {
         event: &TuiEvent,
     ) -> Result<bool> {
         let has_modal = self.chat_widget.has_active_modal();
+        let is_vertical_wheel = matches!(event, TuiEvent::Mouse(mouse)
+            if matches!(mouse.kind, MouseEventKind::ScrollUp | MouseEventKind::ScrollDown));
         let modal_transcript_mouse = has_modal
-            && matches!(event, TuiEvent::Mouse(mouse)
-                if self.chat_widget.centered_dialog().is_none()
-                    || matches!(mouse.kind, crossterm::event::MouseEventKind::ScrollUp
-                        | crossterm::event::MouseEventKind::ScrollDown));
+            && matches!(event, TuiEvent::Mouse(_))
+            && (self.chat_widget.centered_dialog().is_none() || is_vertical_wheel);
         let modal_transcript_draw = has_modal
             && self.chat_widget.centered_dialog().is_none()
             && matches!(event, TuiEvent::Draw);
@@ -635,6 +659,28 @@ impl App {
             if mouse.kind != crossterm::event::MouseEventKind::Moved {
                 self.refresh_owned_transcript(tui)?;
             }
+            if (is_vertical_wheel || mouse.kind == MouseEventKind::Down(MouseButton::Right))
+                && self.chat_widget.no_modal_or_popup_active()
+                && let Some(panes) = &self.conversation_frame.side_pane
+                && panes.passive.contains((mouse.column, mouse.row).into())
+            {
+                let id = panes.passive_thread;
+                let handled = self.handle_passive_transcript_event(tui, id, event);
+                if mouse.kind == MouseEventKind::ScrollUp
+                    && app_server.has_older_history(id)
+                    && self
+                        .side_companions
+                        .get_mut(&id)
+                        .is_some_and(|pane| pane.view.needs_history(&pane.cells))
+                    && self.request_older_history_page(app_server, id)
+                    && let Some(pane) = self.side_companions.get_mut(&id)
+                {
+                    pane.view.history = TranscriptHistoryState::LoadingOlder;
+                }
+                if handled || is_vertical_wheel {
+                    return Ok(true);
+                }
+            }
             if self.chat_widget.no_modal_or_popup_active()
                 && self
                     .chat_widget
@@ -657,11 +703,7 @@ impl App {
             }
             if composer_ready && self.chat_widget.handle_composer_mouse(*mouse) {
                 self.handle_composer_selection_release(tui, *mouse);
-                if !matches!(
-                    mouse.kind,
-                    crossterm::event::MouseEventKind::ScrollUp
-                        | crossterm::event::MouseEventKind::ScrollDown
-                ) {
+                if !is_vertical_wheel {
                     self.transcript_view.end_selection(&self.transcript_cells);
                     self.transcript_view.end_select_mode();
                     self.transcript_view.cancel_search();

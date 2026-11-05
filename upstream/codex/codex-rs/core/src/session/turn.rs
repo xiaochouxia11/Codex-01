@@ -165,6 +165,40 @@ pub(crate) struct McpStartupRequirements {
     required_plugins: HashSet<String>,
 }
 
+/// Keep the initial input recoverable while startup can block on a host roster read.
+async fn preserve_initial_input_during<T>(
+    sess: &Session,
+    turn_context: &Arc<TurnContext>,
+    input: &mut Vec<TurnInput>,
+    prepare: impl Future<Output = T>,
+) -> CodexResult<T> {
+    if input.is_empty() || sess.host_roster_reader(turn_context).is_none() {
+        return Ok(prepare.await);
+    }
+
+    let exchange_input = async |replacement| {
+        let mut active = sess.active_turn.lock().await;
+        let task = active
+            .as_mut()
+            .and_then(|turn| turn.task.as_mut())
+            .filter(|task| Arc::ptr_eq(&task.turn_context, turn_context))
+            .ok_or_else(|| CodexErr::new(CodexErrorDetails::TurnAborted))?;
+        Ok::<_, CodexErr>(std::mem::replace(
+            &mut task.pending_initial_input,
+            replacement,
+        ))
+    };
+
+    let previous = exchange_input(Some(std::mem::take(input))).await?;
+    debug_assert!(previous.is_none());
+    let result = prepare.await;
+    // If suspension took the task, its cleanup owns the input.
+    *input = exchange_input(/* replacement */ None)
+        .await?
+        .ok_or_else(|| CodexErr::Fatal("initial input missing after turn preparation".into()))?;
+    Ok(result)
+}
+
 /// Takes initial turn input and runs a loop where, at each sampling request,
 /// the model replies with either:
 ///
@@ -224,13 +258,18 @@ pub(crate) async fn run_turn(
     // diffs/full reinjection + user input) and trigger compaction preemptively
     // when they would push the thread over the compaction threshold.
     if auto_compaction_enabled
-        && let Err(err) = run_pre_sampling_compact(
+        && let Err(err) = preserve_initial_input_during(
             &sess,
             &turn_context,
-            &mut client_session,
-            &cancellation_token,
+            &mut input,
+            run_pre_sampling_compact(
+                &sess,
+                &turn_context,
+                &mut client_session,
+                &cancellation_token,
+            ),
         )
-        .await
+        .await?
     {
         // Compaction runs before the new input is recorded, so preserve it on every failure.
         let _ = run_hooks_and_record_inputs(
@@ -324,7 +363,12 @@ pub(crate) async fn run_turn(
     };
     // Record initial context while preparing diff display roots.
     let (record_context, display_roots) = tokio::join!(
-        sess.record_context_updates_and_set_reference_context_item(first_step_context.as_ref()),
+        preserve_initial_input_during(
+            &sess,
+            &turn_context,
+            &mut input,
+            sess.record_context_updates_and_set_reference_context_item(first_step_context.as_ref()),
+        ),
         async {
             // Guardian must not wait for remote Git discovery just to display diff paths.
             if crate::guardian::is_basic_session_source(&turn_context.session_source)
@@ -349,7 +393,7 @@ pub(crate) async fn run_turn(
             }
         },
     );
-    let mut world_state = record_context?;
+    let mut world_state = record_context??;
 
     let Some((injection_items, explicitly_enabled_connectors)) = build_skills_and_plugins(
         &sess,
@@ -616,6 +660,7 @@ pub(crate) async fn run_turn(
                 guardian_budget_compacted = false;
                 let SamplingRequestResult {
                     needs_follow_up: model_needs_follow_up,
+                    mailbox_preempted,
                     last_agent_message: sampling_request_last_agent_message,
                 } = sampling_request_output;
                 if model_needs_follow_up {
@@ -729,9 +774,10 @@ pub(crate) async fn run_turn(
                             if run_pending_session_start_hooks(&sess, &turn_context).await {
                                 return Ok(None);
                             }
-                            // After a signaled step, drain the steer even if compaction
+                            // After interrupted sampling, drain pending input even if compaction
                             // leaves the estimated context above the token limit.
                             can_drain_pending_input = !model_needs_follow_up
+                                || mailbox_preempted
                                 || step_context
                                     .preempt
                                     .as_ref()
@@ -1818,6 +1864,7 @@ pub(crate) fn build_prompt(
         output_schema_strict: !crate::guardian::is_basic_session_source(
             &turn_context.session_source,
         ),
+        prompt_cache_ttl: turn_context.prompt_cache_ttl,
         cyber_access_program: turn_context.cyber_access_program,
     }
 }
@@ -1885,6 +1932,10 @@ async fn run_sampling_request(
             sess.clone_history().await
         };
         let input_item_count = history.raw_items().len();
+        let sampling_step_context = Arc::new(StepContext {
+            sampled_through_sequence: Some(history.input_sequence()),
+            ..step_context.as_ref().clone()
+        });
         let mut prompt_input = history
             .for_prompt(
                 &step_context.settings.model_info.input_modalities,
@@ -1948,7 +1999,7 @@ async fn run_sampling_request(
         let err = match try_run_sampling_request(
             tool_runtime.clone(),
             Arc::clone(&sess),
-            Arc::clone(&step_context),
+            sampling_step_context,
             Arc::clone(&turn_store),
             client_session,
             &responses_metadata,
@@ -2017,6 +2068,7 @@ async fn run_sampling_request(
             return Ok((
                 SamplingRequestResult {
                     needs_follow_up: true,
+                    mailbox_preempted: draining_for_mailbox,
                     last_agent_message: None,
                 },
                 notify_messages,
@@ -2166,6 +2218,8 @@ pub(crate) async fn built_tools(
 #[derive(Debug)]
 struct SamplingRequestResult {
     needs_follow_up: bool,
+    /// Queued mail interrupted sampling and must be drained before the next request.
+    mailbox_preempted: bool,
     last_agent_message: Option<String>,
 }
 
@@ -2682,10 +2736,11 @@ async fn emit_agent_message_in_plan_mode(
             .insert(agent_message_id.clone());
     }
 
-    sess.emit_turn_item_completed_with_token_count(
+    sess.emit_turn_item_completed_with_metadata(
         turn_context,
         TurnItem::AgentMessage(agent_message),
         content_token_count,
+        /*user_input_extension_data*/ None,
     )
     .await;
     state.started_agent_message_items.remove(&agent_message_id);
@@ -3035,6 +3090,7 @@ async fn try_run_sampling_request(
                 // TODO: Reconcile any response item already being presented to the client.
                 break Ok(SamplingRequestResult {
                     needs_follow_up: true,
+                    mailbox_preempted: false,
                     last_agent_message,
                 });
             }
@@ -3070,6 +3126,7 @@ async fn try_run_sampling_request(
                     // receiving the interrupt. Do not retry without that pending input.
                     break Ok(SamplingRequestResult {
                         needs_follow_up: true,
+                        mailbox_preempted: true,
                         last_agent_message,
                     });
                 }
@@ -3269,6 +3326,7 @@ async fn try_run_sampling_request(
                     }
                     break Ok(SamplingRequestResult {
                         needs_follow_up: true,
+                        mailbox_preempted: true,
                         last_agent_message,
                     });
                 }
@@ -3478,6 +3536,7 @@ async fn try_run_sampling_request(
                 }
                 break Ok(SamplingRequestResult {
                     needs_follow_up,
+                    mailbox_preempted: *draining_for_mailbox,
                     last_agent_message,
                 });
             }

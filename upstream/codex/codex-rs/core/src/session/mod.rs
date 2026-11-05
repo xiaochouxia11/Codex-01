@@ -3,6 +3,7 @@ pub(crate) mod startup;
 use crate::PromptCacheKey;
 use crate::WithTurnExtensionData;
 use crate::runtime_auth::RuntimeAuthSlot;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -1949,6 +1950,23 @@ impl Session {
         } = self
             .reconstruct_history_from_rollout(turn_context, rollout_items)
             .await;
+        // An automatic turn can have a persisted routing override without establishing the
+        // user-turn context baseline. Recover its own latest context by surviving turn ID.
+        let restored_turn_routing = turn_attribution.as_ref().and_then(|turn| {
+            rollout_items
+                .iter()
+                .rev()
+                .find_map(|item| match item {
+                    RolloutItem::TurnContext(context)
+                        if context.turn_id.as_deref() == Some(turn.turn_id.as_str()) =>
+                    {
+                        Some(context)
+                    }
+                    _ => None,
+                })
+                .and_then(|context| context.direct_only_tool_namespaces.clone())
+                .map(|namespaces| (turn.turn_id.clone(), namespaces))
+        });
         // Keep the recorded rollout unchanged. Prepare its reconstructed history before
         // installing it, so legacy media is processed once for this resume or fork and
         // will be processed again if the rollout is reconstructed in a future session.
@@ -2014,6 +2032,7 @@ impl Session {
             );
             state.last_started_turn_id = last_started_turn_id;
             state.turn_attribution = turn_attribution;
+            state.restored_turn_routing = restored_turn_routing;
             if let Some(world_state) = world_state_baseline {
                 state.history.set_world_state_baseline(world_state);
             }
@@ -2970,27 +2989,30 @@ impl Session {
         turn_context: &TurnContext,
         item: TurnItem,
     ) {
-        self.emit_turn_item_completed_with_token_count(
+        self.emit_turn_item_completed_with_metadata(
             turn_context,
             item,
             /*content_token_count*/ None,
+            /*user_input_extension_data*/ None,
         )
         .await;
     }
 
-    pub(crate) async fn emit_turn_item_completed_with_token_count(
+    pub(crate) async fn emit_turn_item_completed_with_metadata(
         &self,
         turn_context: &TurnContext,
         item: TurnItem,
         content_token_count: Option<u64>,
+        user_input_extension_data: Option<&BTreeMap<String, Value>>,
     ) {
         record_turn_ttfm_metric(turn_context, &item).await;
         for contributor in self.services.extensions.turn_lifecycle_contributors() {
             contributor
-                .on_item_completed(
+                .on_item_completed_with_metadata(
                     &self.services.thread_extension_data,
                     turn_context.extension_data.as_ref(),
                     &item,
+                    user_input_extension_data,
                 )
                 .await;
         }
@@ -4105,12 +4127,13 @@ impl Session {
         let world_state = self
             .build_world_state_for_step(step_context, /*new_window*/ false)
             .await?;
-        let (world_state_snapshot, fragments, world_state_item) = self
+        let (world_state_snapshot, mut fragments, world_state_item) = self
             .state
             .lock()
             .await
             .history
             .render_step_world_state(&world_state);
+        world_state.resolve_host_roster(&mut fragments).await;
         let items = crate::context_manager::updates::merge_world_state_updates(fragments);
         if !items.is_empty() {
             self.record_conversation_items(turn_context, &step_context.settings.model_info, &items)
@@ -4461,6 +4484,7 @@ impl Session {
         }
         let (executor_hook_sources, mcp, tool_router, extension_data) = prepared_tools??;
         Ok(Arc::new(StepContext {
+            sampled_through_sequence: None,
             serving_assessment: None,
             preempt: turn_context
                 .config
@@ -4773,6 +4797,7 @@ impl Session {
                         .cloned(),
                 );
             }
+            state.history.checkpoint_sampling(&mut items);
             let replacement_history = items.clone();
             state
                 .history
@@ -4944,6 +4969,15 @@ impl Session {
         step_context: &StepContext,
         world_state: &WorldState,
     ) -> (Vec<WorldStateUpdate>, WorldStateSnapshot) {
+        let rendered = world_state.render_full_with_host_roster().await;
+        self.assemble_initial_context(step_context, rendered).await
+    }
+
+    pub(crate) async fn assemble_initial_context(
+        &self,
+        step_context: &StepContext,
+        (snapshot, updates): (WorldStateSnapshot, Vec<WorldStateUpdate>),
+    ) -> (Vec<WorldStateUpdate>, WorldStateSnapshot) {
         let turn_context = step_context.turn.as_ref();
         let mut developer_sections = Vec::<RenderedFragment>::with_capacity(8);
         let mut contextual_user_sections = Vec::<RenderedFragment>::with_capacity(2);
@@ -5090,7 +5124,6 @@ impl Session {
                 .render_with_hints(context_window_hints),
             );
         }
-        let (snapshot, updates) = world_state.render_full();
         let (mut prefix, context) = split_prefix_updates(updates);
         let mut items = Vec::with_capacity(4);
         let mut context = context.into_iter();
@@ -5101,9 +5134,9 @@ impl Session {
             let mut initial_multi_agent_mode = None;
             let mut managed_developer_instructions = None;
             for update in context.by_ref() {
-                let fragment = match update.content {
-                    WorldStateUpdateContent::Fragment(fragment) => fragment,
-                    WorldStateUpdateContent::Item(item) => {
+                let fragment = match update.content.into_fragment() {
+                    Ok(fragment) => fragment,
+                    Err(item) => {
                         next_item = Some(*item);
                         break;
                     }
@@ -5315,14 +5348,11 @@ impl Session {
                 crate::compact_remote_v2::RETAINED_MESSAGE_TOKEN_BUDGET,
                 &history.file_audio_durations,
             );
-        let window = {
-            let mut state = self.state.lock().await;
-            state.start_new_context_window()
-        };
-        let (window_number, window_ids) = window;
-        let (context_updates, world_state_snapshot) = self
-            .build_initial_context_with_world_state(step_context, world_state.as_ref())
-            .await;
+        // Resolve the roster before allocating a new context window.
+        let rendered = world_state.render_full_with_host_roster().await;
+        let (window_number, window_ids) = self.state.lock().await.start_new_context_window();
+        let (context_updates, world_state_snapshot) =
+            self.assemble_initial_context(step_context, rendered).await;
         let context_items =
             crate::context_manager::updates::merge_world_state_updates(context_updates)
                 .into_iter()
@@ -5400,15 +5430,20 @@ impl Session {
                 Some(WorldStateItem::full(snapshot.into_object())),
             )
         } else {
-            let (world_state_items, world_state_item) = {
-                let mut state = self.state.lock().await;
-                let (fragments, rollout_item) = state.history.update_world_state(&world_state);
-                (
-                    crate::context_manager::updates::merge_world_state_updates(fragments),
-                    rollout_item,
-                )
-            };
-            (world_state_items, world_state_item)
+            let (snapshot, mut fragments, world_state_item) = self
+                .state
+                .lock()
+                .await
+                .history
+                .render_step_world_state(&world_state);
+            world_state.resolve_host_roster(&mut fragments).await;
+            let items = crate::context_manager::updates::merge_world_state_updates(fragments);
+            self.state
+                .lock()
+                .await
+                .history
+                .set_world_state_baseline(snapshot);
+            (items, world_state_item)
         };
         if !should_inject_full_context && turn_context_changed {
             context_items.extend(
@@ -5807,7 +5842,13 @@ impl Session {
         user_message_item.client_id = client_id;
         let turn_item = TurnItem::UserMessage(user_message_item);
         self.emit_turn_item_started(turn_context, &turn_item).await;
-        self.emit_turn_item_completed(turn_context, turn_item).await;
+        self.emit_turn_item_completed_with_metadata(
+            turn_context,
+            turn_item,
+            /*content_token_count*/ None,
+            Some(&metadata.extension_data),
+        )
+        .await;
         self.ensure_rollout_materialized(persist_context).await;
     }
 

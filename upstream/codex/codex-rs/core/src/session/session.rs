@@ -1057,7 +1057,10 @@ impl Session {
                     SessionId::from(thread_id)
                 }
             });
-        let initial_auto_compact_window_ids = AutoCompactWindowIds::new_initial();
+        let context_window_id_generator =
+            Arc::clone(&agent_control.runtime().context_window_id_generator);
+        let initial_auto_compact_window_ids =
+            AutoCompactWindowIds::new_initial(context_window_id_generator());
         let restore_child_window = matches!(&initial_history, InitialHistory::Forked(_))
             && session_configuration.session_source.is_non_root_agent()
             && config.features.enabled(Feature::TokenBudget);
@@ -1509,6 +1512,7 @@ impl Session {
                     .permissions
                     .legacy_sandbox_policy(session_configuration.cwd().as_path()),
                 mcp_server_names.iter().map(String::as_str).collect(),
+                &crate::config::legacy_multi_agent_disabled_sources(&config.config_layer_stack),
             );
 
             let default_shell = session_configuration
@@ -1633,9 +1637,11 @@ impl Session {
             let mut state = SessionState::new_with_auto_compact_window_ids(
                 session_configuration.clone(),
                 initial_auto_compact_window_ids.clone(),
+                context_window_id_generator,
                 ContextManager::for_session(
                     session_configuration.root_capabilities_restricted,
                     &config.features,
+                    config.guardian_context_budgeting(),
                     Arc::clone(&item_id_generator),
                 ),
             );
@@ -1759,10 +1765,28 @@ impl Session {
                 AnalyticsEventsClient::disabled()
             } else {
                 analytics_events_client.unwrap_or_else(|| {
-                    AnalyticsEventsClient::new(
+                    let api_key_headers = if codex_model_provider::provider_uses_first_party_auth_path(
+                        &config.model_provider,
+                    ) {
+                        match config.model_provider.build_header_map() {
+                            Ok(headers) => headers,
+                            Err(error) => {
+                                tracing::warn!(%error, "failed to resolve analytics resource selectors");
+                                return AnalyticsEventsClient::disabled();
+                            }
+                        }
+                    } else {
+                        Default::default()
+                    };
+                    AnalyticsEventsClient::new_with_runtime(
                         Arc::clone(&auth_manager),
                         config.chatgpt_backend_url(),
                         config.analytics_enabled,
+                        config
+                            .features
+                            .enabled(Feature::RuntimeAgentInstances)
+                            .then(|| (Arc::clone(&runtime_auth), config.runtime_auth_mode)),
+                        api_key_headers,
                     )
                 })
             };
@@ -1919,11 +1943,24 @@ impl Session {
                 exec_policy,
                 auth_manager: Arc::clone(&auth_manager),
                 runtime_auth,
-                openai_file_upload_client_pool: RouteAwareClientPool::new_without_request_logging(
-                    config.http_client_factory(),
-                    ClientRouteClass::Api,
-                )
-                .with_legacy_custom_ca_fallback(),
+                openai_file_upload_client_pool: if config
+                    .features
+                    .enabled(Feature::RuntimeAgentInstances)
+                    && codex_runtime_agent_instance::is_openai_api_url(&config.chatgpt_base_url)
+                {
+                    RouteAwareClientPool::new_without_request_logging(
+                        config
+                            .http_client_factory()
+                            .with_sensitive_header_protection(),
+                        ClientRouteClass::Api,
+                    )
+                } else {
+                    RouteAwareClientPool::new_without_request_logging(
+                        config.http_client_factory(),
+                        ClientRouteClass::Api,
+                    )
+                    .with_legacy_custom_ca_fallback()
+                },
                 session_telemetry,
                 models_manager: Arc::clone(&models_manager),
                 git_root_discovery,

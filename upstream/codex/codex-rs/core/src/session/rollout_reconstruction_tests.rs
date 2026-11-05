@@ -129,6 +129,7 @@ async fn sender_context_follows_its_delivery_through_checkpoint_and_rollback() {
     let mut live = ContextManager::for_session(
         /*root_capabilities_restricted*/ false,
         &crate::config::ManagedFeatures::from(codex_features::Features::with_defaults()),
+        codex_guardian_context::ContextBudgeting::Fixed,
         uuid_v7_item_id_generator_for_test(),
     );
     let mut items = Vec::new();
@@ -235,7 +236,19 @@ fn assistant_message(text: &str) -> ResponseItem {
 }
 
 fn annotated(items: Vec<ResponseItem>) -> Vec<ResponseItemEnvelope> {
-    items.into_iter().map(ResponseItemEnvelope::new).collect()
+    // Legacy replay assigns append identities without claiming prior sampling.
+    items
+        .into_iter()
+        .enumerate()
+        .map(|(index, item)| ResponseItemEnvelope {
+            item,
+            metadata: Some(codex_history::CodexHarnessMetadata {
+                history_sequence: Some(index as u64 + 1),
+                sampled_through_sequence: Some(0),
+                ..Default::default()
+            }),
+        })
+        .collect()
 }
 
 fn inter_agent_assistant_message(text: &str) -> ResponseItem {
@@ -453,6 +466,7 @@ async fn record_initial_history_resumed_bare_turn_context_does_not_hydrate_previ
     let previous_context_item = TurnContextItem {
         turn_id: Some(turn_context.sub_id.clone()),
         root_turn_id: None,
+        direct_only_tool_namespaces: None,
         disabled_plugin_ids: None,
         #[allow(deprecated)]
         cwd: turn_context.cwd.clone(),
@@ -499,6 +513,7 @@ async fn record_initial_history_resumed_hydrates_previous_turn_settings_from_lif
     let mut previous_context_item = TurnContextItem {
         turn_id: Some(turn_context.sub_id.clone()),
         root_turn_id: None,
+        direct_only_tool_namespaces: None,
         disabled_plugin_ids: None,
         #[allow(deprecated)]
         cwd: turn_context.cwd.clone(),
@@ -1614,11 +1629,11 @@ async fn bounded_replay_matches_full_replay_after_empty_turn_compactions(
             vec![
                 RolloutItem::Compacted(Box::new(CompactedItem {
                     message: String::new(),
-                    replacement_history: Some(annotated(vec![object!({
+                    replacement_history: Some(vec![ResponseItemEnvelope::new(object!({
                         "type": "compaction",
                         "id": format!("checkpoint-{window_number}"),
                         "encrypted_content": format!("summary-{window_number}"),
-                    })])),
+                    }))]),
                     retained_context: None,
                     guardian_history: Some(codex_history::GuardianHistoryCheckpoint(vec![
                         user_message("original task").into(),
@@ -1701,7 +1716,14 @@ async fn bounded_replay_matches_full_replay_after_empty_turn_compactions(
         bounded.guardian_history.as_ref(),
         Some(&codex_history::GuardianHistoryCheckpoint(vec![
             user_message("original task").into(),
-            assistant_message("continued working").into()
+            ResponseItemEnvelope {
+                item: assistant_message("continued working"),
+                metadata: Some(codex_history::CodexHarnessMetadata {
+                    history_sequence: Some(2),
+                    sampled_through_sequence: Some(0),
+                    ..Default::default()
+                }),
+            }
         ])),
     );
     if current {
@@ -2147,6 +2169,7 @@ async fn record_initial_history_resumed_turn_context_after_compaction_reestablis
     let previous_context_item = TurnContextItem {
         turn_id: Some(turn_context.sub_id.clone()),
         root_turn_id: Some("root-turn".to_string()),
+        direct_only_tool_namespaces: None,
         disabled_plugin_ids: None,
         #[allow(deprecated)]
         cwd: turn_context.cwd.clone(),
@@ -2245,6 +2268,7 @@ async fn record_initial_history_resumed_turn_context_after_compaction_reestablis
         serde_json::to_value(Some(TurnContextItem {
             turn_id: Some(turn_context.sub_id.clone()),
             root_turn_id: Some("root-turn".to_string()),
+            direct_only_tool_namespaces: None,
             disabled_plugin_ids: None,
             #[allow(deprecated)]
             cwd: turn_context.cwd.clone(),
@@ -2275,6 +2299,7 @@ async fn record_initial_history_resumed_aborted_turn_without_id_clears_active_tu
     let previous_context_item = TurnContextItem {
         turn_id: Some(turn_context.sub_id.clone()),
         root_turn_id: None,
+        direct_only_tool_namespaces: None,
         disabled_plugin_ids: None,
         #[allow(deprecated)]
         cwd: turn_context.cwd.clone(),
@@ -2418,6 +2443,7 @@ async fn record_initial_history_resumed_unmatched_abort_preserves_active_turn_fo
     let current_context_item = TurnContextItem {
         turn_id: Some(current_turn_id.clone()),
         root_turn_id: None,
+        direct_only_tool_namespaces: None,
         disabled_plugin_ids: None,
         #[allow(deprecated)]
         cwd: turn_context.cwd.clone(),
@@ -2553,6 +2579,7 @@ async fn record_initial_history_resumed_trailing_incomplete_turn_compaction_clea
     let previous_context_item = TurnContextItem {
         turn_id: Some(turn_context.sub_id.clone()),
         root_turn_id: None,
+        direct_only_tool_namespaces: None,
         disabled_plugin_ids: None,
         #[allow(deprecated)]
         cwd: turn_context.cwd.clone(),
@@ -2738,6 +2765,7 @@ async fn record_initial_history_resumed_replaced_incomplete_compacted_turn_clear
     let previous_context_item = TurnContextItem {
         turn_id: Some(turn_context.sub_id.clone()),
         root_turn_id: None,
+        direct_only_tool_namespaces: None,
         disabled_plugin_ids: None,
         #[allow(deprecated)]
         cwd: turn_context.cwd.clone(),
