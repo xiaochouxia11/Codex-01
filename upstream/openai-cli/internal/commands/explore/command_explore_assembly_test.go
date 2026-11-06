@@ -1,6 +1,7 @@
 package explore_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -11,12 +12,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestExploreBrowsesInstalledCommandsAlphabetically(t *testing.T) {
+	root := commands.Command
+	app.ConfigureCommand(root)
+	_, _, err := app.ConfigureHelp(root, []string{"openai", "explore"})
+	require.NoError(t, err)
+	candidates := commandsuggest.Search(explore.CandidatesForTest(root, "openai", "openai", "bash"), "")
+	var commands []string
+	for _, candidate := range candidates {
+		commands = append(commands, candidate.Command)
+	}
+
+	previous := -1
+	for _, command := range []string{
+		"admin --help", "audio --help", "batches --help", "files list",
+		"images models", "--format json images models", "models list", "tokenizer count",
+	} {
+		index := slices.Index(commands, "openai "+command)
+		require.Greater(t, index, previous, "expected %q after index %d", command, previous)
+		previous = index
+	}
+}
+
 func TestEveryTaskPhraseFindsItsInstalledCommandFirst(t *testing.T) {
 	root := commands.Command
 	app.ConfigureCommand(root)
 	_, _, err := app.ConfigureHelp(root, []string{"openai", "explore"})
 	require.NoError(t, err)
-	candidates := explore.CandidatesForTest(root, "openai")
+	candidates := explore.CandidatesForTest(root, "openai", "openai", "bash")
 
 	for path, phrases := range explore.TaskPhrasesForTest {
 		t.Run(path, func(t *testing.T) {

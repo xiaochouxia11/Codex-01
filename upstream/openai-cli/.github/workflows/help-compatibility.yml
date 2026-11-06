@@ -561,18 +561,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          go test -p 2 ./internal/app ./internal/output/listview -count=1 -timeout=2m -v -json -run '^(TestListPageFetcherWaitsAndPreservesPageSize|TestShowJSONPagesZeroRetainsRequestErrors|TestListPageFetcherStopsEmptyAndStalledCursors|TestListPageFetcherCancellationPreventsRequests|TestListNavigationUsesLoadedRowsBeforeOneRequest|TestListNavigationOutputPreservesFailureAndRestoresModes|TestListNavigationOutputFailureDiagnostic|TestListNavigationQuitRetainsRealFailures|TestListNavigationLabelsPreserveLongIDs|TestListNavigationErrorPresentation|TestListNavigationFinishRetainsInterruptDuringCompletion|TestListNavigationRemovedKeysAndResizeDoNotFetch|TestListNavigationCompletePageStaysOpenWithoutPrinting|TestListNavigationPartialPagePreservesErrorAndRecords|TestListNavigationFinalEmptyPageKeepsLoadedResults|TestListNavigationUsesCompactPagerControls|TestViewerBackKeepsFetchFrontier|TestViewerPendingFetchIgnoresNavigation|TestViewerFinalPageStaysUntilQuit|TestViewerLargeLineAndResizePreserveOriginal|TestViewerTabsPreserveValuesAndFooter|TestViewerErrorRetainsPreviouslyLoadedResults|TestViewerHistoryWriteFailureDoesNotRetry|TestViewerLoadingCanCancel|TestViewerPreservesViewportKeyboardBindings|TestViewerPageKeysPreserveLazyCachedNavigation|TestViewerLineKeysDoNotRequestAnotherAPIPage|TestViewerKeyboardWhileLoadingKeepsCancellation|TestViewerResizeRendersOnlySelectedPage|TestViewerResizeRenderFailureRetainsCachedPages|TestListPagerResizeRendersCachedRecords|TestListPagerAdvanceAtVisibleRecordBoundary|TestRenderListNavigationPageHintPolicy|TestRenderListNavigationPageCancelsProjection|TestRenderListTablePage|TestRenderListTablePageEmptyAndUnsupported)$' \
+          go test -p 2 ./internal/app ./internal/output/listview -count=1 -timeout=2m -v -json -run '^(TestRegisteredListWaitsAndPreservesPageSize|TestRegisteredListZeroRetainsRequestErrors|TestRegisteredListStopsEmptyAndStalledCursors|TestRegisteredListCancellationPreventsRequests|TestRegisteredListQuitPreventsNextRequest|TestListNavigationUsesLoadedRowsBeforeOneRequest|TestListNavigationOutputPreservesFailureAndRestoresModes|TestListNavigationOutputFailureDiagnostic|TestListNavigationQuitRetainsRealFailures|TestListNavigationLabelsPreserveLongIDs|TestListNavigationErrorPresentation|TestListNavigationFinishRetainsInterruptDuringCompletion|TestListNavigationRemovedKeysAndResizeDoNotFetch|TestListNavigationShortCompletePagePrintsOnce|TestListNavigationPartialPagePreservesErrorAndRecords|TestListNavigationFinalEmptyPageKeepsLoadedResults|TestListNavigationUsesCompactPagerControls|TestViewerBackKeepsFetchFrontier|TestViewerPendingFetchIgnoresNavigation|TestViewerFinalPageStaysUntilQuit|TestViewerLargeLineAndResizePreserveOriginal|TestViewerTabsPreserveValuesAndFooter|TestViewerErrorRetainsPreviouslyLoadedResults|TestViewerHistoryWriteFailureDoesNotRetry|TestViewerPartialOutputRetainsFullLabels|TestPrintedListRetainsPageAndOutputFailures|TestListPageContinuationObservesOnlyEnvelope|TestRegisteredLocalListStopsReadingOnQuit|TestViewerLoadingCanCancel|TestViewerPreservesViewportKeyboardBindings|TestViewerPageKeysPreserveLazyCachedNavigation|TestViewerLineKeysUseLoadedRowsFirst|TestViewerKeyboardWhileLoadingKeepsCancellation|TestViewerResizeRendersOnlyVisibleRecords|TestViewerResizeRenderFailureRetainsReceivedPages|TestListPagerResizeRendersCachedRecords|TestListPagerAdvanceAtVisibleRecordBoundary|TestRenderListNavigationPageHintPolicy|TestRenderListNavigationPageCancelsProjection|TestRenderListTablePage|TestRenderListTablePageEmptyAndUnsupported|TestProjectTableProtectsIDAfterRelabeling)$' \
             | tee "$RUNNER_TEMP/list-navigation-helper-tests.jsonl"
           go test -p 2 ./internal/output/transform -count=1 -timeout=2m -v -json -run '^(TestProjectListTableCanceledContext|TestListTableCountsCancellation|TestProjectListTableKnownResources|TestProjectListTableMissingOptionalFields|TestProjectListTableEmptyPagesAndRoutes|TestProjectListTablePreservesOriginalStrings|TestProjectListTableFallsBackForEntirePage|TestProjectListTablePreservesErrorsAndMalformedFields|TestProjectListTableByteSizes)$' \
             | tee "$RUNNER_TEMP/list-projection-helper-tests.jsonl"
-          go test -p 2 ./internal/readable -count=1 -timeout=2m -v -json -run '^(TestListTableKeepsIDsAndFitsWidth|TestListTableNarrowFallbackKeepsIDs|TestListTableEscapesEveryCell|TestListTableUnicodeWidths|TestListTableEmptyAndMalformedRows)$' \
+          go test -p 2 ./internal/readable -count=1 -timeout=2m -v -json -run '^(TestListTableKeepsIDsAndFitsWidth|TestListTableNarrowFallbackKeepsIDs|TestListTableKeepsTrailingProjectID|TestListTableInvalidProtectedColumn|TestListTableEscapesEveryCell|TestListTableUnicodeWidths|TestListTableEmptyAndMalformedRows)$' \
             | tee "$RUNNER_TEMP/list-renderer-helper-tests.jsonl"
       - name: Test Windows list navigation and table helpers
         if: matrix.list-helpers && runner.os == 'Windows' && matrix.shard != 'dispatch'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          go test -p 2 ./internal/app ./internal/output/listview -count=1 -timeout=2m -v -json -run '^(TestListPageFetcherWaitsAndPreservesPageSize|TestShowJSONPagesZeroRetainsRequestErrors|TestListPageFetcherStopsEmptyAndStalledCursors|TestListPageFetcherCancellationPreventsRequests|TestListNavigationUsesLoadedRowsBeforeOneRequest|TestListNavigationOutputPreservesFailureAndRestoresModes|TestListNavigationOutputFailureDiagnostic|TestListNavigationQuitRetainsRealFailures|TestListNavigationLabelsPreserveLongIDs|TestListNavigationErrorPresentation|TestListNavigationFinishRetainsInterruptDuringCompletion|TestListNavigationRemovedKeysAndResizeDoNotFetch|TestListNavigationCompletePageStaysOpenWithoutPrinting|TestListNavigationPartialPagePreservesErrorAndRecords|TestListNavigationFinalEmptyPageKeepsLoadedResults|TestListNavigationUsesCompactPagerControls|TestViewerBackKeepsFetchFrontier|TestViewerPendingFetchIgnoresNavigation|TestViewerFinalPageStaysUntilQuit|TestViewerLargeLineAndResizePreserveOriginal|TestViewerTabsPreserveValuesAndFooter|TestViewerErrorRetainsPreviouslyLoadedResults|TestViewerHistoryWriteFailureDoesNotRetry|TestViewerLoadingCanCancel|TestViewerPreservesViewportKeyboardBindings|TestViewerPageKeysPreserveLazyCachedNavigation|TestViewerLineKeysDoNotRequestAnotherAPIPage|TestViewerKeyboardWhileLoadingKeepsCancellation|TestViewerResizeRendersOnlySelectedPage|TestViewerResizeRenderFailureRetainsCachedPages|TestListPagerResizeRendersCachedRecords|TestListPagerAdvanceAtVisibleRecordBoundary|TestRenderListNavigationPageHintPolicy|TestRenderListNavigationPageCancelsProjection|TestRenderListTablePage|TestRenderListTablePageEmptyAndUnsupported)$' |
+          go test -p 2 ./internal/app ./internal/output/listview -count=1 -timeout=2m -v -json -run '^(TestRegisteredListWaitsAndPreservesPageSize|TestRegisteredListZeroRetainsRequestErrors|TestRegisteredListStopsEmptyAndStalledCursors|TestRegisteredListCancellationPreventsRequests|TestRegisteredListQuitPreventsNextRequest|TestListNavigationUsesLoadedRowsBeforeOneRequest|TestListNavigationOutputPreservesFailureAndRestoresModes|TestListNavigationOutputFailureDiagnostic|TestListNavigationQuitRetainsRealFailures|TestListNavigationLabelsPreserveLongIDs|TestListNavigationErrorPresentation|TestListNavigationFinishRetainsInterruptDuringCompletion|TestListNavigationRemovedKeysAndResizeDoNotFetch|TestListNavigationShortCompletePagePrintsOnce|TestListNavigationPartialPagePreservesErrorAndRecords|TestListNavigationFinalEmptyPageKeepsLoadedResults|TestListNavigationUsesCompactPagerControls|TestViewerBackKeepsFetchFrontier|TestViewerPendingFetchIgnoresNavigation|TestViewerFinalPageStaysUntilQuit|TestViewerLargeLineAndResizePreserveOriginal|TestViewerTabsPreserveValuesAndFooter|TestViewerErrorRetainsPreviouslyLoadedResults|TestViewerHistoryWriteFailureDoesNotRetry|TestViewerPartialOutputRetainsFullLabels|TestPrintedListRetainsPageAndOutputFailures|TestListPageContinuationObservesOnlyEnvelope|TestRegisteredLocalListStopsReadingOnQuit|TestViewerLoadingCanCancel|TestViewerPreservesViewportKeyboardBindings|TestViewerPageKeysPreserveLazyCachedNavigation|TestViewerLineKeysUseLoadedRowsFirst|TestViewerKeyboardWhileLoadingKeepsCancellation|TestViewerResizeRendersOnlyVisibleRecords|TestViewerResizeRenderFailureRetainsReceivedPages|TestListPagerResizeRendersCachedRecords|TestListPagerAdvanceAtVisibleRecordBoundary|TestRenderListNavigationPageHintPolicy|TestRenderListNavigationPageCancelsProjection|TestRenderListTablePage|TestRenderListTablePageEmptyAndUnsupported|TestProjectTableProtectsIDAfterRelabeling)$' |
             Tee-Object -FilePath (Join-Path $env:RUNNER_TEMP 'list-navigation-helper-tests.jsonl') -Encoding utf8NoBOM -ErrorAction Stop
           exit $LASTEXITCODE
       - name: Test image preferences and picker state
@@ -946,6 +946,7 @@ jobs:
                   "TestMainImageModelsHelpAndOfflineMakeNoRequests": [
                       "--format/json/images/models/--offline",
                       "--format/json/images/models/--offline/--all",
+                      "help/--all/images/models",
                       "help/images/models",
                       "images/models/--help",
                   ],
@@ -985,7 +986,7 @@ jobs:
           if os.environ["RUNNER_OS"] == "Linux":
               fish_examples = [
                   f"copy_{surface}-help_image_example{location}"
-                  for surface in ["flag", "command"]
+                  for surface in ["flag", "full"]
                   for location in ["", "_from_another_directory"]
               ]
               suites["fish-help-invocation-tests.jsonl"] = required_cases(
@@ -1296,12 +1297,13 @@ jobs:
               ))
           if os.environ["CHECK_LIST_HELPERS"] == "true":
               navigation_helper_cases = {
-                  'TestListPageFetcherWaitsAndPreservesPageSize': ['-1', '0', '1', '2', '3'],
-                  'TestShowJSONPagesZeroRetainsRequestErrors': [],
-                  'TestListPageFetcherStopsEmptyAndStalledCursors': [
+                  'TestRegisteredListWaitsAndPreservesPageSize': ['-1', '0', '1', '2', '3'],
+                  'TestRegisteredListZeroRetainsRequestErrors': [],
+                  'TestRegisteredListStopsEmptyAndStalledCursors': [
                       'empty', 'last', 'missing', 'repeated', 'last_id', 'next',
                   ],
-                  'TestListPageFetcherCancellationPreventsRequests': [],
+                  'TestRegisteredListCancellationPreventsRequests': ['before_first', 'before_next'],
+                  'TestRegisteredListQuitPreventsNextRequest': [],
                   'TestListNavigationUsesLoadedRowsBeforeOneRequest': [],
                   'TestListNavigationOutputPreservesFailureAndRestoresModes': [],
                   'TestListNavigationOutputFailureDiagnostic': [
@@ -1322,7 +1324,7 @@ jobs:
                   ],
                   'TestListNavigationFinishRetainsInterruptDuringCompletion': [],
                   'TestListNavigationRemovedKeysAndResizeDoNotFetch': [],
-                  'TestListNavigationCompletePageStaysOpenWithoutPrinting': [],
+                  'TestListNavigationShortCompletePagePrintsOnce': [],
                   'TestListNavigationPartialPagePreservesErrorAndRecords': [],
                   'TestListNavigationFinalEmptyPageKeepsLoadedResults': [],
                   'TestListNavigationUsesCompactPagerControls': [],
@@ -1337,18 +1339,22 @@ jobs:
                   ],
                   'TestViewerErrorRetainsPreviouslyLoadedResults': [],
                   'TestViewerHistoryWriteFailureDoesNotRetry': [],
+                  'TestViewerPartialOutputRetainsFullLabels': [],
+                  'TestPrintedListRetainsPageAndOutputFailures': [],
+                  'TestListPageContinuationObservesOnlyEnvelope': [],
+                  'TestRegisteredLocalListStopsReadingOnQuit': [],
                   'TestViewerLoadingCanCancel': [],
                   'TestViewerPreservesViewportKeyboardBindings': [
                       'arrows', 'vim', 'half_page', 'control_half_page',
                       'page_keys', 'f_b', 'space_b',
                   ],
                   'TestViewerPageKeysPreserveLazyCachedNavigation': [
-                      'page_keys', 'f_b', 'space_b', 'local_arrows', 'local_vim', 'local_half_page', 'local_control_half_page',
+                      'page_keys', 'f_b', 'space_b', 'arrows', 'vim', 'half_page', 'control_half_page',
                   ],
-                  'TestViewerLineKeysDoNotRequestAnotherAPIPage': [],
+                  'TestViewerLineKeysUseLoadedRowsFirst': [],
                   'TestViewerKeyboardWhileLoadingKeepsCancellation': [],
-                  'TestViewerResizeRendersOnlySelectedPage': [],
-                  'TestViewerResizeRenderFailureRetainsCachedPages': [
+                  'TestViewerResizeRendersOnlyVisibleRecords': [],
+                  'TestViewerResizeRenderFailureRetainsReceivedPages': [
                       f'back{back}/canceled{canceled}'
                       for back in ['false', 'true']
                       for canceled in ['false', 'true']
@@ -1358,7 +1364,7 @@ jobs:
                       for resource in ['files', 'batches', 'admin.organization.projects', 'models']
                       for kind in ['known', 'unfamiliar']
                   ],
-                  'TestListPagerAdvanceAtVisibleRecordBoundary': ['24', '25', '26'],
+                  'TestListPagerAdvanceAtVisibleRecordBoundary': ['4', '5', '6'],
                   'TestRenderListNavigationPageHintPolicy': [
                       'files/table', 'files/table/ordinary', 'files/table/quiet', 'files/table/quiet_verbose',
                       'files/table/machine_errors', 'files/table/inherited_machine_errors', 'files/table/extracted_errors',
@@ -1388,6 +1394,7 @@ jobs:
                   'TestRenderListNavigationPageCancelsProjection': ['files', 'batches', 'admin.organization.projects'],
                   'TestRenderListTablePage': [],
                   'TestRenderListTablePageEmptyAndUnsupported': [],
+                  'TestProjectTableProtectsIDAfterRelabeling': [],
               }
               suites['list-navigation-helper-tests.jsonl'] = set().union(*(
                   required_cases(root, children) for root, children in navigation_helper_cases.items()
@@ -1435,6 +1442,9 @@ jobs:
                       'admin.organization.projects{"id":"proj_example","object":"organization.project","name":[],"status":"active"}',
                       'admin.organization.projects{"id":"proj_example","object":"organization.project","name":"Synthetic","status":false}',
                       'admin.organization.projects{"id":"proj_example","object":"organization.project","name":"Synthetic","status":"active","warning":"Review_project."}',
+                      'admin.organization.projects{"id":"proj_example","object":"organization.project","psp_decryption_key_id":"example"}',
+                      'admin.organization.projects{"id":"proj_example","object":"organization.project","psp_decryption_key_id":null,"psp_decryption_key_id":"example"}',
+                      'admin.organization.projects{"id":"proj_example","object":"organization.project","future_field":null}',
                       'admin.organization.projects{"id":"proj_example","object":"organization.project","name":"First","name":"Second","status":"active"}',
                   ],
                   'TestProjectListTableByteSizes': [
@@ -1448,6 +1458,8 @@ jobs:
               renderer_helper_cases = {
                   'TestListTableKeepsIDsAndFitsWidth': [],
                   'TestListTableNarrowFallbackKeepsIDs': [],
+                  'TestListTableKeepsTrailingProjectID': [],
+                  'TestListTableInvalidProtectedColumn': [],
                   'TestListTableEscapesEveryCell': [],
                   'TestListTableUnicodeWidths': [],
                   'TestListTableEmptyAndMalformedRows': [],

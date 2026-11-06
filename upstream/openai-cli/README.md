@@ -18,59 +18,53 @@
 
 > Looking for the coding agent? Use [Codex CLI](https://developers.openai.com/codex/cli).
 
-<!-- x-release-please-start-version -->
-
 ## Installation
 
-[macOS](#macos) · [Linux](#linux) · [Windows](#windows)
+Choose your operating system. Each setup installs all CLI commands and turns on automatic updates for normal interactive use.
+
+[macOS](#macos) · [Linux](#linux) · [Windows](#windows) · [When updates run](docs/automatic-updates.md#eligible-invocations)
 
 <a id="installing-with-homebrew"></a>
 
 ### macOS
 
-With Homebrew and zsh, paste both lines together in Terminal. This installs the CLI and enables automatic updates.
+Using Homebrew and zsh, paste both lines together in Terminal. Use the same command for an older Homebrew installation.
 
 ```zsh
 brew update && brew install --cask openai/tools/openai &&
 source "$(brew --prefix)/bin/openai-enable-updates.zsh"
 ```
 
-Use the same paste for an older Homebrew installation. [When automatic updates run](docs/automatic-updates.md#eligible-invocations).
-
-<details>
-<summary>Terminal says “no such file” for the update helper</summary>
-
-Your Homebrew package lacks the setup helper. You can use the installed CLI now, even if another copy comes first.
-
-```zsh
-"$(brew --prefix)/bin/openai" --help
-```
-
-Repeat the installation once Homebrew offers a version with the helper. [Check the installed CLI version](docs/installation.md#installing-with-homebrew).
-
-</details>
-
-Using another shell? [Install with Homebrew](docs/installation.md#installing-with-homebrew). Without Homebrew, use the [macOS ZIP](docs/installation.md#installing-a-prebuilt-binary).
+[Other shells and Homebrew troubleshooting](docs/installation.md#installing-with-homebrew) · [Install without Homebrew](docs/installation.md#installing-a-prebuilt-binary)
 
 <a id="installing-a-prebuilt-binary"></a>
 
 ### Linux
 
-For automatic updates, [install the release archive](docs/automatic-updates.md#from-an-extracted-archive). It requires GitHub CLI (`gh`).
-If you prefer a Debian or RPM package, [install it with your package manager](docs/installation.md#linux). Upgrade it manually.
+On Debian, Ubuntu, or Fedora, [download `openai.sh`](https://github.com/openai/openai-cli/releases/download/v1.51.3/openai.sh).
+Open Bash or zsh in the download folder. Paste both lines together.
+
+```sh
+echo '3b94b2ac8e73bd16f3803ceea1ba5c08b1c80a3c9b27f75c5b8a9d4d76ff7e00  openai.sh' |
+  sha256sum -c - && source ./openai.sh
+```
+
+Enter your password if sudo asks. [Install over SSH](docs/installation.md#install-over-ssh) · [Other Linux distributions](docs/installation.md#installing-a-prebuilt-binary)
 
 ### Windows
 
-[Install the Windows ZIP](docs/installation.md#windows). To upgrade, download and extract a newer ZIP.
+1. Open the [Windows installer](scripts/install-windows-release.ps1).
+2. Select **Copy raw file**.
+3. Paste it into PowerShell without administrator privileges.
 
-<!-- x-release-please-end -->
+The installer downloads the matching ZIP and makes `openai` available in this terminal. [Install with File Explorer](docs/installation.md#windows)
 
 ## Authentication
 
-Check the installation without an API key.
+To check your installation, run the CLI in your terminal. It lists commands without an API key.
 
 ```sh
-openai --help
+openai
 ```
 
 To make API requests, follow the instructions this command prints for your shell.
@@ -79,37 +73,7 @@ To make API requests, follow the instructions this command prints for your shell
 openai help setup
 ```
 
-On Windows, use `.\openai.exe` from the extracted directory.
 For scripts, supply `OPENAI_API_KEY` through your environment or secret manager. [Create an API key](https://platform.openai.com/settings/organization/api-keys)
-
-## Use the CLI from a coding agent
-
-The optional [OpenAI CLI skill](skills/openai-cli/SKILL.md) helps a shell agent choose API commands and interpret their output.
-Install the CLI in the environment where the agent runs.
-
-From your project, use GitHub CLI to install the skill from a tagged release that includes it:
-
-```sh
-gh skill install openai/openai-cli openai-cli --agent codex --scope project
-```
-
-Choose your agent with `--agent`. Options include `claude-code`, `cursor`, `gemini-cli`, and `github-copilot`.
-Run `gh skill install --help` for the full list. Use `--scope user` to share the skill across your projects.
-
-For an unreleased checkout, use its local path instead:
-
-```sh
-gh skill install /path/to/openai-cli openai-cli --from-local --agent codex --scope project
-```
-
-For manual installation, copy the entire `skills/openai-cli` folder into the appropriate skills directory.
-
-| Agent | Current project | All projects for this user |
-| --- | --- | --- |
-| Codex | `.agents/skills/` | `~/.agents/skills/` |
-| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
-
-Start a new agent session in the target project. For example, ask “Upload requests.jsonl to OpenAI for a future batch.”
 
 ## Things to try
 
@@ -182,6 +146,10 @@ openai admin organization --help
 ```
 
 `openai help COMMAND` and `openai COMMAND --help` show the same page.
+Command groups list their available commands. Each action shows its usage, required inputs, and relevant flags.
+When an action has an example, help shows it before the flag descriptions.
+To read about one flag, append it after `-h`, as in `openai responses create -h --stream`.
+For every flag's description, use `openai help --all responses create`.
 Existing colon-separated commands, such as `openai admin:organization:usage completions`,
 also work.
 
@@ -268,6 +236,35 @@ In PowerShell, press Enter after `openai images generate` to open the picker.
 > [OpenAI Terraform provider](https://github.com/openai/terraform-provider-openai)
 > to manage projects, service accounts, rate limits, and other supported resources
 > as infrastructure as code.
+
+## Use the CLI from a coding agent
+
+The optional [OpenAI CLI skill](skills/openai-cli/SKILL.md) helps a shell agent choose API commands and interpret their output.
+Install the CLI in the environment where the agent runs.
+
+From your project, use GitHub CLI to install the skill from a tagged release that includes it:
+
+```sh
+gh skill install openai/openai-cli openai-cli --agent codex --scope project
+```
+
+Choose your agent with `--agent`. Options include `claude-code`, `cursor`, `gemini-cli`, and `github-copilot`.
+Run `gh skill install --help` for the full list. Use `--scope user` to share the skill across your projects.
+
+For an unreleased checkout, use its local path instead:
+
+```sh
+gh skill install /path/to/openai-cli openai-cli --from-local --agent codex --scope project
+```
+
+For manual installation, copy the entire `skills/openai-cli` folder into the appropriate skills directory.
+
+| Agent | Current project | All projects for this user |
+| --- | --- | --- |
+| Codex | `.agents/skills/` | `~/.agents/skills/` |
+| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
+
+Start a new agent session in the target project. For example, ask “Upload requests.jsonl to OpenAI for a future batch.”
 
 ## Development
 

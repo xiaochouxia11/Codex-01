@@ -2,7 +2,8 @@
 
 ## Installing with Homebrew
 
-For automatic updates in zsh, paste the [macOS installation block](../README.md#installation).
+For automatic updates in zsh, paste the [macOS installation block](../README.md#macos).
+Setup also lets Explore insert a command at your zsh prompt for editing.
 If you prefer to manage updates through Homebrew, install the cask directly.
 
 ```sh
@@ -16,6 +17,15 @@ brew update && brew upgrade --cask openai/tools/openai && brew list --cask --ver
 ```
 
 Homebrew shows download progress. One cask contains all CLI commands.
+
+**Terminal says “no such file” for the update helper.**
+An older Homebrew package can lack the helper. Run the Homebrew copy directly until the newer package arrives.
+
+```zsh
+"$(brew --prefix)/bin/openai" --help
+```
+
+Then repeat the [macOS installation block](../README.md#macos).
 
 **Homebrew says the cask is current, but GitHub has a newer release.**
 Homebrew can publish after GitHub. Reinstalling the same cask gives you the same version.
@@ -51,10 +61,23 @@ Run `type -a openai` to see competing commands. If a new shell selects another c
 
 ## Linux
 
-Starting with v1.50.0, one paste installs the latest stable package and enables automatic updates on Debian, Ubuntu, or Fedora.
-For earlier releases, use the [Linux tarball](#installing-a-prebuilt-binary).
+Use the [Linux install command](../README.md#linux) with Bash or zsh on Debian, Ubuntu, or Fedora.
+It installs the latest stable package and sets up automatic updates. Enter your system password if sudo prompts.
 
-Paste this block into Bash or zsh. Enter your system password if sudo prompts during installation.
+The installer verifies the package checksum before installation. It waits up to 30 minutes for missing release files.
+Press Ctrl-C to cancel. The helper selects your automatically updated copy in this shell and future shells.
+In packages with prompt insertion support, Explore fills the editable zsh prompt. Bash 4.3+ uses Ctrl+X, then Tab.
+The package manager owns `/usr/bin/openai`.
+
+For an offline installation, verify your chosen package against its official release checksum first.
+Give apt or dnf that exact path, such as `sudo apt install ./chosen-file.deb` or `sudo dnf install ./chosen-file.rpm`.
+Older packages, including v1.48.1, support `/usr/bin/openai --help` and `/usr/bin/openai --version`.
+To enable automatic updates with a supported package, run `source /usr/share/openai-cli/enable-updates.sh`.
+Other systems can use the [Linux tarball](#installing-a-prebuilt-binary).
+
+### Install over SSH
+
+In an interactive Bash or zsh terminal on Debian, Ubuntu, or Fedora, paste this block.
 
 ```sh
 (
@@ -70,16 +93,6 @@ Paste this block into Bash or zsh. Enter your system password if sudo prompts du
   /bin/bash -p "$installer"
 ) && source /usr/share/openai-cli/enable-updates.sh
 ```
-
-The installer verifies the package checksum before installation. It waits up to 30 minutes for missing release files.
-Press Ctrl-C to cancel. The helper selects your automatically updated copy in this shell and future shells.
-The package manager owns `/usr/bin/openai`.
-
-For an offline installation, verify your chosen package against its official release checksum first.
-Give apt or dnf that exact path, such as `sudo apt install ./chosen-file.deb` or `sudo dnf install ./chosen-file.rpm`.
-Older packages, including v1.48.1, support `/usr/bin/openai --help` and `/usr/bin/openai --version`.
-To enable automatic updates with a supported package, run `source /usr/share/openai-cli/enable-updates.sh`.
-Other systems can use the [Linux tarball](#installing-a-prebuilt-binary).
 
 ## Windows
 
@@ -138,7 +151,13 @@ Open **Assets** for the newest stable release with downloads for your computer. 
 Choose the macOS ZIP, Linux tarball, or Windows ZIP. GitHub’s source code archives require a separate build.
 On a Mac, the filename ends in `macos_arm64.zip` for Apple silicon or `macos_amd64.zip` for Intel.
 Extract the archive into a dedicated directory.
-On macOS and Linux, you can keep that directory as your manual installation.
+On macOS and Linux, source the bundled installer to set up updates and Explore in Bash or zsh.
+
+```sh
+source ./openai-enable-updates.sh
+```
+
+For a portable installation, keep the extracted directory.
 From inside it, paste this block into Bash or zsh.
 
 ```sh

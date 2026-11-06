@@ -9,6 +9,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/openai/openai-cli/internal/terminal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -136,6 +137,38 @@ func TestCommandPickerNoMatchesAndSmallWindowCannotSelect(t *testing.T) {
 	require.Contains(t, m.View().Content, "No matching commands")
 }
 
+func TestCommandPickerSectionDividers(t *testing.T) {
+	for _, tc := range []struct {
+		name                  string
+		color, known, dark    bool
+		fill, edge, secondary string
+	}{
+		{"light", true, true, false, "#E9EFFE", "#BAC4D8", "#657087"},
+		{"dark", true, true, true, "#343D58", "#51566B", "#A4ACC2"},
+		{"unknown background", true, false, true, "", "", ""},
+		{"monochrome", false, true, true, "", "", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := newCommandPicker([]Candidate{{Command: "openai models list"}}, "Explore commands", false)
+			m.width, m.height = 80, 24
+			m.color, m.backgroundKnown, m.dark = tc.color, tc.known, tc.dark
+			const ruleWidth = 72 // 80 columns minus the framed picker's margins and padding.
+			want := terminal.SectionDivider(ruleWidth, tc.color && tc.known, tc.fill, tc.edge, tc.secondary)
+			rules := 0
+			for _, line := range strings.Split(m.View().Content, "\n") {
+				if strings.Trim(ansi.Strip(line), " │") == strings.Repeat("─", ruleWidth) {
+					require.Contains(t, line, want)
+					if !tc.color || !tc.known {
+						require.Equal(t, ansi.Strip(line), line)
+					}
+					rules++
+				}
+			}
+			require.Equal(t, 2, rules)
+		})
+	}
+}
+
 func TestCommandPickerEditingNavigationAndRenderBounds(t *testing.T) {
 	m := newCommandPicker([]Candidate{{Command: "openai models list", Description: "List models"}, {Command: "openai help setup", Description: "Setup"}, {Command: "openai files list", Description: "Files"}}, "Explore commands", true)
 	m.Update(tea.WindowSizeMsg{Width: 40, Height: 12})
@@ -157,12 +190,36 @@ func TestCommandPickerEditingNavigationAndRenderBounds(t *testing.T) {
 	require.Contains(t, m.View().Content, "Esc cancels")
 }
 
+func TestPickerSetupRequiresVisibleConfirmationAndKeepsSelection(t *testing.T) {
+	m := newCommandPicker([]Candidate{{Command: "openai transcribe"}}, "Explore commands", false)
+	m.setupPrompt = "Add the shell hook to:\n~/.zshrc"
+	m.Update(tea.WindowSizeMsg{Width: 40, Height: 12})
+	require.Contains(t, ansi.Strip(m.View().Content), "› openai transcribe")
+	require.Contains(t, ansi.Strip(m.View().Content), "F2 set up insertion")
+	m.Update(tea.PasteMsg{Content: "transcribe"})
+	m.Update(tea.KeyPressMsg{Code: tea.KeyF2})
+	require.Contains(t, m.View().Content, "~/.zshrc")
+	require.False(t, m.done)
+	m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
+	require.False(t, m.confirmSetup)
+	require.Equal(t, "transcribe", string(m.query))
+	m.Update(tea.KeyPressMsg{Code: tea.KeyF2})
+	m.Update(tea.WindowSizeMsg{Width: 25, Height: 10})
+	m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	require.False(t, m.done)
+	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	require.True(t, m.done)
+	require.True(t, m.enableInsertion)
+	require.Empty(t, m.result)
+}
+
 func TestPickerRejectsNonTerminalAndCanceledContext(t *testing.T) {
-	_, err := Pick(context.Background(), nil, nil, []Candidate{{Command: "openai models list"}}, "Commands", true)
+	_, err := Pick(context.Background(), nil, nil, []Candidate{{Command: "openai models list"}}, "Commands", true, "")
 	require.Error(t, err)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err = Pick(ctx, nil, nil, nil, "Commands", true)
+	_, err = Pick(ctx, nil, nil, nil, "Commands", true, "")
 	require.ErrorIs(t, err, context.Canceled)
 }
 
