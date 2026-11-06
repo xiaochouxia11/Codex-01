@@ -33,6 +33,7 @@ use codex_protocol::capabilities::CapabilityRootLocation;
 use codex_protocol::capabilities::SelectedCapabilityRoot;
 use codex_protocol::config_types::WindowsSandboxLevel;
 use codex_protocol::error::CodexErrKind;
+use codex_protocol::error::CodexErrorDetails;
 use codex_protocol::mcp::ClientMcpExtensions;
 use codex_protocol::mcp::MCP_APP_UI_EXTENSION_ID;
 use codex_protocol::mcp::OPENAI_FORM_EXTENSION_ID;
@@ -178,6 +179,94 @@ async fn startup_fixture() -> (tempfile::TempDir, Config, ThreadManager) {
         Arc::new(codex_exec_server::EnvironmentManager::default_for_tests()),
     );
     (home, config, manager)
+}
+
+#[tokio::test]
+#[expect(
+    clippy::await_holding_invalid_type,
+    reason = "hold startup before registration while the submission loop applies settings"
+)]
+async fn shared_service_tier_is_published_by_registered_startup() {
+    let (_home, mut config, manager) = startup_fixture().await;
+    config.ephemeral = true;
+    let thread_id = ThreadId::new();
+    let controller = Arc::new(LocalAgentControl::default().with_session_id(
+        codex_protocol::SessionId::from(thread_id),
+        /*max_threads*/ usize::MAX,
+    ));
+    let manager = manager.with_agent_control_factory({
+        let controller: Arc<dyn AgentControl> = controller.clone();
+        move |_| {
+            let controller = Arc::clone(&controller);
+            async move { Ok(controller) }
+        }
+    });
+
+    for (initial_tier, updated_tier, previous_shared_tier) in [
+        ("flex", None, None),
+        ("default", Some("flex".into()), Some("default")),
+    ] {
+        config.service_tier = Some(initial_tier.into());
+        let startup = Arc::new(SessionStartup::default());
+        // An ephemeral startup skips persistence until the submission loop is live.
+        let persistence = startup.persistence.lock().await;
+        let mut start = std::pin::pin!(manager.start_thread_inner(
+            StartThreadOptions {
+                reserved_thread_id: Some(thread_id),
+                ..StartThreadOptions::new(config.clone())
+            },
+            /*forked_from_thread_id*/ None,
+            Some(Arc::clone(&startup)),
+        ));
+        let io = std::future::poll_fn(|cx| {
+            assert!(start.as_mut().poll(cx).is_pending());
+            startup
+                .io
+                .get()
+                .map_or(std::task::Poll::Pending, std::task::Poll::Ready)
+        })
+        .await;
+        let (reply, applied) = tokio::sync::oneshot::channel();
+        io.submit(Op::ThreadSettings {
+            thread_settings: codex_protocol::protocol::ThreadSettingsOverrides {
+                service_tier: Some(updated_tier),
+                ..Default::default()
+            },
+            reply: Some(reply),
+        })
+        .await
+        .expect("submit settings before registration");
+        applied
+            .await
+            .expect("receive settings reply")
+            .expect("apply settings");
+        assert_eq!(
+            controller.root_service_tier().as_deref(),
+            previous_shared_tier
+        );
+
+        drop(persistence);
+        let started = start.await;
+        if previous_shared_tier.is_some() {
+            let error = started.err().expect("reject the duplicate runtime");
+            assert!(
+                matches!(error.details(), CodexErrorDetails::InvalidRequest(message)
+                if *message == format!("thread {thread_id} is already running"))
+            );
+            startup.cleanup().await;
+        } else {
+            started.expect("register the first runtime");
+        }
+        assert_eq!(controller.root_service_tier().as_deref(), Some("default"));
+    }
+
+    manager
+        .get_thread(thread_id)
+        .await
+        .expect("find registered thread")
+        .shutdown_and_wait()
+        .await
+        .expect("stop registered thread");
 }
 
 fn managed_stack(requirements: Option<RequirementsExecPolicy>) -> ConfigLayerStack {
@@ -339,6 +428,133 @@ async fn fixed_thread_text_supersedes_the_live_provider_and_isolated_helpers_rej
             result.as_ref().err().map(CodexErrKind::from),
             Some(CodexErrKind::InvalidRequest)
         );
+    }
+}
+
+#[test_case::test_case(None, "chatgpt.com", 1; "ordinary_openai")]
+#[test_case::test_case(Some(codex_features::RuntimeAuthMode::DualHeader), "chatgpt.com", 0; "dual_header_openai")]
+#[test_case::test_case(Some(codex_features::RuntimeAuthMode::AssertionOnly), "chatgpt.com", 0; "assertion_only_openai")]
+#[test_case::test_case(Some(codex_features::RuntimeAuthMode::DualHeader), "example.test", 1; "dual_header_custom_backend")]
+#[test_case::test_case(Some(codex_features::RuntimeAuthMode::AssertionOnly), "example.test", 1; "assertion_only_custom_backend")]
+#[tokio::test]
+async fn resumed_analytics_validates_openai_destination(
+    mode: Option<codex_features::RuntimeAuthMode>,
+    host: &str,
+    expected_requests: usize,
+) {
+    let proxy = MockServer::start().await;
+    wiremock::Mock::given(wiremock::matchers::path("/codex/analytics-events/events"))
+        .respond_with(wiremock::ResponseTemplate::new(200))
+        .mount(&proxy)
+        .await;
+    let home = tempdir().expect("tempdir");
+    let mut config = test_config().await;
+    config.codex_home = home.path().abs();
+    config.cwd = home.path().abs();
+    config.chatgpt_base_url = format!("http://{host}:{}", proxy.address().port());
+    config.model_provider.base_url = Some(proxy.uri());
+    config.respect_system_proxy = true;
+    config.cli_auth_credentials_store_mode = codex_login::AuthCredentialsStoreMode::File;
+    config.analytics_enabled = Some(true);
+    if let Some(mode) = mode {
+        config
+            .features
+            .enable(Feature::RuntimeAgentInstances)
+            .unwrap();
+        config.runtime_auth_mode = mode;
+    } else {
+        config
+            .features
+            .disable(Feature::RuntimeAgentInstances)
+            .unwrap();
+    }
+    codex_http_client::cache_system_proxy_route_for_test(
+        &format!("{}/codex/analytics-events/events", config.chatgpt_base_url),
+        proxy.uri(),
+    );
+    codex_login::login_with_api_key(
+        &config.codex_home,
+        "resumed-key",
+        codex_login::AuthCredentialsStoreMode::File,
+        codex_login::AuthKeyringBackendKind::default(),
+    )
+    .unwrap();
+    let resumed_auth =
+        AuthManager::shared_from_config(&config, /*enable_codex_api_key_env*/ false)
+            .await
+            .unwrap();
+    let original_auth = CodexAuth::from_api_key("startup-key");
+    let mut manager = ThreadManager::with_models_provider_and_home_for_tests(
+        original_auth.clone(),
+        config.model_provider.clone(),
+        config.codex_home.to_path_buf(),
+        Arc::new(codex_exec_server::EnvironmentManager::default_for_tests()),
+    );
+    let startup_analytics = AnalyticsEventsClient::new(
+        AuthManager::from_auth_for_testing(original_auth),
+        proxy.uri(),
+        /*analytics_enabled*/ Some(true),
+    );
+    Arc::get_mut(&mut manager.state)
+        .expect("unshared thread manager state")
+        .analytics_events_client = Some(startup_analytics);
+
+    let original = manager
+        .start_thread(StartThreadOptions {
+            history_mode: Some(ThreadHistoryMode::Legacy),
+            ..StartThreadOptions::new(config.clone())
+        })
+        .await
+        .expect("start original thread");
+    original.thread.ensure_rollout_materialized().await;
+    original.thread.flush_rollout().await.unwrap();
+    original.thread.shutdown_and_wait().await.unwrap();
+    manager.remove_thread(&original.thread_id).await;
+
+    let resumed = manager
+        .resume_thread_with_history(
+            config,
+            InitialHistory::Resumed(ResumedHistory {
+                history_revision: None,
+                conversation_id: original.thread_id,
+                history: Arc::new(Vec::new()),
+                rollout_path: original.thread.rollout_path(),
+            }),
+            resumed_auth,
+            /*parent_trace*/ None,
+            ClientMcpExtensions::default(),
+        )
+        .await
+        .expect("resume with another auth owner");
+    let analytics = &resumed.thread.session.services.analytics_events_client;
+    analytics.track_plugin_used(
+        codex_analytics::TrackEventsContext {
+            turn_metadata: None,
+            model_slug: "test-model".to_string(),
+            turn_id: "test-turn".to_string(),
+            thread_id: resumed.thread_id.to_string(),
+            product_client_id: "codex_work_cca".to_string(),
+        },
+        codex_plugin::PluginTelemetryMetadata {
+            plugin_id: Some(codex_plugin::PluginId::parse("test@local").expect("valid plugin ID")),
+            remote_plugin_id: None,
+            capability_summary: None,
+        },
+    );
+    analytics.flush().await;
+    resumed.thread.shutdown_and_wait().await.unwrap();
+
+    let requests: Vec<_> = proxy
+        .received_requests()
+        .await
+        .unwrap()
+        .into_iter()
+        .filter(|request| request.url.path() == "/codex/analytics-events/events")
+        .collect();
+    assert_eq!(requests.len(), expected_requests);
+    for request in requests {
+        assert_eq!(request.headers["authorization"], "Bearer resumed-key");
+        assert!(!request.headers.contains_key("x-openai-agent-assertion"));
     }
 }
 
@@ -3555,6 +3771,7 @@ fn completed_legacy_event_history_is_not_mid_turn() {
             ..Default::default()
         })),
         RolloutItem::EventMsg(EventMsg::AgentMessage(AgentMessageEvent {
+            moderation: None,
             message: "done".to_string(),
             phase: None,
             memory_citation: None,

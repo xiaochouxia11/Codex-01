@@ -84,6 +84,9 @@ pub(crate) struct ComposerRenderOptions<'a> {
     pub(crate) separate_status_line: bool,
     /// Topmost frame row available for suggestions overlaying the transcript.
     pub(crate) overlay_top: u16,
+    /// The workspace paints the open Presets menu over the completed frame.
+    pub(crate) floating_shortcuts: bool,
+    pub(crate) unfocused: bool,
     pub(crate) command_popup_placement: CommandPopupPlacement,
     pub(crate) footer: Option<&'a TranscriptFooter>,
 }
