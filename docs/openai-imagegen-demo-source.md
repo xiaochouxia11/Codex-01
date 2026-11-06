@@ -1,8 +1,8 @@
 # openai/openai-imagegen-demo 同步记录
 
 - 上游：https://github.com/openai/openai-imagegen-demo
-- 上游提交：0831e720b129c2cce2e33f01270328f384cfa61a
-- 上游 tree：0576440a2361c761e732a2090b102544c5e35fe9
+- 上游提交：5c18c2abd96f4345e5f0ba2484c71280814f1b16
+- 上游 tree：c2e949750c464a241e216f6ace54d1d27ba43414
 - 目录：upstream/openai-imagegen-demo/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
