@@ -1,8 +1,8 @@
 # openai/openai-node 同步记录
 
 - 上游：https://github.com/openai/openai-node
-- 上游提交：2d5b81c729b6d0b4f7da453026aaca6dedb2fb7e
-- 上游 tree：5b5ee2a102af03060e0334b437d7ba04dc40ee37
+- 上游提交：a523d74b7c82fc4379259eb2352a13ee400d8b4b
+- 上游 tree：b909cb618889fd075fa58c4a7e76323c91a90ed8
 - 目录：upstream/openai-node/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
