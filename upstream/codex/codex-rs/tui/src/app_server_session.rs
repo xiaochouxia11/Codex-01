@@ -5,6 +5,7 @@
 
 mod account;
 pub(crate) use account::SessionAccount;
+mod cloud_project;
 mod daybreak_api_key_compat;
 mod events;
 mod external_agent_config;
@@ -141,6 +142,7 @@ use codex_app_server_protocol::TurnSteerParams;
 use codex_app_server_protocol::TurnSteerResponse;
 use codex_app_server_protocol::UserInput;
 use codex_config::ConfigLayerSource;
+use codex_context_fragments::SideConversationPolicy;
 use codex_otel::TelemetryAuthMode;
 use codex_protocol::ThreadId;
 use codex_protocol::approvals::GuardianAssessmentEvent;
@@ -1012,6 +1014,7 @@ impl AppServerSession {
             /*session_start_source*/ None,
             /*remote_cwd_override*/ None,
             /*selected_profile*/ None,
+            /*host_project_cwd*/ None,
         )
         .await
     }
@@ -1023,6 +1026,7 @@ impl AppServerSession {
         session_start_source: Option<ThreadStartSource>,
         remote_cwd_override: Option<&std::path::Path>,
         selected_profile: Option<&PermissionProfileSelection>,
+        host_project_cwd: Option<&std::path::Path>,
     ) -> Result<AppServerStartedThread> {
         if self.thread_params_mode.settings_owner() == ThreadSettingsOwner::Server
             && selected_profile.is_some()
@@ -1063,12 +1067,27 @@ impl AppServerSession {
             self.thread_tool_transport().configure(&mut params);
         }
         let request_handle = self.request_handle();
-        let (response, history_support, task_tools_available) =
-            request_thread_start_with_history_fallback(&request_handle, request_id, params)
+        let project = if self.thread_params_mode == ThreadParamsMode::Cloud {
+            match host_project_cwd {
+                Some(cwd) => cloud_project::from_local_cwd(cwd).await,
+                None => None,
+            }
+        } else {
+            None
+        };
+        let started = match project {
+            Some(project) => request_handle
+                .start_cloud_project_thread(request_id, params, project)
                 .await
-                .map_err(|err| {
-                    bootstrap_request_error("thread/start failed during TUI bootstrap", err)
-                })?;
+                .map(|response| (response, ThreadHistorySupport::Paginated, false)),
+            None => {
+                request_thread_start_with_history_fallback(&request_handle, request_id, params)
+                    .await
+            }
+        };
+        let (response, history_support, task_tools_available) = started.map_err(|err| {
+            bootstrap_request_error("thread/start failed during TUI bootstrap", err)
+        })?;
         if history_support == ThreadHistorySupport::LegacyOnly {
             self.history_support = ThreadHistorySupport::LegacyOnly;
         }
@@ -1197,7 +1216,6 @@ impl AppServerSession {
         config: Config,
         parent: ThreadId,
         profile: Option<PermissionProfileSelection>,
-        boundary: ResponseItem,
     ) -> impl Future<Output = Result<SidebarFork>> + Send + use<> {
         let mut view = self
             .request_view()
@@ -1210,7 +1228,10 @@ impl AppServerSession {
                 .fork_side_thread(&settings, config, parent, profile.as_ref())
                 .await?;
             let boundary = view
-                .thread_inject_items(thread.session.thread_id, vec![boundary])
+                .thread_inject_items(
+                    thread.session.thread_id,
+                    SideConversationPolicy::Temporary.fork_items(),
+                )
                 .await
                 .map(|_| ())
                 .map_err(|err| err.to_string());
@@ -3076,6 +3097,7 @@ mod tests {
         let mut app_server = crate::start_embedded_app_server_for_picker(&config).await?;
         let next_request_id = app_server.next_request_id;
         let account = GetAccountResponse {
+            user_id: None,
             workspace_routing: None,
             account: Some(Account::Chatgpt {
                 email: Some("teammate@openai.com".to_string()),
@@ -3138,6 +3160,7 @@ mod tests {
                 .bootstrap_with_account(
                     &client_config,
                     GetAccountResponse {
+                        user_id: None,
                         account: Some(Account::ApiKey {}),
                         requires_openai_auth: true,
                         workspace_routing: None,
@@ -3193,6 +3216,7 @@ mod tests {
             ThreadParamsMode::Cloud,
         );
         let account = GetAccountResponse {
+            user_id: None,
             account: Some(Account::Chatgpt {
                 email: Some("teammate@openai.com".to_string()),
                 plan_type: codex_protocol::account::PlanType::Plus,

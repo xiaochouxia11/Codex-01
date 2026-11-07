@@ -1033,6 +1033,9 @@
             "fast_mode": {
               "type": "boolean"
             },
+            "gateway_setup_wizard": {
+              "type": "boolean"
+            },
             "gcp_setup_wizard": {
               "type": "boolean"
             },
@@ -1160,6 +1163,9 @@
               "type": "boolean"
             },
             "mcp_connection_sharing": {
+              "type": "boolean"
+            },
+            "mcp_lazy_stdio_startup": {
               "type": "boolean"
             },
             "mcp_oauth_refresh_coordination": {
@@ -8056,6 +8062,9 @@
         "fast_mode": {
           "type": "boolean"
         },
+        "gateway_setup_wizard": {
+          "type": "boolean"
+        },
         "gcp_setup_wizard": {
           "type": "boolean"
         },
@@ -8183,6 +8192,9 @@
           "type": "boolean"
         },
         "mcp_connection_sharing": {
+          "type": "boolean"
+        },
+        "mcp_lazy_stdio_startup": {
           "type": "boolean"
         },
         "mcp_oauth_refresh_coordination": {
