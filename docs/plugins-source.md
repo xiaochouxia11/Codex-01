@@ -1,8 +1,8 @@
 # openai/plugins 同步记录
 
 - 上游：https://github.com/openai/plugins
-- 上游提交：b767f8fa3be1a22b093127dd59956c91ecffca9d
-- 上游 tree：e880337f1613a9523ab1e91d22b1d6516d7a3ede
+- 上游提交：d420d13051bffe4543ed39e30fa46b87148e47dd
+- 上游 tree：33352737bab93e2c60614ea974cfe049d1425c5e
 - 目录：upstream/plugins/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
