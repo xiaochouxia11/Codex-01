@@ -28,6 +28,10 @@ then read the onboarding guide below.
 
 ## Start Here
 
+- **Selecting a regional control-plane endpoint?** Use
+  `--control-plane.residency`, `CONTROL_PLANE_RESIDENCY`, or YAML
+  `control_plane.residency`. See the [endpoint catalog and mTLS settings](docs/configuration.md#residency-endpoint-selection).
+  Endpoint selection is independent of regional Tunnel service availability.
 - **Need the shortest working path from localhost or a private MCP server to
   ChatGPT or Codex?** Start with [`docs/onboarding.md`](docs/onboarding.md).
 - **Need the customer-shareable network and trust-boundary story?** Read
@@ -266,7 +270,8 @@ after the MCP server is available; the process can remain alive with its
 startup probe failed. After a server restart, check readiness and logs;
 existing MCP sessions may need to be initialized again. For a stdio target,
 the runtime owns the MCP child. Do not assume interrupted tool calls are
-replayed.
+replayed. See [Supervising startup](docs/health.md#supervising-startup) for
+interpreting process liveness, OAuth discovery, readiness, and polling state.
 
 ## For Codex / Copilot
 
@@ -817,11 +822,11 @@ plugin installed by `tunnel-client codex plugin install`.
   mismatch diagnostics preserved in logs/state.
 - It exposes an **admin/health server** (`/healthz`, `/readyz`, `/metrics`) and
   a lightweight **admin UI** (`/ui`) for operational status.
-- Local `GET /health?details=true` and `GET /health/mcp` expose bounded
-  observations of legacy initialize and modern `server/discover` MCP discovery,
-  polling, response delivery, queues, and active work. Plain `/health` stays
-  compact unless `--health.show-details=true` is set (default false). See the
-  [health reference](docs/health.md) for examples,
+- Local `GET /health?details=true`, `GET /health/mcp`, and `GET /health/oauth`
+  expose bounded observations of legacy initialize and modern `server/discover`
+  MCP discovery, OAuth startup probes, polling, response delivery, queues, and
+  active work. Plain `/health` stays compact unless `--health.show-details=true`
+  is set (default false). See the [health reference](docs/health.md) for examples,
   Unix sockets, and the difference between readiness and observed discovery.
 - The admin UI Overview reports the process-scoped `client_instance_id`,
   channel availability, and reasons when channels are disabled.
