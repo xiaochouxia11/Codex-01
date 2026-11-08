@@ -5368,6 +5368,7 @@
             "global": {
               "change_host": null,
               "clear_terminal": null,
+              "close_sidebar_tab": null,
               "copy": null,
               "equalize_pane_widths": null,
               "find_transcript": null,
@@ -5389,6 +5390,8 @@
               "queue": null,
               "resize_panes": null,
               "select_transcript": null,
+              "sidebar_down": null,
+              "sidebar_up": null,
               "submit": null,
               "toggle_fast_mode": null,
               "toggle_pane_zoom": null,
@@ -6197,6 +6200,14 @@
           ],
           "description": "Clear the terminal UI."
         },
+        "close_sidebar_tab": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/KeybindingsSpec"
+            }
+          ],
+          "description": "Close the active sidebar tab."
+        },
         "copy": {
           "allOf": [
             {
@@ -6364,6 +6375,22 @@
             }
           ],
           "description": "Enter keyboard selection mode for the transcript."
+        },
+        "sidebar_down": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/KeybindingsSpec"
+            }
+          ],
+          "description": "Switch to the next sidebar tab."
+        },
+        "sidebar_up": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/KeybindingsSpec"
+            }
+          ],
+          "description": "Switch to the previous sidebar tab."
         },
         "submit": {
           "allOf": [
@@ -6535,6 +6562,7 @@
           "default": {
             "change_host": null,
             "clear_terminal": null,
+            "close_sidebar_tab": null,
             "copy": null,
             "equalize_pane_widths": null,
             "find_transcript": null,
@@ -6556,6 +6584,8 @@
             "queue": null,
             "resize_panes": null,
             "select_transcript": null,
+            "sidebar_down": null,
+            "sidebar_up": null,
             "submit": null,
             "toggle_fast_mode": null,
             "toggle_pane_zoom": null,
