@@ -48,11 +48,14 @@ from agents import (
     OpenAIProvider,
     RunConfig,
     Runner,
+    RunState,
+    TResponseInputItem,
     __version__,
     function_tool,
     generation_span,
     trace,
 )
+from agents.decorators import tool
 from agents.exceptions import ModelBehaviorError, UserError
 from agents.models._retry_runtime import provider_managed_retries_disabled
 from agents.models.chatcmpl_helpers import HEADERS_OVERRIDE, ChatCmplHelpers
@@ -75,6 +78,55 @@ def _minimal_chat_completion(content: str = "ok") -> ChatCompletion:
             )
         ],
     )
+
+
+@pytest.mark.allow_call_model_methods
+@pytest.mark.parametrize("include_data", [True, False])
+async def test_runner_traces_offered_tools_when_enabled(include_data: bool) -> None:
+    # Capture the HTTP body to compare the processor's view with the actual adapter request.
+    requests: list[dict[str, Any]] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        requests.append(json.loads(request.content))
+        return httpx2.Response(200, json=_minimal_chat_completion().model_dump())
+
+    @tool
+    def lookup_inventory(sku: str) -> str:
+        """Look up a product by SKU."""
+        return "available"
+
+    async with AsyncOpenAI(
+        api_key="test-placeholder",
+        base_url="https://provider.example/v1",
+        http_client=httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
+    ) as client:
+        agent = Agent(
+            name="test",
+            model=OpenAIChatCompletionsModel("fake", client),
+            tools=[lookup_inventory],
+            handoffs=[Agent(name="support")],
+        )
+        result = await Runner.run(
+            agent, "hi", run_config=RunConfig(trace_include_sensitive_data=include_data)
+        )
+
+    assert result.final_output == "ok"
+    (request,) = requests
+    offered = request["tools"]
+    assert [entry["function"]["name"] for entry in offered] == [
+        "lookup_inventory",
+        "transfer_to_support",
+    ]
+    assert "sku" in offered[0]["function"]["parameters"]["properties"]
+    (generation,) = [span for span in fetch_ordered_spans() if span.span_data.type == "generation"]
+    exported = generation.export()
+    assert exported is not None
+    if include_data:
+        assert generation.span_data.tools == offered
+        assert exported["span_data"]["tools"] == offered
+    else:
+        assert generation.span_data.tools is None
+        assert "tools" not in exported["span_data"]
 
 
 @pytest.mark.allow_call_model_methods
@@ -168,6 +220,60 @@ async def test_runner_replays_openai_conversation_assistant_history(
         {"role": "user", "content": "What is my name?"},
     ]
     assert history[1]["id"] == "msg_assistant"
+
+
+@pytest.mark.allow_call_model_methods
+@pytest.mark.asyncio
+async def test_runner_replays_checkpoint_assistant_text() -> None:
+    requests: list[list[dict[str, Any]]] = []
+
+    @function_tool(needs_approval=True)
+    def record_receipt() -> str:
+        return "Recorded."
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        requests.append(json.loads(request.content)["messages"])
+        completion = _minimal_chat_completion("Done.")
+        if len(requests) == 1:
+            completion.choices[0].message = ChatCompletionMessage(
+                role="assistant",
+                tool_calls=[
+                    ChatCompletionMessageFunctionToolCall(
+                        id="call_1",
+                        type="function",
+                        function=Function(name="record_receipt", arguments="{}"),
+                    )
+                ],
+            )
+            completion.choices[0].finish_reason = "tool_calls"
+        return httpx2.Response(200, json=completion.model_dump())
+
+    async with AsyncOpenAI(
+        api_key="test-placeholder",
+        http_client=httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
+    ) as client:
+        agent = Agent(
+            name="test", model=OpenAIChatCompletionsModel("fake", client), tools=[record_receipt]
+        )
+        history: list[TResponseInputItem] = [
+            {"role": "user", "content": "Record a receipt."},
+            {"role": "assistant", "content": "I will record it."},
+        ]
+        config = RunConfig(tracing_disabled=True)
+        paused = await Runner.run(agent, history, run_config=config)
+        original = paused.to_state()
+        restored = await RunState.from_string(agent, original.to_string())
+
+        for state in (original, restored):
+            state.approve(state.get_interruptions()[0])
+            result = await Runner.run(agent, state, run_config=config)
+            assert result.final_output == "Done."
+
+    initial, in_memory, round_trip = requests
+    assert in_memory[:2] == initial == history
+    assert in_memory[2]["tool_calls"][0]["id"] == "call_1"
+    assert in_memory[3]["tool_call_id"] == "call_1"
+    assert round_trip == in_memory
 
 
 async def _run_chat_completions_model_with_custom_base_url(

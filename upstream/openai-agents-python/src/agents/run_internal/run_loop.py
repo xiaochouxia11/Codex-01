@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses as _dc
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import aclosing
 from functools import partial
 from typing import Any, TypeVar, cast
@@ -56,6 +56,7 @@ from ..items import (
     RunItem,
     ToolApprovalItem,
     TResponseInputItem,
+    TResponseStreamEvent,
 )
 from ..lifecycle import RunHooks
 from ..logger import (
@@ -153,6 +154,7 @@ from .items import (
     run_items_to_input_items,
 )
 from .model_retry import (
+    _StreamAttemptSkipped,
     apply_retry_attempt_usage,
     get_response_with_retry,
     stream_response_with_retry,
@@ -1578,19 +1580,15 @@ async def start_streaming(
                         current_agent.model_settings.resolve(run_config.model_settings).store,
                     )
 
-                    if (
-                        not isinstance(turn_result.next_step, NextStepRunAgain)
-                        or turn_result.has_recovered_tool_outputs
-                    ):
-                        _accumulate_tool_guardrail_results(
-                            streamed_result,
-                            turn_result,
-                            accepted_input_results=accepted_tool_input_guardrail_results,
-                            accepted_output_results=accepted_tool_output_guardrail_results,
-                            publish_output_results=not isinstance(
-                                turn_result.next_step, NextStepFinalOutput
-                            ),
-                        )
+                    _accumulate_tool_guardrail_results(
+                        streamed_result,
+                        turn_result,
+                        accepted_input_results=accepted_tool_input_guardrail_results,
+                        accepted_output_results=accepted_tool_output_guardrail_results,
+                        publish_output_results=not isinstance(
+                            turn_result.next_step, NextStepFinalOutput
+                        ),
+                    )
 
                     if isinstance(turn_result.next_step, NextStepInterruption):
                         if run_state is not None:
@@ -2620,8 +2618,12 @@ async def run_single_turn_streamed(
     compaction_input_digests = prepare_compaction_model_input(
         session, context_wrapper, filtered.input
     )
-    retry_stream = stream_response_with_retry(
-        get_stream=lambda: model.stream_response(
+
+    def get_model_stream() -> AsyncIterator[TResponseStreamEvent]:
+        tripwire = streamed_result._triggered_input_guardrail_result
+        if tripwire is not None:
+            raise _StreamAttemptSkipped(InputGuardrailTripwireTriggered(tripwire))
+        return model.stream_response(
             filtered.instructions,
             filtered.input,
             model_settings,
@@ -2634,7 +2636,10 @@ async def run_single_turn_streamed(
             previous_response_id=previous_response_id,
             conversation_id=conversation_id,
             prompt=prompt_config,
-        ),
+        )
+
+    retry_stream = stream_response_with_retry(
+        get_stream=get_model_stream,
         rewind=rewind_model_request,
         retry_settings=model_settings.retry,
         get_retry_advice=model.get_retry_advice,
