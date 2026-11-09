@@ -1,8 +1,8 @@
 # openai/openai-agents-js 同步记录
 
 - 上游：https://github.com/openai/openai-agents-js
-- 上游提交：252236c32d30010ef974db77395e19dfb03bbeff
-- 上游 tree：9a3c29c60ec34beee27a66df6b83f4dce75cacde
+- 上游提交：4bca54fb2adca94291d5bc59614ac4039fa1039f
+- 上游 tree：c43ed884e7d1440adb2b8ee4dda7adc91c90246b
 - 目录：upstream/openai-agents-js/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
