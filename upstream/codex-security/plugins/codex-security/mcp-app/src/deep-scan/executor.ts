@@ -1,8 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
-  accessSync,
   type BigIntStats,
-  constants as fsConstants,
   existsSync,
   promises as fs,
   readdirSync,
@@ -32,7 +30,12 @@ import {
   preflightProviderDefinitions,
   profileConfigOverrides,
 } from "../../../scripts/codex_profile.mjs";
-import { executablePathForSpawn } from "../executable-path.js";
+import { DEEP_SCAN_SETTINGS } from "../deep-scan-settings.js";
+import {
+  configuredExecutableValue,
+  executablePathForSpawn,
+  isExecutableFile,
+} from "../executable-path.js";
 import { writePrivateFile } from "./artifacts.js";
 import { workerTokenUsage } from "./usage-receipt.js";
 import {
@@ -179,6 +182,8 @@ export class CodexSdkWorkerExecutor implements CodexWorkerExecutor {
         }
         childEnv[name] = value;
       }
+      if (parentSandbox.pluginReadRoot !== undefined)
+        childEnv.CODEX_SECURITY_PLUGIN_ROOT = parentSandbox.pluginReadRoot;
       if (deepConfigFile !== undefined) {
         const config = this.modelSettings.deepScanConfig!;
         // The saved run owns these limits, including after a coordinator restart.
@@ -186,16 +191,11 @@ export class CodexSdkWorkerExecutor implements CodexWorkerExecutor {
         await writePrivateFile(
           deepConfigFile,
           stringifyToml({
-            deep_scan: {
-              workers: config.workers,
-              subagents: config.subagents,
-              stop_after_no_new: config.stopAfterNoNew,
-              stop_after_consecutive_errors: config.stopAfterConsecutiveErrors,
-              max_discovery_runs: config.maxDiscoveryRuns,
-              ...(config.maxTimeHours === undefined
-                ? {}
-                : { max_time_hours: config.maxTimeHours }),
-            },
+            deep_scan: Object.fromEntries(
+              DEEP_SCAN_SETTINGS.filter(
+                ([name]) => config[name] !== undefined,
+              ).map(([name, key]) => [key, config[name]]),
+            ),
           }),
         );
         for (const name of Object.keys(childEnv)) {
@@ -609,10 +609,11 @@ function workerPermissionProfile(
   const literalDenies = sandbox.literalFilesystemDenies ?? [];
   const filesystem = new Map<string, string | Record<string, string>>([
     [":root", "read"],
-    ...[...sandbox.filesystemDenies, ...literalDenies].map(
-      (key): [string, string] => [key, "deny"],
-    ),
   ]);
+  if (sandbox.pluginReadRoot !== undefined)
+    filesystem.set(sandbox.pluginReadRoot, { ".": "read" });
+  for (const path of [...sandbox.filesystemDenies, ...literalDenies])
+    filesystem.set(path, "deny");
   const pointDenies = literalDenies.filter((path) => /[*?[\]]/u.test(path));
   // Bubblewrap cannot mount a second mask inside a directory it already hid.
   if (
@@ -1054,11 +1055,12 @@ export function resolveCodexPath(
   originalCwd: string = process.cwd(),
 ): string {
   const searchPath = searchPathForPlatform(env, platform);
-  const configured = environmentVariable(
-    env,
-    "CODEX_CLI_PATH",
+  const configured = configuredExecutableValue(
+    environmentVariable(env, "CODEX_CLI_PATH", platform),
     platform,
-  )?.trim();
+    (value) =>
+      isExecutableFile(absoluteCodexPath(value, platform, originalCwd)),
+  );
   if (configured && (platform !== "win32" || !isWindowsAppsPath(configured))) {
     if (isBareCommandName(configured)) {
       const executableName =
@@ -1255,16 +1257,6 @@ function resolveWindowsCachedBinary(
     return undefined;
   }
   return selected?.path;
-}
-
-function isExecutableFile(value: string): boolean {
-  try {
-    if (!statSync(value).isFile()) return false;
-    accessSync(value, fsConstants.X_OK);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function absoluteCodexPath(

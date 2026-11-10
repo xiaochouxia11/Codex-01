@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import uuid
@@ -133,8 +135,6 @@ def _start_scan(tmp_path: Path, *, mode: str = "standard") -> ScanFixture:
             "scan-parent",
             "--scan-id",
             str(started["scanId"]),
-            "--available-parallelism",
-            "4",
             environment=environment,
         )
     with sqlite3.connect(state_dir / "workbench.sqlite3") as connection:
@@ -1399,11 +1399,15 @@ def test_missing_usage_preserves_measured_parent_or_descendant(
 
 @pytest.mark.native_macos
 @pytest.mark.skipif(sys.platform != "darwin", reason="macOS system path aliases")
-@pytest.mark.parametrize("temporary_root", [tempfile.gettempdir(), "/tmp"], ids=["var", "tmp"])
+@pytest.mark.parametrize("temporary_root", [None, "/tmp"], ids=["var", "tmp"])
 def test_completion_accepts_macos_system_rollout_alias(
     tmp_path: Path,
-    temporary_root: str,
+    temporary_root: str | None,
 ) -> None:
+    if temporary_root is None:
+        temporary_root = subprocess.check_output(
+            ["getconf", "DARWIN_USER_TEMP_DIR"], text=True
+        ).strip()
     fixture = _start_scan(tmp_path)
     counted = fixture.started_at + timedelta(microseconds=1)
     with tempfile.TemporaryDirectory(dir=temporary_root) as directory:
@@ -3155,11 +3159,21 @@ def test_cancel_scan_retains_runtime_usage_on_repeated_cancellation(tmp_path: Pa
 
 
 @pytest.mark.parametrize(
-    ("worker_kind", "legacy_archive"),
-    [("discovery", False), ("discovery", True), ("dedup", False)],
+    ("worker_kind", "legacy_archive", "short_archive"),
+    [
+        ("discovery", False, False),
+        ("discovery", True, False),
+        ("dedup", False, False),
+        pytest.param(
+            "discovery",
+            True,
+            True,
+            marks=pytest.mark.skipif(sys.platform == "win32", reason="POSIX archive naming"),
+        ),
+    ],
 )
 def test_completion_recovers_replaced_deep_worker_threads(
-    tmp_path: Path, worker_kind: str, legacy_archive: bool
+    tmp_path: Path, worker_kind: str, legacy_archive: bool, short_archive: bool
 ) -> None:
     # Compressed variants exercise the bundled Node decoder in the SDK runtime lane.
     fixture = _start_scan(tmp_path, mode="deep")
@@ -3304,6 +3318,13 @@ def test_completion_recovers_replaced_deep_worker_threads(
             "threadCount": 5,
         }.items()
     )
+    archived_arguments = []
+    if short_archive:
+        digest = hashlib.sha256(fixture.scan_dir.name.encode()).hexdigest()
+        archived = fixture.scan_dir.with_name(f".previous-{digest}-fixture")
+        fixture.scan_dir.rename(archived)
+        fixture.scan_dir.mkdir(mode=0o700)
+        archived_arguments = ["--archived-scan-dir", str(archived)]
     run_workbench(
         fixture.state_dir,
         "register-cli-scan",
@@ -3312,6 +3333,7 @@ def test_completion_recovers_replaced_deep_worker_threads(
         "--scan-dir",
         str(fixture.scan_dir),
         "--archive-existing",
+        *archived_arguments,
         "--recipe-json",
         json.dumps(
             {
