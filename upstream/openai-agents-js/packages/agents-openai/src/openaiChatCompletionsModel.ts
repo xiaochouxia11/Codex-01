@@ -1,5 +1,7 @@
+import { isOfficialOpenAIEndpoint } from './utils/openaiEndpoint';
 import {
   Model,
+  NoopSpan,
   Usage,
   UserError,
   withGenerationSpan,
@@ -50,9 +52,9 @@ import {
 } from '@openai/agents-core/utils/internal';
 import { FAKE_ID } from './openaiItemIds';
 import {
-  createTruncatedEmptyChatCompletionError,
+  createChatCompletionTruncationError,
   isTruncatedEmptyChatCompletion,
-  isTruncatedEmptyChatCompletionError,
+  isChatCompletionTruncationError,
 } from './openaiChatCompletionsTruncation';
 
 export { FAKE_ID };
@@ -160,7 +162,17 @@ export class OpenAIChatCompletionsModel implements Model {
                 verbosity: request.modelSettings.text?.verbosity,
               }
             : { base_url: this.#client.baseURL };
-          const rawResponse = await this.#fetchResponse(request, span, false);
+          const rawResponse = await this.#fetchResponse(
+            request,
+            span,
+            false,
+          ).catch((error: unknown) => {
+            if (request.tracing !== true) {
+              // Provider and conversion errors may echo the submitted schemas.
+              span.setError({ message: 'Error requesting response' });
+            }
+            throw error;
+          });
           const rawUsage =
             request.modelSettings.preserveRawUsage === true
               ? snapshotRawUsage(rawResponse.usage)
@@ -234,7 +246,7 @@ export class OpenAIChatCompletionsModel implements Model {
               ),
             })
           ) {
-            const error = createTruncatedEmptyChatCompletionError();
+            const error = createChatCompletionTruncationError();
             const failureUsage = toResponseUsage(
               response.usage ?? {
                 prompt_tokens: 0,
@@ -422,6 +434,11 @@ export class OpenAIChatCompletionsModel implements Model {
         response,
         stream,
         {
+          requireFinishReason: isOfficialOpenAIEndpoint(
+            this.#client.baseURL,
+            'http',
+          ),
+          signal: request.signal,
           strictFeatureValidation: this.#strictFeatureValidation,
           ...(request.modelSettings.preserveRawUsage === true
             ? { preserveRawUsage: true }
@@ -459,7 +476,7 @@ export class OpenAIChatCompletionsModel implements Model {
       }
     } catch (error) {
       const truncatedResponse =
-        response !== undefined && isTruncatedEmptyChatCompletionError(error)
+        response !== undefined && isChatCompletionTruncationError(error)
           ? response
           : undefined;
       if (truncatedResponse) {
@@ -740,6 +757,19 @@ export class OpenAIChatCompletionsModel implements Model {
       ...providerData,
     };
 
+    // These Chat Completions models require non-reasoning mode for function tools.
+    if (
+      (requestData.model === 'gpt-6-sol' ||
+        requestData.model === 'gpt-6-luna') &&
+      requestData.tools === tools &&
+      (requestInternal?.reasoningEffortImplicit ??
+        request.modelSettings.reasoning?.effort === undefined) &&
+      request.modelSettings.providerData?.reasoning_effort === undefined &&
+      isOfficialOpenAIEndpoint(this.#client.baseURL, 'http')
+    ) {
+      requestData.reasoning_effort = 'none';
+    }
+
     if (!requestData.tools?.length) {
       delete requestData.parallel_tool_calls;
     }
@@ -772,6 +802,21 @@ export class OpenAIChatCompletionsModel implements Model {
       )._internal?.runnerManagedRetry === true
     ) {
       requestOptions.maxRetries = 0;
+    }
+
+    if (
+      request.tracing === true &&
+      span &&
+      !(span instanceof NoopSpan) &&
+      Array.isArray(requestData.tools) &&
+      requestData.tools.length > 0
+    ) {
+      try {
+        // A compatible client may rewrite nested request schemas during dispatch.
+        span.spanData.tools = structuredClone(requestData.tools);
+      } catch {
+        // A provider-specific value that cannot be copied must not prevent dispatch.
+      }
     }
 
     const completionPromise = this.#client.chat.completions.create(

@@ -36,6 +36,7 @@ import { nextStepSchema, NextStep } from './runner/steps';
 import { createToolRunFunction, type ProcessedResponse } from './runner/types';
 import {
   getCurrentResponseToolOutputGuardrailResultStart,
+  needsNestedApprovalOwnership,
   hasBlockedOutputExecutionEffect,
   hasDeterministicTerminalToolOutputSource,
   hasPendingApprovedToolInputCompaction,
@@ -191,7 +192,8 @@ import {
  * - 1.22: Records hosted MCP namespace discovery provenance. Older namespace-only
  *   search outputs require rediscovery; explicit MCP descriptors remain usable.
  * - 1.23: Preserves nested numeric token usage breakdowns.
- * - 1.24: Preserves arbitrary JSON token usage metadata.
+ * - 1.24: Preserves arbitrary JSON token usage metadata, child-owned approval slots,
+ *   and completion evidence for handoff failures returned to the source agent.
  *   Adds sandbox session-state envelope version 6 so client-owned
  *   unresolved environment references cannot be consumed by older SDKs that
  *   would resolve them in the runner process.
@@ -996,6 +998,15 @@ function validateCurrentApprovalInvocationRecords(
   }
 }
 
+function isRecoveredHandoffEvidence(
+  evidence: ToolInvocationCompletionEvidence,
+): boolean {
+  return (
+    evidence.items[0] instanceof RunHandoffCallItem &&
+    evidence.items[1] instanceof RunToolCallOutputItem
+  );
+}
+
 function validateToolInvocationCompletionEvidence(
   agent: Agent<any, any>,
   callId: string,
@@ -1014,8 +1025,13 @@ function validateToolInvocationCompletionEvidence(
     evidenceCallId = toolCall.callId;
     correlated =
       callItem.agent === agent &&
-      outputItem instanceof RunHandoffOutputItem &&
-      outputItem.sourceAgent === agent &&
+      ((outputItem instanceof RunHandoffOutputItem &&
+        outputItem.sourceAgent === agent) ||
+        (outputItem instanceof RunToolCallOutputItem &&
+          outputItem.agent === agent &&
+          outputItem.executionStatus === 'executed' &&
+          outputItem.rawItem.type === 'function_call_result' &&
+          outputItem.rawItem.status === 'completed')) &&
       toolResultMatchesCall(toolCall, outputItem.rawItem);
   } else if (
     callItem instanceof RunToolCallItem ||
@@ -1198,6 +1214,7 @@ function validateGeneratedHistoryForCompletionEvidence(
 function validateCurrentCompletedToolInvocations(
   state: RunState<any, Agent<any, any>>,
   generatedItems: readonly RunItem[],
+  schemaVersion: SupportedSchemaVersion,
 ): void {
   const serializedCompleted = state._completedToolInvocations;
   const inferred = inferCompletedToolInvocations(generatedItems);
@@ -1205,6 +1222,14 @@ function validateCurrentCompletedToolInvocations(
   const evidenceCompleted = new Map<Agent<any, any>, Map<string, string>>();
   for (const [agent, invocations] of state._completedToolInvocationEvidence) {
     for (const [callId, evidence] of invocations) {
+      if (
+        schemaVersion !== CURRENT_SCHEMA_VERSION &&
+        isRecoveredHandoffEvidence(evidence)
+      ) {
+        throw new UserError(
+          `Run state schema version ${schemaVersion} does not support recovered handoff evidence.`,
+        );
+      }
       validateGeneratedHistoryForCompletionEvidence(
         generatedItems,
         agent,
@@ -1825,7 +1850,9 @@ const currentResponseGeneratedItemOwnershipSchema = z
   .object({
     generatedItemStartIndex: z.number().int().min(0),
     generatedItemEndIndexExclusive: z.number().int().min(0),
-    interruptionGeneratedItemIndexes: z.array(z.number().int().min(0)),
+    interruptionGeneratedItemIndexes: z.array(
+      z.number().int().min(0).nullable(),
+    ),
     toolOutputGuardrailResultStartIndex: z.number().int().min(0),
   })
   .strict();
@@ -2068,6 +2095,28 @@ function findUniqueContiguousIdentityStart(
   return match;
 }
 
+function responseOwnsFunctionCall(
+  response: Pick<ModelResponse, 'output'> | undefined,
+  call: protocol.FunctionCallItem,
+): boolean {
+  const matches = response?.output.filter(
+    (item): item is protocol.FunctionCallItem =>
+      item.type === 'function_call' && item.callId === call.callId,
+  );
+  if (matches?.length !== 1) return false;
+  const candidate = matches[0];
+  return (
+    getToolInvocationFingerprint(
+      getFunctionToolStateKeyForCall(candidate) ?? candidate.name,
+      candidate,
+    ) ===
+    getToolInvocationFingerprint(
+      getFunctionToolStateKeyForCall(call) ?? call.name,
+      call,
+    )
+  );
+}
+
 function captureCurrentResponseGeneratedItemOwnership(
   state: RunState<any, any>,
 ): CurrentResponseGeneratedItemOwnership | undefined {
@@ -2087,7 +2136,9 @@ function captureCurrentResponseGeneratedItemOwnership(
     return undefined;
   }
   const processedEndIndex = generatedItemStartIndex + processedItems.length;
-  const interruptionGeneratedItemIndexes: number[] = [];
+  const interruptionGeneratedItemIndexes: (number | null)[] = [];
+  let previousParentIndex = processedEndIndex - 1;
+  let captureNestedOwnership: boolean | undefined;
   for (const interruption of interruptions) {
     const matchingIndexes = state._generatedItems.flatMap((item, index) => {
       if (index < processedEndIndex) {
@@ -2122,20 +2173,24 @@ function captureCurrentResponseGeneratedItemOwnership(
       }
     });
     if (
+      matchingIndexes.length === 0 &&
+      (captureNestedOwnership ??= needsNestedApprovalOwnership(
+        state,
+        generatedItemStartIndex,
+      )) &&
+      state._ownsNestedApproval(interruption, interruptions)
+    ) {
+      interruptionGeneratedItemIndexes.push(null);
+      continue;
+    }
+    if (
       matchingIndexes.length !== 1 ||
-      matchingIndexes[0] < processedEndIndex
+      matchingIndexes[0] <= previousParentIndex
     ) {
       return undefined;
     }
-    interruptionGeneratedItemIndexes.push(matchingIndexes[0]);
-  }
-  if (
-    interruptionGeneratedItemIndexes.some(
-      (index, offset) =>
-        offset > 0 && index <= interruptionGeneratedItemIndexes[offset - 1],
-    )
-  ) {
-    return undefined;
+    previousParentIndex = matchingIndexes[0];
+    interruptionGeneratedItemIndexes.push(previousParentIndex);
   }
   const lastModelResponseIndex = state._modelResponses.lastIndexOf(
     state._lastTurnResponse!,
@@ -2228,6 +2283,7 @@ function validateCurrentResponseGeneratedItemOwnership(
     }
   }
   const interruptionIndexes = new Set<number>();
+  let previousParentIndex = processedEnd - 1;
   for (const [
     offset,
     interruptionIndex,
@@ -2235,6 +2291,18 @@ function validateCurrentResponseGeneratedItemOwnership(
     const parsedInterruption = itemSchema.safeParse(
       serializedInterruptions[offset],
     );
+    if (interruptionIndex === null) {
+      if (
+        stateJson.$schemaVersion !== CURRENT_SCHEMA_VERSION ||
+        !parsedInterruption.success ||
+        parsedInterruption.data.type !== 'tool_approval_item' ||
+        parsedInterruption.data.rawItem.type !== 'function_call'
+      ) {
+        throwCurrentResponseOwnershipError('invalid child approval');
+      }
+      // The pending invocation is checked against the configured asTool source after rehydration.
+      continue;
+    }
     const mismatch = !serializedValuesEqual(
       parsedInterruption.success ? parsedInterruption.data : undefined,
       stateJson.generatedItems[interruptionIndex],
@@ -2242,18 +2310,15 @@ function validateCurrentResponseGeneratedItemOwnership(
     if (
       !parsedInterruption.success ||
       parsedInterruption.data.type !== 'tool_approval_item' ||
-      interruptionIndexes.has(interruptionIndex) ||
-      interruptionIndex < processedEnd ||
+      interruptionIndex <= previousParentIndex ||
       interruptionIndex >= generatedEnd ||
-      (offset > 0 &&
-        interruptionIndex <=
-          ownership.interruptionGeneratedItemIndexes[offset - 1]) ||
       mismatch
     ) {
       throwCurrentResponseOwnershipError(
         mismatch ? 'interruption content mismatch' : 'interruption index error',
       );
     }
+    previousParentIndex = interruptionIndex;
     interruptionIndexes.add(interruptionIndex);
   }
   const unownedApproval = stateJson.generatedItems
@@ -3142,6 +3207,86 @@ export class RunState<TContext, TAgent extends Agent<any, any>> {
       : [];
   }
 
+  /** @internal Proves a propagated approval belongs to exactly one pending child invocation. */
+  _ownsNestedApproval(
+    interruption: RunToolApprovalItem,
+    interruptions: readonly RunToolApprovalItem[],
+  ): boolean {
+    const { agent, rawItem } = interruption;
+    if (
+      agent === this._currentAgent ||
+      rawItem.type !== 'function_call' ||
+      interruptions.filter(
+        (item) =>
+          item.agent === agent &&
+          getToolInvocationCallId(item.rawItem) === rawItem.callId,
+      ).length !== 1
+    ) {
+      return false;
+    }
+    // Child snapshots use identities relative to their own starting agent.
+    // An asTool source is the root of its own identity map, including when names collide.
+    const expected = itemSchema.safeParse({
+      ...interruption.toJSON(),
+      agent: { name: agent.name },
+    });
+    if (!expected.success) return false;
+    let found = false;
+    for (const run of this._lastProcessedResponse?.functions ?? []) {
+      if (getAgentToolSourceAgent(run.tool) !== agent) continue;
+      const [key] = getFunctionToolStateKeys(
+        run.tool,
+        run.availableFunctionTools ?? [run.tool],
+      );
+      if (!key) continue;
+      const pending = this.getPendingAgentToolRun(key, run.toolCall.callId);
+      if (!pending) continue;
+      try {
+        const child = SerializedRunState.parse(JSON.parse(pending));
+        if (
+          child.currentStep?.type !== 'next_step_interruption' ||
+          !Array.isArray(child.currentStep.data?.interruptions)
+        )
+          return false;
+        for (const [
+          offset,
+          entry,
+        ] of child.currentStep.data.interruptions.entries()) {
+          const candidate = itemSchema.parse(entry);
+          if (
+            candidate.type !== 'tool_approval_item' ||
+            candidate.rawItem.type !== 'function_call' ||
+            candidate.rawItem.callId !== rawItem.callId
+          )
+            continue;
+          if (
+            found ||
+            !serializedValuesEqual(candidate, expected.data) ||
+            !serializedValuesEqual(candidate.agent, child.currentAgent) ||
+            !responseOwnsFunctionCall(this._lastTurnResponse, run.toolCall) ||
+            !responseOwnsFunctionCall(child.lastModelResponse, rawItem)
+          )
+            return false;
+          const ownership = child.currentResponseGeneratedItemOwnership;
+          if (
+            !ownership ||
+            typeof ownership.interruptionGeneratedItemIndexes[offset] !==
+              'number'
+          )
+            return false;
+          assertSchemaVersionSupportsCurrentResponseGeneratedItemOwnership(
+            child.$schemaVersion,
+            child,
+          );
+          found = true;
+        }
+      } catch {
+        return false;
+      }
+    }
+    return found;
+  }
+
   private getPendingAgentToolRunKey(toolName: string, callId: string): string {
     return `${toolName}:${callId}`;
   }
@@ -3322,9 +3467,11 @@ export class RunState<TContext, TAgent extends Agent<any, any>> {
         }
       }
     }
+    let hasRecoveredHandoff = false;
     for (const [agent, invocations] of completedToolInvocationEvidence) {
       const completedByAgent = completedToolInvocations.get(agent);
       for (const [callId, evidence] of invocations) {
+        hasRecoveredHandoff ||= isRecoveredHandoffEvidence(evidence);
         validateGeneratedHistoryForCompletionEvidence(
           this._generatedItems,
           agent,
@@ -3554,6 +3701,10 @@ export class RunState<TContext, TAgent extends Agent<any, any>> {
         ),
       ].every((envelope) => envelope.version <= 5);
     if (
+      !hasRecoveredHandoff &&
+      !state.currentResponseGeneratedItemOwnership?.interruptionGeneratedItemIndexes.includes(
+        null,
+      ) &&
       usages.every(usageSupportsV123) &&
       nestedRunsSupportV123 &&
       sandboxSupportsV123
@@ -4270,7 +4421,12 @@ function getPendingDeclarativeTerminalCandidate(
   const completionEvidence = callId
     ? completedInvocations?.get(callId)
     : undefined;
-  if (!callId || !completionEvidence || completionEvidence.items[1] !== item) {
+  if (
+    !callId ||
+    !completionEvidence ||
+    completionEvidence.items[0] instanceof RunHandoffCallItem ||
+    completionEvidence.items[1] !== item
+  ) {
     return undefined;
   }
   return { callId, completionEvidence, outputItem: item };
@@ -5793,20 +5949,31 @@ function restoreCurrentResponseProcessedOwnership(
   restoreCurrentResponseToolOutputGuardrailResultStart(
     state,
     ownership.toolOutputGuardrailResultStartIndex,
+    ownership.interruptionGeneratedItemIndexes.includes(null),
   );
 }
 
 function restoreCurrentResponseInterruptionOwnership(
   stateJson: z.infer<typeof SerializedRunState>,
-  generatedItems: readonly RunItem[],
+  state: RunState<any, any>,
   interruptions: RunToolApprovalItem[],
 ): RunToolApprovalItem[] {
   const ownership = stateJson.currentResponseGeneratedItemOwnership;
   if (!ownership) {
     return interruptions;
   }
-  return ownership.interruptionGeneratedItemIndexes.map((index) => {
-    const interruption = generatedItems[index];
+  return ownership.interruptionGeneratedItemIndexes.map((index, offset) => {
+    if (index === null) {
+      const interruption = interruptions[offset];
+      if (
+        !interruption ||
+        !state._ownsNestedApproval(interruption, interruptions)
+      ) {
+        throwCurrentResponseOwnershipError('unproven child approval');
+      }
+      return interruption;
+    }
+    const interruption = state._generatedItems[index];
     if (!(interruption instanceof RunToolApprovalItem)) {
       throwCurrentResponseOwnershipError();
     }
@@ -6004,7 +6171,11 @@ async function buildRunStateFromJson<TContext, TAgent extends Agent<any, any>>(
       )
     : new Map();
   if (schemaVersionSupportsV118State(schemaVersion)) {
-    validateCurrentCompletedToolInvocations(state, generatedItems);
+    validateCurrentCompletedToolInvocations(
+      state,
+      generatedItems,
+      schemaVersion,
+    );
   }
 
   // rebuild current agent span
@@ -6154,7 +6325,7 @@ async function buildRunStateFromJson<TContext, TAgent extends Agent<any, any>>(
   } else if (stateJson.currentStep?.type === 'next_step_interruption') {
     const interruptions = restoreCurrentResponseInterruptionOwnership(
       stateJson,
-      generatedItems,
+      state,
       deserializeInterruptions(
         stateJson.currentStep.data?.interruptions,
         agentMap,

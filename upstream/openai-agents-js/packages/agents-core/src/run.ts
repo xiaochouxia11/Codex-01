@@ -51,7 +51,7 @@ import { Usage } from './usage';
 import { convertAgentOutputTypeToSerializable } from './utils/tools';
 import { snapshotRawUsage } from './utils/rawUsage';
 import { DEFAULT_MAX_TURNS } from './runner/constants';
-import { StreamEventResponseCompleted } from './types/protocol';
+import { StreamEvent, StreamEventResponseCompleted } from './types/protocol';
 import type { Session, SessionInputCallback } from './memory/session';
 import type { SandboxRunConfig } from './sandbox/client';
 import { SandboxRuntimeManager } from './sandbox/runtime';
@@ -1142,6 +1142,17 @@ export class Runner extends RunHooks<any, AgentOutputType<unknown>> {
     );
   }
 
+  #captureResponseGuardrailBoundary(
+    state: RunState<any, any>,
+    overwrite: boolean,
+  ): void {
+    captureCurrentResponseToolOutputGuardrailResultStart(
+      state,
+      overwrite,
+      this.#agentHasOutputGuardrail(state._currentAgent),
+    );
+  }
+
   #shouldDeferInterruptedSessionItems(state: RunState<any, any>): boolean {
     return shouldDeferInterruptedSessionItems(
       state,
@@ -1659,7 +1670,7 @@ export class Runner extends RunHooks<any, AgentOutputType<unknown>> {
           };
 
           if (isAcceptedResponseCheckpoint(state)) {
-            captureCurrentResponseToolOutputGuardrailResultStart(state, false);
+            this.#captureResponseGuardrailBoundary(state, false);
             await resumeAcceptedModelResponse({
               state,
               runner: this,
@@ -1699,10 +1710,7 @@ export class Runner extends RunHooks<any, AgentOutputType<unknown>> {
               await (async () => {
                 let resumedSessionWritePreparation:
                   ResumedSessionWritePreparation | undefined;
-                captureCurrentResponseToolOutputGuardrailResultStart(
-                  state,
-                  false,
-                );
+                this.#captureResponseGuardrailBoundary(state, false);
                 const outcome = await resumeInterruptedTurn({
                   state,
                   runner: this,
@@ -2130,7 +2138,7 @@ export class Runner extends RunHooks<any, AgentOutputType<unknown>> {
 
             markAcceptedResponseProcessingStarted(state);
 
-            captureCurrentResponseToolOutputGuardrailResultStart(state, true);
+            this.#captureResponseGuardrailBoundary(state, true);
             const turnResult = await resolveTurnAfterModelResponse(
               state._currentAgent,
               state._originalInput,
@@ -2727,10 +2735,7 @@ export class Runner extends RunHooks<any, AgentOutputType<unknown>> {
         };
 
         if (isAcceptedResponseCheckpoint(result.state)) {
-          captureCurrentResponseToolOutputGuardrailResultStart(
-            result.state,
-            false,
-          );
+          this.#captureResponseGuardrailBoundary(result.state, false);
           await resumeAcceptedModelResponse({
             state: result.state,
             runner: this,
@@ -2773,10 +2778,7 @@ export class Runner extends RunHooks<any, AgentOutputType<unknown>> {
           const interruptedOutcome = await (async () => {
             let resumedSessionWritePreparation:
               ResumedSessionWritePreparation | undefined;
-            captureCurrentResponseToolOutputGuardrailResultStart(
-              result.state,
-              false,
-            );
+            this.#captureResponseGuardrailBoundary(result.state, false);
             const outcome = await resumeInterruptedTurn({
               state: result.state,
               runner: this,
@@ -3026,7 +3028,8 @@ export class Runner extends RunHooks<any, AgentOutputType<unknown>> {
             createStreamAbortReconciliationState();
           let inputMarked = false;
           let responseAcceptedCheckpointed = false;
-          let receivedStreamEvent = false;
+          let streamEventCount = 0;
+          let lastStreamEventType: StreamEvent['type'] | undefined;
           let timedOutModelCallFailed = false;
           const markServerInputAccepted = (responseAvailable = true) => {
             if (!serverConversationTracker) {
@@ -3195,7 +3198,8 @@ export class Runner extends RunHooks<any, AgentOutputType<unknown>> {
                   : {}),
               },
             )) {
-              receivedStreamEvent = true;
+              streamEventCount++;
+              lastStreamEventType = event.type;
               markServerInputAccepted(pendingInputItems.length === 0);
               await guardrailTracker.throwIfError();
               recordStreamEventForAbortReconciliation(
@@ -3260,7 +3264,7 @@ export class Runner extends RunHooks<any, AgentOutputType<unknown>> {
               return;
             }
             if (error instanceof ModelTimeoutError || timedOutModelCallFailed) {
-              if (receivedStreamEvent) {
+              if (streamEventCount > 0) {
                 markServerInputAccepted(false);
               }
               await awaitInputGuardrails();
@@ -3284,8 +3288,13 @@ export class Runner extends RunHooks<any, AgentOutputType<unknown>> {
           result.state._noActiveAgentRun = false;
 
           if (!finalResponse) {
+            const lastEventKind =
+              StreamEvent.options.find(
+                (schema) => schema.shape.type.value === lastStreamEventType,
+              )?.shape.type.value ??
+              (streamEventCount > 0 ? 'unknown' : 'none');
             throw new ModelBehaviorError(
-              'Model did not produce a final response!',
+              `Model did not produce a final response! Stream ended before response_done (event_count=${streamEventCount}, last_event_type=${lastEventKind}).`,
               result.state,
             );
           }
@@ -3362,10 +3371,7 @@ export class Runner extends RunHooks<any, AgentOutputType<unknown>> {
 
           markAcceptedResponseProcessingStarted(result.state);
 
-          captureCurrentResponseToolOutputGuardrailResultStart(
-            result.state,
-            true,
-          );
+          this.#captureResponseGuardrailBoundary(result.state, true);
           const turnResult = await resolveTurnAfterModelResponse(
             currentAgent,
             result.state._originalInput,
@@ -3765,21 +3771,26 @@ export class Runner extends RunHooks<any, AgentOutputType<unknown>> {
             explicitlyModelSet,
             resolvedModelName,
           );
-    const modelRequestInternal = {
-      reasoningEffortImplicit:
-        implicitModelSettings?.reasoning?.effort !== undefined &&
-        !hasExplicitTopLevelReasoningEffort(this.config.modelSettings) &&
-        !hasExplicitTopLevelReasoningEffort(agentModelSettings),
-      tracingParent:
-        getRunStateTurnSpanParent(state) ?? state._currentAgentSpan,
-      toolNameCollisionPolicy: options.toolNameCollisionPolicy ?? 'warn',
-    };
-
     let modelSettings = mergeModelSettings(
       implicitModelSettings,
       this.config.modelSettings,
     );
     modelSettings = mergeModelSettings(modelSettings, agentModelSettings);
+    // Record effort ownership before legacy model cleanup can remove an explicit choice.
+    const hasReasoningEffort =
+      modelSettings.reasoning?.effort !== undefined ||
+      modelSettings.providerData?.reasoning_effort !== undefined;
+    const modelRequestInternal = {
+      reasoningEffortImplicit: hasReasoningEffort
+        ? implicitModelSettings?.reasoning?.effort !== undefined &&
+          !hasExplicitTopLevelReasoningEffort(this.config.modelSettings) &&
+          !hasExplicitTopLevelReasoningEffort(agentModelSettings)
+        : undefined,
+      tracingParent:
+        getRunStateTurnSpanParent(state) ?? state._currentAgentSpan,
+      toolNameCollisionPolicy: options.toolNameCollisionPolicy ?? 'warn',
+    };
+
     modelSettings = adjustModelSettingsForLegacyModel(
       explicitlyModelSet,
       agentModelSettings ?? implicitModelSettings ?? {},

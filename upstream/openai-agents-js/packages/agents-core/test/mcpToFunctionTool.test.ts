@@ -199,6 +199,7 @@ describe('mcpToFunctionTool', () => {
         {
           name: 'strict',
           description: '',
+          annotations: { destructiveHint: false },
           inputSchema: {
             type: 'object',
             properties: { foo: { type: 'string' } },
@@ -212,6 +213,9 @@ describe('mcpToFunctionTool', () => {
     );
 
     expect(explicitlyOpenTool.strict).toBe(false);
+    expect(explicitlyOpenTool.mcpAnnotations).toEqual({
+      destructiveHint: false,
+    });
     expect(explicitlyOpenTool.parameters.additionalProperties).toBe(true);
 
     const nonStrictTool = mcpToFunctionTool(
@@ -779,9 +783,7 @@ describe('mcpToFunctionTool', () => {
 
     const result = await tool.invoke(new RunContext({}), '{}');
 
-    expect(result).toBe(
-      'An error occurred while running the tool. Please try again.',
-    );
+    expect(result).toBe('An error occurred while running the tool.');
     expect(callTool).toHaveBeenCalledTimes(1);
   });
 
@@ -824,9 +826,7 @@ describe('mcpToFunctionTool', () => {
 
     const result = await tool.invoke(new RunContext({}), '{}');
 
-    expect(result).toBe(
-      'An error occurred while running the tool. Please try again.',
-    );
+    expect(result).toBe('An error occurred while running the tool.');
     for (const secret of [
       'ERROR_USER',
       'ERROR_PASSWORD',

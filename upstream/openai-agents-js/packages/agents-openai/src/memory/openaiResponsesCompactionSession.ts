@@ -17,6 +17,7 @@ import type { OpenAIResponsesCompactionResult } from '@openai/agents-core';
 import {
   attachModelFailureUsage,
   getModelVisibleSessionItems,
+  hasCompleteApprovalGroups,
   logModelAndToolActionWarning,
 } from '@openai/agents-core/utils/internal';
 import { DEFAULT_OPENAI_MODEL, getDefaultOpenAIClient } from '../defaults';
@@ -78,8 +79,9 @@ export type OpenAIResponsesCompactionSessionOptions = {
   /**
    * The OpenAI model to use for `responses.compact`.
    *
-   * Defaults to `DEFAULT_OPENAI_MODEL`. The value must resemble an OpenAI model name (for example
-   * `gpt-*`, `o*`, or a fine-tuned `ft:gpt-*` identifier), otherwise the constructor throws.
+   * Defaults to `DEFAULT_OPENAI_MODEL`. The final slash-delimited component must resemble an
+   * OpenAI model name (for example `gpt-4.1`, `o3`, or a fine-tuned `ft:gpt-*` identifier).
+   * For a namespaced ID such as `openai/gpt-4.1`, the client receives the full ID.
    */
   model?: OpenAI.ResponsesModel;
   /**
@@ -123,7 +125,8 @@ export type OpenAIResponsesCompactionSessionOptions = {
  * This session is intended to be passed to `run()` so the runner can automatically supply the
  * latest `responseId` and invoke compaction after each completed turn is persisted.
  * Automatic compaction skips history that is not fully covered by the latest successful model
- * input and response. Explicit manual compaction remains caller-controlled.
+ * input and response. It also waits for function call results and hosted MCP approval responses
+ * before compacting those groups. Explicit manual compaction remains caller-controlled.
  *
  * To debug compaction decisions, enable the `debug` logger for
  * `openai-agents:openai:compaction` (for example, `DEBUG=openai-agents:openai:compaction`).
@@ -244,6 +247,11 @@ export class OpenAIResponsesCompactionSession
     this.responseId = args.responseId ?? this.responseId ?? undefined;
     if (args.store !== undefined) {
       this.lastStore = args.store;
+    }
+    // Manual compaction still needs the response ID and store setting of a paused turn.
+    if (automaticInput && !hasCompleteApprovalGroups(automaticInput)) {
+      logger.debug('skip: stored history has an incomplete approval group');
+      return null;
     }
     const requestedMode = args.compactionMode ?? this.compactionMode;
     const resolvedMode = resolveCompactionMode({
@@ -675,16 +683,13 @@ function assertSupportedOpenAIResponsesCompactionModel(model: string): void {
 }
 
 function isOpenAIModelName(model: string): boolean {
-  const trimmed = model.trim();
-  if (!trimmed) {
-    return false;
-  }
+  const modelName = model.slice(model.lastIndexOf('/') + 1);
   // The OpenAI SDK does not ship a runtime allowlist of model names.
   // This check relies on common model naming conventions and intentionally allows unknown `gpt-*` variants.
   // Fine-tuned model IDs typically look like: ft:gpt-4o-mini:org:project:suffix.
-  const withoutFineTunePrefix = trimmed.startsWith('ft:')
-    ? trimmed.slice('ft:'.length)
-    : trimmed;
+  const withoutFineTunePrefix = modelName.startsWith('ft:')
+    ? modelName.slice('ft:'.length)
+    : modelName;
   const root = withoutFineTunePrefix.split(':', 1)[0];
 
   // Allow unknown `gpt-*` variants to avoid needing updates whenever new models ship.
