@@ -1,8 +1,8 @@
 # openai/model_spec 同步记录
 
 - 上游：https://github.com/openai/model_spec
-- 上游提交：7ab1b124b10b56389641761014823346f1063a6a
-- 上游 tree：eeba20618e531efb851ada133c7342282dd8d034
+- 上游提交：610785ce81921ce73a1fb7daacf40dfc95282765
+- 上游 tree：172d1bdf4660c8ec946d9e6bad1cd0205489024a
 - 目录：upstream/model_spec/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
