@@ -201,6 +201,120 @@ async fn cloud_enter_recovers_drafts_from_server_receipts() -> Result<()> {
 }
 
 #[tokio::test]
+async fn cloud_async_question_reply_uses_cloud_admission() -> Result<()> {
+    use codex_app_server_client::CloudOperation;
+    use codex_app_server_client::CloudUserMessageReceipt;
+    use codex_app_server_protocol::AsyncUserInputQuestion;
+    use codex_app_server_protocol::ItemCompletedNotification;
+    use codex_context_fragments::AnsweredQuestion;
+    use codex_context_fragments::ContextualUserFragment;
+    use codex_protocol_test_support::ContentItemTestExt;
+
+    let title = "Which region?";
+    let answer = "Europe";
+    let question_id = serde_json::json!(["request_user_input_async", "question", 0]).to_string();
+    let input = vec![UserInput::Text {
+        text: AnsweredQuestion::new(&question_id, title, answer)
+            .render()
+            .expect_text(),
+        text_elements: Vec::new(),
+    }];
+
+    for rejected in [false, true] {
+        let (mut app, _events, mut ops) = make_test_app_with_channels().await;
+        let id = ThreadId::new();
+        app.enqueue_primary_thread_session(
+            test_thread_session(id, app.config.cwd.to_path_buf()),
+            Vec::new(),
+        )
+        .await?;
+        app.ensure_thread_channel(id)
+            .store
+            .lock()
+            .await
+            .set_active_turn_id("active".into());
+        let chat = &mut app.chat_widget;
+        chat.handle_server_notification(
+            turn_started_notification(id, "active"),
+            /*replay_kind*/ None,
+        );
+        chat.handle_server_notification(
+            ServerNotification::ItemCompleted(ItemCompletedNotification::new(
+                id.to_string(),
+                "active".into(),
+                ThreadItemPayload::AgentMessage {
+                    moderation: None,
+                    id: "question".into(),
+                    text: title.into(),
+                    phase: None,
+                    memory_citation: None,
+                    delivery: None,
+                    questions: Some(vec![AsyncUserInputQuestion {
+                        title: title.into(),
+                        options: None,
+                    }]),
+                },
+                /*started_at_ms*/ None,
+                /*completed_at_ms*/ 1,
+            )),
+            /*replay_kind*/ None,
+        );
+        chat.handle_key_event(KeyEvent::new(KeyCode::Up, KeyModifiers::ALT));
+        chat.handle_paste(answer.into());
+        chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+        let op = next_user_turn_op(&mut ops);
+        let Op::UserTurn {
+            client_user_message_id,
+            ..
+        } = &op
+        else {
+            unreachable!();
+        };
+        let expected_id = client_user_message_id.clone();
+        let (client, mut commands, _events) =
+            codex_app_server_client::CloudClient::channel(/*capacity*/ 1);
+        let mut server = AppServerSession::new(
+            crate::backend_id::BackendId::new(),
+            codex_app_server_client::AppServerClient::Cloud(client),
+            crate::ThreadParamsMode::Cloud,
+        );
+        let (result, ()) = tokio::join!(app.submit_thread_op(&mut server, id, op), async {
+            let command = commands.recv().await.unwrap();
+            let CloudOperation::SubmitUserMessage(params) = command.operation else {
+                panic!("a Cloud question reply should use native start-or-steer admission");
+            };
+            assert_eq!(params.thread_id, id.to_string());
+            assert_eq!(params.client_user_message_id, Some(expected_id));
+            assert_eq!(params.input, input);
+            let receipt = if rejected {
+                Err(JSONRPCErrorError {
+                    code: -32602,
+                    message: "reply stream closed before submission".into(),
+                    data: None,
+                })
+            } else {
+                let turn = test_turn("active", TurnStatus::InProgress, Vec::new());
+                Ok(serde_json::to_value(CloudUserMessageReceipt::Steered(turn)).unwrap())
+            };
+            command.response.send(Ok(receipt)).unwrap();
+        });
+        result?;
+        let composer = app.chat_widget.composer_text_with_pending();
+        if rejected {
+            insta::assert_snapshot!(composer, @r"
+            > Which region?
+
+            Europe
+            ");
+        } else {
+            assert_eq!(composer, "");
+        }
+        assert!(commands.try_recv().is_err());
+    }
+    Ok(())
+}
+
+#[tokio::test]
 async fn cloud_resume_picker_reconciles_admitted_steers() -> Result<()> {
     use crate::app::agents_overview::tests::overview_thread;
     use crate::app_server_session::user_message_submission::UserMessageAdmission;
@@ -800,7 +914,7 @@ async fn daybreak_command_persists_and_confirms_each_selection() -> Result<()> {
     };
     *model = "standard-only".into();
     while events.try_recv().is_ok() {}
-    app.submit_thread_op(&mut server, thread_id, unsupported_turn)
+    app.submit_thread_op(&mut server, thread_id, unsupported_turn.clone())
         .await?;
     assert!(recorded_params(&requests, "turn/start").is_empty());
     assert!(next_history_message(&mut events).contains("Daybreak support for model standard-only"));
@@ -839,7 +953,17 @@ async fn daybreak_command_persists_and_confirms_each_selection() -> Result<()> {
     app.chat_widget.set_daybreak_enabled(/*enabled*/ true);
     app.chat_widget
         .set_feature_enabled(Feature::ApiKeyCyberAccessPrograms, /*enabled*/ false);
-    let models = app.chat_widget.model_catalog().models.clone();
+    let mut models = app.chat_widget.model_catalog().models.clone();
+    for (name, cyber) in [
+        ("red", vec![CyberAccessProgram::DaybreakRed]),
+        ("empty", vec![]),
+    ] {
+        models.push(ModelPreset {
+            model: name.into(),
+            available_access_programs: Some(ModelAccessPrograms { cyber }),
+            ..models[0].clone()
+        });
+    }
     app.chat_widget.update_account_state(
         Some(crate::status::StatusAccountDisplay::ApiKey),
         /*plan_type*/ None,
@@ -854,7 +978,26 @@ async fn daybreak_command_persists_and_confirms_each_selection() -> Result<()> {
         })
         .last()
         .expect("account model refresh");
+    let next_disable = |events: &mut tokio::sync::mpsc::UnboundedReceiver<_>| {
+        std::iter::from_fn(|| events.try_recv().ok())
+            .find(|event| matches!(event, AppEvent::DisableUnavailableDaybreak { .. }))
+    };
+    // A switch during discovery must wait for the current account's catalog.
+    app.chat_widget
+        .set_feature_enabled(Feature::ApiKeyCyberAccessPrograms, /*enabled*/ true);
+    app.chat_widget.set_daybreak_enabled(/*enabled*/ true);
+    let original_model = app.chat_widget.current_model().to_owned();
+    app.chat_widget.set_model("standard-only");
+    assert!(next_disable(&mut events).is_none());
     assert!(app.chat_widget.on_models_loaded(request_id, Ok(models)));
+    assert!(matches!(next_disable(&mut events),
+        Some(AppEvent::DisableUnavailableDaybreak { thread_id: id, model })
+            if id == thread_id && model == "standard-only"
+    ));
+    for model in ["red", "empty", "unlisted", &original_model] {
+        app.chat_widget.set_model(model);
+    }
+    assert!(next_disable(&mut events).is_none());
     for (cli_daybreak, api_key_cyber_access_programs, enabled) in [
         (false, false, true),
         (false, true, true),
@@ -884,11 +1027,41 @@ async fn daybreak_command_persists_and_confirms_each_selection() -> Result<()> {
 
     let missing_thread_id = ThreadId::new();
     app.active_thread_id = Some(missing_thread_id);
-    app.persist_daybreak_selection(&mut server, missing_thread_id, /*enabled*/ true)
-        .await;
+    assert!(
+        !app.persist_daybreak_selection(&mut server, missing_thread_id, /*enabled*/ true)
+            .await
+    );
     assert!(next_history_message(&mut events).contains("Failed to read the thread"));
     assert!(!app.chat_widget.daybreak_enabled);
     assert!(!app.config.daybreak_enabled);
+
+    app.active_thread_id = Some(thread_id);
+    app.persist_daybreak_selection(&mut server, thread_id, /*enabled*/ true)
+        .await;
+    assert!(next_history_message(&mut events).contains("Daybreak on"));
+    app.chat_widget.set_model("standard-only");
+    let disable = next_disable(&mut events).expect("model switch disables Daybreak");
+    assert!(app.chat_widget.daybreak_enabled);
+    app.handle_event(&mut tui, &mut server, disable).await?;
+    assert!(next_history_message(&mut events).contains("Daybreak off"));
+    let warning = next_history_message(&mut events);
+    insta::assert_snapshot!("daybreak_model_switch_warning", warning);
+    assert_eq!(
+        server
+            .thread_read(thread_id, /*include_turns*/ false)
+            .await?
+            .daybreak_enabled,
+        Some(false)
+    );
+    assert!(!app.config.daybreak_enabled);
+    app.submit_thread_op(&mut server, thread_id, unsupported_turn)
+        .await?;
+    assert_eq!(
+        recorded_params(&requests, "turn/start")[turns.len()]["cyberAccessProgram"],
+        "standard"
+    );
+    app.chat_widget.set_model(&original_model);
+    assert!(!app.chat_widget.daybreak_enabled);
     server.shutdown().await?;
     proxy.await??;
     Ok(())
