@@ -1,8 +1,8 @@
 # openai/fence 同步记录
 
 - 上游：https://github.com/openai/fence
-- 上游提交：7e498a7d6018a63c22b9787a29754514177affdd
-- 上游 tree：79c629e1029660853d1ec69fb6f9c65b160dfadf
+- 上游提交：e150b7ff6db3152b55bd7a313fc326f2cc747ce8
+- 上游 tree：3884faed62a80a2948032ca9c90622a029864dd0
 - 目录：upstream/fence/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
