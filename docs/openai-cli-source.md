@@ -1,8 +1,8 @@
 # openai/openai-cli 同步记录
 
 - 上游：https://github.com/openai/openai-cli
-- 上游提交：9b1dbab9e747c67689f3763cb1f9ab06d30de2d8
-- 上游 tree：b57bb3ef51a2072e826b94126b8068cdcb221818
+- 上游提交：b71ddaea26e12ca26e2e0f3da4e4b78f0032e5c3
+- 上游 tree：992125dc6abbd2519efcdc1f20d2e0adc9338c2f
 - 目录：upstream/openai-cli/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
