@@ -1,8 +1,8 @@
 # openai/openai-openapi 同步记录
 
 - 上游：https://github.com/openai/openai-openapi
-- 上游提交：c6522b4e0c48b88b95bb427e09268954d0213e31
-- 上游 tree：a0e95a6e31a0492135a1c95a0606e640e21f11da
+- 上游提交：ce5f4b535b105acd27ca1473c8906d85207cb0cc
+- 上游 tree：ed04fba6706ef95215e95878391a7c19ad0921f7
 - 目录：upstream/openai-openapi/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
