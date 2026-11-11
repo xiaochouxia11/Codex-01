@@ -1,8 +1,8 @@
 # openai/openai-go 同步记录
 
 - 上游：https://github.com/openai/openai-go
-- 上游提交：c5646de159e98ab18bfc89d9c281dcc76cb426f8
-- 上游 tree：14cc7c6742fd2826ca6e88b66619ce7090ba6bf3
+- 上游提交：3d2f45caf3d1c1d4acc631537d0dce70e95dfb26
+- 上游 tree：8757e0d757b67960e08c5c1e366191c09c8f8d42
 - 目录：upstream/openai-go/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
