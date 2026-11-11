@@ -4922,7 +4922,7 @@ async fn open_thread_persistence(session: &mut Session) -> PathBuf {
             history_mode: Default::default(),
             subagent_history_start_ordinal: None,
             history_base: None,
-            initial_window_id: ContextWindowId::new_uuid_v7().to_string(),
+            initial_window_id: ContextWindowId::new_uuid_v7(),
             runtime_workspace_roots: None,
             metadata: ThreadPersistenceMetadata {
                 cwd: Some(config.cwd.to_path_buf()),
@@ -8716,7 +8716,7 @@ async fn shutdown_complete_does_not_append_to_thread_store_after_shutdown() {
             history_mode: Default::default(),
             subagent_history_start_ordinal: None,
             history_base: None,
-            initial_window_id: ContextWindowId::new_uuid_v7().to_string(),
+            initial_window_id: ContextWindowId::new_uuid_v7(),
             runtime_workspace_roots: None,
             metadata: ThreadPersistenceMetadata {
                 cwd: Some(config.cwd.to_path_buf()),
@@ -8855,7 +8855,7 @@ async fn submission_loop_channel_close_runs_full_thread_teardown() -> anyhow::Re
             history_mode: Default::default(),
             subagent_history_start_ordinal: None,
             history_base: None,
-            initial_window_id: ContextWindowId::new_uuid_v7().to_string(),
+            initial_window_id: ContextWindowId::new_uuid_v7(),
             runtime_workspace_roots: None,
             metadata: ThreadPersistenceMetadata {
                 cwd: Some(config.cwd.to_path_buf()),
@@ -11839,7 +11839,7 @@ async fn attach_in_memory_thread_store(
             history_mode: Default::default(),
             subagent_history_start_ordinal: None,
             history_base: None,
-            initial_window_id: ContextWindowId::new_uuid_v7().to_string(),
+            initial_window_id: ContextWindowId::new_uuid_v7(),
             runtime_workspace_roots: None,
             metadata: ThreadPersistenceMetadata {
                 cwd: Some(config.cwd.to_path_buf()),
@@ -13395,9 +13395,9 @@ async fn sample_rollout(
         guardian_history: None,
         mcp_resource_origins: None,
         window_number: Some(window_number),
-        first_window_id: Some(window_ids.first_window_id.to_string()),
-        previous_window_id: window_ids.previous_window_id.map(|id| id.to_string()),
-        window_id: Some(window_ids.window_id.to_string()),
+        first_window_id: Some(window_ids.first_window_id),
+        previous_window_id: window_ids.previous_window_id,
+        window_id: Some(window_ids.window_id),
         compaction_response_id: None,
         latest_token_usage_record: None,
         resume_metadata: None,
@@ -13430,9 +13430,9 @@ async fn sample_rollout(
         guardian_history: None,
         mcp_resource_origins: None,
         window_number: Some(window_number),
-        first_window_id: Some(window_ids.first_window_id.to_string()),
-        previous_window_id: window_ids.previous_window_id.map(|id| id.to_string()),
-        window_id: Some(window_ids.window_id.to_string()),
+        first_window_id: Some(window_ids.first_window_id),
+        previous_window_id: window_ids.previous_window_id,
+        window_id: Some(window_ids.window_id),
         compaction_response_id: None,
         latest_token_usage_record: None,
         resume_metadata: None,
@@ -13609,6 +13609,38 @@ async fn session_start_hooks_require_project_trust_without_config_toml() -> std:
         }
     }
 
+    Ok(())
+}
+
+#[tokio::test]
+async fn mcp_refresh_rejects_clearing_apps_that_exposes_invalid_user_config() -> anyhow::Result<()>
+{
+    let session = make_session_with_config(|config| {
+        let user_apps = toml::toml! {
+            apps.calendar.enabled = "false"
+            apps.drive.enabled = false
+        };
+        config.config_layer_stack = config
+            .config_layer_stack
+            .with_user_config(&config.codex_home.join(CONFIG_TOML_FILE), user_apps.into())
+            .unwrap()
+            .with_session_apps(toml::toml! { calendar.enabled = false }.into())
+            .unwrap();
+    })
+    .await?;
+    let current = session.get_config().await;
+    let mut next = current.as_ref().clone();
+    next.config_layer_stack = next
+        .config_layer_stack
+        .with_session_apps(toml::Table::new().into())?;
+
+    assert_eq!(
+        session.refresh_mcp_config(current, next).await,
+        crate::ConfigRefreshOutcome::Rejected
+    );
+    let config = session.get_config().await;
+    let policy = codex_connectors::AppToolPolicyEvaluator::new(&config.config_layer_stack);
+    assert!(!policy.app_enabled("drive"));
     Ok(())
 }
 

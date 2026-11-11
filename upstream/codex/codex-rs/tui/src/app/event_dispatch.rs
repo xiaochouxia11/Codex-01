@@ -93,6 +93,8 @@ impl App {
                     | AppEvent::SideCreated { .. }
                     | AppEvent::SideChatRemovalFinished { .. }
                     | AppEvent::SideChatArchived { .. }
+                    | AppEvent::SavedChatPrepared { .. } | AppEvent::SavedChatReleased { .. }
+                    | AppEvent::StartQueuedSavedChat
                     | AppEvent::SavedSideChatsLoaded { .. }
                     | AppEvent::SideReplayFinished(_)
                     | AppEvent::ResetTranscriptForThreadSwitch
@@ -1057,17 +1059,6 @@ impl App {
             AppEvent::ResetTranscriptForThreadSwitchPreservingScreen => {
                 self.reset_transcript_state_after_clear();
                 tui.clear_pending_history_lines();
-                let switched_tab = self.conversation_frame.chat_strip.is_some()
-                    && self.active_side_parent_thread_id().is_some()
-                    && self.conversation_frame.sidebar_input.is_some_and(|painted| {
-                        painted.selected_chat != self.current_displayed_thread_id()
-                    });
-                if self.conversation_frame.chooser_area().is_none()
-                    && self.chooser_focus().is_none()
-                    && !switched_tab
-                {
-                    tui.defer_thread_switch_clear();
-                }
                 self.pending_thread_switch_resets -= 1;
             }
             AppEvent::CommitRealtimeTranscriptHistory => {
@@ -2602,6 +2593,12 @@ impl App {
             }
             AppEvent::ModelsLoaded { request_id, result }
             | AppEvent::ApiKeyCompatModelsLoaded { request_id, result } => {
+                let result = match app_server.request_handle() {
+                    AppServerRequestHandle::Cloud(handle) if !handle.model_catalog_is_current() => {
+                        Err("Cloud model catalog account changed.".into())
+                    }
+                    _ => result,
+                };
                 self.chat_widget.on_models_loaded(request_id, result);
                 let catalog = self.chat_widget.model_catalog();
                 if !Arc::ptr_eq(&self.model_catalog, &catalog) {
@@ -2685,8 +2682,13 @@ impl App {
                 }
             }
             AppEvent::OpenPlanReasoningScopePrompt { model, effort } => {
-                self.chat_widget
-                    .open_plan_reasoning_scope_prompt(model, effort);
+                if app_server.thread_params_mode() == crate::ThreadParamsMode::Cloud {
+                    self.select_session_model(app_server, model, effort, /*service_tier*/ None)
+                        .await;
+                } else {
+                    self.chat_widget
+                        .open_plan_reasoning_scope_prompt(model, effort);
+                }
             }
             AppEvent::OpenAllModelsPopup => {
                 self.chat_widget.open_all_models_popup();
@@ -3447,6 +3449,20 @@ impl App {
             AppEvent::SideChatArchived { backend_id, target } => {
                 if backend_id == app_server.backend_id() {
                     sidebar_close::forget_archived(self, tui, app_server, target).await?;
+                }
+            }
+            AppEvent::SavedChatPrepared { target, request, result } => {
+                Box::pin(self.finish_saved_chat(tui, app_server, target, request, *result)).await?;
+            }
+            AppEvent::SavedChatReleased { target, request } => {
+                self.finish_saved_release(target, request);
+            }
+            AppEvent::StartQueuedSavedChat => {
+                if let Some(target) = self.waiting_saved_chat()
+                    && target.backend_id == app_server.backend_id()
+                    && self.wants_saved_chat(target)
+                {
+                    Box::pin(self.open_saved_chat(tui, app_server, target)).await?;
                 }
             }
             AppEvent::SavedSideChatsLoaded { backend_id, parent, request, result } => {
