@@ -27,6 +27,7 @@ import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -75,10 +76,13 @@ fun SnapOTweakOverlay(modifier: Modifier = Modifier) {
     if (!SnapOTweakOverlaySettings.isEnabled) return
 
     val tweaks = rememberActiveOverlayTweaks()
+    // All controls can unregister between screens while the overlay is collapsed.
+    val scrollPosition = remember { TweakOverlayScrollPosition() }
     if (tweaks.isNotEmpty()) {
         TweakOverlayTheme {
             TweakOverlayLayer(
                 tweaks = tweaks,
+                scrollPosition = scrollPosition,
                 modifier = modifier.fillMaxSize(),
             )
         }
@@ -88,6 +92,7 @@ fun SnapOTweakOverlay(modifier: Modifier = Modifier) {
 @Composable
 private fun TweakOverlayLayer(
     tweaks: List<SnapOTweakEntry>,
+    scrollPosition: TweakOverlayScrollPosition,
     modifier: Modifier = Modifier,
 ) {
     var isExpanded by rememberSaveable { mutableStateOf(false) }
@@ -122,6 +127,7 @@ private fun TweakOverlayLayer(
                     }
                     .padding(horizontal = OverlayHorizontalMargin)
                     .width(OverlayMaximumWidth),
+                scrollPosition = scrollPosition,
             )
         } else {
             MinimizedTweakOverlay(
@@ -187,12 +193,13 @@ private fun Modifier.overlayButtonOffset(
 }
 
 @Composable
-private fun ExpandedTweakOverlay(
+internal fun ExpandedTweakOverlay(
     tweaks: List<SnapOTweakEntry>,
     height: Dp,
     onDrag: (Float) -> Unit,
     onMinimize: () -> Unit,
     modifier: Modifier = Modifier,
+    scrollPosition: TweakOverlayScrollPosition = remember { TweakOverlayScrollPosition() },
 ) {
     val colors = TweakOverlayColors.current
     var selectedEditorTweakName by rememberSaveable { mutableStateOf<String?>(null) }
@@ -221,19 +228,20 @@ private fun ExpandedTweakOverlay(
                 HorizontalDivider(color = colors.outline)
 
                 LazyColumn(
-                    modifier = Modifier.weight(1f),
+                    state = scrollPosition.rememberListState(tweaks),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(bottom = TweakOverlayLayout.listBottomInset),
+                    contentPadding = TweakOverlayLayout.listContentPadding,
                     verticalArrangement = Arrangement.spacedBy(TweakOverlayLayout.fieldRowSpacing),
                 ) {
                     itemsIndexed(tweaks, key = { _, tweak -> tweak.name }) { index, tweak ->
                         val section = tweak.name.substringBefore('/', missingDelimiterValue = "")
-                        val previousSection = if (index == 0) {
-                            null
-                        } else {
-                            tweaks[index - 1].name.substringBefore('/', missingDelimiterValue = "")
-                        }
+                        val previousSection = tweaks.getOrNull(index - 1)
+                            ?.name?.substringBefore('/', missingDelimiterValue = "")
 
                         if (section.isNotEmpty() && section != previousSection) {
-                            TweakOverlaySection(section)
+                            TweakOverlaySection(section, firstInList = index == 0)
                         }
 
                         TweakOverlayControl(
@@ -429,17 +437,16 @@ private fun MinimizedTweakOverlay(
 @Composable
 private fun TweakOverlaySection(
     name: String,
+    firstInList: Boolean,
 ) {
     val colors = TweakOverlayColors.current
     Text(
         text = name,
         modifier = Modifier.padding(
             start = TweakOverlayLayout.contentHorizontalPadding + 6.dp,
-            top = 9.dp,
-            bottom = 2.dp,
+            top = if (firstInList) 0.dp else 16.dp,
         ),
         color = colors.secondary,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Medium,
+        style = MaterialTheme.typography.labelSmall,
     )
 }

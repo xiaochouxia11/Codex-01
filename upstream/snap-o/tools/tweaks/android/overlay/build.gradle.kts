@@ -13,6 +13,8 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions.unitTests.isIncludeAndroidResources = true
 }
 
 dependencies {
@@ -28,5 +30,11 @@ dependencies {
     implementation(libs.androidx.compose.material.ripple)
     implementation(libs.androidx.core.ktx)
 
+    debugImplementation(libs.androidx.compose.ui.tooling.preview)
+    debugRuntimeOnly(libs.androidx.compose.ui.tooling)
+
     testImplementation(libs.junit4)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.compose.ui.test.manifest)
+    testImplementation(libs.robolectric)
 }
