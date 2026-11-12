@@ -799,6 +799,11 @@ impl CodexThread {
         self.session.interrupted_turn().await
     }
 
+    /// Returns whether core owns a turn slot, including before `TurnStarted` is published.
+    pub async fn has_active_turn(&self) -> bool {
+        self.session.active_turn.lock().await.is_some()
+    }
+
     /// Returns the trusted root when the expected turn is currently active.
     pub async fn active_turn_root(&self, expected_turn_id: &str) -> Option<String> {
         let active = self.session.active_turn.lock().await;
@@ -1028,6 +1033,19 @@ impl CodexThread {
         self.inject_response_items_for_turn(items).await?;
         self.checkpoint_preparation().await?;
         Ok(())
+    }
+
+    /// Returns the first prompt for an approved plan, recording untrusted context if needed.
+    pub async fn prepare_approved_plan(
+        &self,
+        path: Option<&PathUri>,
+        markdown: &str,
+    ) -> CodexResult<String> {
+        let (prompt, items) = self.session.prepare_approved_plan(path, markdown).await?;
+        if !items.is_empty() {
+            self.inject_response_items(items).await?;
+        }
+        Ok(prompt)
     }
 
     /// Record raw Responses API items immediately before admitting a user turn.
