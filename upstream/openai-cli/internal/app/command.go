@@ -39,6 +39,7 @@ func ConfigureCommand(root *cli.Command) {
 	requestconfig.ConfigureRootFlags(root)
 	// Batch workflows preserve positional path inputs and need the same help annotations.
 	configureBatchCommands(root)
+	configureSkillFolders(root)
 	clihelp.DescribeRequestInputs(root)
 	images.RegisterModels(root, ImageModelOptions())
 	configureReadableOutput(root)
@@ -69,6 +70,7 @@ func ConfigureCommand(root *cli.Command) {
 	// Cloned aliases must share the same flag definitions as their original route.
 	configureRegisteredLists(root)
 	localcommands.ConfigureSubgroups(root)
+	registerLimitsCommands(root)
 	localcommands.ConfigureTasks(root)
 	registerAudioCommands(root)
 	filecommands.Configure(root)

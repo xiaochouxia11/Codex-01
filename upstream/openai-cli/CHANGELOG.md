@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.53.1](https://github.com/openai/openai-cli/compare/v1.53.0...v1.53.1) (2026-11-12)
+
+
+### Chores
+
+* **deps:** update openai-go to v3.99.0 ([#754](https://github.com/openai/openai-cli/issues/754)) ([905f047](https://github.com/openai/openai-cli/commit/905f047678718846f6a1f308660dcdf5bc682785))
+
+## [1.53.0](https://github.com/openai/openai-cli/compare/v1.52.0...v1.53.0) (2026-11-12)
+
+
+### Features
+
+* **api:** describe reasoning input transformations on responses ([#749](https://github.com/openai/openai-cli/issues/749)) ([54c4a56](https://github.com/openai/openai-cli/commit/54c4a56a0ddcf4a6e9314a213deaf18c16fb25ed))
+
 ## [1.52.0](https://github.com/openai/openai-cli/compare/v1.51.5...v1.52.0) (2026-11-11)
 
 
