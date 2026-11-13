@@ -155,6 +155,13 @@ module OpenAI
         sig { params(image: OpenAI::Beta::BetaResponse::Image::OrHash).void }
         attr_writer :image
 
+        # Reasoning inputs withheld from the model, in input order.
+        sig { returns(T.nilable(T::Array[OpenAI::Beta::BetaResponse::InputTransformation])) }
+        attr_reader :input_transformations
+
+        sig { params(input_transformations: T::Array[OpenAI::Beta::BetaResponse::InputTransformation::OrHash]).void }
+        attr_writer :input_transformations
+
         # An upper bound for the number of tokens that can be generated for a response,
         # including visible output tokens and
         # [reasoning tokens](https://developers.openai.com/api/docs/guides/reasoning).
@@ -335,7 +342,9 @@ module OpenAI
         #
         # - `auto`: If the input to this Response exceeds the model's context window size,
         #   the model will truncate the response to fit the context window by dropping
-        #   items from the beginning of the conversation.
+        #   items from the beginning of the conversation. On some models, trimming can
+        #   begin earlier because the API subtracts the model's maximum output allowance
+        #   from its input limit, even if you set a lower `max_output_tokens`.
         # - `disabled` (default): If the input size will exceed the context window size
         #   for a model, the request will fail with a 400 error.
         sig { returns(T.nilable(OpenAI::Beta::BetaResponse::Truncation::TaggedSymbol)) }
@@ -461,6 +470,8 @@ module OpenAI
             conversation: T.nilable(OpenAI::Beta::BetaResponse::Conversation::OrHash),
 
             image: OpenAI::Beta::BetaResponse::Image::OrHash,
+
+            input_transformations: T::Array[OpenAI::Beta::BetaResponse::InputTransformation::OrHash],
 
             max_output_tokens: T.nilable(Integer),
 
@@ -613,6 +624,9 @@ module OpenAI
 
           image: nil,
 
+          # Reasoning inputs withheld from the model, in input order.
+          input_transformations: nil,
+
           # An upper bound for the number of tokens that can be generated for a response,
           # including visible output tokens and
           # [reasoning tokens](https://developers.openai.com/api/docs/guides/reasoning).
@@ -743,7 +757,9 @@ module OpenAI
           #
           # - `auto`: If the input to this Response exceeds the model's context window size,
           #   the model will truncate the response to fit the context window by dropping
-          #   items from the beginning of the conversation.
+          #   items from the beginning of the conversation. On some models, trimming can
+          #   begin earlier because the API subtracts the model's maximum output allowance
+          #   from its input limit, even if you set a lower `max_output_tokens`.
           # - `disabled` (default): If the input size will exceed the context window size
           #   for a model, the request will fail with a 400 error.
           truncation: nil,
@@ -787,6 +803,7 @@ module OpenAI
               completed_at: T.nilable(Float),
               conversation: T.nilable(OpenAI::Beta::BetaResponse::Conversation),
               image: OpenAI::Beta::BetaResponse::Image,
+              input_transformations: T::Array[OpenAI::Beta::BetaResponse::InputTransformation],
               max_output_tokens: T.nilable(Integer),
               max_tool_calls: T.nilable(Integer),
               moderation: T.nilable(OpenAI::Beta::BetaResponse::Moderation),
@@ -1269,6 +1286,96 @@ module OpenAI
             DISABLED = T.let(:disabled, OpenAI::Beta::BetaResponse::Image::ContextCompression::TaggedSymbol)
 
             sig { override.returns(T::Array[OpenAI::Beta::BetaResponse::Image::ContextCompression::TaggedSymbol]) }
+            def self.values
+            end
+          end
+        end
+
+        class InputTransformation < OpenAI::Internal::Type::BaseModel
+          OrHash = T.type_alias do
+            T.any(
+              OpenAI::Beta::BetaResponse::InputTransformation,
+              OpenAI::Internal::AnyHash
+            )
+          end
+
+          # The original reasoning item ID.
+          sig { returns(String) }
+          attr_accessor :id
+
+          sig { returns(Symbol) }
+          attr_accessor :action
+
+          sig { returns(OpenAI::Beta::BetaResponse::InputTransformation::Reason::TaggedSymbol) }
+          attr_accessor :reason
+
+          sig { returns(Symbol) }
+          attr_accessor :type
+
+          sig do
+            params(
+
+              id: String,
+
+              reason: OpenAI::Beta::BetaResponse::InputTransformation::Reason::OrSymbol,
+
+              action: Symbol,
+
+              type: Symbol
+            )
+              .returns(T.attached_class)
+          end
+          def self.new(
+
+            # The original reasoning item ID.
+            id:,
+
+            reason:,
+
+            action: :removed,
+
+            type: :reasoning
+          )
+          end
+
+          sig do
+            override.returns(
+              {
+                id: String,
+                action: Symbol,
+                reason: OpenAI::Beta::BetaResponse::InputTransformation::Reason::TaggedSymbol,
+                type: Symbol
+              }
+            )
+          end
+          def to_hash
+          end
+
+          module Reason
+            extend OpenAI::Internal::Type::Enum
+
+            TaggedSymbol = T.type_alias { T.all(Symbol, OpenAI::Beta::BetaResponse::InputTransformation::Reason) }
+            OrSymbol = T.type_alias { T.any(Symbol, String) }
+
+            ORGANIZATION_MISMATCH = T.let(
+              :organization_mismatch,
+              OpenAI::Beta::BetaResponse::InputTransformation::Reason::TaggedSymbol
+            )
+            END_USER_MISMATCH = T.let(
+              :end_user_mismatch,
+              OpenAI::Beta::BetaResponse::InputTransformation::Reason::TaggedSymbol
+            )
+            MODEL_MISMATCH = T.let(
+              :model_mismatch,
+              OpenAI::Beta::BetaResponse::InputTransformation::Reason::TaggedSymbol
+            )
+            PREFIX_MISMATCH = T.let(
+              :prefix_mismatch,
+              OpenAI::Beta::BetaResponse::InputTransformation::Reason::TaggedSymbol
+            )
+            TURN_BOUNDARY = T.let(:turn_boundary, OpenAI::Beta::BetaResponse::InputTransformation::Reason::TaggedSymbol)
+
+            sig { override.returns(T::Array[OpenAI::Beta::BetaResponse::InputTransformation::Reason::TaggedSymbol]) }
             def self.values
             end
           end
@@ -2772,7 +2879,9 @@ module OpenAI
         #
         # - `auto`: If the input to this Response exceeds the model's context window size,
         #   the model will truncate the response to fit the context window by dropping
-        #   items from the beginning of the conversation.
+        #   items from the beginning of the conversation. On some models, trimming can
+        #   begin earlier because the API subtracts the model's maximum output allowance
+        #   from its input limit, even if you set a lower `max_output_tokens`.
         # - `disabled` (default): If the input size will exceed the context window size
         #   for a model, the request will fail with a 400 error.
         module Truncation

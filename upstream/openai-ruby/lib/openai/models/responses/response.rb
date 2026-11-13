@@ -169,6 +169,15 @@ module OpenAI
         #   @return [OpenAI::Models::Responses::Response::Image, nil]
         optional :image, -> { OpenAI::Responses::Response::Image }
 
+        # @!attribute input_transformations
+        #   Reasoning inputs withheld from the model, in input order.
+        #
+        #   @return [Array<OpenAI::Models::Responses::Response::InputTransformation>, nil]
+        optional(
+          :input_transformations,
+          -> { OpenAI::Internal::Type::ArrayOf[OpenAI::Responses::Response::InputTransformation] }
+        )
+
         # @!attribute max_output_tokens
         #   An upper bound for the number of tokens that can be generated for a response,
         #   including visible output tokens and
@@ -354,7 +363,9 @@ module OpenAI
         #
         #   - `auto`: If the input to this Response exceeds the model's context window size,
         #     the model will truncate the response to fit the context window by dropping
-        #     items from the beginning of the conversation.
+        #     items from the beginning of the conversation. On some models, trimming can
+        #     begin earlier because the API subtracts the model's maximum output allowance
+        #     from its input limit, even if you set a lower `max_output_tokens`.
         #   - `disabled` (default): If the input size will exceed the context window size
         #     for a model, the request will fail with a 400 error.
         #
@@ -380,7 +391,7 @@ module OpenAI
         #   @return [String, nil]
         optional :user, String
 
-        # @!method initialize(id:, access_programs:, created_at:, error:, incomplete_details:, instructions:, metadata:, model:, output:, parallel_tool_calls:, temperature:, tool_choice:, tools:, top_p:, background: nil, completed_at: nil, conversation: nil, image: nil, max_output_tokens: nil, max_tool_calls: nil, moderation: nil, previous_response_id: nil, prompt: nil, prompt_cache_diagnostics: nil, prompt_cache_key: nil, prompt_cache_options: nil, prompt_cache_retention: nil, reasoning: nil, safety_identifier: nil, service_tier: nil, status: nil, text: nil, tool_usage: nil, top_logprobs: nil, truncation: nil, usage: nil, user: nil, object: :response)
+        # @!method initialize(id:, access_programs:, created_at:, error:, incomplete_details:, instructions:, metadata:, model:, output:, parallel_tool_calls:, temperature:, tool_choice:, tools:, top_p:, background: nil, completed_at: nil, conversation: nil, image: nil, input_transformations: nil, max_output_tokens: nil, max_tool_calls: nil, moderation: nil, previous_response_id: nil, prompt: nil, prompt_cache_diagnostics: nil, prompt_cache_key: nil, prompt_cache_options: nil, prompt_cache_retention: nil, reasoning: nil, safety_identifier: nil, service_tier: nil, status: nil, text: nil, tool_usage: nil, top_logprobs: nil, truncation: nil, usage: nil, user: nil, object: :response)
         #   @param id [String]
         #     Unique identifier for this Response.
         #
@@ -482,6 +493,9 @@ module OpenAI
         #     from this response were automatically added to this conversation.
         #
         #   @param image [OpenAI::Models::Responses::Response::Image]
+        #
+        #   @param input_transformations [Array<OpenAI::Models::Responses::Response::InputTransformation>]
+        #     Reasoning inputs withheld from the model, in input order.
         #
         #   @param max_output_tokens [Integer, nil]
         #     An upper bound for the number of tokens that can be generated for a response,
@@ -614,7 +628,9 @@ module OpenAI
         #
         #     - `auto`: If the input to this Response exceeds the model's context window size,
         #       the model will truncate the response to fit the context window by dropping
-        #       items from the beginning of the conversation.
+        #       items from the beginning of the conversation. On some models, trimming can
+        #       begin earlier because the API subtracts the model's maximum output allowance
+        #       from its input limit, even if you set a lower `max_output_tokens`.
         #     - `disabled` (default): If the input size will exceed the context window size
         #       for a model, the request will fail with a 400 error.
         #
@@ -814,6 +830,53 @@ module OpenAI
 
             ENABLED = :enabled
             DISABLED = :disabled
+
+            # @!method self.values
+            #   @return [Array<Symbol>]
+          end
+        end
+
+        class InputTransformation < OpenAI::Internal::Type::BaseModel
+          # @!attribute id
+          #   The original reasoning item ID.
+          #
+          #   @return [String]
+          required :id, String
+
+          # @!attribute action
+          #
+          #   @return [Symbol, :removed]
+          required :action, const: :removed
+
+          # @!attribute reason
+          #
+          #   @return [Symbol, OpenAI::Models::Responses::Response::InputTransformation::Reason]
+          required :reason, enum: -> { OpenAI::Responses::Response::InputTransformation::Reason }
+
+          # @!attribute type
+          #
+          #   @return [Symbol, :reasoning]
+          required :type, const: :reasoning
+
+          # @!method initialize(id:, reason:, action: :removed, type: :reasoning)
+          #   @param id [String]
+          #     The original reasoning item ID.
+          #
+          #   @param reason [Symbol, OpenAI::Models::Responses::Response::InputTransformation::Reason]
+          #
+          #   @param action [Symbol, :removed]
+          #
+          #   @param type [Symbol, :reasoning]
+
+          # @see OpenAI::Models::Responses::Response::InputTransformation#reason
+          module Reason
+            extend OpenAI::Internal::Type::Enum
+
+            ORGANIZATION_MISMATCH = :organization_mismatch
+            END_USER_MISMATCH = :end_user_mismatch
+            MODEL_MISMATCH = :model_mismatch
+            PREFIX_MISMATCH = :prefix_mismatch
+            TURN_BOUNDARY = :turn_boundary
 
             # @!method self.values
             #   @return [Array<Symbol>]
@@ -1546,7 +1609,9 @@ module OpenAI
         #
         # - `auto`: If the input to this Response exceeds the model's context window size,
         #   the model will truncate the response to fit the context window by dropping
-        #   items from the beginning of the conversation.
+        #   items from the beginning of the conversation. On some models, trimming can
+        #   begin earlier because the API subtracts the model's maximum output allowance
+        #   from its input limit, even if you set a lower `max_output_tokens`.
         # - `disabled` (default): If the input size will exceed the context window size
         #   for a model, the request will fail with a 400 error.
         #
