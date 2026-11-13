@@ -465,6 +465,9 @@ impl ChatWidget {
     ///
     /// Unknown ids are deduplicated in insertion order for warning messages.
     fn status_line_items_with_invalids(&self) -> (Vec<StatusLineItem>, Vec<String>) {
+        if self.read_only_history {
+            return Default::default();
+        }
         parse_items_with_invalids(self.configured_status_line_items())
     }
 
@@ -1002,7 +1005,7 @@ impl ChatWidget {
         self.model_catalog
             .models
             .iter()
-            .find(|preset| preset.model == self.current_model())
+            .find(|preset| preset.model == self.service_tier_model())
             .and_then(|preset| preset.service_tiers.iter().find(|tier| tier.id == id))
             .map(|tier| tier.name.as_str())
             .or_else(|| {

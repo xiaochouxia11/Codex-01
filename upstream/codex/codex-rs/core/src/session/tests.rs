@@ -2,6 +2,7 @@ use crate::McpRefreshReason;
 use crate::agent::LocalAgentControl;
 use codex_mcp::McpServerKey;
 use codex_protocol::ContextWindowId;
+use codex_thread_store::ThreadPersistenceMetadata;
 #[path = "compaction_replay_tests.rs"]
 mod compaction_replay_tests;
 
@@ -730,7 +731,7 @@ async fn request_mcp_server_elicitation_waits_for_user_response(
             session
                 .request_mcp_server_elicitation(
                     &turn_context,
-                    "codex_apps".to_string(),
+                    codex_mcp::McpServerKey::unscoped("codex_apps"),
                     RequestId::String("request-1".into()),
                     request,
                 )
@@ -749,6 +750,7 @@ async fn request_mcp_server_elicitation_waits_for_user_response(
         codex_protocol::approvals::ElicitationRequestEvent {
             turn_id: Some(turn_context.sub_id.clone()),
             server_name: "codex_apps".to_string(),
+            environment_id: None,
             id: codex_protocol::mcp::RequestId::String("request-1".to_string()),
             request,
         }
@@ -4241,21 +4243,24 @@ async fn record_initial_history_assigns_and_persists_id_for_forked_response_item
 async fn session_configured_reports_permission_profile_for_external_sandbox() -> anyhow::Result<()>
 {
     let server = start_mock_server().await;
-    let sandbox_policy = SandboxPolicy::ExternalSandbox {
-        network_access: codex_protocol::protocol::NetworkAccess::Restricted,
-    };
     let permission_profile = PermissionProfile::External {
         network: NetworkSandboxPolicy::Restricted,
     };
     let expected_permission_profile = permission_profile.clone();
     let mut builder = test_codex().with_config(move |config| {
+        config.workspace_roots_explicit = false;
         config
             .permissions
-            .set_permission_profile(permission_profile.clone())
+            .can_set_permission_profile(&permission_profile)
             .expect("set permission profile");
         config
-            .set_legacy_sandbox_policy(sandbox_policy)
-            .expect("set sandbox policy");
+            .permissions
+            .set_workspace_roots(vec![config.cwd.clone()]);
+        config
+            .permissions
+            .set_permission_profile(permission_profile)
+            .expect("set permission profile");
+        config.workspace_roots = config.permissions.workspace_roots().to_vec();
     });
 
     let test = builder.build(&server).await?;
@@ -5477,7 +5482,7 @@ async fn session_configuration_apply_client_metadata_preserves_permissions() {
 
 #[tokio::test]
 async fn session_configuration_apply_preserves_profile_file_system_policy_on_cwd_only_update() {
-    let mut session_configuration = make_session_configuration_for_tests().await;
+    let mut config = make_session_configuration_for_tests().await;
     let workspace = tempfile::tempdir().expect("create temp dir");
     let project_root = workspace.path().join("project");
     let original_cwd = project_root.join("subdir");
@@ -5486,41 +5491,37 @@ async fn session_configuration_apply_preserves_profile_file_system_policy_on_cwd
     let project_root = project_root.abs();
     let docs_dir = docs_dir.abs();
 
-    session_configuration.legacy_fallback_cwd = original_cwd.abs();
-    let sandbox_policy = SandboxPolicy::WorkspaceWrite {
-        writable_roots: Vec::new(),
-        network_access: false,
-        exclude_tmpdir_env_var: true,
-        exclude_slash_tmp: true,
-    };
-    let file_system_sandbox_policy = FileSystemSandboxPolicy::restricted(vec![
-        FileSystemSandboxEntry {
-            path: FileSystemPath::Special {
+    config.legacy_fallback_cwd = original_cwd.abs();
+    config.runtime_workspace_roots =
+        vec![config.cwd().clone(), project_root.clone(), docs_dir.clone()];
+    let policy = FileSystemSandboxPolicy::restricted(vec![
+        FileSystemSandboxEntry::new(
+            FileSystemPath::Special {
                 value: FileSystemSpecialPath::project_roots(/*subpath*/ None),
             },
-            access: FileSystemAccessMode::Write,
-            missing_path_behavior: None,
-        },
-        FileSystemSandboxEntry {
-            path: docs_dir.into(),
-            access: FileSystemAccessMode::Read,
-            missing_path_behavior: None,
-        },
+            FileSystemAccessMode::Write,
+        ),
+        FileSystemSandboxEntry::new(docs_dir.clone().into(), FileSystemAccessMode::Read),
     ]);
-    let network_sandbox_policy = NetworkSandboxPolicy::from(&sandbox_policy);
-    session_configuration
-        .set_permission_profile_for_tests(
-            PermissionProfile::from_runtime_permissions_with_enforcement(
-                SandboxEnforcement::from_legacy_sandbox_policy(&sandbox_policy),
-                &file_system_sandbox_policy,
-                network_sandbox_policy,
+    config
+        .permission_profile_state
+        .set_permission_profile_snapshot(
+            PermissionProfileSnapshot::active_with_profile_workspace_roots(
+                PermissionProfile::from_runtime_permissions(
+                    &policy,
+                    NetworkSandboxPolicy::Restricted,
+                ),
+                ActivePermissionProfile::new(":workspace"),
+                vec![docs_dir.clone().into()],
             ),
         )
-        .expect("set permission profile");
-    let expected_file_system_sandbox_policy =
-        file_system_sandbox_policy.materialize_project_roots_with_workspace_roots(&[]);
+        .unwrap();
+    let expected_profile = config.permission_profile_state.snapshot();
+    let mut expected_settings = config.thread_settings_snapshot(&[]);
+    expected_settings.cwd = project_root.clone();
+    expected_settings.runtime_workspace_roots = Some(vec![project_root.clone(), docs_dir]);
 
-    let updated = session_configuration
+    let updated = config
         .apply(
             &SessionSettingsUpdate {
                 environments: Some(TurnEnvironmentSelections::new(project_root, Vec::new())),
@@ -5528,21 +5529,32 @@ async fn session_configuration_apply_preserves_profile_file_system_policy_on_cwd
             },
             &[],
         )
-        .expect("cwd-only update should succeed");
+        .expect("apply cwd");
 
     assert_eq!(
-        updated.file_system_sandbox_policy(&[]),
-        expected_file_system_sandbox_policy
+        (
+            updated.thread_settings_snapshot(&[]),
+            updated.permission_profile_state.snapshot(),
+        ),
+        (expected_settings, expected_profile),
     );
 }
 
 #[tokio::test]
 async fn session_configuration_apply_permission_profile_preserves_existing_deny_read_entries() {
-    let mut session_configuration = make_session_configuration_for_tests().await;
-    let cwd = tempfile::tempdir().expect("create temp dir");
-    session_configuration.legacy_fallback_cwd = cwd.path().abs();
+    const GLOB_SCAN_MAX_DEPTH: usize = 2;
 
-    let workspace_policy = SandboxPolicy::new_workspace_write_policy();
+    let (session, _turn_context) = make_session_and_context().await;
+    let mut config = session.state.lock().await.session_configuration.clone();
+    let cwd = tempfile::tempdir().expect("create temp dir");
+    config.legacy_fallback_cwd = cwd.path().abs();
+
+    let workspace_policy = SandboxPolicy::WorkspaceWrite {
+        writable_roots: vec![config.cwd().clone()],
+        network_access: false,
+        exclude_tmpdir_env_var: false,
+        exclude_slash_tmp: false,
+    };
     let deny_entry = FileSystemSandboxEntry {
         path: FileSystemPath::GlobPattern {
             pattern: "**/*.env".to_string(),
@@ -5550,48 +5562,136 @@ async fn session_configuration_apply_permission_profile_preserves_existing_deny_
         access: FileSystemAccessMode::Deny,
         missing_path_behavior: None,
     };
-    let mut existing_file_system_policy =
-        FileSystemSandboxPolicy::from_legacy_sandbox_policy_for_cwd(
-            &workspace_policy,
-            session_configuration.cwd().as_path(),
-        );
-    existing_file_system_policy.glob_scan_max_depth = Some(2);
-    existing_file_system_policy.entries.push(deny_entry.clone());
-    session_configuration
-        .set_permission_profile_for_tests(
-            PermissionProfile::from_runtime_permissions_with_enforcement(
-                SandboxEnforcement::from_legacy_sandbox_policy(&workspace_policy),
-                &existing_file_system_policy,
-                NetworkSandboxPolicy::Restricted,
-            ),
-        )
-        .expect("set permission profile");
-
-    let requested_file_system_policy = FileSystemSandboxPolicy::from_legacy_sandbox_policy_for_cwd(
+    let requested = FileSystemSandboxPolicy::from_legacy_sandbox_policy_for_cwd(
         &workspace_policy,
-        session_configuration.cwd().as_path(),
+        config.cwd().as_path(),
     );
-    let permission_profile = codex_protocol::models::PermissionProfile::from_runtime_permissions(
-        &requested_file_system_policy,
-        NetworkSandboxPolicy::Restricted,
-    );
-    let updated = session_configuration
-        .apply(
+    let mut existing = requested.clone();
+    existing.glob_scan_max_depth = Some(GLOB_SCAN_MAX_DEPTH);
+    existing.entries.push(deny_entry.clone());
+    config
+        .set_permission_profile_for_tests(PermissionProfile::from_runtime_permissions(
+            &existing,
+            NetworkSandboxPolicy::Restricted,
+        ))
+        .unwrap();
+
+    let permission_profile =
+        PermissionProfile::from_runtime_permissions(&requested, NetworkSandboxPolicy::Restricted);
+    let mut expected = requested.materialize_project_roots_with_workspace_roots(&[]);
+    expected.glob_scan_max_depth = Some(GLOB_SCAN_MAX_DEPTH);
+    expected.entries.push(deny_entry);
+    for updates in [
+        SessionSettingsUpdate {
+            permission_profile: Some(permission_profile),
+            ..Default::default()
+        },
+        SessionSettingsUpdate {
+            sandbox_policy: Some(workspace_policy.clone()),
+            ..Default::default()
+        },
+    ] {
+        let updated = session.apply_session_settings(&config, &updates).unwrap();
+        assert_eq!(updated.file_system_sandbox_policy(&[]), expected);
+    }
+    let next_cwd = tempfile::tempdir().unwrap();
+    let git_dir = cwd.path().join("git-metadata");
+    std::fs::create_dir(&git_dir).unwrap();
+    std::fs::write(
+        next_cwd.path().join(".git"),
+        format!("gitdir: {}\n", git_dir.display()),
+    )
+    .unwrap();
+    let updated = session
+        .apply_session_settings(
+            &config,
             &SessionSettingsUpdate {
-                permission_profile: Some(permission_profile),
+                environments: Some(TurnEnvironmentSelections::new(
+                    next_cwd.path().abs(),
+                    Vec::new(),
+                )),
+                sandbox_policy: Some(workspace_policy),
                 ..Default::default()
             },
-            &[],
         )
-        .expect("permission profile update should succeed");
-
-    let mut expected_file_system_policy =
-        requested_file_system_policy.materialize_project_roots_with_workspace_roots(&[]);
-    expected_file_system_policy.glob_scan_max_depth = Some(2);
-    expected_file_system_policy.entries.push(deny_entry);
+        .unwrap();
+    let filesystem = updated.file_system_sandbox_policy(&[]);
     assert_eq!(
-        updated.file_system_sandbox_policy(&[]),
-        expected_file_system_policy
+        (
+            updated.cwd(),
+            filesystem.can_write_local_path_with_cwd(&git_dir, next_cwd.path()),
+            filesystem
+                .can_write_local_path_with_cwd(&cwd.path().join("ordinary-file"), next_cwd.path()),
+        ),
+        (&next_cwd.path().abs(), false, true)
+    );
+}
+
+#[tokio::test]
+async fn session_settings_preview_preserves_legacy_input_and_identity_clearing() {
+    let (session, context) = make_session_and_context().await;
+    let profile = PermissionProfile::read_only();
+    let selected = PermissionProfileSnapshot::active_with_profile_workspace_roots(
+        profile.clone(),
+        ActivePermissionProfile::read_only(),
+        vec![
+            context
+                .initial_environments
+                .primary()
+                .unwrap()
+                .cwd()
+                .clone()
+                .into(),
+        ],
+    );
+    session
+        .state
+        .lock()
+        .await
+        .session_configuration
+        .permission_profile_state
+        .set_permission_profile_snapshot(selected.clone())
+        .unwrap();
+    let canonical = session
+        .update_settings(SessionSettingsUpdate {
+            permission_profile: Some(profile.clone()),
+            profile_workspace_roots: Some(selected.profile_workspace_roots().to_vec()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(
+        canonical.configuration.permission_profile_state.snapshot(),
+        selected
+    );
+
+    let legacy = SessionSettingsUpdate {
+        sandbox_policy: Some(SandboxPolicy::new_read_only_policy()),
+        ..Default::default()
+    };
+    let preview = session.preview_settings(&legacy).await.unwrap();
+    assert_eq!(
+        (
+            preview.permission_profile,
+            preview.active_permission_profile,
+            preview.profile_workspace_roots
+        ),
+        (profile.clone(), None, Vec::new()),
+    );
+    assert_eq!(
+        session
+            .state
+            .lock()
+            .await
+            .session_configuration
+            .permission_profile_state
+            .snapshot(),
+        selected
+    );
+    let committed = session.update_settings(legacy).await.unwrap();
+    assert_eq!(
+        committed.configuration.permission_profile_state.snapshot(),
+        PermissionProfileSnapshot::legacy(profile),
     );
 }
 
@@ -6156,12 +6256,10 @@ async fn standalone_settings_invalidate_continuation_before_delivering_acceptanc
         .tx_event
         .send(Event {
             id: "occupied".into(),
-            msg: EventMsg::ThreadSettingsApplied(
-                codex_protocol::protocol::ThreadSettingsAppliedEvent {
-                    thread_id: Some(session.thread_id()),
-                    thread_settings: session.thread_settings_snapshot().await,
-                },
-            ),
+            msg: EventMsg::ThreadSettingsApplied(ThreadSettingsAppliedEvent {
+                thread_id: Some(session.thread_id()),
+                thread_settings: session.thread_settings_snapshot().await,
+            }),
         })
         .await
         .expect("fill event channel");
@@ -6173,7 +6271,7 @@ async fn standalone_settings_invalidate_continuation_before_delivering_acceptanc
             id: "settings".into(),
             turn_extension_init: None,
             op: Op::ThreadSettings {
-                thread_settings: codex_protocol::protocol::ThreadSettingsOverrides::default(),
+                thread_settings: ThreadSettingsOverrides::default(),
                 reply: Some(reply),
             },
             trace: None,
@@ -6258,7 +6356,7 @@ async fn compaction_persists_resume_metadata_and_companion_records() {
         }),
         previous_turn_settings: Some(previous_turn_settings),
     };
-    let expected_settings = codex_protocol::protocol::ThreadSettingsAppliedEvent {
+    let expected_settings = ThreadSettingsAppliedEvent {
         thread_id: Some(session.thread_id()),
         thread_settings: session.thread_settings_snapshot().await,
     };
@@ -8919,7 +9017,10 @@ async fn submission_loop_channel_close_runs_full_thread_teardown() -> anyhow::Re
     let bundle = std::fs::read_dir(traces.path())?.next().unwrap()?.path();
     let rollout = replay_bundle(bundle)?;
     assert_eq!(rollout.status, RolloutStatus::Aborted);
-    assert!(rollout.recording_complete);
+    assert_eq!(
+        rollout.recording_status,
+        codex_rollout_trace::RecordingStatus::Complete
+    );
 
     assert_eq!(1, calls.load(std::sync::atomic::Ordering::SeqCst));
     assert_eq!(

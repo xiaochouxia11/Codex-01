@@ -275,7 +275,7 @@ impl CodexThread {
             .await
     }
 
-    /// Reads this thread's configured clock, including an external or simulated clock.
+    /// Reads this thread's configured clock.
     pub async fn current_time(&self) -> CodexResult<DateTime<Utc>> {
         self.session
             .services
@@ -587,7 +587,9 @@ impl CodexThread {
 
     /// Starts a new internal continuation turn when idle, including in Plan mode.
     /// Rejects if a newer task has started, even if it has already finished.
-    /// The input must be a response item; it is never treated as user authorization.
+    /// Supply an internal response item, or empty input to wake on a result already
+    /// saved in history. An empty wake inherits the preceding turn's attribution
+    /// and adds no message or user authorization.
     pub async fn continue_turn_if_idle(
         &self,
         request: impl Into<WithTurnExtensionData<TurnInputRequest>>,
@@ -1262,7 +1264,10 @@ impl CodexThread {
     pub async fn mcp_connection_statuses(
         &self,
         config: &codex_mcp::McpConfig,
-    ) -> std::collections::HashMap<String, codex_protocol::mcp::McpServerConnectionStatus> {
+    ) -> std::collections::HashMap<
+        codex_mcp::McpServerKey,
+        codex_protocol::mcp::McpServerConnectionStatus,
+    > {
         self.session
             .services
             .mcp_runtime
@@ -1304,17 +1309,13 @@ impl CodexThread {
             .authorization_version(history.as_ref())
     }
 
-    /// Returns bounded root conversation evidence and its authorization version atomically.
+    /// Captures root originals and authorization before request-size preparation.
     pub async fn guardian_root_snapshot(&self) -> Option<GuardianRootSnapshot> {
-        let mut snapshot = self
-            .session
+        self.session
             .services
             .agent_control
             .get_guardian_package(self.session.thread_id)
-            .await?;
-        // Async consumers need only the bounded projection, not the sync source snapshot.
-        snapshot.request_candidates = None;
-        Some(snapshot)
+            .await
     }
 
     /// Refresh the thread's layer-backed user config state from a caller-supplied
@@ -1390,6 +1391,7 @@ impl CodexThread {
     pub async fn read_mcp_resource(
         &self,
         server: &str,
+        environment_id: Option<&str>,
         params: ReadResourceRequestParams,
     ) -> anyhow::Result<serde_json::Value> {
         self.session.refresh_mcp_if_dirty().await;
@@ -1397,7 +1399,7 @@ impl CodexThread {
             .session
             .services
             .mcp_runtime
-            .latest_read_resource(server, params)
+            .latest_read_resource(server, environment_id, params)
             .await?;
 
         Ok(serde_json::to_value(result)?)
@@ -1407,6 +1409,7 @@ impl CodexThread {
     pub async fn mcp_server_status_snapshot(
         &self,
         server: &str,
+        environment_id: Option<&str>,
         detail: codex_mcp::McpSnapshotDetail,
         expected_registration: Option<&codex_mcp::ResolvedMcpServer>,
     ) -> anyhow::Result<(
@@ -1418,7 +1421,13 @@ impl CodexThread {
         self.session
             .services
             .mcp_runtime
-            .server_status_snapshot(server, detail, expected_registration, &runtime_context)
+            .server_status_snapshot(
+                server,
+                environment_id,
+                detail,
+                expected_registration,
+                &runtime_context,
+            )
             .await
     }
 
@@ -1462,6 +1471,7 @@ impl CodexThread {
     pub async fn call_mcp_tool(
         &self,
         server: &str,
+        environment_id: Option<&str>,
         tool: &str,
         arguments: Option<serde_json::Value>,
         meta: Option<serde_json::Value>,
@@ -1470,7 +1480,7 @@ impl CodexThread {
         self.session
             .services
             .mcp_runtime
-            .latest_call_tool_without_attribution(server, tool, arguments, meta)
+            .latest_call_tool_without_attribution(server, environment_id, tool, arguments, meta)
             .await
     }
 
