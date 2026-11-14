@@ -1,8 +1,8 @@
 # openai/build-hours 同步记录
 
 - 上游：https://github.com/openai/build-hours
-- 上游提交：6ada288c768249573c6770e1b7983de29690bcf5
-- 上游 tree：24f2f24a985938da690e8042385273ef1fd4d2d7
+- 上游提交：4e04a131b1f7123c699f8a2d3cb50ae2319d04ea
+- 上游 tree：7bcee7b6e5f8276b2eac575443b7ffc8acfa1c36
 - 目录：upstream/build-hours/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
