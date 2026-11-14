@@ -1,14 +1,12 @@
-# Apple Design Skill 导入记录
+# Apple Design Skill 同步记录
 
 - 上游仓库：https://github.com/dickwu/apple-design-skill
-- 上游提交：`ff4ebddf0488598723a82bfdce1afb04de0b1c44`
-- 导入日期：2026-10-29
+- 上游提交：`91e15664896f6f27e75dcf1414d1226cb95fa167`
+- 上游树：`18fca84d904fcb9c1733bf9e18ada8469f00d4cf`
 - 保存目录：`skills/apple-design-skill/`
-- 导入范围：上游全部 135 个受版本控制文件，保留原始路径、内容及文件模式，不包含 Git 历史。
-- 校验：逐文件 Git blob SHA 与上游一致。
+- 同步范围：全部受版本控制文件，保留路径、内容和文件模式。
+- 校验：导入目录的 Git tree SHA 与上游一致。
 
-已配置每日自动检查及 Actions 手动同步。运行条件、操作入口和同步范围见 [同步说明](apple-design-skill-sync.md)。
-
-上游的 AGENTS.md、SKILL.md、GEMINI.md 和 .cursorrules 作为第三方项目文件保留于子目录。本次导入没有运行安装命令或参考文档抓取脚本。
-
-署名及使用说明保留在上游 README 中；本次导入不新增或变更第三方授权条款。HIG 引用内容归 Apple Inc. 所有，详见上游 README 的 Origin and license 部分。
+每天自动检查，也支持 Actions 页面手动触发。无文件变化时不提交。
+上游文件作为第三方内容保存，不执行其安装命令或更新脚本。
+署名和授权说明见上游 README；HIG 引用内容归 Apple Inc. 所有。
