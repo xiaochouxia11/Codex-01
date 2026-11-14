@@ -134,6 +134,25 @@ enum EmulatorRotationClient {
 }
 
 @MainActor
+final class DeviceVideoHub {
+  static let shared = DeviceVideoHub()
+  private(set) var prepared: Set<DeviceTarget> = []
+  private(set) var pausedBeforeSubscription: Set<DeviceTarget> = []
+  func preparePreview(for target: DeviceTarget, discovered: DiscoveredVideo? = nil) {
+    prepared.insert(target)
+  }
+
+  func pauseUnclaimedPreview(for target: DeviceTarget) {
+    if prepared.contains(target) { pausedBeforeSubscription.insert(target) }
+  }
+
+  func releasePreview(for target: DeviceTarget) async {
+    prepared.remove(target)
+    pausedBeforeSubscription.remove(target)
+  }
+}
+
+@MainActor
 final class DeviceVideoSource: LivePreviewFrameSource {
   static var sources: [DeviceTarget: PreviewSetupSource] = [:]
   let hasIndependentFrames = true

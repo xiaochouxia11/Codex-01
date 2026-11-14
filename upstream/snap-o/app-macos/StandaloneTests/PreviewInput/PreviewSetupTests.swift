@@ -11,6 +11,8 @@ import Testing
 struct PreviewSetupTests {
   @Test(arguments: [true, false])
   func fullScreenHandoffKeepsTheStreamUntilVisibilitySettles(windowIsVisible: Bool) async throws {
+    @Dependency(\.continuousClock, as: TestClock<Duration>.self)
+    var clock
     let fixture = try SharedPreviewTestSupport.Fixture()
     let attachment = fixture.service.attach(to: fixture.target("test-phone"))
     let originalView = UUID()
@@ -34,6 +36,8 @@ struct PreviewSetupTests {
     if windowIsVisible {
       #expect(fixture.owners.first?.video.session === session && source.stops == 0)
       attachment.updatePresentation(viewID: replacement, visible: false, focused: false, syncClipboard: true)
+      await clock.advance(by: .seconds(3))
+      try await waitForState { attachment.preview?.videoState == .idle }
     }
     #expect(attachment.preview?.videoState == .idle && source.stops == 1)
     #expect(fixture.sources.count == 1)
@@ -65,18 +69,57 @@ struct PreviewSetupTests {
   }
 
   @Test(arguments: [false, true])
-  func physicalVideoWaitsForWakeButToleratesWakeFailure(fails: Bool) async throws {
+  func physicalHelperWarmsDuringWakeAndCaptureToleratesWakeFailure(fails: Bool) async throws {
     let fixture = try Fixture(serial: "phone")
     let gate = TestGate()
     fixture.probe.wakeGate = gate
     fixture.probe.failsWake = fails
     let attachment = fixture.attach()
     await gate.waitUntilEntered()
+    #expect(DeviceVideoHub.shared.prepared.contains(fixture.target))
     #expect(fixture.source.starts == 0)
     await gate.open()
     try await waitForState { attachment.preview?.inputReady == true && fixture.source.starts == 1 }
     #expect(fixture.probe.keyEvents == ["KEYCODE_WAKEUP"])
     #expect(fixture.probe.densityQueries == 0)
+    await fixture.close()
+    #expect(!DeviceVideoHub.shared.prepared.contains(fixture.target))
+  }
+
+  @Test
+  func closingDiscoveredPreviewCancelsBootPolling() async throws {
+    @Dependency(\.continuousClock, as: TestClock<Duration>.self)
+    var clock
+    let fixture = try Fixture(serial: "phone")
+    fixture.probe.bootReady = false
+    let discovered = try #require(DiscoveredVideo(target: fixture.target, client: ADBClient(setup: fixture.probe)))
+    let attachment = fixture.service.attach(to: fixture.target, discovered: discovered)
+    try await waitForState { fixture.probe.bootQueries == 1 && attachment.preview != nil }
+    await #expect(throws: SuspensionError.self) { try await clock.checkSuspension() }
+    await fixture.close()
+    await clock.advance(by: .seconds(1))
+    #expect(fixture.probe.bootQueries == 1)
+    #expect(fixture.source.starts == 0)
+    #expect(!DeviceVideoHub.shared.prepared.contains(fixture.target))
+    try await clock.checkSuspension()
+  }
+
+  @Test
+  func hidingDuringDiscoveryPausesCaptureBeforeTheFirstSubscriber() async throws {
+    let fixture = try Fixture(serial: "phone")
+    let gate = TestGate()
+    fixture.probe.wakeGate = gate
+    let discovered = try #require(DiscoveredVideo(target: fixture.target, client: ADBClient(setup: fixture.probe)))
+    let attachment = fixture.service.attach(to: fixture.target, discovered: discovered)
+    await gate.waitUntilEntered()
+    try await waitForState { attachment.preview != nil }
+    attachment.setVisible(false)
+    #expect(DeviceVideoHub.shared.pausedBeforeSubscription.contains(fixture.target))
+    await gate.open()
+    try await waitForState { attachment.preview?.inputReady == true }
+    #expect(fixture.source.starts == 0)
+    attachment.setVisible(true)
+    try await waitForState { fixture.source.starts == 1 }
     await fixture.close()
   }
 
@@ -96,6 +139,7 @@ struct PreviewSetupTests {
     await gate.open()
     await close.value
     #expect(fixture.source.starts == 0)
+    #expect(!DeviceVideoHub.shared.prepared.contains(fixture.target))
     #expect(fixture.probe.writes.isEmpty)
     await fixture.close()
   }

@@ -36,6 +36,7 @@ final class DevicePreview: PreviewStatus {
   private let preparation: Task<Preparation, Never>
   private let makeSource: @MainActor () -> any LivePreviewFrameSource
   private let makeClipboard: @MainActor (@escaping @MainActor () -> Bool) -> ClipboardSync
+  private let releaseVideoHelper: @MainActor () async -> Void
   @ObservationIgnored private var preparationObserver: Task<Void, Never>?
   @ObservationIgnored private var clipboardWork: Task<Void, Never>?
   @ObservationIgnored private var closing: Task<Void, Never>?
@@ -73,7 +74,8 @@ final class DevicePreview: PreviewStatus {
     boot: Task<Void, Error>, preparation: Task<Preparation, Never>,
     keyboard: LivePreviewKeyboard, pointer: LivePreviewPointerInjector,
     makeSource: @escaping @MainActor () -> any LivePreviewFrameSource,
-    makeClipboard: @escaping @MainActor (@escaping @MainActor () -> Bool) -> ClipboardSync
+    makeClipboard: @escaping @MainActor (@escaping @MainActor () -> Bool) -> ClipboardSync,
+    releaseVideoHelper: @escaping @MainActor () async -> Void = {}
   ) {
     self.target = target
     self.adb = adb
@@ -85,23 +87,36 @@ final class DevicePreview: PreviewStatus {
     rotation = LivePreviewRotation(target: target)
     self.makeSource = makeSource
     self.makeClipboard = makeClipboard
+    self.releaseVideoHelper = releaseVideoHelper
   }
 
-  convenience init(target: DeviceTarget, adb: ADBService, settings: AppSettings) {
+  convenience init(target: DeviceTarget, adb: ADBService, settings: AppSettings, discovered: DiscoveredVideo? = nil) {
     @Dependency(\.continuousClock)
     var clock
-    let boot = Task {
-      let exec = await adb.exec().bound(to: target)
-      var delay = Duration.seconds(1)
-      while true {
+    var ownsVideoHelper = false
+    let boot: Task<Void, Error>
+    if let discovered {
+      // Visibility can change while Android is still waking.
+      DeviceVideoHub.shared.preparePreview(for: target, discovered: discovered)
+      ownsVideoHelper = true
+      boot = Task.immediate(priority: .userInitiated) {
+        try await withTaskCancellationHandler {
+          try await discovered.wake.value
+        } onCancel: { discovered.cancel() }
         try Task.checkCancellation()
-        _ = try target.requireTransport(for: target.serial)
-        if await (try? exec.isBootComplete(deviceID: target.serial)) == true { break }
-        try await clock.sleep(for: delay)
-        delay = min(delay * 2, .seconds(10))
+        guard target.isValid else { throw CancellationError() }
       }
-      try Task.checkCancellation()
-      _ = try? await exec.withTimeout(.seconds(1)).keyEvent(deviceID: target.serial, keyCode: "KEYCODE_WAKEUP")
+    } else {
+      boot = Task.immediate(priority: .userInitiated) {
+        let exec = await adb.exec().bound(to: target)
+        try await exec.waitUntilBooted(target)
+        try Task.checkCancellation()
+        if !target.isLocalEmulator {
+          DeviceVideoHub.shared.preparePreview(for: target)
+          ownsVideoHelper = true
+        }
+        _ = try? await exec.withTimeout(.seconds(1)).keyEvent(deviceID: target.serial, keyCode: "KEYCODE_WAKEUP")
+      }
     }
     let preparation = Task<Preparation, Never> {
       do { try await boot.value } catch { return Preparation(touches: nil, density: nil) }
@@ -127,7 +142,10 @@ final class DevicePreview: PreviewStatus {
       target: target, adb: adb, settings: settings, boot: boot, preparation: preparation,
       keyboard: keyboard, pointer: LivePreviewPointerInjector(adb: adb),
       makeSource: { DeviceVideoSource(target: target) },
-      makeClipboard: { allowed in ClipboardSync(settings: settings, maySynchronize: allowed) }
+      makeClipboard: { allowed in ClipboardSync(settings: settings, maySynchronize: allowed) },
+      releaseVideoHelper: {
+        if ownsVideoHelper { await DeviceVideoHub.shared.releasePreview(for: target) }
+      }
     )
   }
 
@@ -148,6 +166,11 @@ final class DevicePreview: PreviewStatus {
         await touches.setEnabled(enabled, using: adb)
       }
     }
+  }
+
+  func setVideoActive(_ active: Bool, delayPause: Bool) {
+    video.setActive(active, delayPause: delayPause)
+    if !active { DeviceVideoHub.shared.pauseUnclaimedPreview(for: target) }
   }
 
   func setClipboardEnabled(_ enabled: Bool) {
@@ -191,10 +214,11 @@ final class DevicePreview: PreviewStatus {
       await clipboardWork?.value
       await keyboardCleanup.value
       await videoCleanup
+      _ = await boot.result
+      await releaseVideoHelper()
       await pointerCleanup
       await rotationCleanup
       await prepared.touches?.restore(using: adb)
-      _ = await boot.result
     }
     self.closing = closing
     await closing.value

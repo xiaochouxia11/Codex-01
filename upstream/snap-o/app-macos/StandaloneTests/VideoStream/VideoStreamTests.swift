@@ -13,6 +13,12 @@ struct VideoStreamTests {
       $0.continuousClock = TestClock()
     } operation: {
       await requestsKeyFrameOnlyForJoinedConsumers()
+      try await discoveryStreamsBeforeWindowAttachment()
+      try await hiddenDiscoveryResumesOnTheSameHelper()
+      await pausedHelperDiscardsOldFramesAndSharesRecordings()
+      for acknowledged in [false, true] {
+        try await pauseDeadlineSurvivesVisibilityChanges(acknowledged: acknowledged)
+      }
       await consumersReleaseIndependently()
       await restartWaitsForFinalConsumerCleanup()
       await oldSubscriptionCannotRemoveReplacement()
@@ -81,15 +87,7 @@ struct VideoStreamTests {
       }
     }
     await waitForReads(socket)
-    var packet = Data([1])
-    for value in [UInt32(2), 2, 160, 0] {
-      withUnsafeBytes(of: value.bigEndian) { packet.append(contentsOf: $0) }
-    }
-    packet.append(4)
-    for value in [UInt32(2), 2, 0, 123, 15] {
-      withUnsafeBytes(of: value.bigEndian) { packet.append(contentsOf: $0) }
-    }
-    packet.append(contentsOf: [120, 1, 251, 207, 192, 240, 255, 63, 18, 6, 0, 67, 204, 7, 249])
+    let packet = rgbaFrame()
     socket.append(packet)
     await waitForObservedTestState { received.value }
     precondition(first.hasIndependentFrames)
@@ -114,6 +112,19 @@ struct VideoStreamTests {
     precondition(socket.isClosed)
   }
 
+  static func rgbaFrame() -> Data {
+    var packet = Data([1])
+    for value in [UInt32(2), 2, 160, 0] {
+      withUnsafeBytes(of: value.bigEndian) { packet.append(contentsOf: $0) }
+    }
+    packet.append(4)
+    for value in [UInt32(2), 2, 0, 123, 15] {
+      withUnsafeBytes(of: value.bigEndian) { packet.append(contentsOf: $0) }
+    }
+    packet.append(contentsOf: [120, 1, 251, 207, 192, 240, 255, 63, 18, 6, 0, 67, 204, 7, 249])
+    return packet
+  }
+
   static func assertOpened(_ expected: Int, probe: VideoConnectionProbe) async {
     let opened = await probe.opened
     precondition(opened == expected)
@@ -136,13 +147,176 @@ struct VideoStreamTests {
 
     let second = DeviceVideoSource(target: target, hub: hub)
     second.start { _ in }
+    second.requestKeyFrame()
+    socket.append(rgbaFrame())
+    await waitForActorTestState { socket.acknowledgmentCount == 1 }
+    precondition(socket.writeCount == 0, "Early joiners share the encoder's first keyframe")
+    let third = DeviceVideoSource(target: target, hub: hub)
+    third.start { _ in }
+    third.requestKeyFrame()
     await waitForActorTestState { socket.writeCount == 1 }
+    third.stop()
+    await third.waitUntilStopped()
     first.stop()
     await first.waitUntilStopped()
     precondition(!socket.isClosed)
     second.stop()
     await second.waitUntilStopped()
     precondition(socket.isClosed)
+  }
+
+  static func discoveryStreamsBeforeWindowAttachment() async throws {
+    let target = target()
+    let socket = ADBSocketConnection()
+    let probe = prepare(target, socket)
+    let discovered = try #require(DiscoveredVideo(target: target))
+    _ = try await discovered.stream.value
+    precondition(socket.activity == [5], "Discovery must start capture before a window attaches")
+    socket.append(rgbaFrame())
+    let hub = DeviceVideoHub()
+    hub.preparePreview(for: target, discovered: discovered)
+    let source = DeviceVideoSource(target: target, hub: hub)
+    let frames = TestValue(0)
+    source.start { if case .sample = $0 { frames.value += 1 } }
+    await waitForObservedTestState { frames.value == 1 }
+    precondition(socket.activity == [5], "The window must reuse the running stream")
+    let recording = DeviceVideoSource(target: target, hub: hub)
+    recording.start { _ in }
+    source.stop()
+    await source.waitUntilStopped()
+    let redundantSocket = ADBSocketConnection()
+    _ = prepare(target, redundantSocket)
+    let redundant = try #require(DiscoveredVideo(target: target))
+    _ = try await redundant.stream.value
+    hub.preparePreview(for: target, discovered: redundant)
+    await waitForActorTestState { redundantSocket.isClosed }
+    await hub.releasePreview(for: target)
+    await hub.releasePreview(for: target)
+    precondition(!socket.isClosed, "Recording must keep the discovered stream after the preview closes")
+    recording.stop()
+    await recording.waitUntilStopped()
+    await assertOpened(1, probe: probe)
+    precondition(socket.isClosed)
+
+    let unused = ADBSocketConnection()
+    _ = prepare(target, unused)
+    let abandoned = try #require(DiscoveredVideo(target: target))
+    _ = try await abandoned.stream.value
+    await abandoned.close()
+    precondition(unused.isClosed, "Abandoning a discovered stream must stop device capture")
+  }
+
+  static func hiddenDiscoveryResumesOnTheSameHelper() async throws {
+    let target = target()
+    let socket = ADBSocketConnection()
+    let gate = TestGate()
+    let probe = prepare(target, socket, startup: gate)
+    let discovered = try #require(DiscoveredVideo(target: target))
+    let hub = DeviceVideoHub()
+    hub.preparePreview(for: target, discovered: discovered)
+    await gate.waitUntilEntered()
+    hub.pauseUnclaimedPreview(for: target)
+    await gate.open()
+    await waitForActorTestState { socket.activity == [5, 4] }
+
+    let source = DeviceVideoSource(target: target, hub: hub)
+    let frames = TestValue(0)
+    source.start { if case .sample = $0 { frames.value += 1 } }
+    socket.append(rgbaFrame() + Data([5]))
+    await waitForActorTestState { socket.activity == [5, 4, 5] }
+    precondition(frames.value == 0, "Frames from before the pause must not appear after reopening")
+    socket.append(rgbaFrame())
+    await waitForObservedTestState { frames.value == 1 }
+    await hub.releasePreview(for: target)
+    source.stop()
+    await source.waitUntilStopped()
+    await assertOpened(1, probe: probe)
+    precondition(socket.isClosed)
+  }
+
+  static func pausedHelperDiscardsOldFramesAndSharesRecordings() async {
+    let target = target()
+    let socket = ADBSocketConnection()
+    let probe = prepare(target, socket)
+    let hub = DeviceVideoHub()
+    hub.preparePreview(for: target)
+    await waitForReads(socket)
+    precondition(socket.activity.isEmpty, "Prewarming must not start capture")
+    let first = DeviceVideoSource(target: target, hub: hub)
+    first.start { _ in }
+    await waitForActorTestState { socket.activity == [5] }
+    let recording = DeviceVideoSource(target: target, hub: hub, replaysLastFrame: false)
+    let recordingFrames = TestValue(0)
+    recording.start { if case .sample = $0 { recordingFrames.value += 1 } }
+    first.stop()
+    await first.waitUntilStopped()
+    hub.pauseUnclaimedPreview(for: target)
+    socket.append(rgbaFrame())
+    await waitForObservedTestState { recordingFrames.value == 1 }
+    precondition(socket.activity == [5], "Hiding the preview must leave the recording running")
+    recording.stop()
+    await recording.waitUntilStopped()
+    await waitForActorTestState { socket.activity == [5, 4] }
+
+    let next = DeviceVideoSource(target: target, hub: hub)
+    let frames = TestValue(0)
+    next.start { if case .sample = $0 { frames.value += 1 } }
+    socket.append(rgbaFrame() + Data([5]))
+    await waitForActorTestState { socket.activity == [5, 4, 5] }
+    precondition(frames.value == 0, "Buffered frames before the pause acknowledgment belong to the old capture")
+    socket.append(rgbaFrame())
+    await waitForObservedTestState { frames.value == 1 }
+    await hub.releasePreview(for: target)
+    precondition(!socket.isClosed)
+    next.stop()
+    await next.waitUntilStopped()
+    await assertOpened(1, probe: probe)
+    precondition(socket.isClosed)
+  }
+
+  static func pauseDeadlineSurvivesVisibilityChanges(acknowledged: Bool) async throws {
+    let clock = TestClock()
+    try await withDependencies { $0.continuousClock = clock } operation: {
+      let target = target()
+      let socket = ADBSocketConnection()
+      let probe = prepare(target, socket)
+      let hub = DeviceVideoHub()
+      hub.preparePreview(for: target)
+      let preview = PreviewVideo {
+        LivePreviewSession(deviceID: target.serial, densityScale: nil, source: DeviceVideoSource(target: target, hub: hub))
+      } canReconnect: { true }
+      preview.start()
+      await waitForActorTestState { socket.activity == [5] }
+      socket.append(rgbaFrame())
+      await waitForObservedTestState { preview.phase == .streaming }
+
+      preview.setActive(false, delayPause: true)
+      await clock.advance(by: .seconds(3))
+      await waitForActorTestState { socket.activity == [5, 4] }
+      await clock.advance(by: .seconds(2))
+      preview.setActive(true, delayPause: true)
+      await waitForObservedTestState { preview.session != nil && preview.phase == .starting }
+      if !acknowledged {
+        preview.setActive(false, delayPause: true)
+        await waitForObservedTestState { preview.session == nil && preview.phase == .idle }
+      }
+
+      await clock.advance(by: .seconds(5))
+      precondition(!socket.isClosed && socket.activity == [5, 4])
+      if acknowledged {
+        socket.append(Data([5]))
+        await waitForActorTestState { socket.activity == [5, 4, 5] }
+        await clock.advance(by: .seconds(7))
+        precondition(!socket.isClosed, "The new stream gets its full deadline after the pause acknowledgment")
+      }
+      await clock.advance(by: .seconds(1))
+      await waitForActorTestState { socket.isClosed }
+
+      await preview.close()
+      await hub.releasePreview(for: target)
+      await assertOpened(1, probe: probe)
+      try await clock.checkSuspension()
+    }
   }
 
   static func consumersReleaseIndependently() async {

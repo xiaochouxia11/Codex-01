@@ -1,8 +1,8 @@
 # openai/snap-o 同步记录
 
 - 上游：https://github.com/openai/snap-o
-- 上游提交：c358b7949d586d97560b091e6ce680472fcb9bde
-- 上游 tree：094b4d9d6aa13c7d75907f695f506c2e6e99d53f
+- 上游提交：08356f4657d2e4a44153d7400c79037b8bb3eb85
+- 上游 tree：218be70f089a906e7709270c95326a83f596ad01
 - 目录：upstream/snap-o/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。

@@ -13,6 +13,7 @@ final class DeviceVideoHub {
 
   private let makeSource: (DeviceTarget) -> any LivePreviewFrameSource
   private var sessions: [DeviceTarget: DeviceVideoStream] = [:]
+  private var previewOwners: [DeviceTarget: Int] = [:]
 
   init(makeSource: @escaping (DeviceTarget) -> any LivePreviewFrameSource = { target in
     if target.isLocalEmulator {
@@ -24,9 +25,29 @@ final class DeviceVideoHub {
     self.makeSource = makeSource
   }
 
-  fileprivate func subscription(target: DeviceTarget) -> Subscription {
+  /// A selected physical preview owns the helper even when it has no frame subscribers.
+  func preparePreview(for target: DeviceTarget, discovered: DiscoveredVideo? = nil) {
+    guard !target.isLocalEmulator else { return }
+    previewOwners[target, default: 0] += 1
+    stream(for: target).prepare(discovered: discovered)
+  }
+
+  func pauseUnclaimedPreview(for target: DeviceTarget) {
+    sessions[target]?.pauseUnclaimedPreview()
+  }
+
+  func releasePreview(for target: DeviceTarget) async {
+    guard let owners = previewOwners[target] else { return }
+    if owners > 1 { previewOwners[target] = owners - 1
+      return
+    }
+    previewOwners.removeValue(forKey: target)
+    if let stream = sessions[target], stream.isEmpty { await close(stream, for: target).value }
+  }
+
+  private func stream(for target: DeviceTarget) -> DeviceVideoStream {
     let stream: DeviceVideoStream
-    if let existing = sessions[target], !existing.hasStopped {
+    if let existing = sessions[target], existing.isAvailable {
       stream = existing
     } else {
       let previous = sessions[target]
@@ -34,18 +55,27 @@ final class DeviceVideoHub {
       stream = DeviceVideoStream(source: makeSource(target), previous: previous, scalesFrames: target.isLocalEmulator)
       sessions[target] = stream
     }
-    return Subscription(target: target, stream: stream, id: UUID())
+    return stream
+  }
+
+  fileprivate func subscription(target: DeviceTarget) -> Subscription {
+    Subscription(target: target, stream: stream(for: target), id: UUID())
   }
 
   fileprivate func unsubscribe(_ subscription: Subscription) -> Task<Void, Never>? {
     let stream = subscription.stream
     stream.unsubscribe(subscription.id)
     guard stream.isEmpty else { return nil }
+    if previewOwners[subscription.target] != nil, stream.pause() { return nil }
+    return close(stream, for: subscription.target)
+  }
+
+  private func close(_ stream: DeviceVideoStream, for target: DeviceTarget) -> Task<Void, Never> {
     stream.stop()
     return Task {
       await stream.waitUntilStopped()
-      if sessions[subscription.target] === stream {
-        sessions.removeValue(forKey: subscription.target)
+      if sessions[target] === stream {
+        sessions.removeValue(forKey: target)
       }
     }
   }
@@ -114,6 +144,8 @@ private final class DeviceVideoStream {
   private var previous: DeviceVideoStream?
   private var startup: Task<Void, Never>?
   private var hasStarted = false
+  private var discovered: DiscoveredVideo?
+  private var discoveryCleanup: Task<Void, Never>?
   private(set) var hasStopped = false
   private var subscribers: [UUID: Subscriber] = [:]
   private var formatEvent: LivePreviewFrameEvent?
@@ -128,11 +160,50 @@ private final class DeviceVideoStream {
     source.hasIndependentFrames
   }
 
+  var isAvailable: Bool {
+    !hasStopped && (source as? DeviceVideoConnection)?.hasStopped != true
+  }
+
   init(source: any LivePreviewFrameSource, previous: DeviceVideoStream?, scalesFrames: Bool) {
     self.source = source
     self.scalesFrames = scalesFrames
     self.previous = previous
     if scalesFrames { source.setFrameSize(.inactive) }
+  }
+
+  func prepare(discovered: DiscoveredVideo?) {
+    // A replacement stream joins the preceding transport before opening its own.
+    if let discovered {
+      if hasStarted || self.discovered != nil {
+        discovered.cancel()
+        let previousCleanup = discoveryCleanup
+        discoveryCleanup = Task {
+          await discovered.close()
+          await previousCleanup?.value
+        }
+      } else {
+        self.discovered = discovered
+      }
+      return
+    }
+    if previous == nil { (source as? DeviceVideoConnection)?.prepare() }
+  }
+
+  func pauseUnclaimedPreview() {
+    guard isEmpty, let discovered, let connection = source as? DeviceVideoConnection else { return }
+    self.discovered = nil
+    // With no subscriber, the connection pauses the encoder as soon as the helper is ready.
+    connection.prepare(discovered: discovered)
+  }
+
+  func pause() -> Bool {
+    guard isAvailable, let connection = source as? DeviceVideoConnection else { return false }
+    connection.pause()
+    hasStarted = false
+    density = nil
+    formatEvent = nil
+    latestIndependentFrame = nil
+    return true
   }
 
   func subscribe(
@@ -157,7 +228,8 @@ private final class DeviceVideoStream {
         self.previous = nil
         startup = Task {
           await previous.waitUntilStopped()
-          guard !hasStopped else { return }
+          startup = nil
+          guard !hasStopped, !isEmpty else { return }
           start()
         }
       } else {
@@ -197,17 +269,24 @@ private final class DeviceVideoStream {
     guard !hasStopped else { return }
     hasStopped = true
     startup?.cancel()
+    discovered?.cancel()
     latestIndependentFrame = nil
     source.stop()
   }
 
   func waitUntilStopped() async {
     await startup?.value
+    await discovered?.close()
+    await discoveryCleanup?.value
     await source.waitUntilStopped()
   }
 
   private func start() {
     hasStarted = true
+    if let discovered {
+      self.discovered = nil
+      (source as? DeviceVideoConnection)?.prepare(discovered: discovered)
+    }
     source.start { [weak self] event in self?.receive(event) }
   }
 
