@@ -6,6 +6,7 @@
 use super::rate_limit_refresh::RateLimitReadStatus;
 use super::rate_limit_refresh::RateLimitRefreshOutcome;
 use super::resize_reflow::trailing_run_start;
+use super::session_lifecycle::FreshSessionStart;
 use super::session_lifecycle::ThreadAttachPresentation;
 use super::*;
 use crate::app_event::CapturedSideStream;
@@ -264,7 +265,7 @@ impl App {
             | AppEvent::NewSession { name }
             | AppEvent::NewSessionInCurrentWorktree { name } => {
                 self.start_fresh_session(
-                    tui, app_server, /*session_start_source*/ None,
+                    tui, app_server, FreshSessionStart::NewConversation,
                     /*initial_user_message*/ None, name,
                 )
                 .await;
@@ -293,7 +294,7 @@ impl App {
                     self.start_fresh_session(
                         tui,
                         app_server,
-                        /*session_start_source*/ None,
+                        FreshSessionStart::PreserveCurrentView(None),
                         /*initial_user_message*/ None,
                         /*new_thread_name*/ None,
                     )
@@ -557,7 +558,7 @@ impl App {
                 self.start_fresh_session(
                     tui,
                     app_server,
-                    Some(ThreadStartSource::Clear),
+                    FreshSessionStart::PreserveCurrentView(Some(ThreadStartSource::Clear)),
                     /*initial_user_message*/ None,
                     name,
                 )
@@ -606,6 +607,14 @@ impl App {
                     }
                 }
                 tui.frame_requester().schedule_frame();
+            }
+            AppEvent::ResumeUnarchivedThread(thread_id) => {
+                if self.current_displayed_thread_id() == Some(thread_id)
+                    && self.chat_widget.is_archived_view()
+                    && self.thread_event_channels.get(&thread_id).is_some_and(|channel| !channel.archived)
+                {
+                    archived_thread::resume_displayed_thread(self, tui, app_server, thread_id).await;
+                }
             }
             AppEvent::ResumeSessionByIdOrName(id_or_name) => {
                 match crate::lookup_session_target_with_app_server(
@@ -3392,6 +3401,7 @@ impl App {
                 thread_id,
                 destination,
                 prompt,
+                expected_name,
                 fallback_title,
                 effort,
                 result,
@@ -3401,6 +3411,7 @@ impl App {
                     thread_id,
                     destination,
                     prompt,
+                    expected_name,
                     fallback_title,
                     effort,
                     result,

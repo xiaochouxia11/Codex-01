@@ -277,26 +277,29 @@ async fn run_worker(
     output: &mpsc::UnboundedSender<AppServerEvent>,
 ) {
     loop {
-        let command = tokio::select! {
+        let mut command = tokio::select! {
             _ = output.closed() => return,
             () = replies.forward_next(output) => continue,
             command = commands.recv() => match command { Some(command) => command, None => return },
         };
+        let (is_thread_start, selects_attachment) = match &command.operation {
+            CloudOperation::Request(request) => match request.as_ref() {
+                protocol::ClientRequest::ThreadStart { .. } => (true, true),
+                protocol::ClientRequest::ThreadResume { .. } => (false, true),
+                _ => (false, false),
+            },
+            CloudOperation::StartProjectThread { .. } => (true, true),
+            _ => (false, false),
+        };
+        // A queued start that nobody owns must leave the existing recovery alone.
+        if is_thread_start && command.response.is_closed() {
+            continue;
+        }
         // A deliberate selection owns the next attachment, even if its handshake fails.
-        let canceled = match &command.operation {
-            CloudOperation::Request(request)
-                if matches!(
-                    request.as_ref(),
-                    protocol::ClientRequest::ThreadStart { .. }
-                        | protocol::ClientRequest::ThreadResume { .. }
-                ) =>
-            {
-                replies.idle.as_mut().and_then(idle::Recovery::cancel)
-            }
-            CloudOperation::StartProjectThread { .. } => {
-                replies.idle.as_mut().and_then(idle::Recovery::cancel)
-            }
-            _ => None,
+        let canceled = if selects_attachment {
+            replies.idle.as_mut().and_then(idle::Recovery::cancel)
+        } else {
+            None
         };
         let request = match command.operation {
             CloudOperation::Shutdown => {
@@ -335,10 +338,22 @@ async fn run_worker(
             )),
         };
         let result = match request {
-            Ok((request, mode, project)) => tokio::select! {
-                _ = output.closed() => return,
-                result = handle_request(request, mode, project, requests, replies, output) => result,
-            },
+            Ok((request, mode, project)) => {
+                let is_thread_list = matches!(&request, protocol::ClientRequest::ThreadList { .. });
+                // When closure and the handshake are both ready, cancel before
+                // the handshake can replace the active attachment.
+                tokio::select! {
+                    biased;
+                    _ = output.closed() => return,
+                    _ = command.response.closed(), if is_thread_list || is_thread_start => {
+                        if let Some(root) = canceled {
+                            replies.report_loss(&root, output);
+                        }
+                        continue;
+                    }
+                    result = handle_request(request, mode, project, requests, replies, output) => result,
+                }
+            }
             Err(error) => Err(error),
         };
         if result.is_err()

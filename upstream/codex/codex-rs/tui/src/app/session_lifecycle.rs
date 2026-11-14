@@ -19,6 +19,7 @@ use crate::app_server_session::is_server_shutting_down_error;
 use crate::app_server_session::source_agent_path;
 use crate::app_server_session::thread_blocks_direct_input;
 use crate::chatwidget::ThreadInputStateRestoreMode;
+use crate::startup_draft::StartupDraftPump;
 use crate::streaming::commit_tick::CommitTickScope;
 use codex_app_server_protocol::ThreadPrepareApprovedPlanParams;
 use codex_model_provider_info::OPENAI_PROVIDER_ID;
@@ -35,6 +36,11 @@ pub(super) enum ThreadAttachPresentation {
     SessionLineage,
     /// A resume whose outgoing events were drained and terminal cleared before capture.
     SessionLineageAfterClear,
+}
+
+pub(super) enum FreshSessionStart {
+    NewConversation,
+    PreserveCurrentView(Option<ThreadStartSource>),
 }
 
 pub(super) struct PreparedFreshSession {
@@ -386,6 +392,13 @@ impl App {
         app_server: &mut AppServerSession,
         thread_id: ThreadId,
     ) -> Result<bool> {
+        if self
+            .thread_event_channels
+            .get(&thread_id)
+            .is_some_and(|channel| channel.archived)
+        {
+            return Ok(false);
+        }
         if !self.should_attach_live_thread_for_selection(thread_id) {
             return Ok(true);
         }
@@ -469,7 +482,12 @@ impl App {
                 (session, thread.turns, false)
             }
         };
-        let live_attached = live_attached && !closed;
+        let live_attached = live_attached
+            && !closed
+            && !self
+                .thread_event_channels
+                .get(&thread_id)
+                .is_some_and(|channel| channel.archived);
         if self.side_threads.contains_key(&thread_id) {
             session.forked_from_id = None;
             session.fork_parent_title = None;
@@ -870,7 +888,10 @@ impl App {
             && self
                 .thread_event_channels
                 .get(&thread_id)
-                .is_none_or(|channel| channel.attachment() != ThreadEventAttachment::ExternalWriter)
+                .is_none_or(|channel| {
+                    !channel.archived
+                        && channel.attachment() != ThreadEventAttachment::ExternalWriter
+                })
         {
             self.chat_widget.pause_unavailable_thread();
             let message = if attached_replay_only {
@@ -915,13 +936,7 @@ impl App {
             .set_task_mentions_enabled(app_server.task_tools_available(thread_id));
         self.chat_widget
             .note_rendered_width(tui.terminal.last_known_screen_size.width);
-        let external_writer = self
-            .thread_event_channels
-            .get(&thread_id)
-            .is_some_and(|channel| channel.attachment() == ThreadEventAttachment::ExternalWriter);
-        if external_writer {
-            self.chat_widget.show_external_writer_thread();
-        }
+        archived_thread::show_cached_read_only_thread(self, thread_id);
         if self.agent_navigation.is_parent_owned(thread_id) {
             self.chat_widget.set_parent_owned_thread();
         }
@@ -957,9 +972,7 @@ impl App {
         {
             self.adopt_server_permissions();
         }
-        if external_writer {
-            self.chat_widget.show_external_writer_thread();
-        }
+        archived_thread::show_cached_read_only_thread(self, thread_id);
         if retain_side_view {
             // Hold drawing and input through the history events emitted by replay.
             self.chat_widget
@@ -1217,7 +1230,7 @@ impl App {
         &mut self,
         tui: &mut tui::Tui,
         app_server: &mut AppServerSession,
-        session_start_source: Option<ThreadStartSource>,
+        start: FreshSessionStart,
         initial_user_message: Option<crate::chatwidget::UserMessage>,
         new_thread_name: Option<String>,
     ) {
@@ -1251,16 +1264,36 @@ impl App {
         // Start a fresh in-memory session while preserving resumability via persisted rollout
         // history. If an initial message is provided, `enqueue_primary_thread_session` suppresses it
         // until the new session is configured and any replayed turns have been rendered.
-        match self
-            .prepare_fresh_session(app_server, session_start_source)
-            .await
-        {
+        let (session_start_source, mut draft) = match start {
+            FreshSessionStart::NewConversation => (
+                None,
+                Some(StartupDraftPump::for_new_session(
+                    tui,
+                    &self.local_settings,
+                    self.chat_widget.config_ref().cwd.as_path(),
+                )),
+            ),
+            FreshSessionStart::PreserveCurrentView(source) => (source, None),
+        };
+        let previous_thread = self.current_displayed_thread_id();
+        let prepared = StartupDraftPump::run_during_navigation(
+            draft.as_mut(),
+            tui,
+            Box::pin(self.prepare_fresh_session(app_server, session_start_source)),
+        )
+        .await;
+        match prepared {
             Ok(prepared) => {
+                let presentation = if draft.is_some() {
+                    ThreadAttachPresentation::FreshWithDraft
+                } else {
+                    ThreadAttachPresentation::Fresh
+                };
                 self.adopt_fresh_session(
                     tui,
                     app_server,
                     prepared,
-                    ThreadAttachPresentation::Fresh,
+                    presentation,
                     initial_user_message,
                     new_thread_name,
                 )
@@ -1273,7 +1306,14 @@ impl App {
                 }
             }
         }
-        tui.frame_requester().schedule_frame();
+        if let Some(draft) = draft {
+            let opened_new_session = self.current_displayed_thread_id() != previous_thread;
+            draft
+                .handoff_after_navigation(tui, &mut self.chat_widget, opened_new_session)
+                .await;
+        } else {
+            tui.frame_requester().schedule_frame();
+        }
     }
 
     async fn prepare_fresh_session(
@@ -1825,7 +1865,7 @@ impl App {
             && owned_channel.is_some()
             && (refreshing_history
                 || was_reconnecting
-                || self.chat_widget.is_external_writer_view()
+                || self.chat_widget.is_read_only_view()
                 || self.chat_widget.has_provider_error()))
         .then(|| self.chat_widget.capture_thread_input_state())
         .flatten();
