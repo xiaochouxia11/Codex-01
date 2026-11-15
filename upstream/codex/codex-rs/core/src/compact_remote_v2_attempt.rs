@@ -73,6 +73,7 @@ pub(crate) struct BackgroundCompactionInput {
 }
 
 pub(super) async fn run_remote_compact_v2_attempt(
+    request: &mut crate::hook_runtime::sampling::SamplingRequest,
     sess: &Arc<Session>,
     step_context: &Arc<StepContext>,
     compaction_trace: &CompactionTraceContext,
@@ -199,10 +200,10 @@ pub(super) async fn run_remote_compact_v2_attempt(
 
     let mut responses_metadata = match captured_window {
         Some(window) => {
-            sess.compaction_responses_metadata_for_window(turn_context, compaction_metadata, window)
+            sess.compaction_responses_metadata_for_window(step_context, compaction_metadata, window)
         }
         None => {
-            sess.compaction_responses_metadata(turn_context, compaction_metadata)
+            sess.compaction_responses_metadata(step_context, compaction_metadata)
                 .await
         }
     };
@@ -240,6 +241,7 @@ pub(super) async fn run_remote_compact_v2_attempt(
             })
         });
         let compaction_output_result = run_remote_compaction_request_v2(
+            request,
             sess,
             step_context,
             &prompt,
@@ -352,7 +354,11 @@ pub(crate) async fn run_background_compaction(
         CompactionImplementation::ResponsesCompactionV2,
         phase,
     );
+    let mut request = crate::hook_runtime::sampling::SamplingRequest::new(
+        codex_hooks::SamplingKind::BackgroundCompaction,
+    );
     let attempt = run_remote_compact_v2_attempt(
+        &mut request,
         sess,
         &step_context,
         &CompactionTraceContext::disabled(),
