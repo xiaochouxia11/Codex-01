@@ -1,8 +1,8 @@
 # openai/tunnel-client 同步记录
 
 - 上游：https://github.com/openai/tunnel-client
-- 上游提交：fb6c47fbdf156451137e2c00a55d485be42f03a3
-- 上游 tree：5470c961e23446797e4b4cf926ab63a01313b29a
+- 上游提交：7ce2d4255d248e1ecd477527e3764864a699e92e
+- 上游 tree：c4feb0fb053f16570c863bc8bf6eb18216454f8a
 - 目录：upstream/tunnel-client/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
