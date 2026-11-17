@@ -564,7 +564,16 @@ impl App {
     /// Thread switches reconstruct the `ChatWidget`, which loses the `collab_agent_metadata` map.
     /// This helper copies every known nickname/role from `AgentNavigationState` into the
     /// replacement widget so that replayed collab items render agent names immediately.
-    pub(super) fn replace_chat_widget(&mut self, mut chat_widget: ChatWidget) {
+    pub(super) fn replace_chat_widget(&mut self, chat_widget: ChatWidget) {
+        self.replace_chat_widget_for_provider(chat_widget, /*thread_provider*/ None);
+    }
+
+    fn replace_chat_widget_for_provider(
+        &mut self,
+        mut chat_widget: ChatWidget,
+        thread_provider: Option<&str>,
+    ) {
+        self.statusline_picker = None;
         chat_widget.inherit_view_transition_key_guard(&mut self.chat_widget);
         chat_widget.fork_in_progress = self.chat_widget.fork_in_progress;
         self.pending_right_click_paste = None;
@@ -582,6 +591,8 @@ impl App {
             chat_widget.last_terminal_title = previous_terminal_title;
         }
         chat_widget.config_panel_tui = self.chat_widget.config_panel_tui.clone();
+        chat_widget.config_panel_tui.mouse_scroll_speed =
+            chat_widget.local_settings.tui.mouse_scroll_speed;
         chat_widget.remote_connection = self.chat_widget.remote_connection.clone();
         chat_widget.snapshot_local_images = self.app_server_target.uses_remote_workspace();
         chat_widget.thread_params_mode = self.chat_widget.thread_params_mode;
@@ -595,10 +606,24 @@ impl App {
             chat_widget.windows_sandbox_elevated_setup_complete =
                 self.chat_widget.windows_sandbox_elevated_setup_complete;
         }
+        // Different providers can report identical account details.
+        let provider_changed = thread_provider
+            .is_some_and(|provider| provider != self.chat_widget.quota_provider_id());
+        let lost_chatgpt_account =
+            self.chat_widget.has_chatgpt_account() && !chat_widget.has_chatgpt_account();
+        if provider_changed || lost_chatgpt_account {
+            self.rate_limit_hard_stop_generation =
+                self.rate_limit_hard_stop_generation.wrapping_add(1);
+            self.rate_limit_refresh_state.invalidate_recovery();
+        } else if self.rate_limit_refresh_state.has_pending_recovery() {
+            chat_widget.hold_rate_limit_recovery();
+        }
         if chat_widget.status_account_display() == self.chat_widget.status_account_display()
             && chat_widget.has_chatgpt_account() == self.chat_widget.has_chatgpt_account()
         {
-            chat_widget.inherit_backend_banner_state(&mut self.chat_widget);
+            if !provider_changed {
+                chat_widget.inherit_backend_banner_state(&mut self.chat_widget);
+            }
             chat_widget.inherit_security_setup(&mut self.chat_widget);
         }
         chat_widget
@@ -865,7 +890,8 @@ impl App {
         if is_replay_only && let Some(session) = snapshot.session.as_mut() {
             session.read_only_history = true;
         }
-        self.render_thread_snapshot(tui, app_server, thread_id, snapshot, !is_replay_only)?;
+        self.render_thread_snapshot(tui, app_server, thread_id, snapshot, !is_replay_only)
+            .await?;
         if !is_replay_only
             && let Some(message) = self
                 .side_threads
@@ -915,10 +941,10 @@ impl App {
         Ok(())
     }
 
-    pub(super) fn render_thread_snapshot(
+    pub(super) async fn render_thread_snapshot(
         &mut self,
         tui: &mut tui::Tui,
-        app_server: &AppServerSession,
+        app_server: &mut AppServerSession,
         thread_id: ThreadId,
         snapshot: ThreadEventSnapshot,
         resume_restored_queue: bool,
@@ -933,12 +959,27 @@ impl App {
             && side_parent(thread_id).is_some_and(|parent| {
                 self.chat_widget.thread_id().and_then(side_parent) == Some(parent)
             });
-        let init = self.chatwidget_init_for_forked_or_resumed_thread(
+        let mut init = self.chatwidget_init_for_forked_or_resumed_thread(
             tui,
             self.config.clone(),
             /*initial_user_message*/ None,
         );
-        self.replace_chat_widget(ChatWidget::new_with_app_event(init));
+        if let Some(session) = &snapshot.session
+            && session.model_provider_id != self.chat_widget.quota_provider_id()
+        {
+            let account = app_server
+                .read_thread_account(session)
+                .await
+                .unwrap_or_default();
+            self.apply_session_account(&mut init, account);
+        }
+        self.replace_chat_widget_for_provider(
+            ChatWidget::new_with_app_event(init),
+            snapshot
+                .session
+                .as_ref()
+                .map(|session| session.model_provider_id.as_str()),
+        );
         self.chat_widget
             .set_task_mentions_enabled(app_server.task_tools_available(thread_id));
         self.chat_widget
@@ -1046,6 +1087,12 @@ impl App {
         });
         self.thread_event_channels
             .retain(|id, _| Some(*id) == voice_owner || self.side_threads.contains_key(id));
+        let displayed = self.current_displayed_thread_id();
+        self.agents_overview
+            .draft_cloud_environments
+            .retain(|id, _| {
+                displayed == Some(*id) || self.agents_overview.blank_sessions.contains_key(id)
+            });
         // A retained side can still display its parent even after the parent channel is detached.
         self.side_companions.retain(|id, _| {
             self.side_threads.contains_key(id)
@@ -1470,7 +1517,9 @@ impl App {
             None
         };
         let thread_id = started.session.thread_id;
-        let (account, account_error) = if self.model_catalog.provider_may_have_changed() {
+        let (account, account_error) = if self.model_catalog.provider_may_have_changed()
+            || started.session.model_provider_id != self.chat_widget.quota_provider_id()
+        {
             match app_server.read_thread_account(&started.session).await {
                 Ok(account) => (Some(account), None),
                 Err(err) => (Some(SessionAccount::default()), Some(err)),
@@ -1536,6 +1585,20 @@ impl App {
         }
     }
 
+    fn apply_session_account(
+        &mut self,
+        init: &mut crate::chatwidget::ChatWidgetInit,
+        account: SessionAccount,
+    ) {
+        self.account_email_request_id = None;
+        self.feedback_audience = account.feedback_audience();
+        init.has_chatgpt_account = account.has_chatgpt_account();
+        init.has_codex_backend_auth = init.has_chatgpt_account;
+        init.requires_openai_auth = account.requires_openai_auth;
+        init.status_account_display = account.display;
+        init.initial_plan_type = account.plan;
+    }
+
     async fn replace_chat_widget_with_account(
         &mut self,
         tui: &mut tui::Tui,
@@ -1554,6 +1617,7 @@ impl App {
             self.drain_outgoing_thread_events().await;
         }
         self.store_active_thread_receiver().await;
+        self.refresh_transcript_document_links();
         self.reset_transcript_state_after_clear();
         tui.clear_pending_history_lines();
         let presentation = match presentation {
@@ -1585,15 +1649,12 @@ impl App {
             initial_user_message,
         );
         if let Some(account) = account {
-            self.account_email_request_id = None;
-            self.feedback_audience = account.feedback_audience();
-            init.has_chatgpt_account = account.has_chatgpt_account();
-            init.has_codex_backend_auth = init.has_chatgpt_account;
-            init.requires_openai_auth = account.requires_openai_auth;
-            init.status_account_display = account.display;
-            init.initial_plan_type = account.plan;
+            self.apply_session_account(&mut init, account);
         }
-        self.replace_chat_widget(ChatWidget::new_with_app_event(init));
+        self.replace_chat_widget_for_provider(
+            ChatWidget::new_with_app_event(init),
+            Some(&started.session.model_provider_id),
+        );
         if matches!(
             presentation,
             ThreadAttachPresentation::Fresh | ThreadAttachPresentation::FreshWithDraft

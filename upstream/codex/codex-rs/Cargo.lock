@@ -3093,6 +3093,7 @@ dependencies = [
  "codex-test-binary-support",
  "codex-thread-store",
  "codex-tools",
+ "codex-user-input",
  "codex-utils-absolute-path",
  "codex-utils-audio",
  "codex-utils-cache",
@@ -3837,20 +3838,28 @@ dependencies = [
  "anyhow",
  "chrono",
  "codex-analytics",
+ "codex-api",
  "codex-attachment-store",
  "codex-context-fragments",
  "codex-core",
  "codex-extension-api",
+ "codex-features",
+ "codex-guardian-context",
  "codex-guardian-reviewer",
  "codex-history",
+ "codex-http-client",
+ "codex-login",
  "codex-message-board",
+ "codex-model-provider",
  "codex-protocol",
  "codex-state",
  "codex-thread-store",
  "codex-tools",
  "codex-utils-string",
+ "codex-websocket-client",
  "core_test_support",
  "futures",
+ "http 1.4.0",
  "insta",
  "pretty_assertions",
  "serde",
@@ -3859,6 +3868,8 @@ dependencies = [
  "test-case",
  "tokio",
  "tokio-util",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -4755,6 +4766,7 @@ dependencies = [
  "codex-protocol",
  "codex-state",
  "codex-thread-store",
+ "codex-user-input",
  "codex-utils-absolute-path",
  "core_test_support",
  "pretty_assertions",
@@ -5132,17 +5144,20 @@ dependencies = [
  "anyhow",
  "bytes",
  "clap",
+ "h2",
  "h3",
  "h3-quinn",
  "http 1.4.0",
+ "hyper-rustls",
+ "hyper-util",
  "pretty_assertions",
  "quinn",
- "rand 0.9.3",
  "rcgen",
  "rustls",
  "rustls-native-certs",
- "serde_json",
  "tokio",
+ "tokio-rustls",
+ "tower-service",
  "url",
 ]
 
@@ -5284,6 +5299,7 @@ dependencies = [
  "codex-state",
  "codex-terminal-detection",
  "codex-uds",
+ "codex-user-input",
  "codex-utils-absolute-path",
  "codex-utils-approval-presets",
  "codex-utils-cargo-bin",
@@ -5379,6 +5395,20 @@ dependencies = [
  "tokio-util",
  "uds_windows",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "codex-user-input"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "codex-protocol",
+ "codex-utils-image",
+ "derive_more 2.1.1",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]
@@ -5629,6 +5659,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
+ "nix 0.28.0",
  "portable-pty",
  "pretty_assertions",
  "shared_library",
@@ -11610,6 +11641,7 @@ dependencies = [
  "tokio",
  "tonic",
  "tracing",
+ "zstd",
 ]
 
 [[package]]
