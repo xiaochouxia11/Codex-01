@@ -1,8 +1,8 @@
 # openai/tart 同步记录
 
 - 上游：https://github.com/openai/tart
-- 上游提交：c20da4f9bea82ed4794144c6c753c4d66066663b
-- 上游 tree：3d938335e8e0285cde95f1d481a80f858e97f9c5
+- 上游提交：6430e84ab0bb4f3fede93abb9a91402800b20e06
+- 上游 tree：0acbf643a2ba91939af807f1f9f46fb7a8822869
 - 目录：upstream/tart/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
