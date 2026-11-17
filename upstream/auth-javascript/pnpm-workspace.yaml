@@ -1,0 +1,9 @@
+packages:
+  - packages/*
+  - playground
+  - examples/*
+  - tests/react-versions/*
+
+strictDepBuilds: true
+allowBuilds: {}
+minimumReleaseAge: 10080

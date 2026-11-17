@@ -1,0 +1,7 @@
+{
+  "fixed": [["@openai/auth", "@openai/auth-react"]],
+  "baseBranch": "main",
+  "access": "public",
+  "updateInternalDependencies": "patch",
+  "commit": false
+}

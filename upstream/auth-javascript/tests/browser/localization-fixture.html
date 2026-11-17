@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Button localization acceptance fixture</title>
+    <style>
+      body {
+        margin: 32px;
+        font-family: system-ui, sans-serif;
+      }
+      main {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 48px;
+      }
+      header {
+        margin-bottom: 32px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+      }
+      label {
+        display: grid;
+        gap: 8px;
+        font-size: 14px;
+      }
+      select {
+        padding: 8px 12px;
+        border: 1px solid #d4d4d4;
+        border-radius: 6px;
+        background: white;
+        color: #171717;
+        font: inherit;
+      }
+      .button-slot {
+        margin: 20px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header dir="ltr">
+      <h1>Button localization</h1>
+      <div class="controls">
+        <label>
+          Button language
+          <select id="locale-select" disabled>
+            <option value="en" lang="en">English</option>
+            <option value="ja" lang="ja">日本語</option>
+            <option value="ar" lang="ar">العربية</option>
+            <option value="fa" lang="fa">فارسی</option>
+            <option value="ur" lang="ur">اردو</option>
+            <option value="es-419" lang="es-419">Español (Latinoamérica)</option>
+          </select>
+        </label>
+        <label>
+          Host page direction
+          <select id="direction-select">
+            <option value="ltr">Left to right</option>
+            <option value="rtl">Right to left</option>
+          </select>
+        </label>
+      </div>
+    </header>
+    <main>
+      <section aria-label="DOM localization">
+        <h2>DOM</h2>
+        <div class="button-slot" id="dom-continue-slot"></div>
+        <div class="button-slot" id="dom-sign-in-slot"></div>
+      </section>
+      <section aria-label="React localization">
+        <h2>React</h2>
+        <div id="react-localization-root"></div>
+      </section>
+    </main>
+    <script type="module" src="/react-modules/localization-fixture.mjs"></script>
+  </body>
+</html>

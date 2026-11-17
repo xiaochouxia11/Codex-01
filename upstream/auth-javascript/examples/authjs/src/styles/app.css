@@ -1,0 +1,26 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 38rem;
+  margin: 4rem auto;
+  padding: 0 1.5rem;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block: 1.5rem;
+}
+
+.note {
+  line-height: 1.5;
+  opacity: 0.75;
+}

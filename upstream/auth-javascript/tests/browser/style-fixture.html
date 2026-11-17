@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Button styling acceptance fixture</title>
+    <!-- Layout and accessible focus styles apply before SDK initialization. -->
+    <style>
+      body {
+        margin: 24px;
+        font-family: system-ui, sans-serif;
+      }
+      main {
+        display: flex;
+        gap: 32px;
+      }
+      .button-slot {
+        width: 320px;
+        margin: 16px 0;
+      }
+      .consumer-layout {
+        margin-top: 12px;
+        max-width: 260px;
+      }
+      .consumer-states:focus-visible {
+        outline: 4px solid currentColor;
+        outline-offset: 3px;
+      }
+      /* Adversarial host CSS must not bypass native disabled state or the shared lock. */
+      .consumer-states:disabled {
+        opacity: 1;
+        cursor: pointer;
+        pointer-events: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section aria-label="DOM styling">
+        <h1>DOM</h1>
+        <div class="button-slot" id="dom-primary-slot"></div>
+        <div class="button-slot" id="dom-secondary-slot"></div>
+      </section>
+      <section aria-label="React styling">
+        <h1>React</h1>
+        <div id="react-style-root">__REACT_STYLE_HTML__</div>
+      </section>
+    </main>
+    <script type="module" src="/react-modules/style-fixture.mjs"></script>
+  </body>
+</html>

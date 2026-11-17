@@ -1,0 +1,27 @@
+{
+  "name": "@openai/auth-authjs-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 4322",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 4322",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test src/lib/*.test.ts tests/*.test.ts"
+  },
+  "dependencies": {
+    "@openai/auth": "workspace:*",
+    "@openai/auth-react": "workspace:*",
+    "next": "16.4.2",
+    "next-auth": "4.24.15",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.9.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "6.0.3"
+  },
+  "license": "Apache-2.0"
+}

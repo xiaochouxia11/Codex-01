@@ -1,0 +1,10 @@
+{
+  "siwc.button.continue": {
+    "defaultMessage": "ChatGPT-ஐப் பயன்படுத்தித் தொடர்க",
+    "description": "Label on the Sign in with ChatGPT SDK button that continues authentication. ChatGPT is a product name and must remain unchanged. This is literal button text: do not add placeholders, markup, or line breaks."
+  },
+  "siwc.button.signIn": {
+    "defaultMessage": "ChatGPT-ஐப் பயன்படுத்தி உள்நுழைக",
+    "description": "Label on the Sign in with ChatGPT SDK button that starts authentication. ChatGPT is a product name and must remain unchanged. This is literal button text: do not add placeholders, markup, or line breaks."
+  }
+}

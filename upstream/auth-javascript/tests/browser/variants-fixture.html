@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Button variant acceptance fixture</title>
+    <style>
+      body {
+        margin: 24px;
+        font-family: system-ui, sans-serif;
+        background: #f3f3f3;
+      }
+      #variants-root {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 40px;
+      }
+      .button-slot {
+        width: 400px;
+        margin-block: 16px;
+      }
+      .narrow {
+        width: 160px;
+      }
+    </style>
+  </head>
+  <body>
+    <header><h1>React sign-in button variants</h1></header>
+    <main id="variants-root"></main>
+    <script type="module" src="/react-modules/variants-fixture.mjs"></script>
+  </body>
+</html>

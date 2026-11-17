@@ -1,0 +1,12 @@
+{
+  "continue": {
+    "id": "siwc.button.continue",
+    "defaultMessage": "Continue with ChatGPT",
+    "description": "Label on the Sign in with ChatGPT SDK button that continues authentication. ChatGPT is a product name and must remain unchanged. This is literal button text: do not add placeholders, markup, or line breaks."
+  },
+  "sign-in": {
+    "id": "siwc.button.signIn",
+    "defaultMessage": "Sign in with ChatGPT",
+    "description": "Label on the Sign in with ChatGPT SDK button that starts authentication. ChatGPT is a product name and must remain unchanged. This is literal button text: do not add placeholders, markup, or line breaks."
+  }
+}
