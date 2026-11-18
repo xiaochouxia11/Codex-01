@@ -38,6 +38,16 @@ export async function createDockerFileIOFixture(runDockerProcess: Mock) {
   ) => {
     expect(command).toBe('docker');
     commands.push(args);
+    if (
+      process.platform === 'darwin' &&
+      args.at(-4) === 'chmod' &&
+      /^[0-7]+$/u.test(args.at(-3) ?? '') &&
+      args.at(-2) === '--' &&
+      args.at(-1)?.startsWith('/')
+    ) {
+      // BSD chmod omits GNU's delimiter after a numeric mode; paths stay absolute.
+      args = [...args.slice(0, -2), args.at(-1)!];
+    }
     if (args.includes('/usr/bin/tar')) {
       // Real archive extraction; the native Docker test covers containment.
       return native.spawn(
@@ -122,18 +132,24 @@ try {
       );
     }
     const launcher = args.indexOf('/usr/bin/env');
-    return native.spawn(
-      launcher >= 0 ? '/usr/bin/env' : '/bin/sh',
-      // Keep container commands away from the host's login profile.
+    // Keep container commands away from the host's login profile.
+    const hostArgs =
       launcher >= 0
         ? [...args.slice(launcher + 1, -1), script]
-        : ['-c', script],
-      {
-        ...options,
-        cwd: '/',
-        env: environment,
-      },
-    );
+        : ['-c', script];
+    if (
+      process.platform === 'darwin' &&
+      hostArgs.at(-4) === 'chmod' &&
+      hostArgs.at(-2) === '--'
+    ) {
+      // BSD chmod accepts the option terminator before the mode, not after it.
+      hostArgs.splice(-3, 2, '--', hostArgs.at(-3)!);
+    }
+    return native.spawn(launcher >= 0 ? '/usr/bin/env' : '/bin/sh', hostArgs, {
+      ...options,
+      cwd: '/',
+      env: environment,
+    });
   }) as typeof childProcess.spawn);
   const session = new DockerSandboxSession({
     state: {
