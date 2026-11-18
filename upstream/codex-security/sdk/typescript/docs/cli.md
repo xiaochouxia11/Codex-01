@@ -40,6 +40,29 @@ including file names that begin with a dash.
 - [Use a hosted executor](#hosted-standard-scan) or
   [run bulk scans in containers](#containerized-bulk-scans).
 
+## Experimental dependency investigations
+
+Set `CODEX_SECURITY_ENABLE_DEPENDENCY_EXPLOITABILITY=1` to enable the experimental
+`exploitability` command group for an invocation. The group is hidden and unavailable
+by default. Use its help to see the commands available in your installed version.
+
+```sh
+CODEX_SECURITY_ENABLE_DEPENDENCY_EXPLOITABILITY=1 cs exploitability --help
+```
+
+Supply one CVE and the three documents described by the package’s `schemas/dependency-stack-inputs-v1.schema.json`. The stack document identifies the repository and the exact Git commit checked out. A single investigator reads the checkout and uses the same public commands available to external investigators.
+
+```sh
+CODEX_SECURITY_ENABLE_DEPENDENCY_EXPLOITABILITY=1 cs exploitability check CVE-2099-0001 \
+  --sources sources.json --sinks sinks.json --stacks stacks.json --json
+```
+
+An external caller can freeze the same files with `prepareStackPacket` from `@openai/codex-security/stack-packet`. Set the opt-in for each invocation. `cs exploitability run init --inputs <packet-directory> --repo <checkout> --state <database>` creates or reopens an attempt. `run tools --state <database>` lists operation schemas. Use `next` and `read-stacks` to select evidence, `record-evidence` and `record-claims` to save it, and `query-claims` to retrieve its exact references. Use `record-assessments`, `summarize-coverage` and `finalize` to produce the scoped report. Operations with a JSON input accept `--json-stdin`. Each `run` operation prints JSON by default. Use `--format` to select another representation. The investigation state is local to the supplied SQLite file.
+
+When the capture producer identifies the package copy that executed a frame, include its original zero-based index in the binding’s `frameIndices` array. For example, `"frameIndices": [0]` ties that binding’s package and version to the innermost frame. A binding without frame indices describes the workload or build. A version-based exclusion requires a cited fixed copy for each matched sink frame.
+
+A missing observation or a gap in the evidence can yield a completed `unknown` assessment. Execution errors produce a nonzero exit. The report schema is available at `@openai/codex-security/schemas/stack-investigation-report-v1.schema.json`.
+
 ## Updating the CLI
 
 Run `cs update` to update an npm global installation managed by the running
@@ -1743,12 +1766,14 @@ credential and Region selection. Preview and import the report separately
 with `publish findings FILE --provider continuum`. Pass
 `--source-repository-url URL` when the report has no saved repository URL.
 
-For one finding and its generated patches, add `--finding-id FINDING_ID` and
+For one finding, its matching validation evidence, and its generated patches, add `--finding-id FINDING_ID` and
 `--source-root CHECKOUT` with the absolute checkout path. The CLI uses
 `GetEnvironment` to verify that the environment has exactly one Git repository
 and no S3 sources before including unnamed patches. Pass
 `--repository-name AWS_SOURCE_NAME` for other environments to keep patches
-with that exact AWS source name. This mode accepts the same AWS profile and
+with that exact AWS source name. Validation is matched by AWS finding ID. When a
+validation artifact has no per-finding breakdown, the CLI uses `GetCodeIssue` to
+check that the issue covers just the selected finding. This mode accepts the same AWS profile and
 Region overrides and writes the finding-based JSON format for `publish findings`.
 [Continuum import guide](https://github.com/openai/codex-security/blob/main/docs/scanner-imports/continuum.md)
 
@@ -2059,6 +2084,7 @@ codex-security classify-severity --scan-dir /path/to/completed-scan --json
 ```
 
 For repository-free canonical records, use `classify-severity --records` (optionally with `--runs N`).
+A records host can opt in to the CLI’s structured diagnostic records on its existing JSON-RPC connection. See the [records diagnostic protocol](classify-severity-records.md#cli-diagnostic-records).
 The [records protocol](classify-severity-records.md) accepts immutable Markdown and
 report snapshots and delegates model execution to the host.
 
@@ -2456,11 +2482,12 @@ One comparison ID is compared with the latest completed scan.
 codex-security scans match --all --force --model gpt-6.1-sol --effort high
 ```
 
-When a saved Standard scan and a Deep scan have the same recorded target,
-revision, and snapshot digest, matching flags findings that have different
-anchors but share a unique rule, first displayed source range, and optional
-instance. Matching preserves the case of saved paths. Codex can request the
-saved evidence to distinguish separate causes at that site. Automatic matching
+Standard and Deep scans can identify matching candidates in a single target or
+corresponding paths in linked worktrees with the same saved repository
+generation. When the revision and snapshot digest agree, matching flags findings
+with different anchors that share a unique rule, first displayed source range,
+and optional instance. Matching preserves the case of saved paths. Codex can
+request the saved evidence to distinguish separate causes at that site. Automatic matching
 under a cost limit keeps its single comparison call.
 
 Only high-confidence root-cause matches are grouped. Uncertain and related
