@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.102.0](https://github.com/openai/openai-go/compare/v3.101.0...v3.102.0) (2026-11-17)
+
+
+### Features
+
+* **api:** type Managed Agents budget events ([#1274](https://github.com/openai/openai-go/issues/1274)) ([7d320e4](https://github.com/openai/openai-go/commit/7d320e4dc592b2b93929aa3ca964a1828a7a16c1))
+
+## [3.101.0](https://github.com/openai/openai-go/compare/v3.100.0...v3.101.0) (2026-11-17)
+
+
+### Features
+
+* **api:** add 2-hour and 8-hour Responses background windows ([1a6de5e](https://github.com/openai/openai-go/commit/1a6de5e3f5f86c2626b5195b47b41b37b6675dc8))
+* **api:** add the GPT-6.2 Astra Law Responses model identifier ([1a6de5e](https://github.com/openai/openai-go/commit/1a6de5e3f5f86c2626b5195b47b41b37b6675dc8))
+* **api:** add the GPT-6.2 Astra model identifier ([1a6de5e](https://github.com/openai/openai-go/commit/1a6de5e3f5f86c2626b5195b47b41b37b6675dc8))
+* **api:** add the GPT-6.2 Sol model identifier ([1a6de5e](https://github.com/openai/openai-go/commit/1a6de5e3f5f86c2626b5195b47b41b37b6675dc8))
+
 ## [3.100.0](https://github.com/openai/openai-go/compare/v3.99.0...v3.100.0) (2026-11-16)
 
 

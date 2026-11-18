@@ -1505,9 +1505,6 @@ type AgentSession struct {
 	//
 	// Any of "none", "auto_review".
 	Review AgentSessionReview `json:"review"`
-	// Configured spending limit and best-effort consumption, in USD cents. Unlimited
-	// sessions omit this object.
-	SpendControl AgentSessionSpendControl `json:"spend_control"`
 	// JSON contains metadata for fields, check presence with [respjson.Field.Valid].
 	JSON struct {
 		ID                 respjson.Field
@@ -1524,7 +1521,6 @@ type AgentSession struct {
 		VaultIDs           respjson.Field
 		PromptCacheOptions respjson.Field
 		Review             respjson.Field
-		SpendControl       respjson.Field
 		ExtraFields        map[string]respjson.Field
 		raw                string
 	} `json:"-"`
@@ -2095,28 +2091,6 @@ const (
 	AgentSessionReviewNone       AgentSessionReview = "none"
 	AgentSessionReviewAutoReview AgentSessionReview = "auto_review"
 )
-
-// Configured spending limit and best-effort consumption, in USD cents. Unlimited
-// sessions omit this object.
-type AgentSessionSpendControl struct {
-	// Best-effort recorded spend floored to whole USD cents, or null when unavailable.
-	Consumed int64 `json:"consumed" api:"required"`
-	// The configured positive limit in USD cents.
-	Limit int64 `json:"limit" api:"required"`
-	// JSON contains metadata for fields, check presence with [respjson.Field.Valid].
-	JSON struct {
-		Consumed    respjson.Field
-		Limit       respjson.Field
-		ExtraFields map[string]respjson.Field
-		raw         string
-	} `json:"-"`
-}
-
-// Returns the unmodified JSON received from the API
-func (r AgentSessionSpendControl) RawJSON() string { return r.JSON.raw }
-func (r *AgentSessionSpendControl) UnmarshalJSON(data []byte) error {
-	return apijson.UnmarshalRoot(data, r)
-}
 
 // An assistant message produced by the agent.
 type AgentSessionAssistantMessage struct {
@@ -9277,8 +9251,7 @@ func (r *SessionError) UnmarshalJSON(data []byte) error {
 type SessionTurnError struct {
 	// A stable, machine-readable failure category.
 	//
-	// Any of "context_length_exceeded", "max_output_tokens",
-	// "session_budget_exceeded", "usage_limit_exceeded",
+	// Any of "context_length_exceeded", "max_output_tokens", "usage_limit_exceeded",
 	// "project_spend_limit_exceeded", "organization_spend_limit_exceeded",
 	// "organization_usage_limit_exceeded", "billing_not_active",
 	// "credit_balance_exhausted", "rate_limit_exceeded", "flex_unavailable",
@@ -9310,7 +9283,6 @@ type SessionTurnErrorCode string
 const (
 	SessionTurnErrorCodeContextLengthExceeded          SessionTurnErrorCode = "context_length_exceeded"
 	SessionTurnErrorCodeMaxOutputTokens                SessionTurnErrorCode = "max_output_tokens"
-	SessionTurnErrorCodeSessionBudgetExceeded          SessionTurnErrorCode = "session_budget_exceeded"
 	SessionTurnErrorCodeUsageLimitExceeded             SessionTurnErrorCode = "usage_limit_exceeded"
 	SessionTurnErrorCodeProjectSpendLimitExceeded      SessionTurnErrorCode = "project_spend_limit_exceeded"
 	SessionTurnErrorCodeOrganizationSpendLimitExceeded SessionTurnErrorCode = "organization_spend_limit_exceeded"
