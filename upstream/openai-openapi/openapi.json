@@ -7061,7 +7061,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreateModerationResponse"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CreateModerationResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CreateCSAMModerationResponse"
+                    }
+                  ]
                 }
               }
             }
@@ -32820,7 +32827,7 @@
               "minLength": 1,
               "maxLength": 256
             },
-            "description": "An optional client-generated key that makes retries of submitted messages idempotent."
+            "description": "An optional client-generated key for message submissions. Retry the same message with the same key and identical input within the 24-hour replay window; a retry replays the original outcome if it is available. After the window expires, a key whose outcome is unavailable may return 409. After a timeout or server error, inspect the session history and items before resubmitting. Use a new key for a new message, or only after confirming the earlier message did not execute."
           }
         ],
         "requestBody": {
@@ -42309,7 +42316,12 @@
               "/v1/images/edits",
               "/v1/videos"
             ],
-            "description": "The endpoint to be used for all requests in the batch. Currently `/v1/responses`, `/v1/chat/completions`, `/v1/embeddings`, `/v1/completions`, `/v1/moderations`, `/v1/images/generations`, `/v1/images/edits`, and `/v1/videos` are supported. Note that `/v1/embeddings` batches are also restricted to a maximum of 50,000 embedding inputs across all requests in the batch."
+            "x-openai-enum-deprecations": {
+              "/v1/videos": {
+                "message": "The Videos API shut down on September 24, 2026. Batch creation no longer accepts this endpoint."
+              }
+            },
+            "description": "The endpoint to be used for all requests in the batch. Currently `/v1/responses`, `/v1/chat/completions`, `/v1/embeddings`, `/v1/completions`, `/v1/moderations`, `/v1/images/generations`, and `/v1/images/edits` are supported. Note that `/v1/embeddings` batches are also restricted to a maximum of 50,000 embedding inputs across all requests in the batch."
           },
           "completion_window": {
             "type": "string",
@@ -45159,7 +45171,7 @@
             ]
           },
           "model": {
-            "description": "The content moderation model you would like to use. Learn more in\n[the moderation guide](https://developers.openai.com/api/docs/guides/moderation), and learn about\navailable models [here](https://developers.openai.com/api/docs/guides/moderation).\n",
+            "description": "The content moderation model you would like to use. Learn more in\n[the moderation guide](https://developers.openai.com/api/docs/guides/moderation), and learn about\navailable models [here](https://developers.openai.com/api/docs/guides/moderation).\nApproved organizations can use `omni-moderation-csam-latest` with a single `image_url` input.\n",
             "default": "omni-moderation-latest",
             "example": "omni-moderation-2024-09-26",
             "anyOf": [
@@ -45641,6 +45653,10 @@
                     "type": "null"
                   }
                 ]
+              },
+              "background_options": {
+                "$ref": "#/components/schemas/BackgroundOptionsParam",
+                "description": "Options for background execution on HTTP requests. The `2h` and `8h`\ncompletion windows require `background: true`, Standard processing,\nand `stream: false` or omitted.\n"
               },
               "stream": {
                 "anyOf": [
@@ -55593,7 +55609,8 @@
               "gpt-5.6-cyber",
               "gpt-6-cyber",
               "gpt-rosalind-research",
-              "gpt-6-rosalind"
+              "gpt-6-rosalind",
+              "gpt-6.2-astra-law"
             ],
             "x-openai-enum-deprecations": {
               "o1-pro": {
@@ -55652,7 +55669,9 @@
             "type": "string",
             "enum": [
               "gpt-6-astra",
+              "gpt-6.2-astra",
               "gpt-6.1-sol",
+              "gpt-6.2-sol",
               "gpt-6.1-terra",
               "gpt-6-sol",
               "gpt-6-luna",
@@ -88654,6 +88673,133 @@
         "description": "URI that should appear in the SIP Refer-To header. Supports values like\n`tel:+14155550123` or `sip:agent@example.com`.",
         "example": "tel:+14155550123"
       },
+      "CSAMCategoryFlags": {
+        "additionalProperties": false,
+        "properties": {
+          "likely-csam": {
+            "title": "Likely-Csam",
+            "type": "boolean"
+          },
+          "likely-csam/gen-ai": {
+            "title": "Likely-Csam/Gen-Ai",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "likely-csam",
+          "likely-csam/gen-ai"
+        ],
+        "title": "CSAMCategoryFlags",
+        "type": "object"
+      },
+      "CSAMCategoryScores": {
+        "additionalProperties": false,
+        "properties": {
+          "likely-csam": {
+            "title": "Likely-Csam",
+            "type": "number"
+          },
+          "likely-csam/gen-ai": {
+            "title": "Likely-Csam/Gen-Ai",
+            "type": "number"
+          }
+        },
+        "required": [
+          "likely-csam",
+          "likely-csam/gen-ai"
+        ],
+        "title": "CSAMCategoryScores",
+        "type": "object"
+      },
+      "CSAMCategoryAppliedInputTypes": {
+        "additionalProperties": false,
+        "properties": {
+          "likely-csam": {
+            "items": {
+              "const": "image",
+              "type": "string"
+            },
+            "maxItems": 1,
+            "minItems": 1,
+            "title": "Likely-Csam",
+            "type": "array"
+          },
+          "likely-csam/gen-ai": {
+            "items": {
+              "const": "image",
+              "type": "string"
+            },
+            "maxItems": 1,
+            "minItems": 1,
+            "title": "Likely-Csam/Gen-Ai",
+            "type": "array"
+          }
+        },
+        "required": [
+          "likely-csam",
+          "likely-csam/gen-ai"
+        ],
+        "title": "CSAMCategoryAppliedInputTypes",
+        "type": "object"
+      },
+      "CSAMModerationResult": {
+        "properties": {
+          "flagged": {
+            "description": "Whether either CSAM category was flagged.",
+            "title": "Flagged",
+            "type": "boolean"
+          },
+          "categories": {
+            "$ref": "#/components/schemas/CSAMCategoryFlags",
+            "description": "Whether the image was flagged in each category."
+          },
+          "category_scores": {
+            "$ref": "#/components/schemas/CSAMCategoryScores",
+            "description": "The classifier score for each category."
+          },
+          "category_applied_input_types": {
+            "$ref": "#/components/schemas/CSAMCategoryAppliedInputTypes",
+            "description": "The input types evaluated for each category."
+          }
+        },
+        "required": [
+          "flagged",
+          "categories",
+          "category_scores",
+          "category_applied_input_types"
+        ],
+        "title": "CSAMModerationResult",
+        "type": "object"
+      },
+      "CreateCSAMModerationResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "model": {
+            "const": "omni-moderation-csam-latest",
+            "title": "Model",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/CSAMModerationResult"
+            },
+            "maxItems": 1,
+            "minItems": 1,
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "model",
+          "results"
+        ],
+        "title": "CreateCSAMModerationResponse",
+        "type": "object"
+      },
       "AwsExternalStorageProviderResponse": {
         "properties": {
           "type": {
@@ -89012,6 +89158,29 @@
             ]
           }
         ]
+      },
+      "BackgroundCompletionWindowEnum": {
+        "type": "string",
+        "enum": [
+          "soonest",
+          "2h",
+          "8h"
+        ]
+      },
+      "BackgroundOptionsParam": {
+        "properties": {
+          "completion_window": {
+            "$ref": "#/components/schemas/BackgroundCompletionWindowEnum",
+            "description": "The completion window for background execution. Defaults to `soonest`; `2h` and `8h` select discounted background execution."
+          },
+          "continuation_id": {
+            "type": "string",
+            "description": "A customer-provided opaque identifier used to prioritize related background requests. It does not add prior history to the input."
+          }
+        },
+        "type": "object",
+        "required": [],
+        "description": "Options for background execution."
       },
       "ConversationParam-2": {
         "properties": {
@@ -103650,8 +103819,8 @@
         "enum": [
           "context_length_exceeded",
           "max_output_tokens",
-          "session_budget_exceeded",
           "usage_limit_exceeded",
+          "api_key_spend_limit_exceeded",
           "project_spend_limit_exceeded",
           "organization_spend_limit_exceeded",
           "organization_usage_limit_exceeded",
@@ -103676,8 +103845,8 @@
         "x-enumDescriptions": [
           "The request exceeds the model's context window.",
           "The model reached its output token limit before finishing the response.",
-          "The session has reached its usage budget.",
           "The organization has reached a usage, plan, or billing limit.",
+          "The API key has reached its enforced spend limit.",
           "The project has reached its enforced spend limit.",
           "The organization has reached its enforced spend limit.",
           "The organization has reached its OpenAI-assigned usage limit.",
@@ -124217,7 +124386,8 @@
               "gpt-5.6-cyber",
               "gpt-6-cyber",
               "gpt-rosalind-research",
-              "gpt-6-rosalind"
+              "gpt-6-rosalind",
+              "gpt-6.2-astra-law"
             ],
             "x-openai-enum-deprecations": {
               "o1-pro": {
@@ -124276,7 +124446,9 @@
             "type": "string",
             "enum": [
               "gpt-6-astra",
+              "gpt-6.2-astra",
               "gpt-6.1-sol",
+              "gpt-6.2-sol",
               "gpt-6.1-terra",
               "gpt-6-sol",
               "gpt-6-luna",
@@ -133332,6 +133504,10 @@
                   }
                 ]
               },
+              "background_options": {
+                "$ref": "#/components/schemas/BetaBackgroundOptionsParam",
+                "description": "Options for background execution on HTTP requests. The `2h` and `8h`\ncompletion windows require `background: true`, Standard processing,\nand `stream: false` or omitted.\n"
+              },
               "stream": {
                 "anyOf": [
                   {
@@ -133463,6 +133639,29 @@
           {
             "type": "null"
           }
+        ]
+      },
+      "BetaBackgroundOptionsParam": {
+        "properties": {
+          "completion_window": {
+            "$ref": "#/components/schemas/BetaBackgroundCompletionWindowEnum",
+            "description": "The completion window for background execution. Defaults to `soonest`; `2h` and `8h` select discounted background execution."
+          },
+          "continuation_id": {
+            "type": "string",
+            "description": "A customer-provided opaque identifier used to prioritize related background requests. It does not add prior history to the input."
+          }
+        },
+        "type": "object",
+        "required": [],
+        "description": "Options for background execution."
+      },
+      "BetaBackgroundCompletionWindowEnum": {
+        "type": "string",
+        "enum": [
+          "soonest",
+          "2h",
+          "8h"
         ]
       },
       "BetaModerationParam": {
