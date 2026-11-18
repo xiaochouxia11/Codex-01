@@ -209,12 +209,13 @@ pub(crate) use skills_toggle_view::SkillsToggleItem;
 pub(crate) use skills_toggle_view::SkillsToggleView;
 pub(crate) use status_line_setup::StatusLineItem;
 pub(crate) use status_line_setup::StatusLineSetupView;
+pub(crate) use status_line_setup::StatuslineProviderActions;
 pub(crate) use status_surface_preview::StatusSurfacePreviewData;
 pub(crate) use status_surface_preview::StatusSurfacePreviewItem;
 pub(crate) use title_setup::TerminalTitleItem;
-pub(crate) use title_setup::TerminalTitleSetupView;
 #[cfg(test)]
 pub(crate) use title_setup::preview_line_for_title_items;
+pub(crate) use title_setup::terminal_title_setup;
 mod paste_burst;
 mod pending_input_preview;
 mod pending_thread_approvals;
@@ -1952,6 +1953,14 @@ impl BottomPane {
         self.no_modal_or_popup_active() && self.composer.shortcut_overlay_visible()
     }
 
+    pub(crate) fn handle_shortcut_view_key(&mut self, key: KeyEvent) -> bool {
+        let handled = self.composer.handle_shortcut_view_key(key);
+        if handled {
+            self.request_redraw();
+        }
+        handled
+    }
+
     /// Return true when no popups or modal views are active, regardless of task state.
     pub(crate) fn can_launch_external_editor(&self) -> bool {
         self.completion_can_yield_focus() && !self.composer.popup_active()
@@ -2059,8 +2068,13 @@ impl BottomPane {
         activated_at: Instant,
         suppression: ActivationKeySuppression,
     ) {
-        let reported_repeats_only = self.enhanced_keys_supported
-            || matches!(suppression, ActivationKeySuppression::ReportedRepeats);
+        let reported_repeats_only = match suppression {
+            ActivationKeySuppression::ViewTransition => self.enhanced_keys_supported,
+            ActivationKeySuppression::ReportedRepeats => true,
+            ActivationKeySuppression::PressOnlyFallback => {
+                self.enhanced_keys_supported && crate::tui::reports_key_releases()
+            }
+        };
         self.view_transition_key_guard = Some(ActivationKeyGuard::new_at(
             key,
             activated_at,
@@ -2689,7 +2703,7 @@ impl Renderable for ChatComposerPresentation<'_> {
     fn desired_height(&self, width: u16) -> u16 {
         self.composer
             .desired_height_with_options(width, self.options)
-            .min(self.options.max_height.unwrap_or(u16::MAX))
+            .min(self.composer.height_budget(width, self.options))
     }
 
     fn cursor_pos(&self, area: Rect) -> Option<(u16, u16)> {
@@ -3025,7 +3039,7 @@ mod tests {
     fn view_transition_key_guard_survives_an_intervening_modal() {
         let (tx_raw, _rx) = unbounded_channel::<AppEvent>();
         let mut pane = test_pane(AppEventSender::new(tx_raw));
-        let activation_key = crate::key_hint::plain(KeyCode::Enter);
+        let activation_key = crate::key_hint::plain(KeyCode::F(11));
         pane.suppress_current_view_key_until_release(
             activation_key,
             Instant::now(),
@@ -3033,8 +3047,19 @@ mod tests {
         );
         pane.push_view(Box::new(DismissibleView::default()));
 
+        // Press-only terminals report repeats as presses.
+        assert!(pane.consume_view_transition_key(activation_key, KeyEventKind::Press));
         assert!(pane.consume_view_transition_key(activation_key, KeyEventKind::Repeat));
         assert!(pane.consume_view_transition_key(activation_key, KeyEventKind::Release));
+        assert!(!pane.consume_view_transition_key(activation_key, KeyEventKind::Press));
+
+        // Enhanced picker transitions allow another intentional press without a release.
+        pane.enhanced_keys_supported = true;
+        pane.suppress_current_view_key_until_release(
+            activation_key,
+            Instant::now(),
+            ActivationKeySuppression::ViewTransition,
+        );
         assert!(!pane.consume_view_transition_key(activation_key, KeyEventKind::Press));
     }
 

@@ -1,7 +1,7 @@
 #[cfg(target_os = "linux")]
 mod bwrap;
 mod denial;
-pub mod landlock;
+pub mod linux;
 mod linux_pid_namespace;
 mod manager;
 pub mod policy_transforms;
@@ -33,7 +33,9 @@ pub use denial::is_likely_sandbox_denied;
 pub use linux_pid_namespace::LinuxSandboxPidNamespace;
 pub use manager::SandboxCommand;
 pub use manager::SandboxExecRequest;
+pub use manager::SandboxExecutables;
 pub use manager::SandboxManager;
+pub use manager::SandboxNetwork;
 pub use manager::SandboxSelection;
 pub use manager::SandboxTransformError;
 pub use manager::SandboxTransformRequest;
@@ -86,7 +88,7 @@ impl From<SandboxTransformError> for CodexErr {
                 CodexErr::UnsupportedOperation(error.to_string())
             }
             SandboxTransformError::MissingLinuxSandboxExecutable => {
-                CodexErr::LandlockSandboxExecutableNotProvided
+                CodexErr::LinuxSandboxExecutableNotProvided
             }
             SandboxTransformError::EnvironmentNetworkProxy(message) => {
                 CodexErr::UnsupportedOperation(message)

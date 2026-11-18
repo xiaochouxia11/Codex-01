@@ -2903,7 +2903,7 @@
           "type": "string"
         },
         {
-          "description": "Exchange an enterprise IdP refresh token for resource-specific authorization. Alternate credentials and ordinary OAuth fallback are not permitted.",
+          "description": "Exchange an enterprise IdP refresh token or, if none was issued, a current ID token for resource-specific authorization. Alternate credentials and ordinary OAuth fallback are not permitted.",
           "enum": [
             "ema_auth"
           ],
@@ -5496,6 +5496,8 @@
               "hide": null,
               "new_task": null,
               "new_worktree": null,
+              "next_group": null,
+              "previous_group": null,
               "rename": null,
               "resume": null,
               "search": null,
@@ -5934,6 +5936,22 @@
             }
           ],
           "description": "Open a new session in a worktree from the project default branch."
+        },
+        "next_group": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/KeybindingsSpec"
+            }
+          ],
+          "description": "Select the first task in the next group."
+        },
+        "previous_group": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/KeybindingsSpec"
+            }
+          ],
+          "description": "Select the first task in the previous group."
         },
         "rename": {
           "allOf": [
@@ -6691,6 +6709,8 @@
             "hide": null,
             "new_task": null,
             "new_worktree": null,
+            "next_group": null,
+            "previous_group": null,
             "rename": null,
             "resume": null,
             "search": null,

@@ -6,6 +6,7 @@ use crate::app::tests::make_test_app_with_channels;
 use crate::app::tests::test_thread_session;
 use crate::app_server_session::ThreadParamsMode;
 use crate::chatwidget::tests::render_bottom_popup;
+use crate::statusline_metrics::tests::Collector;
 use crate::statusline_provider::test_support::advertised;
 use crate::tui::test_support::make_test_tui;
 use codex_app_server_client::AppServerClient;
@@ -29,6 +30,7 @@ async fn picker() -> anyhow::Result<(
         .enable(Feature::TuiExtensionsStatusLine)?;
     app.chat_widget
         .set_feature_enabled(Feature::TuiExtensionsStatusLine, /*enabled*/ true);
+    app.chat_widget.thread_params_mode = ThreadParamsMode::Cloud;
     let (client, commands, _) = CloudClient::channel(/*capacity*/ 8);
     let owner = AppServerSession::new(
         BackendId::new(),
@@ -39,8 +41,9 @@ async fn picker() -> anyhow::Result<(
 }
 
 #[tokio::test(start_paused = true)]
-async fn holding_enter_opens_the_statusline_picker_without_selecting() -> anyhow::Result<()> {
+async fn quick_second_enter_opens_the_statusline_picker_without_selecting() -> anyhow::Result<()> {
     let (mut app, mut owner, _commands, mut events) = picker().await?;
+    app.chat_widget.thread_params_mode = ThreadParamsMode::Embedded;
     let mut tui = make_test_tui()?;
     app.chat_widget
         .restore_user_message_to_composer("/statusline".into());
@@ -83,6 +86,33 @@ async fn holding_enter_opens_the_statusline_picker_without_selecting() -> anyhow
     Ok(())
 }
 
+#[tokio::test]
+async fn statusline_create_is_ignored_after_dismissing_setup() -> anyhow::Result<()> {
+    let (mut app, _, _, mut events) = picker().await?;
+    app.chat_widget.thread_params_mode = ThreadParamsMode::Embedded;
+    app.chat_widget
+        .dispatch_command(crate::slash_command::SlashCommand::Statusline);
+    app.chat_widget.handle_key_event(KeyCode::Down.into());
+    app.chat_widget.handle_key_event(KeyCode::Enter.into());
+    let create = std::iter::from_fn(|| events.try_recv().ok())
+        .find(|event| matches!(event, AppEvent::CreateCustomStatusline { .. }))
+        .expect("Create selected");
+    app.chat_widget.handle_key_event(KeyCode::Esc.into());
+
+    let (client, mut requests, _) = CloudClient::channel(/*capacity*/ 1);
+    let mut server = AppServerSession::new(
+        BackendId::new(),
+        AppServerClient::Cloud(client),
+        ThreadParamsMode::Remote,
+    );
+    let mut tui = make_test_tui()?;
+    tokio::select! {
+        result = app.handle_event(&mut tui, &mut server, create) => { result.unwrap(); }
+        _ = requests.recv() => panic!("dismissed Create contacted the server"),
+    }
+    Ok(())
+}
+
 #[tokio::test(start_paused = true)]
 async fn statusline_picker_disconnect_leaves_the_item_editor_open() -> anyhow::Result<()> {
     let (mut app, owner, mut commands, mut events) = picker().await?;
@@ -120,9 +150,13 @@ async fn statusline_picker_disconnect_leaves_the_item_editor_open() -> anyhow::R
 #[tokio::test(start_paused = true)]
 async fn discovery_batch_keeps_the_highlight() -> anyhow::Result<()> {
     let (mut app, owner, _commands, _events) = picker().await?;
+    let collector = Collector::new();
+    app.statusline_metrics = collector.metrics(&mut app.config);
     let calendar = advertised("work", "calendar", "ui://work/day");
-    app.chat_widget.local_settings.tui.status_line_provider =
+    app.local_settings.tui.status_line_provider =
         Some(Box::new(StatusLineSelection::Mcp((&calendar.id).into())));
+    app.chat_widget.local_settings.tui.status_line_provider =
+        app.local_settings.tui.status_line_provider.clone();
     let update = |server: &str, providers| DiscoveryUpdate::Server(server.into(), Ok(providers));
     app.open_statusline_picker(&owner);
     let scan = app.statusline_picker.as_ref().unwrap().id;
@@ -155,8 +189,10 @@ async fn discovery_batch_keeps_the_highlight() -> anyhow::Result<()> {
         &owner,
     );
     insta::assert_snapshot!(render_bottom_popup(&app.chat_widget, /*width*/ 67));
+    assert_eq!(collector.snapshot(), ["picker_opened 1"]);
 
     app.chat_widget.handle_key_event(KeyCode::Esc.into());
+    app.chat_widget.pause_unavailable_thread();
     app.reconnect.offline = true;
     app.open_statusline_picker(&owner);
     insta::assert_snapshot!(
@@ -175,19 +211,38 @@ async fn discovery_batch_keeps_the_highlight() -> anyhow::Result<()> {
         app.local_settings.tui.status_line_provider.as_deref(),
         Some(&StatusLineSelection::Builtin(BuiltinStatusLine::Default))
     );
+    assert_eq!(
+        collector.snapshot(),
+        [
+            "picker_opened 1",
+            "provider_changed change=returned_to_default 1"
+        ]
+    );
     Ok(())
 }
 
 #[tokio::test(start_paused = true)]
 async fn discovery_only_starts_a_reader_on_explicit_selection() -> anyhow::Result<()> {
-    let (mut app, owner, _requests, mut events) = picker().await?;
+    let (mut app, mut owner, _requests, mut events) = picker().await?;
+    let mut tui = make_test_tui()?;
+    let collector = Collector::new();
+    app.statusline_metrics = collector.metrics(&mut app.config);
     let thread = ThreadId::new();
     let cwd = app.config.cwd.to_path_buf();
     app.chat_widget
         .handle_thread_session(test_thread_session(thread, cwd));
     let provider = advertised("work", "calendar", "ui://work/day");
 
-    for uri in ["ui://work/day", "ui://work/replacement"] {
+    for (uri, expected) in [
+        (
+            "ui://work/day",
+            &[
+                "provider_changed change=enabled_custom 1",
+                "provider_started 1",
+            ][..],
+        ),
+        ("ui://work/replacement", &["provider_started 1"][..]),
+    ] {
         app.open_statusline_picker(&owner);
         let scan = app.statusline_picker.as_ref().unwrap().id;
         let found = advertised("work", "calendar", uri);
@@ -197,6 +252,7 @@ async fn discovery_only_starts_a_reader_on_explicit_selection() -> anyhow::Resul
             !std::iter::from_fn(|| events.try_recv().ok())
                 .any(|event| matches!(event, AppEvent::StatuslineRead(_)))
         );
+        assert_eq!(collector.snapshot(), ["picker_opened 1"]);
         app.choose_statusline_provider(
             scan,
             Some(provider.id.clone()),
@@ -204,10 +260,13 @@ async fn discovery_only_starts_a_reader_on_explicit_selection() -> anyhow::Resul
             &owner,
         )
         .await;
-        assert!(
-            std::iter::from_fn(|| events.try_recv().ok())
-                .any(|event| matches!(event, AppEvent::StatuslineRead(_)))
-        );
+        let read = std::iter::from_fn(|| events.try_recv().ok())
+            .find(|event| matches!(event, AppEvent::StatuslineRead(_)))
+            .expect("explicit choice starts a reader");
+        crate::boxed_future!(app.handle_event(&mut tui, &mut owner, read))
+            .await
+            .unwrap();
+        assert_eq!(collector.snapshot(), expected);
     }
     Ok(())
 }
