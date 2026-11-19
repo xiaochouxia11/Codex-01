@@ -838,6 +838,21 @@ For an older service deployment, see [migration guidance](findings-service.md#lo
 For records stored in your own system, see
 [SDK records deduplication](dedupe-records.md).
 
+## Repository dependency evidence
+
+The experimental dependency investigator reads source, manifests and lockfiles at
+one Git commit. For npm it can follow a requesting project's installed path in
+a v2 or v3 npm lockfile. For Python it can cite a literal, unconditional version
+pin in a requirements file. Both are build inputs. A deployment needs a separate
+observation that connects the running package to its source revision. Import
+matches and OpenGrep call locations are candidates for review.
+
+For a reviewed repository check, select MCP servers through
+`exploitability.evidence_sources` in the project file. The investigator can
+query those servers and cite their replies. A deployment record can establish
+which build ran. Establishing caller access takes evidence of who could reach
+the affected operation. See the [CLI configuration example](cli.md#experimental-dependency-investigations).
+
 ## Containerized bulk scans
 
 Use the scanner image and Compose files to scan a list of repositories with
