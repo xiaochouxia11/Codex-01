@@ -1,0 +1,12 @@
+# Keep blank issues available for SDK integration and documentation questions.
+blank_issues_enabled: true
+contact_links:
+  - name: Integration guide
+    url: https://github.com/openai/auth-javascript/blob/main/docs/getting-started.md
+    about: Start here for SDK setup and integration examples.
+  - name: Report a security vulnerability
+    url: https://github.com/openai/auth-javascript/blob/main/SECURITY.md
+    about: Use the private reporting channels in the security policy.
+  - name: OpenAI account and service support
+    url: https://help.openai.com/
+    about: Get help with OpenAI account, login, billing, or API service problems.

@@ -1,0 +1,84 @@
+name: Bug report
+description: Report a bug in the Sign in with ChatGPT SDK or its examples.
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search [existing issues](https://github.com/openai/auth-javascript/issues) before submitting a report.
+        For account, login, billing, or API service problems, use the [OpenAI Help Center](https://help.openai.com/).
+
+        Report suspected vulnerabilities through [security reporting](https://github.com/openai/auth-javascript/blob/main/SECURITY.md).
+        Remove client secrets, tokens, cookies, and personal data from code, logs, URLs, and screenshots.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Describe the bug
+      description: Describe what happened and whether the problem occurs consistently or intermittently.
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: Describe what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: repro-steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the relevant SDK configuration and the actions that trigger the problem.
+      placeholder: |
+        1. Configure the SDK with...
+        2. Open the page and...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Add a small code example or a link to a minimal repository. Use synthetic identities and configuration.
+    validations:
+      required: false
+  - type: input
+    id: package-versions
+    attributes:
+      label: SDK package versions
+      description: Include each installed SDK package. For a source build, provide the commit instead.
+      placeholder: '@openai/auth: ..., @openai/auth-react: ...'
+    validations:
+      required: true
+  - type: dropdown
+    id: integration
+    attributes:
+      label: Sign-in integration
+      options:
+        - authPath navigation
+        - Custom adapter
+        - UI only, without an authentication connection
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include versions where applicable. For build or server issues, include your JavaScript runtime and package manager.
+      placeholder: |
+        Browser and version:
+        Operating system and version:
+        React and framework versions:
+        Authentication library and version:
+        JavaScript runtime and package manager:
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant errors or logs
+      description: Include relevant error messages or stack traces. Remove credentials, tokens, cookies, personal data, and private URLs.
+      render: text
+    validations:
+      required: false

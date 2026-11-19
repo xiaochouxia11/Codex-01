@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest an improvement to the Sign in with ChatGPT SDK, examples, or documentation.
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search [existing issues](https://github.com/openai/auth-javascript/issues) before submitting a request.
+        For account, login, billing, or API service questions, use the [OpenAI Help Center](https://help.openai.com/).
+        Do not include credentials, tokens, cookies, or personal data.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Describe what you want to do and how the current SDK limits you.
+    validations:
+      required: true
+  - type: textarea
+    id: feature
+    attributes:
+      label: Proposed improvement
+      description: Describe the behavior you want. Include an API or usage example if helpful.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any alternatives or workarounds you considered.
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Include relevant integration details, documentation links, or screenshots.
+    validations:
+      required: false
