@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Local peer interoperability test</title>
+<pre id="status">Running synthetic audio and data test...</pre>
+<script>
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function run() {
+  const config = await (await fetch('/config')).json();
+  const results = [];
+  // Launcher forces a synthetic capture device. Permission exposes numeric
+  // local ICE candidates instead of mDNS names, which the C peer omits.
+  const capture = await navigator.mediaDevices.getUserMedia({audio: true});
+  capture.getTracks().forEach(t => t.stop());
+  for (let round = 0; round < config.rounds; ++round) {
+    const pc = new RTCPeerConnection({iceServers: []});
+    const context = new AudioContext({sampleRate: 48000});
+    const oscillator = context.createOscillator();
+    const sink = context.createMediaStreamDestination();
+    oscillator.connect(sink); oscillator.start();
+    let replies = 0, nativeReplies = 0, nativeSid = null;
+    const player = new Audio(); player.autoplay = true; player.muted = true;
+    try {
+      await context.resume();
+      pc.ontrack = ({track}) => {
+        player.srcObject = new MediaStream([track]);
+        player.play();
+      };
+      pc.addTrack(sink.stream.getAudioTracks()[0]);
+      // The fixture forces the answer's DTLS role below. Select the matching
+      // stream parity explicitly instead of depending on automatic allocation
+      // before that modified answer is applied (as in the aiortc fixture).
+      const dc = pc.createDataChannel('browser', {id: config.server ? 1 : 0});
+      dc.onopen = () => dc.send('ping');
+      dc.onmessage = event => { if (event.data === 'pong') ++replies; };
+      pc.ondatachannel = ({channel}) => {
+        nativeSid = channel.id;
+        channel.onopen = () => channel.send('ping');
+        channel.onmessage = event => { if (event.data === 'pong') ++nativeReplies; };
+        if (channel.readyState === 'open') channel.send('ping');
+      };
+      // No microphone, speakers, credentials, STUN service or remote signaling.
+      const offer = await (await fetch('/offer')).json();
+      await pc.setRemoteDescription({type: 'offer', sdp: offer.sdp});
+      const answer = await pc.createAnswer();
+      if (config.server) answer.sdp = answer.sdp.replaceAll('a=setup:active', 'a=setup:passive');
+      await pc.setLocalDescription(answer);
+      const expectedRole = config.server ? 'passive' : 'active';
+      if (!pc.localDescription.sdp.includes('a=setup:' + expectedRole)) throw new Error('Unexpected DTLS role');
+      for (let i = 0; pc.iceGatheringState !== 'complete' && i < 100; ++i) await sleep(50);
+      if (pc.iceGatheringState !== 'complete') throw new Error('ICE gathering timed out');
+      await fetch('/answer', {method: 'POST', body: pc.localDescription.sdp});
+      const native = await (await fetch('/result')).json();
+      let received = 0, sent = 0, decoded = 0;
+      for (const stat of (await pc.getStats()).values()) {
+        if (stat.type === 'inbound-rtp' && stat.kind === 'audio') {
+          received += stat.packetsReceived || 0;
+          decoded += Math.max(0, (stat.totalSamplesReceived || 0) - (stat.concealedSamples || 0));
+        }
+        if (stat.type === 'outbound-rtp' && stat.kind === 'audio') sent += stat.packetsSent || 0;
+      }
+      const result = {round, received, sent, decoded, replies, nativeReplies,
+                      browserSid: dc.id, nativeSid, native};
+      if (received < 10 || sent < 10 || decoded < 4800 || !replies || !nativeReplies ||
+          nativeSid !== (config.server ? 0 : 1) ||
+          native.audio < 10 || native.messages < 2) throw new Error(JSON.stringify(result));
+      results.push(result);
+    } finally {
+      player.pause(); player.srcObject = null;
+      pc.close(); oscillator.stop(); sink.stream.getTracks().forEach(t => t.stop());
+      await context.close();
+    }
+  }
+  return {ok: true, browser: navigator.userAgent, browserRole: config.server ? 'server' : 'client', results};
+}
+run().catch(error => ({ok: false, error: String(error)})).then(async result => {
+  document.getElementById('status').textContent = JSON.stringify(result, null, 2);
+  await fetch('/done', {method: 'POST', body: JSON.stringify(result)});
+});
+</script>

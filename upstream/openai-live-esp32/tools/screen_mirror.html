@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Waveshare screen mirror</title>
+<style>
+  :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #101519; color: #e6edf2; }
+  body { margin: 0; display: grid; place-items: center; min-height: 100vh; }
+  main { text-align: center; padding: 24px; }
+  h1 { font-size: 17px; font-weight: 500; margin: 0 0 16px; }
+  #stage { display: grid; place-items: center; background: #000; }
+  #stage:fullscreen { width: 100vw; height: 100vh; }
+  canvas { display: block; height: min(66vh, 672px); width: auto; max-width: 90vw; object-fit: contain; }
+  #stage:fullscreen canvas { height: 100vh; max-width: 100vw; }
+  #state, #note { font-size: 13px; color: #a6b7c3; }
+  #state { min-height: 1.3em; }
+  nav { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+  button { border: 1px solid #3f515f; border-radius: 8px; background: #23313b; color: #fff; padding: 10px 16px; font: inherit; font-size: 14px; cursor: pointer; }
+  button:disabled { opacity: .45; cursor: default; }
+  button.recording { background: #ac283a; border-color: #e86677; }
+  #note { max-width: 390px; line-height: 1.5; }
+</style>
+<main>
+  <h1>Waveshare screen mirror</h1>
+  <div id="stage"><canvas id="screen" width="368" height="448" aria-label="Live device screen"></canvas></div>
+  <p id="state" role="status">Connecting to the viewer…</p>
+  <nav>
+    <button id="record" disabled>Record screen</button>
+    <button id="fullscreen">Fullscreen</button>
+    <button id="mirror">Pause mirror</button>
+  </nav>
+  <p id="note">Screen only · Record voice separately with your camera or microphone. Fullscreen also works with OBS window capture.</p>
+</main>
+<script>
+const canvas = document.querySelector('#screen'), ctx = canvas.getContext('2d');
+const state = document.querySelector('#state'), record = document.querySelector('#record');
+const mirror = document.querySelector('#mirror');
+let etag = '', enabled = true, recording = null, stream = null, chunks = [], image;
+let hasFrame = false;
+// The private launch file supplies the per-run capability in a URL fragment,
+// which is never sent to the HTTP server. Keep it only in this tab's session
+// storage so reload works, and remove it from the visible URL immediately.
+let accessToken = new URLSearchParams(location.hash.slice(1)).get('token');
+if (location.hash) history.replaceState(null, '', location.pathname);
+try {
+  if (accessToken) sessionStorage.setItem('screen-mirror-token', accessToken);
+  else accessToken = sessionStorage.getItem('screen-mirror-token');
+} catch (_) { /* Mirroring still works when browser storage is disabled. */ }
+function lockViewer() {
+  state.textContent = 'Open the private viewer link printed by the Python helper';
+  mirror.disabled = true;
+  record.disabled = !recording;
+}
+async function viewerFetch(path, options = {}) {
+  const response = await fetch(path, {...options, headers: {
+    ...options.headers, Authorization: `Bearer ${accessToken}`,
+  }});
+  if (response.status === 401) {
+    accessToken = null;
+    try { sessionStorage.removeItem('screen-mirror-token'); } catch (_) {}
+  }
+  return response;
+}
+async function poll() {
+  if (!accessToken) { lockViewer(); return; }
+  try {
+    // One conditional request carries both status and changed pixels. Idle
+    // polls have no frame body, and reconnects get a new generation in the ETag.
+    const response = await viewerFetch('/frame', {headers: {'If-None-Match': etag}});
+    if (response.status === 401) { lockViewer(); return; }
+    if (response.status !== 200 && response.status !== 204) throw Error('Frame request failed');
+    const connected = response.headers.get('X-Connected') === '1';
+    const ready = response.headers.get('X-Ready') === '1';
+    enabled = response.headers.get('X-Enabled') === '1';
+    mirror.textContent = enabled ? 'Pause mirror' : 'Resume mirror';
+    state.textContent = !connected ? 'USB disconnected — waiting to reconnect' :
+      !enabled ? 'Mirror paused' : !ready ? 'USB connected · Waiting for screen' : 'USB connected · Mirroring';
+    if (response.status === 200) {
+      const w = Number(response.headers.get('X-Width')), h = Number(response.headers.get('X-Height'));
+      const raw = new Uint8Array(await response.arrayBuffer());
+      if (raw.length !== w * h * 2) throw Error('Incomplete frame');
+      if (!image || image.width !== w || image.height !== h) {
+        canvas.width = w; canvas.height = h; image = ctx.createImageData(w, h);
+      }
+      for (let p = 0, q = 0; p < raw.length; p += 2, q += 4) {
+        const v = raw[p] | raw[p+1] << 8, r = v >> 11, g = (v >> 5) & 63, b = v & 31;
+        image.data[q] = (r << 3) | (r >> 2);
+        image.data[q+1] = (g << 2) | (g >> 4);
+        image.data[q+2] = (b << 3) | (b >> 2); image.data[q+3] = 255;
+      }
+      ctx.putImageData(image, 0, 0);
+      etag = response.headers.get('ETag');
+      hasFrame = true;
+    }
+    record.disabled = !recording && (!hasFrame || !connected || !enabled || !window.MediaRecorder);
+  } catch (e) { state.textContent = 'Viewer stopped — restart the Python helper'; }
+  setTimeout(poll, 40);
+}
+mirror.onclick = async () => {
+  try {
+    const response = await viewerFetch(enabled ? '/mirror/off' : '/mirror/on', {method:'POST'});
+    if (response.status === 401) lockViewer();
+    else if (!response.ok) throw Error('Mirror control failed');
+  } catch (_) { state.textContent = 'Viewer stopped — restart the Python helper'; }
+};
+document.querySelector('#fullscreen').onclick = () => document.querySelector('#stage').requestFullscreen();
+record.onclick = () => {
+  if (recording) { recording.stop(); return; }
+  try {
+    const mimeType = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'].find(t => MediaRecorder.isTypeSupported(t));
+    if (!mimeType) throw Error('Use Chrome or another browser with MediaRecorder support');
+    stream = canvas.captureStream(30);
+    chunks = [];
+    recording = new MediaRecorder(stream, {mimeType, videoBitsPerSecond: 4000000});
+    recording.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    recording.onstop = () => {
+      const blob = new Blob(chunks, {type:mimeType}), url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = 'waveshare-demo-' + new Date().toISOString().replace(/[:.]/g,'-') + (mimeType.includes('mp4') ? '.mp4' : '.webm');
+      a.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+      stream.getTracks().forEach(t => t.stop());
+      recording = stream = null; chunks = []; record.textContent = 'Record screen'; record.classList.remove('recording');
+    };
+    recording.start(1000); record.textContent = 'Stop & save'; record.classList.add('recording');
+  } catch(e) { state.textContent = e.message; if (stream) stream.getTracks().forEach(t => t.stop()); recording = stream = null; }
+};
+// Repaint unchanged pixels too, so a static transcript records for its real duration.
+setInterval(() => { if (recording && image) ctx.putImageData(image, 0, 0); }, 1000/30);
+window.addEventListener('beforeunload', e => { if (recording) { e.preventDefault(); e.returnValue = ''; } });
+poll();
+</script>
+</html>

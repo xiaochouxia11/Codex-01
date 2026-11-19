@@ -1,0 +1,28 @@
+openai-live-esp32
+Copyright 2026 OpenAI
+
+Original OpenAI SDK/example code and locally maintained portable transport
+changes are licensed under the Apache License, Version 2.0. Third-party code,
+fonts, vendor assets, and libraries retain their own licenses and notices.
+
+The portable transport derives from libpeer:
+Copyright (c) 2021 sepfy
+The original MIT license is retained in packages/peer/LICENSE.libpeer.
+See packages/peer/NOTICE and packages/peer/licenses for transport dependency
+attribution and license copies, including Mbed TLS, libSRTP, and usrsctp.
+
+The Waveshare integration adapts launcher and board code from Waveshare and
+Espressif Systems under Apache-2.0, and uses the Apache-2.0 esp-audio-player
+wrapper from Chris Morgan and contributors. Upstream source notices are
+preserved in the downloaded sources and modified files are identified.
+ESP-IDF and the launcher include components with separate license terms.
+
+The shared UI fonts derive from Roboto Medium 2.138:
+Copyright 2011 Google Inc. All Rights Reserved.
+Modified by OpenAI: subset and rasterized for LVGL under Apache-2.0.
+See examples/common/fonts/LICENSE, NOTICE, and README.md.
+Downloaded launcher/LVGL fonts retain their separate licenses and notices.
+
+THIRD_PARTY_NOTICES.md records pinned sources, additional attributions, and
+license exceptions. These notices do not replace the applicable license texts
+or additional notices in third-party source files and assets.

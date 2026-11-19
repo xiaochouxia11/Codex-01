@@ -1,0 +1,11 @@
+Roboto Medium 2.138
+Copyright 2011 Google Inc. All Rights Reserved.
+Designed by Christian Robertson.
+Roboto is a trademark of Google.
+
+Modified by OpenAI: subset and rasterized into LVGL bitmap fonts at 16, 18,
+22, and 28 pixels. Narrow no-break space and nonbreaking hyphen use equivalent
+spacing/hyphen glyphs. The source font and these modifications are licensed
+under Apache-2.0; the original release license is included as LICENSE.
+
+See README.md for the pinned source archive, hashes, and regeneration command.

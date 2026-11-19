@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.24)
+project(peer_consumer C)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(LIVE_PEER_SANITIZE OFF CACHE BOOL "" FORCE)
+add_subdirectory(../.. peer-build)
+add_executable(consumer ../consumer.c)
+target_link_libraries(consumer PRIVATE live_peer::peer)

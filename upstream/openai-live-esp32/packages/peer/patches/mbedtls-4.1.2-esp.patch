@@ -1,0 +1,2075 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -18,7 +18,9 @@
+ 
+ # We specify a minimum requirement of 3.10.2, but for now use 3.5.1 here
+ # until our infrastructure catches up.
+-cmake_minimum_required(VERSION 3.5.1)
++# Espressif: Updating the version to 3.10.2. CMake versions
++#            older than 3.10 are getting deprecated
++cmake_minimum_required(VERSION 3.10.2)
+ 
+ include(CMakePackageConfigHelpers)
+ 
+@@ -66,7 +68,7 @@
+ 
+ # Set the project and framework root directory.
+ set(MBEDTLS_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+-set(MBEDTLS_FRAMEWORK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/framework)
++# set(MBEDTLS_FRAMEWORK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/framework)
+ 
+ option(ENABLE_PROGRAMS "Build Mbed TLS programs." ON)
+ 
+@@ -77,7 +79,7 @@
+     # CMakeLists.txt.
+     option(GEN_FILES "Generate the auto-generated files as needed" OFF) # off in development
+ else()
+-    option(GEN_FILES "Generate the auto-generated files as needed" OFF)
++    option(GEN_FILES "Generate the auto-generated files as needed" ON)
+ endif()
+ 
+ option(DISABLE_PACKAGE_CONFIG_AND_INSTALL "Disable package configuration, target export and installation" ${MBEDTLS_AS_SUBPROJECT})
+@@ -326,7 +328,7 @@
+ include(CheckCCompilerFlag)
+ 
+ set(CMAKE_C_EXTENSIONS OFF)
+-set(CMAKE_C_STANDARD 99)
++# set(CMAKE_C_STANDARD 99)
+ 
+ function(set_base_compile_options target)
+     if(CMAKE_COMPILER_IS_GNU)
+@@ -474,14 +476,14 @@
+     endif()
+ endif()
+ 
+-if (NOT EXISTS "${MBEDTLS_FRAMEWORK_DIR}/CMakeLists.txt")
+-    if (EXISTS "${MBEDTLS_DIR}/.git")
+-        message(FATAL_ERROR "${MBEDTLS_FRAMEWORK_DIR}/CMakeLists.txt not found (and does appear to be a git checkout). Run `git submodule update --init` from the source tree to fetch the submodule contents.")
+-    else ()
+-        message(FATAL_ERROR "${MBEDTLS_FRAMEWORK_DIR}/CMakeLists.txt not found (and does not appear to be a git checkout). Please ensure you have downloaded the right archive from the release page on GitHub.")
+-    endif()
+-endif()
+-add_subdirectory(framework)
++# if (NOT EXISTS "${MBEDTLS_FRAMEWORK_DIR}/CMakeLists.txt")
++#     if (EXISTS "${MBEDTLS_DIR}/.git")
++#         message(FATAL_ERROR "${MBEDTLS_FRAMEWORK_DIR}/CMakeLists.txt not found (and does appear to be a git checkout). Run `git submodule update --init` from the source tree to fetch the submodule contents.")
++#     else ()
++#         message(FATAL_ERROR "${MBEDTLS_FRAMEWORK_DIR}/CMakeLists.txt not found (and does not appear to be a git checkout). Please ensure you have downloaded the right archive from the release page on GitHub.")
++#     endif()
++# endif()
++# add_subdirectory(framework)
+ 
+ add_subdirectory(include)
+ 
+--- a/library/CMakeLists.txt
++++ b/library/CMakeLists.txt
+@@ -132,7 +132,7 @@
+ endif(CMAKE_COMPILER_IS_GNUCC)
+ 
+ if(CMAKE_COMPILER_IS_CLANG)
+-    set(LIBS_C_FLAGS -Wmissing-declarations -Wdocumentation -Wno-documentation-deprecated-sync -Wunreachable-code)
++    set(LIBS_C_FLAGS -Wmissing-declarations -Wno-documentation-deprecated-sync -Wunreachable-code)
+ endif(CMAKE_COMPILER_IS_CLANG)
+ 
+ if(CMAKE_COMPILER_IS_MSVC)
+--- a/library/error.c
++++ b/library/error.c
+@@ -253,7 +253,7 @@
+             return( "X509 - Read/write of file failed" );
+         case -(MBEDTLS_ERR_X509_FATAL_ERROR):
+             return( "X509 - A fatal error occurred, eg the chain is too long or the vrfy callback failed" );
+-#endif /* MBEDTLS_X509_USE_C ||
++#endif /* MBEDTLS_X509_USE_C || 
+           MBEDTLS_X509_CREATE_C */
+ 
+ #if defined(MBEDTLS_CIPHER_C)
+--- a/library/ssl_tls.c
++++ b/library/ssl_tls.c
+@@ -1284,6 +1284,12 @@
+ #if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+     size_t in_buf_len = ssl->in_buf_len;
+     size_t out_buf_len = ssl->out_buf_len;
++/* ESP Change: For dynamic buffer feature, the buffer allocation shall be 
++ * handled on-demand basis and hence skip the memset in this API on the buffer pointers 
++ */
++#elif defined(CONFIG_MBEDTLS_DYNAMIC_BUFFER)
++    size_t in_buf_len = 0;
++    size_t out_buf_len = 0;
+ #else
+     size_t in_buf_len = MBEDTLS_SSL_IN_BUFFER_LEN;
+     size_t out_buf_len = MBEDTLS_SSL_OUT_BUFFER_LEN;
+--- a/tf-psa-crypto/CMakeLists.txt
++++ b/tf-psa-crypto/CMakeLists.txt
+@@ -18,7 +18,9 @@
+ 
+ # We specify a minimum requirement of 3.10.2, but for now use 3.5.1 here
+ # until our infrastructure catches up.
+-cmake_minimum_required(VERSION 3.5.1)
++# Espressif: Updating the version to 3.10.2. CMake versions
++#            older than 3.10 are getting deprecated
++cmake_minimum_required(VERSION 3.10.2)
+ 
+ include(CMakePackageConfigHelpers)
+ 
+@@ -102,7 +104,7 @@
+     # CMakeLists.txt.
+     option(GEN_FILES "Generate the auto-generated files as needed" OFF) # off in development
+ else()
+-    option(GEN_FILES "Generate the auto-generated files as needed" OFF)
++    option(GEN_FILES "Generate the auto-generated files as needed" ON)
+ endif()
+ 
+ # Support for package config and install to be added later.
+@@ -240,7 +242,9 @@
+ include(CheckCCompilerFlag)
+ 
+ set(CMAKE_C_EXTENSIONS OFF)
+-set(CMAKE_C_STANDARD 99)
++# Espressif: We set C standard in ESP-IDF build system
++# No need to set it here
++# set(CMAKE_C_STANDARD 99)
+ 
+ # Set base compile options to be used for the compilation of all C files of
+ # all targets.
+@@ -395,7 +399,7 @@
+ function(tf_psa_crypto_set_clang_extra_compile_options target)
+     target_compile_options(${target} PRIVATE
+         -Wmissing-declarations
+-        -Wdocumentation
++        # -Wdocumentation
+         -Wno-documentation-deprecated-sync
+         -Wunreachable-code
+     )
+@@ -422,9 +426,10 @@
+     endif()
+ endif()
+ 
+-if (NOT EXISTS "${TF_PSA_CRYPTO_FRAMEWORK_DIR}/CMakeLists.txt")
+-    message(FATAL_ERROR "${TF_PSA_CRYPTO_FRAMEWORK_DIR}/CMakeLists.txt not found. Run `git submodule update --init` from the source tree to fetch the submodule contents.")
+-endif()
++# Espressif: We do not use framework submodule to build TF-PSA-Crypto
++# if (NOT EXISTS "${TF_PSA_CRYPTO_FRAMEWORK_DIR}/CMakeLists.txt")
++#     message(FATAL_ERROR "${TF_PSA_CRYPTO_FRAMEWORK_DIR}/CMakeLists.txt not found. Run `git submodule update --init` from the source tree to fetch the submodule contents.")
++# endif()
+ 
+ #
+ # Directories with internal headers. The headers in that directories are not
+@@ -449,7 +454,7 @@
+ # constructed in `drivers/CMakeLists.txt`. This list may include a generated
+ # test driver.
+ #
+-add_subdirectory(framework)
++# add_subdirectory(framework)
+ add_subdirectory(include)
+ if(TF_PSA_CRYPTO_AS_SUBPROJECT AND TF_PSA_CRYPTO_CONFIG_TRANSFORMED)
+     set(TF_PSA_CRYPTO_CONFIG_FILE "${TF_PSA_CRYPTO_CONFIG_FILE}"
+--- a/tf-psa-crypto/core/CMakeLists.txt
++++ b/tf-psa-crypto/core/CMakeLists.txt
+@@ -66,6 +66,28 @@
+     )
+ endif(GEN_FILES)
+ 
++if(CMAKE_COMPILER_IS_GNUCC)
++    set(LIBS_C_FLAGS -Wmissing-declarations -Wmissing-prototypes)
++endif(CMAKE_COMPILER_IS_GNUCC)
++
++if(CMAKE_COMPILER_IS_CLANG)
++    # Removed -Wdocumentation as it creates lots of noise
++    # from FreeRTOS header files
++    set(LIBS_C_FLAGS -Wmissing-declarations -Wmissing-prototypes -Wno-documentation-deprecated-sync -Wunreachable-code)
++endif(CMAKE_COMPILER_IS_CLANG)
++
++if(CMAKE_COMPILER_IS_MSVC)
++    option(MSVC_STATIC_RUNTIME "Build the libraries with /MT compiler flag" OFF)
++    if(MSVC_STATIC_RUNTIME)
++        foreach(flag_var
++            CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
++            CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
++            CMAKE_C_FLAGS_CHECK)
++            string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
++        endforeach(flag_var)
++    endif()
++endif()
++
+ if(CMAKE_C_COMPILER_ID MATCHES "AppleClang")
+     set(CMAKE_C_ARCHIVE_CREATE   "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+     set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+@@ -116,7 +138,7 @@
+     tf_psa_crypto_set_base_compile_options(${tfpsacrypto_static_target})
+     tf_psa_crypto_set_extra_compile_options(${tfpsacrypto_static_target})
+     set_target_properties(${tfpsacrypto_static_target} PROPERTIES OUTPUT_NAME tfpsacrypto)
+-    target_link_libraries(${tfpsacrypto_static_target} PUBLIC ${libs})
++    target_link_libraries(${tfpsacrypto_static_target} PUBLIC ${libs} ${builtin_static_target} ${everest_static_target} ${p256m_static_target})
+ 
+     if(GEN_FILES)
+         add_dependencies(${tfpsacrypto_static_target}
+--- a/tf-psa-crypto/core/psa_crypto_driver_wrappers.h
++++ b/tf-psa-crypto/core/psa_crypto_driver_wrappers.h
+@@ -43,6 +43,53 @@
+ 
+ #endif
+ 
++/* Headers for esp_sha transparent driver */
++#if defined(ESP_SHA_DRIVER_ENABLED)
++#include "../../../port/psa_driver/include/psa_crypto_driver_esp_sha.h"
++
++#endif
++
++#if defined(ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
++#include "../../../port/psa_driver/include/psa_crypto_driver_esp_hmac_transparent.h"
++
++#endif
++
++/* Headers for esp_aes transparent driver */
++#if defined(ESP_AES_DRIVER_ENABLED)
++#include "../../../port/psa_driver/include/psa_crypto_driver_esp_aes.h"
++#include "../../../port/psa_driver/include/psa_crypto_driver_esp_aes_gcm.h"
++#endif
++
++#if defined(ESP_MD5_DRIVER_ENABLED)
++#include "../../../port/psa_driver/include/psa_crypto_driver_esp_md5.h"
++
++#endif
++
++#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
++#include "../../../port/psa_driver/include/psa_crypto_driver_esp_hmac_opaque.h"
++
++#endif
++
++/* Headers for esp_ecdsa opaque driver */
++#if defined(ESP_ECDSA_DRIVER_ENABLED)
++#include "../../../port/psa_driver/include/psa_crypto_driver_esp_ecdsa.h"
++
++#endif
++
++#if defined(ESP_RSA_DS_DRIVER_ENABLED)
++#include "../../../port/psa_driver/include/psa_crypto_driver_esp_rsa_ds.h"
++
++#endif
++
++#if defined(ESP_CMAC_DRIVER_ENABLED)
++#include "../../../port/psa_driver/include/psa_crypto_driver_esp_cmac.h"
++
++#endif
++
++/* Headers for secure element opaque driver */
++#if defined(SECURE_ELEMENT_DRIVER_ENABLED)
++#include "../../../port/psa_driver/include/psa_crypto_driver_secure_element.h"
++#endif
+ /* END-driver headers */
+ 
+ /* Auto-generated values depending on which drivers are registered.
+@@ -53,6 +100,16 @@
+ #define MBEDTLS_TEST_OPAQUE_DRIVER_ID (2)
+ #define MBEDTLS_TEST_TRANSPARENT_DRIVER_ID (3)
+ #define P256_TRANSPARENT_DRIVER_ID (4)
++#define ESP_SHA_TRANSPARENT_DRIVER_ID (5)
++#define ESP_AES_TRANSPARENT_DRIVER_ID (6)
++#define ESP_MD5_TRANSPARENT_DRIVER_ID (7)
++#define ESP_ECDSA_TRANSPARENT_DRIVER_ID (8)
++#define ESP_ECDSA_OPAQUE_DRIVER_ID (9)
++#define ESP_RSA_DS_OPAQUE_DRIVER_ID (10)
++#define ESP_CMAC_TRANSPARENT_DRIVER_ID (11)
++#define ESP_HMAC_TRANSPARENT_DRIVER_ID (12)
++#define ESP_HMAC_OPAQUE_DRIVER_ID (13)
++#define SECURE_ELEMENT_OPAQUE_DRIVER_ID (14)
+ 
+ /* END-driver id */
+ 
+@@ -308,6 +365,50 @@
+                                                              signature_size,
+                                                              signature_length ) );
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_ECDSA:
++            if( PSA_KEY_TYPE_IS_ECC( psa_get_key_type(attributes) ) &&
++                PSA_ALG_IS_ECDSA(alg) && PSA_ALG_IS_ECDSA( psa_get_key_algorithm(attributes) ) &&
++                PSA_KEY_TYPE_ECC_GET_FAMILY(psa_get_key_type(attributes)) == PSA_ECC_FAMILY_SECP_R1)
++            {
++                return ( esp_ecdsa_opaque_sign_hash( attributes,
++                                                key_buffer,
++                                                key_buffer_size,
++                                                alg,
++                                                hash,
++                                                hash_length,
++                                                signature,
++                                                signature_size,
++                                                signature_length ) );
++            }
++            return PSA_ERROR_INVALID_ARGUMENT;
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED) */
++#if defined(ESP_RSA_DS_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_RSA_DS:
++            if( PSA_KEY_TYPE_IS_RSA( psa_get_key_type(attributes) )  &&
++                (PSA_ALG_IS_RSA_PKCS1V15_SIGN(alg) || PSA_ALG_IS_RSA_PSS(alg)))
++            {
++                return( esp_rsa_ds_opaque_signature_sign_hash( attributes,
++                                                        key_buffer,
++                                                        key_buffer_size,
++                                                        alg,
++                                                        hash,
++                                                        hash_length,
++                                                        signature,
++                                                        signature_size,
++                                                        signature_length ) );
++            }
++            return PSA_ERROR_INVALID_ARGUMENT;
++#endif /* ESP_RSA_DS_DRIVER_ENABLED */
++#if defined(SECURE_ELEMENT_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_SECURE_ELEMENT:
++            return( secure_element_opaque_sign_hash(
++                        attributes,
++                        key_buffer, key_buffer_size,
++                        alg, hash, hash_length,
++                        signature, signature_size,
++                        signature_length ) );
++#endif /* SECURE_ELEMENT_DRIVER_ENABLED */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             /* Key is declared with a lifetime not known to us */
+@@ -332,6 +433,24 @@
+             /* Key is stored in the slot in export representation, so
+              * cycle through all known transparent accelerators */
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED)
++            if( PSA_KEY_TYPE_IS_ECC( psa_get_key_type(attributes) ) &&
++                PSA_ALG_IS_ECDSA(alg) && PSA_ALG_IS_ECDSA( psa_get_key_algorithm(attributes) ) &&
++                PSA_KEY_TYPE_ECC_GET_FAMILY(psa_get_key_type(attributes)) == PSA_ECC_FAMILY_SECP_R1)
++            {
++                status = esp_ecdsa_transparent_verify_hash( attributes,
++                                                            key_buffer,
++                                                            key_buffer_size,
++                                                            alg,
++                                                            hash,
++                                                            hash_length,
++                                                            signature,
++                                                            signature_length );
++
++                if ( status != PSA_ERROR_NOT_SUPPORTED )
++                    return( status );
++            }
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED) */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+             status = mbedtls_test_transparent_signature_verify_hash(
+                          attributes,
+@@ -364,6 +483,19 @@
+                 return( status );
+             }
+ #endif /* MBEDTLS_PSA_P256M_DRIVER_ENABLED */
++#if defined(SECURE_ELEMENT_DRIVER_ENABLED)
++            status = secure_element_transparent_verify_hash(
++                         attributes,
++                         key_buffer,
++                         key_buffer_size,
++                         alg,
++                         hash,
++                         hash_length,
++                         signature,
++                         signature_length );
++            if( status != PSA_ERROR_NOT_SUPPORTED )
++                return( status );
++#endif /* SECURE_ELEMENT_DRIVER_ENABLED */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+ 
+             return( psa_verify_hash_builtin( attributes,
+@@ -388,6 +520,24 @@
+                                                                signature,
+                                                                signature_length ) );
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_ECDSA:
++            if( PSA_KEY_TYPE_IS_ECC( psa_get_key_type(attributes) ) &&
++                PSA_ALG_IS_ECDSA(alg) && PSA_ALG_IS_ECDSA( psa_get_key_algorithm(attributes) ) &&
++                PSA_KEY_TYPE_ECC_GET_FAMILY(psa_get_key_type(attributes)) == PSA_ECC_FAMILY_SECP_R1)
++            {
++                return esp_ecdsa_transparent_verify_hash( attributes,
++                                                        key_buffer,
++                                                        key_buffer_size,
++                                                        alg,
++                                                        hash,
++                                                        hash_length,
++                                                        signature,
++                                                        signature_length );
++            }
++            return PSA_ERROR_INVALID_ARGUMENT;
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED) */
++
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             /* Key is declared with a lifetime not known to us */
+@@ -480,7 +630,43 @@
+             break;
+ 
+             /* Add cases for opaque driver here */
+-
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_ECDSA:
++            if( PSA_KEY_TYPE_IS_ECC( psa_get_key_type(attributes) ) &&
++                PSA_ALG_IS_ECDSA(alg) && PSA_ALG_IS_ECDSA( psa_get_key_algorithm(attributes) ) &&
++                PSA_KEY_TYPE_ECC_GET_FAMILY(psa_get_key_type(attributes)) == PSA_ECC_FAMILY_SECP_R1)
++            {
++                status = esp_ecdsa_opaque_sign_hash_start( &operation->ctx.esp_ecdsa_opaque_sign_hash_ctx,
++                                                            attributes,
++                                                            key_buffer, key_buffer_size,
++                                                            alg, hash, hash_length );
++                if (status == PSA_SUCCESS) {
++                    operation->id = ESP_ECDSA_OPAQUE_DRIVER_ID;
++                }
++                return status;
++            } else {
++                return PSA_ERROR_INVALID_ARGUMENT;
++            }
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED) */
++
++#if defined(ESP_RSA_DS_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_RSA_DS:
++            if( PSA_KEY_TYPE_IS_RSA( psa_get_key_type(attributes) )  &&
++                (PSA_ALG_IS_RSA_PKCS1V15_SIGN(alg) || PSA_ALG_IS_RSA_PSS(alg)))
++            {
++                status = esp_rsa_ds_opaque_sign_hash_start( &operation->ctx.esp_rsa_ds_opaque_sign_hash_ctx,
++                                                            attributes,
++                                                            key_buffer, key_buffer_size,
++                                                            alg, hash, hash_length );
++                if (status == PSA_SUCCESS) {
++                    operation->id = ESP_RSA_DS_OPAQUE_DRIVER_ID;
++                }
++                return status;
++            } else {
++                return PSA_ERROR_INVALID_ARGUMENT;
++            }
++
++#endif /* defined(ESP_RSA_DS_DRIVER_ENABLED) */
+         default:
+             /* Key is declared with a lifetime not known to us */
+             status = PSA_ERROR_INVALID_ARGUMENT;
+@@ -507,6 +693,18 @@
+             /* Add test driver tests here */
+ 
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED)
++        case ESP_ECDSA_OPAQUE_DRIVER_ID:
++            return esp_ecdsa_opaque_sign_hash_complete( &operation->ctx.esp_ecdsa_opaque_sign_hash_ctx,
++                                                        signature, signature_size,
++                                                        signature_length );
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED) */
++#if defined(ESP_RSA_DS_DRIVER_ENABLED)
++        case ESP_RSA_DS_OPAQUE_DRIVER_ID:
++            return esp_rsa_ds_opaque_sign_hash_complete( &operation->ctx.esp_rsa_ds_opaque_sign_hash_ctx,
++                                                        signature, signature_size,
++                                                        signature_length );
++#endif /* defined(ESP_RSA_DS_DRIVER_ENABLED) */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+     }
+ 
+@@ -530,6 +728,14 @@
+             /* Add test driver tests here */
+ 
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED)
++        case ESP_ECDSA_OPAQUE_DRIVER_ID:
++            return esp_ecdsa_opaque_sign_hash_abort( &operation->ctx.esp_ecdsa_opaque_sign_hash_ctx );
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED) */
++#if defined(ESP_RSA_DS_DRIVER_ENABLED)
++        case ESP_RSA_DS_OPAQUE_DRIVER_ID:
++            return esp_rsa_ds_opaque_sign_hash_abort( &operation->ctx.esp_rsa_ds_opaque_sign_hash_ctx );
++#endif /* defined(ESP_RSA_DS_DRIVER_ENABLED) */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+     }
+ 
+@@ -557,6 +763,23 @@
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+ 
+             /* Add test driver tests here */
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED)
++            if( PSA_KEY_TYPE_IS_ECC( psa_get_key_type(attributes) ) &&
++                PSA_ALG_IS_ECDSA(alg) && PSA_ALG_IS_ECDSA( psa_get_key_algorithm(attributes) ) &&
++                PSA_KEY_TYPE_ECC_GET_FAMILY(psa_get_key_type(attributes)) == PSA_ECC_FAMILY_SECP_R1)
++            {
++                status = esp_ecdsa_transparent_verify_hash_start( &operation->ctx.esp_ecdsa_transparent_verify_hash_ctx,
++                                                                attributes,
++                                                                key_buffer,
++                                                                key_buffer_size,
++                                                                alg, hash, hash_length, signature, signature_length );
++                if (status == PSA_SUCCESS) {
++                    operation->id = ESP_ECDSA_TRANSPARENT_DRIVER_ID;
++                }
++                if( status != PSA_ERROR_NOT_SUPPORTED )
++                    return( status );
++            }
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED) */
+ 
+             /* Declared with fallback == true */
+ 
+@@ -574,6 +797,27 @@
+ 
+             /* Add cases for opaque driver here */
+ 
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_ECDSA:
++            if( PSA_KEY_TYPE_IS_ECC( psa_get_key_type(attributes) ) &&
++                PSA_ALG_IS_ECDSA(alg) && PSA_ALG_IS_ECDSA( psa_get_key_algorithm(attributes) ) &&
++                PSA_KEY_TYPE_ECC_GET_FAMILY(psa_get_key_type(attributes)) == PSA_ECC_FAMILY_SECP_R1)
++            {
++                status = esp_ecdsa_transparent_verify_hash_start( &operation->ctx.esp_ecdsa_transparent_verify_hash_ctx,
++                                                                attributes,
++                                                                key_buffer,
++                                                                key_buffer_size,
++                                                                alg, hash, hash_length, signature, signature_length );
++                if (status == PSA_SUCCESS) {
++                    operation->id = ESP_ECDSA_TRANSPARENT_DRIVER_ID;
++                }
++                return status;
++            } else {
++                return PSA_ERROR_INVALID_ARGUMENT;
++            }
++
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED) */
++
+         default:
+             /* Key is declared with a lifetime not known to us */
+             status = PSA_ERROR_INVALID_ARGUMENT;
+@@ -598,6 +842,10 @@
+             /* Add test driver tests here */
+ 
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED)
++        case ESP_ECDSA_TRANSPARENT_DRIVER_ID:
++            return esp_ecdsa_transparent_verify_hash_complete( &operation->ctx.esp_ecdsa_transparent_verify_hash_ctx );
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED) */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+     }
+ 
+@@ -618,6 +866,10 @@
+             /* Add test driver tests here */
+ 
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED)
++        case ESP_ECDSA_TRANSPARENT_DRIVER_ID:
++            return esp_ecdsa_transparent_verify_hash_abort( &operation->ctx.esp_ecdsa_transparent_verify_hash_ctx );
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED) */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+     }
+ 
+@@ -656,6 +908,37 @@
+             return( ( *key_buffer_size != 0 ) ?
+                     PSA_SUCCESS : PSA_ERROR_NOT_SUPPORTED );
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_ECDSA:
++            *key_buffer_size = esp_ecdsa_opaque_size_function( attributes,
++                                     key_type, data, data_length );
++            return( ( *key_buffer_size != 0 ) ?
++                    PSA_SUCCESS : PSA_ERROR_NOT_SUPPORTED );
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED) */
++#if defined(ESP_RSA_DS_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_RSA_DS:
++            *key_buffer_size = esp_rsa_ds_opaque_size_function( attributes,
++                                     key_type,
++                                     data, data_length );
++            return( ( *key_buffer_size != 0 ) ?
++                    PSA_SUCCESS : PSA_ERROR_NOT_SUPPORTED );
++#endif /* ESP_RSA_DS_DRIVER_ENABLED */
++
++#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_HMAC:
++            *key_buffer_size = esp_hmac_opaque_size_function(attributes,
++                                     key_type, data, data_length );
++            return( ( *key_buffer_size != 0 ) ?
++                    PSA_SUCCESS : PSA_ERROR_NOT_SUPPORTED );
++#endif /* defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED) */
++
++#if defined(SECURE_ELEMENT_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_SECURE_ELEMENT:
++            *key_buffer_size = secure_element_opaque_size_function( key_type,
++                                     PSA_BYTES_TO_BITS( data_length ) );
++            return( ( *key_buffer_size != 0 ) ?
++                    PSA_SUCCESS : PSA_ERROR_NOT_SUPPORTED );
++#endif /* SECURE_ELEMENT_DRIVER_ENABLED */
+ 
+         default:
+             (void)key_type;
+@@ -825,7 +1108,44 @@
+         ));
+ #endif
+ 
+-
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_ECDSA:
++            return( esp_ecdsa_opaque_import_key(
++                        attributes,
++                        data, data_length,
++                        key_buffer, key_buffer_size,
++                        key_buffer_length, bits ) );
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED) */
++#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_HMAC:
++            return( esp_hmac_import_key_opaque(
++                        attributes,
++                        data, data_length,
++                        key_buffer, key_buffer_size,
++                        key_buffer_length, bits ) );
++#endif /* defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED) */
++
++#if defined(ESP_RSA_DS_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_RSA_DS:
++            return( esp_rsa_ds_opaque_import_key
++                            (attributes,
++                            data,
++                            data_length,
++                            key_buffer,
++                            key_buffer_size,
++                            key_buffer_length,
++                            bits
++                            ));
++#endif /* ESP_RSA_DS_DRIVER_ENABLED */
++
++#if defined(SECURE_ELEMENT_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_SECURE_ELEMENT:
++            return( secure_element_opaque_import_key(
++                        attributes,
++                        data, data_length,
++                        key_buffer, key_buffer_size,
++                        key_buffer_length, bits ) );
++#endif /* SECURE_ELEMENT_DRIVER_ENABLED */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             (void)status;
+@@ -946,6 +1266,22 @@
+             /* Key is stored in the slot in export representation, so
+              * cycle through all known transparent accelerators */
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++            status = esp_aes_cipher_encrypt(attributes,
++                                            key_buffer,
++                                            key_buffer_size,
++                                            alg,
++                                            iv,
++                                            iv_length,
++                                            input,
++                                            input_length,
++                                            output,
++                                            output_size,
++                                            output_length );
++
++            if ( status != PSA_ERROR_NOT_SUPPORTED )
++                return( status );
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+             status = mbedtls_test_transparent_cipher_encrypt( attributes,
+                                                               key_buffer,
+@@ -1036,6 +1372,19 @@
+             /* Key is stored in the slot in export representation, so
+              * cycle through all known transparent accelerators */
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++            status = esp_aes_cipher_decrypt(attributes,
++                                        key_buffer,
++                                        key_buffer_size,
++                                        alg,
++                                        input,
++                                        input_length,
++                                        output,
++                                        output_size,
++                                        output_length );
++            if ( status != PSA_ERROR_NOT_SUPPORTED )
++                return( status );
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+             status = mbedtls_test_transparent_cipher_decrypt( attributes,
+                                                               key_buffer,
+@@ -1113,6 +1462,18 @@
+             /* Key is stored in the slot in export representation, so
+              * cycle through all known transparent accelerators */
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++            status = esp_aes_cipher_encrypt_setup( &operation->ctx.esp_aes_ctx,
++                                                    attributes,
++                                                    key_buffer,
++                                                    key_buffer_size,
++                                                    alg );
++            if ( status == PSA_SUCCESS ) {
++                operation->id = ESP_AES_TRANSPARENT_DRIVER_ID;
++            }
++            if ( status != PSA_ERROR_NOT_SUPPORTED )
++                return( status );
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+             status = mbedtls_test_transparent_cipher_encrypt_setup(
+                 &operation->ctx.transparent_test_driver_ctx,
+@@ -1186,6 +1547,18 @@
+             /* Key is stored in the slot in export representation, so
+              * cycle through all known transparent accelerators */
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++            status = esp_aes_cipher_decrypt_setup( &operation->ctx.esp_aes_ctx,
++                                                    attributes,
++                                                    key_buffer,
++                                                    key_buffer_size,
++                                                    alg );
++            if ( status == PSA_SUCCESS ) {
++                operation->id = ESP_AES_TRANSPARENT_DRIVER_ID;
++            }
++            if ( status != PSA_ERROR_NOT_SUPPORTED )
++                return( status );
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+             status = mbedtls_test_transparent_cipher_decrypt_setup(
+                 &operation->ctx.transparent_test_driver_ctx,
+@@ -1258,6 +1631,12 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_CIPHER */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++        case ESP_AES_TRANSPARENT_DRIVER_ID:
++            return( esp_aes_cipher_set_iv(
++                        &operation->ctx.esp_aes_ctx,
++                        iv, iv_length ) );
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_cipher_set_iv(
+@@ -1299,6 +1678,15 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_CIPHER */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++        case ESP_AES_TRANSPARENT_DRIVER_ID:
++            return( esp_aes_cipher_update( &operation->ctx.esp_aes_ctx,
++                        input,
++                        input_length,
++                        output,
++                        output_size,
++                        output_length ) );
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_cipher_update(
+@@ -1341,6 +1729,13 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_CIPHER */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++        case ESP_AES_TRANSPARENT_DRIVER_ID:
++            return( esp_aes_cipher_finish( &operation->ctx.esp_aes_ctx,
++                        output,
++                        output_size,
++                        output_length ) );
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_cipher_finish(
+@@ -1375,6 +1770,10 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_CIPHER */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++        case ESP_AES_TRANSPARENT_DRIVER_ID:
++            return( esp_aes_cipher_abort( &operation->ctx.esp_aes_ctx ) );
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             status = mbedtls_test_transparent_cipher_abort(
+@@ -1413,12 +1812,29 @@
+     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+ 
+     /* Try accelerators first */
++#if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+     status = mbedtls_test_transparent_hash_compute(
+                 alg, input, input_length, hash, hash_size, hash_length );
+     if( status != PSA_ERROR_NOT_SUPPORTED )
+         return( status );
+-#endif
++#endif /* PSA_CRYPTO_DRIVER_TEST */
++
++#if defined(ESP_SHA_DRIVER_ENABLED)
++    status = esp_sha_hash_compute(alg, input, input_length,
++                                     hash, hash_size, hash_length );
++    if( status != PSA_ERROR_NOT_SUPPORTED )
++        return( status );
++#endif /* ESP_SHA_DRIVER_ENABLED */
++
++#if defined(ESP_MD5_DRIVER_ENABLED)
++    status = esp_md5_hash_compute(alg, input, input_length,
++                                     hash, hash_size, hash_length );
++    if( status != PSA_ERROR_NOT_SUPPORTED )
++        return( status );
++#endif /* ESP_MD5_DRIVER_ENABLED */
++
++#endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+ 
+     /* If software fallback is compiled in, try fallback */
+ #if defined(MBEDTLS_PSA_BUILTIN_HASH)
+@@ -1445,6 +1861,7 @@
+     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+ 
+     /* Try setup on accelerators first */
++#if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+     status = mbedtls_test_transparent_hash_setup(
+                 &operation->ctx.test_driver_ctx, alg );
+@@ -1454,6 +1871,24 @@
+     if( status != PSA_ERROR_NOT_SUPPORTED )
+         return( status );
+ #endif
++
++#if defined(ESP_SHA_DRIVER_ENABLED)
++    status = esp_sha_hash_setup(&operation->ctx.esp_ctx, alg);
++    if( status == PSA_SUCCESS )
++        operation->id = ESP_SHA_TRANSPARENT_DRIVER_ID;
++    if( status != PSA_ERROR_NOT_SUPPORTED )
++        return( status );
++#endif /* ESP_SHA_DRIVER_ENABLED */
++
++#if defined(ESP_MD5_DRIVER_ENABLED)
++    status = esp_md5_hash_setup(&operation->ctx.md5_ctx, alg);
++    if( status == PSA_SUCCESS )
++        operation->id = ESP_MD5_TRANSPARENT_DRIVER_ID;
++    if( status != PSA_ERROR_NOT_SUPPORTED )
++        return( status );
++#endif /* ESP_MD5_DRIVER_ENABLED */
++
++#endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+ 
+     /* If software fallback is compiled in, try fallback */
+ #if defined(MBEDTLS_PSA_BUILTIN_HASH)
+@@ -1483,13 +1918,29 @@
+             return( mbedtls_psa_hash_clone( &source_operation->ctx.mbedtls_ctx,
+                                             &target_operation->ctx.mbedtls_ctx ) );
+ #endif
++#if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_SHA_DRIVER_ENABLED)
++        case ESP_SHA_TRANSPARENT_DRIVER_ID:
++            target_operation->id = ESP_SHA_TRANSPARENT_DRIVER_ID;
++            return( esp_sha_hash_clone(
++                        &source_operation->ctx.esp_ctx,
++                        &target_operation->ctx.esp_ctx ) );
++#endif /* ESP_SHA_DRIVER_ENABLED */
++#if defined(ESP_MD5_DRIVER_ENABLED)
++        case ESP_MD5_TRANSPARENT_DRIVER_ID:
++            target_operation->id = ESP_MD5_TRANSPARENT_DRIVER_ID;
++            return( esp_md5_hash_clone(
++                        &source_operation->ctx.md5_ctx,
++                        &target_operation->ctx.md5_ctx ) );
++#endif /* ESP_MD5_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             target_operation->id = MBEDTLS_TEST_TRANSPARENT_DRIVER_ID;
+             return( mbedtls_test_transparent_hash_clone(
+                         &source_operation->ctx.test_driver_ctx,
+                         &target_operation->ctx.test_driver_ctx ) );
+-#endif
++#endif /* PSA_CRYPTO_DRIVER_TEST */
++#endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             (void) target_operation;
+             return( PSA_ERROR_BAD_STATE );
+@@ -1508,12 +1959,26 @@
+             return( mbedtls_psa_hash_update( &operation->ctx.mbedtls_ctx,
+                                              input, input_length ) );
+ #endif
++#if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_hash_update(
+                         &operation->ctx.test_driver_ctx,
+                         input, input_length ) );
+ #endif
++#if defined(ESP_SHA_DRIVER_ENABLED)
++        case ESP_SHA_TRANSPARENT_DRIVER_ID:
++            return( esp_sha_hash_update(
++                        &operation->ctx.esp_ctx,
++                        input, input_length ) );
++#endif /* ESP_SHA_DRIVER_ENABLED */
++#if defined(ESP_MD5_DRIVER_ENABLED)
++        case ESP_MD5_TRANSPARENT_DRIVER_ID:
++            return( esp_md5_hash_update(
++                        &operation->ctx.md5_ctx,
++                        input, input_length ) );
++#endif /* ESP_MD5_DRIVER_ENABLED */
++#endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             (void) input;
+             (void) input_length;
+@@ -1534,12 +1999,27 @@
+             return( mbedtls_psa_hash_finish( &operation->ctx.mbedtls_ctx,
+                                              hash, hash_size, hash_length ) );
+ #endif
++#if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_hash_finish(
+                         &operation->ctx.test_driver_ctx,
+                         hash, hash_size, hash_length ) );
+ #endif
++
++#if defined(ESP_SHA_DRIVER_ENABLED)
++        case ESP_SHA_TRANSPARENT_DRIVER_ID:
++            return( esp_sha_hash_finish(
++                        &operation->ctx.esp_ctx,
++                        hash, hash_size, hash_length ) );
++#endif /* ESP_SHA_DRIVER_ENABLED */
++#if defined(ESP_MD5_DRIVER_ENABLED)
++        case ESP_MD5_TRANSPARENT_DRIVER_ID:
++            return( esp_md5_hash_finish(
++                        &operation->ctx.md5_ctx,
++                        hash, hash_size, hash_length ) );
++#endif /* ESP_MD5_DRIVER_ENABLED */
++#endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             (void) hash;
+             (void) hash_size;
+@@ -1557,11 +2037,23 @@
+         case PSA_CRYPTO_MBED_TLS_DRIVER_ID:
+             return( mbedtls_psa_hash_abort( &operation->ctx.mbedtls_ctx ) );
+ #endif
++#if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_hash_abort(
+                         &operation->ctx.test_driver_ctx ) );
+ #endif
++#if defined(ESP_SHA_DRIVER_ENABLED)
++        case ESP_SHA_TRANSPARENT_DRIVER_ID:
++            return( esp_sha_hash_abort(
++                        &operation->ctx.esp_ctx ) );
++#endif /* ESP_SHA_DRIVER_ENABLED */
++#if defined(ESP_MD5_DRIVER_ENABLED)
++        case ESP_MD5_TRANSPARENT_DRIVER_ID:
++            return( esp_md5_hash_abort(
++                        &operation->ctx.md5_ctx ) );
++#endif /* ESP_MD5_DRIVER_ENABLED */
++#endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             return( PSA_ERROR_BAD_STATE );
+     }
+@@ -1720,6 +2212,21 @@
+              * cycle through all known transparent accelerators */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++            status = esp_crypto_aes_gcm_encrypt(
++                        attributes, key_buffer, key_buffer_size,
++                        alg,
++                        nonce, nonce_length,
++                        additional_data, additional_data_length,
++                        plaintext, plaintext_length,
++                        ciphertext, ciphertext_size, ciphertext_length );
++#ifdef MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK
++            if( status != PSA_ERROR_NOT_SUPPORTED )
++#endif /* MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK */
++            {
++                return( status );
++            }
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+             status = mbedtls_test_transparent_aead_encrypt(
+                          attributes, key_buffer, key_buffer_size,
+@@ -1782,6 +2289,21 @@
+              * cycle through all known transparent accelerators */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++            status = esp_crypto_aes_gcm_decrypt(
++                        attributes, key_buffer, key_buffer_size,
++                        alg,
++                        nonce, nonce_length,
++                        additional_data, additional_data_length,
++                        ciphertext, ciphertext_length,
++                        plaintext, plaintext_size, plaintext_length );
++#ifdef MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK
++            if( status != PSA_ERROR_NOT_SUPPORTED )
++#endif /* MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK */
++            {
++                return( status );
++            }
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+             status = mbedtls_test_transparent_aead_decrypt(
+                         attributes, key_buffer, key_buffer_size,
+@@ -1841,6 +2363,21 @@
+              * cycle through all known transparent accelerators */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++            status = esp_crypto_aes_gcm_encrypt_setup(
++                        &operation->ctx.esp_aes_gcm_ctx,
++                        attributes, key_buffer, key_buffer_size,
++                        alg);
++            if ( status == PSA_SUCCESS ) {
++                operation->id = ESP_AES_TRANSPARENT_DRIVER_ID;
++            }
++#ifdef MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK
++            if( status != PSA_ERROR_NOT_SUPPORTED )
++#endif /* MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK */
++            {
++                return( status );
++            }
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+             operation->id = MBEDTLS_TEST_TRANSPARENT_DRIVER_ID;
+             status = mbedtls_test_transparent_aead_encrypt_setup(
+@@ -1895,6 +2432,21 @@
+              * cycle through all known transparent accelerators */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++            status = esp_crypto_aes_gcm_decrypt_setup(
++                        &operation->ctx.esp_aes_gcm_ctx,
++                        attributes, key_buffer, key_buffer_size,
++                        alg);
++            if ( status == PSA_SUCCESS ) {
++                operation->id = ESP_AES_TRANSPARENT_DRIVER_ID;
++            }
++#ifdef MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK
++            if( status != PSA_ERROR_NOT_SUPPORTED )
++#endif /* MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK */
++            {
++                return( status );
++            }
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+             operation->id = MBEDTLS_TEST_TRANSPARENT_DRIVER_ID;
+             status = mbedtls_test_transparent_aead_decrypt_setup(
+@@ -1949,6 +2501,13 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_AEAD */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++        case ESP_AES_TRANSPARENT_DRIVER_ID:
++            return esp_crypto_aes_gcm_set_nonce(
++                    &operation->ctx.esp_aes_gcm_ctx,
++                    nonce,
++                    nonce_length);
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_aead_set_nonce(
+@@ -1983,6 +2542,10 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_AEAD */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++        case ESP_AES_TRANSPARENT_DRIVER_ID:
++            return PSA_SUCCESS;
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_aead_set_lengths(
+@@ -2017,6 +2580,13 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_AEAD */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++        case ESP_AES_TRANSPARENT_DRIVER_ID:
++            return esp_crypto_aes_gcm_update_ad(
++                    &operation->ctx.esp_aes_gcm_ctx,
++                    input,
++                    input_length);
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_aead_update_ad(
+@@ -2055,6 +2625,12 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_AEAD */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++        case ESP_AES_TRANSPARENT_DRIVER_ID:
++            return esp_crypto_aes_gcm_update(
++                    &operation->ctx.esp_aes_gcm_ctx,
++                    input, input_length, output, output_size, output_length);
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_aead_update(
+@@ -2099,6 +2675,12 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_AEAD */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++        case ESP_AES_TRANSPARENT_DRIVER_ID:
++            return esp_crypto_aes_gcm_finish(
++                    &operation->ctx.esp_aes_gcm_ctx,
++                    ciphertext, ciphertext_size, ciphertext_length, tag, tag_size, tag_length);
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_aead_finish(
+@@ -2163,6 +2745,27 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_AEAD */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++        case ESP_AES_TRANSPARENT_DRIVER_ID:
++            {
++                psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
++                uint8_t check_tag[PSA_AEAD_TAG_MAX_SIZE];
++                size_t check_tag_length;
++
++                status = esp_crypto_aes_gcm_finish(&operation->ctx.esp_aes_gcm_ctx,
++                            plaintext, plaintext_size, plaintext_length, check_tag, sizeof(check_tag), &check_tag_length);
++
++                if(status == PSA_SUCCESS) {
++                    if(tag_length != check_tag_length || mbedtls_ct_memcmp(tag, check_tag, tag_length) != 0) {
++                        status = PSA_ERROR_INVALID_SIGNATURE;
++                    }
++                }
++
++                mbedtls_platform_zeroize(check_tag, sizeof(check_tag));
++
++                return(status);
++            }
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_aead_verify(
+@@ -2197,6 +2800,10 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_AEAD */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_AES_DRIVER_ENABLED)
++        case ESP_AES_TRANSPARENT_DRIVER_ID:
++            return (esp_crypto_aes_gcm_abort(&operation->ctx.esp_aes_gcm_ctx));
++#endif /* ESP_AES_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_aead_abort(
+@@ -2235,6 +2842,27 @@
+             /* Key is stored in the slot in export representation, so
+              * cycle through all known transparent accelerators */
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_CMAC_DRIVER_ENABLED)
++            if (PSA_ALG_FULL_LENGTH_MAC(alg) == PSA_ALG_CMAC) {
++                status = esp_cmac_compute(attributes, key_buffer, key_buffer_size, alg,
++                                        input, input_length,
++                                        mac, mac_size, mac_length );
++                if (status != PSA_ERROR_NOT_SUPPORTED) {
++                    return status;
++                }
++            }
++#endif /* ESP_CMAC_DRIVER_ENABLED */
++#if defined(ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
++            if (PSA_ALG_IS_HMAC(alg)) {
++                status = esp_hmac_compute_transparent(
++                    attributes, key_buffer, key_buffer_size, alg,
++                    input, input_length,
++                    mac, mac_size, mac_length );
++                if (status != PSA_ERROR_NOT_SUPPORTED) {
++                    return status;
++                }
++            }
++#endif /* ESP_HMAC_TRANSPARENT_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+             status = mbedtls_test_transparent_mac_compute(
+                 attributes, key_buffer, key_buffer_size, alg,
+@@ -2266,6 +2894,18 @@
+                 mac, mac_size, mac_length );
+             return( status );
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_HMAC:
++            if (PSA_ALG_IS_HMAC(alg)) {
++                status = esp_hmac_compute_opaque(
++                        attributes, key_buffer, key_buffer_size, alg,
++                        input, input_length,
++                        mac, mac_size, mac_length );
++                return( status );
++            } else {
++                return PSA_ERROR_INVALID_ARGUMENT;
++            }
++#endif /* ESP_HMAC_OPAQUE_DRIVER_ENABLED */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             /* Key is declared with a lifetime not known to us */
+@@ -2299,6 +2939,32 @@
+             /* Key is stored in the slot in export representation, so
+              * cycle through all known transparent accelerators */
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_CMAC_DRIVER_ENABLED)
++            if (PSA_ALG_FULL_LENGTH_MAC(alg) == PSA_ALG_CMAC) {
++                status = esp_cmac_setup( &operation->ctx.esp_cmac_ctx,
++                                            attributes,
++                                            key_buffer, key_buffer_size,
++                                            alg );
++                if( status == PSA_SUCCESS )
++                    operation->id = ESP_CMAC_TRANSPARENT_DRIVER_ID;
++                if (status != PSA_ERROR_NOT_SUPPORTED) {
++                    return status;
++                }
++            } else
++#endif /* ESP_CMAC_DRIVER_ENABLED */
++#if defined(ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
++            if (PSA_ALG_IS_HMAC(alg)) {
++                status = esp_hmac_setup_transparent( &operation->ctx.esp_hmac_transparent_ctx,
++                                        attributes,
++                                        key_buffer, key_buffer_size,
++                                        alg );
++                if ( status == PSA_SUCCESS )
++                    operation->id = ESP_HMAC_TRANSPARENT_DRIVER_ID;
++                if (status != PSA_ERROR_NOT_SUPPORTED) {
++                    return status;
++                }
++            }
++#endif /* ESP_HMAC_TRANSPARENT_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+             status = mbedtls_test_transparent_mac_sign_setup(
+                 &operation->ctx.transparent_test_driver_ctx,
+@@ -2342,6 +3008,19 @@
+ 
+             return( status );
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_HMAC:
++            if (PSA_ALG_IS_HMAC(alg)) {
++                status = esp_hmac_setup_opaque(
++                    &operation->ctx.esp_hmac_opaque_ctx,
++                    attributes, key_buffer, key_buffer_size, alg );
++                if ( status == PSA_SUCCESS )
++                    operation->id = ESP_HMAC_OPAQUE_DRIVER_ID;
++                return( status );
++            } else {
++                return PSA_ERROR_INVALID_ARGUMENT;
++            }
++#endif /* ESP_HMAC_OPAQUE_DRIVER_ENABLED */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             /* Key is declared with a lifetime not known to us */
+@@ -2371,6 +3050,32 @@
+             /* Key is stored in the slot in export representation, so
+              * cycle through all known transparent accelerators */
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_CMAC_DRIVER_ENABLED)
++            if (PSA_ALG_FULL_LENGTH_MAC(alg) == PSA_ALG_CMAC) {
++                status = esp_cmac_setup( &operation->ctx.esp_cmac_ctx,
++                                            attributes,
++                                            key_buffer, key_buffer_size,
++                                            alg );
++                if( status == PSA_SUCCESS )
++                    operation->id = ESP_CMAC_TRANSPARENT_DRIVER_ID;
++                if (status != PSA_ERROR_NOT_SUPPORTED) {
++                    return status;
++                }
++            } else
++#endif /* ESP_CMAC_DRIVER_ENABLED */
++#if defined(ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
++            if (PSA_ALG_IS_HMAC(alg)) {
++                status = esp_hmac_setup_transparent( &operation->ctx.esp_hmac_transparent_ctx,
++                                            attributes,
++                                            key_buffer, key_buffer_size,
++                                            alg );
++                if (status == PSA_SUCCESS)
++                    operation->id = ESP_HMAC_TRANSPARENT_DRIVER_ID;
++                if (status != PSA_ERROR_NOT_SUPPORTED) {
++                    return status;
++                }
++            }
++#endif /* ESP_HMAC_TRANSPARENT_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+             status = mbedtls_test_transparent_mac_verify_setup(
+                 &operation->ctx.transparent_test_driver_ctx,
+@@ -2414,6 +3119,19 @@
+ 
+             return( status );
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_HMAC:
++            if (PSA_ALG_IS_HMAC(alg)) {
++                status = esp_hmac_setup_opaque(
++                    &operation->ctx.esp_hmac_opaque_ctx,
++                    attributes, key_buffer, key_buffer_size, alg );
++                if ( status == PSA_SUCCESS )
++                    operation->id = ESP_HMAC_OPAQUE_DRIVER_ID;
++                return( status );
++            } else {
++                return PSA_ERROR_INVALID_ARGUMENT;
++            }
++#endif /* ESP_HMAC_OPAQUE_DRIVER_ENABLED */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             /* Key is declared with a lifetime not known to us */
+@@ -2440,6 +3158,16 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_MAC */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_CMAC_DRIVER_ENABLED)
++        case ESP_CMAC_TRANSPARENT_DRIVER_ID:
++            return (esp_cmac_update( &operation->ctx.esp_cmac_ctx,
++                                    input, input_length ));
++#endif /* ESP_CMAC_DRIVER_ENABLED */
++#if defined(ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
++        case ESP_HMAC_TRANSPARENT_DRIVER_ID:
++            return (esp_hmac_update_transparent( &operation->ctx.esp_hmac_transparent_ctx,
++                                    input, input_length ));
++#endif /* ESP_HMAC_TRANSPARENT_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_mac_update(
+@@ -2451,6 +3179,11 @@
+                         &operation->ctx.opaque_test_driver_ctx,
+                         input, input_length ) );
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
++        case ESP_HMAC_OPAQUE_DRIVER_ID:
++            return (esp_hmac_update_opaque( &operation->ctx.esp_hmac_opaque_ctx,
++                                    input, input_length ));
++#endif /* ESP_HMAC_OPAQUE_DRIVER_ENABLED */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             (void) input;
+@@ -2474,6 +3207,16 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_MAC */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_CMAC_DRIVER_ENABLED)
++        case ESP_CMAC_TRANSPARENT_DRIVER_ID:
++            return (esp_cmac_finish( &operation->ctx.esp_cmac_ctx,
++                                    mac, mac_size, mac_length ));
++#endif /* ESP_CMAC_DRIVER_ENABLED */
++#if defined(ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
++        case ESP_HMAC_TRANSPARENT_DRIVER_ID:
++            return (esp_hmac_finish_transparent( &operation->ctx.esp_hmac_transparent_ctx,
++                                    mac, mac_size, mac_length ));
++#endif /* ESP_HMAC_TRANSPARENT_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_mac_sign_finish(
+@@ -2485,6 +3228,11 @@
+                         &operation->ctx.opaque_test_driver_ctx,
+                         mac, mac_size, mac_length ) );
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
++        case ESP_HMAC_OPAQUE_DRIVER_ID:
++            return (esp_hmac_finish_opaque( &operation->ctx.esp_hmac_opaque_ctx,
++                                    mac, mac_size, mac_length ));
++#endif /* ESP_HMAC_OPAQUE_DRIVER_ENABLED */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             (void) mac;
+@@ -2508,6 +3256,16 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_MAC */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_CMAC_DRIVER_ENABLED)
++        case ESP_CMAC_TRANSPARENT_DRIVER_ID:
++            return (esp_cmac_verify_finish( &operation->ctx.esp_cmac_ctx,
++                                           mac, mac_length ));
++#endif /* ESP_CMAC_DRIVER_ENABLED */
++#if defined(ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
++        case ESP_HMAC_TRANSPARENT_DRIVER_ID:
++            return (esp_hmac_verify_finish_transparent( &operation->ctx.esp_hmac_transparent_ctx,
++                                           mac, mac_length ));
++#endif /* ESP_HMAC_TRANSPARENT_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_mac_verify_finish(
+@@ -2519,6 +3277,11 @@
+                         &operation->ctx.opaque_test_driver_ctx,
+                         mac, mac_length ) );
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
++        case ESP_HMAC_OPAQUE_DRIVER_ID:
++            return (esp_hmac_verify_finish_opaque( &operation->ctx.esp_hmac_opaque_ctx,
++                                    mac, mac_length ));
++#endif /* ESP_HMAC_OPAQUE_DRIVER_ENABLED */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             (void) mac;
+@@ -2538,6 +3301,14 @@
+ #endif /* MBEDTLS_PSA_BUILTIN_MAC */
+ 
+ #if defined(PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT)
++#if defined(ESP_CMAC_DRIVER_ENABLED)
++        case ESP_CMAC_TRANSPARENT_DRIVER_ID:
++            return (esp_cmac_abort( &operation->ctx.esp_cmac_ctx ));
++#endif /* ESP_CMAC_DRIVER_ENABLED */
++#if defined(ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
++        case ESP_HMAC_TRANSPARENT_DRIVER_ID:
++            return (esp_hmac_abort_transparent( &operation->ctx.esp_hmac_transparent_ctx ));
++#endif /* ESP_HMAC_TRANSPARENT_DRIVER_ENABLED */
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+         case MBEDTLS_TEST_TRANSPARENT_DRIVER_ID:
+             return( mbedtls_test_transparent_mac_abort(
+@@ -2546,6 +3317,10 @@
+             return( mbedtls_test_opaque_mac_abort(
+                         &operation->ctx.opaque_test_driver_ctx ) );
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
++        case ESP_HMAC_OPAQUE_DRIVER_ID:
++            return (esp_hmac_abort_opaque( &operation->ctx.esp_hmac_opaque_ctx ));
++#endif /* ESP_HMAC_OPAQUE_DRIVER_ENABLED */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             return( PSA_ERROR_INVALID_ARGUMENT );
+@@ -2652,6 +3427,13 @@
+                         salt, salt_length, output, output_size,
+                         output_length ) );
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
++#if defined(ESP_RSA_DS_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_RSA_DS:
++            return( esp_rsa_ds_opaque_asymmetric_decrypt( attributes,
++                        key_buffer, key_buffer_size, alg, input, input_length,
++                        salt, salt_length, output, output_size,
++                        output_length ));
++#endif /* ESP_RSA_DS_DRIVER_ENABLED */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+ 
+         default:
+--- a/tf-psa-crypto/core/psa_crypto_driver_wrappers_no_static.c
++++ b/tf-psa-crypto/core/psa_crypto_driver_wrappers_no_static.c
+@@ -39,6 +39,16 @@
+ #if defined(MBEDTLS_PSA_P256M_DRIVER_ENABLED)
+ #include "../drivers/p256-m/p256-m_driver_entrypoints.h"
+ 
++#endif
++/* Headers for esp_ecdsa opaque driver */
++#if defined(ESP_ECDSA_DRIVER_ENABLED)
++#include "../../../port/psa_driver/include/psa_crypto_driver_esp_ecdsa.h"
++
++#endif
++
++/* Headers for secure element opaque driver */
++#if defined(SECURE_ELEMENT_DRIVER_ENABLED)
++#include "../../../port/psa_driver/include/psa_crypto_driver_secure_element.h"
+ #endif
+ 
+ /* END-driver headers */
+@@ -102,6 +112,14 @@
+                     PSA_SUCCESS : PSA_ERROR_NOT_SUPPORTED );
+ #endif /* PSA_CRYPTO_DRIVER_TEST */
+ 
++#if defined(SECURE_ELEMENT_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_SECURE_ELEMENT:
++            *key_buffer_size = secure_element_opaque_size_function( key_type,
++                                                              key_bits );
++            return( ( *key_buffer_size != 0 ) ?
++                    PSA_SUCCESS : PSA_ERROR_NOT_SUPPORTED );
++#endif /* SECURE_ELEMENT_DRIVER_ENABLED */
++
+         default:
+             (void)key_type;
+             (void)key_bits;
+@@ -179,8 +197,29 @@
+                             data_length
+         ));
+ #endif
+-
+-
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_ESP_ECDSA:
++            if( PSA_KEY_TYPE_IS_ECC( psa_get_key_type(attributes) ) &&
++                PSA_ALG_IS_ECDSA( psa_get_key_algorithm(attributes) ) &&
++                PSA_KEY_TYPE_ECC_GET_FAMILY(psa_get_key_type(attributes)) == PSA_ECC_FAMILY_SECP_R1)
++            {
++                return (    esp_ecdsa_opaque_export_public_key(
++                            attributes,
++                            key_buffer,
++                            key_buffer_size,
++                            data,
++                            data_size,
++                            data_length ) );
++            }
++            return PSA_ERROR_INVALID_ARGUMENT;
++#endif /* defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED) */
++#if defined(SECURE_ELEMENT_DRIVER_ENABLED)
++        case PSA_KEY_LOCATION_SECURE_ELEMENT:
++            return( secure_element_opaque_export_public_key(
++                        attributes,
++                        key_buffer, key_buffer_size,
++                        data, data_size, data_length ) );
++#endif /* SECURE_ELEMENT_DRIVER_ENABLED */
+ #endif /* PSA_CRYPTO_ACCELERATOR_DRIVER_PRESENT */
+         default:
+             /* Key is declared with a lifetime not known to us */
+--- a/tf-psa-crypto/core/psa_crypto_storage.c
++++ b/tf-psa-crypto/core/psa_crypto_storage.c
+@@ -233,6 +233,11 @@
+     uint8_t key_data[];
+ } psa_persistent_key_storage_format;
+ 
++size_t psa_persistent_key_storage_blob_size(size_t key_data_length)
++{
++    return sizeof(psa_persistent_key_storage_format) + key_data_length;
++}
++
+ void psa_format_key_data_for_storage(const uint8_t *data,
+                                      const size_t data_length,
+                                      const psa_key_attributes_t *attr,
+--- a/tf-psa-crypto/core/psa_crypto_storage.h
++++ b/tf-psa-crypto/core/psa_crypto_storage.h
+@@ -159,6 +159,21 @@
+ void psa_free_persistent_key_data(uint8_t *key_data, size_t key_data_length);
+ 
+ /**
++ * \brief Return the on-disk size of the PSA persistent key storage blob that
++ *        psa_format_key_data_for_storage() will produce for a given key data
++ *        length.
++ *
++ * Custom PSA ITS backends that synthesize blobs on read (rather than
++ * persisting them through psa_its_set()) can use this to size the output
++ * buffer without knowing the internal storage format layout.
++ *
++ * \param key_data_length  Length of the key_data payload that will be passed
++ *                         to psa_format_key_data_for_storage().
++ * \return Total blob size in bytes (storage header + key_data).
++ */
++size_t psa_persistent_key_storage_blob_size(size_t key_data_length);
++
++/**
+  * \brief Formats key data and metadata for persistent storage
+  *
+  * \param[in] data          Buffer containing the key data.
+--- a/tf-psa-crypto/core/tf_psa_crypto_config_check_user.h
++++ b/tf-psa-crypto/core/tf_psa_crypto_config_check_user.h
+@@ -94,7 +94,7 @@
+ #endif
+ 
+ #if defined(MBEDTLS_CIPHER_MODE_XTS) //no-check-names
+-#  error "MBEDTLS_CIPHER_MODE_XTS was removed in TF-PSA_Crypto 1.0." //no-check-names
++// #  error "MBEDTLS_CIPHER_MODE_XTS was removed in TF-PSA_Crypto 1.0." //no-check-names
+ #endif
+ 
+ #if defined(MBEDTLS_CIPHER_NULL_CIPHER) //no-check-names
+@@ -513,9 +513,9 @@
+ #  error "MBEDTLS_SHA256_ALT was removed in TF-PSA_Crypto 1.0." //no-check-names
+ #endif
+ 
+-#if defined(MBEDTLS_SHA256_C) //no-check-names
+-#  error "MBEDTLS_SHA256_C was removed in TF-PSA_Crypto 1.0." //no-check-names
+-#endif
++// #if defined(MBEDTLS_SHA256_C) //no-check-names
++// #  error "MBEDTLS_SHA256_C was removed in TF-PSA_Crypto 1.0." //no-check-names
++// #endif
+ 
+ #if defined(MBEDTLS_SHA256_PROCESS_ALT) //no-check-names
+ #  error "MBEDTLS_SHA256_PROCESS_ALT was removed in TF-PSA_Crypto 1.0." //no-check-names
+@@ -649,10 +649,6 @@
+ #  error "MBEDTLS_ENTROPY_HAVE_SOURCES is not a valid configuration option."
+ #endif
+ 
+-#if defined(MBEDTLS_ENTROPY_HAVE_TRUE_SOURCES)
+-#  error "MBEDTLS_ENTROPY_HAVE_TRUE_SOURCES is not a valid configuration option."
+-#endif
+-
+ #if defined(MBEDTLS_ENTROPY_TRUE_SOURCES)
+ #  error "MBEDTLS_ENTROPY_TRUE_SOURCES is not a valid configuration option."
+ #endif
+@@ -782,7 +778,7 @@
+ #endif
+ 
+ #if defined(MBEDTLS_PSA_BUILTIN_ALG_HMAC)
+-#  error "MBEDTLS_PSA_BUILTIN_ALG_HMAC is not a valid configuration option."
++// #  error "MBEDTLS_PSA_BUILTIN_ALG_HMAC is not a valid configuration option."
+ #endif
+ 
+ #if defined(MBEDTLS_PSA_BUILTIN_ALG_JPAKE)
+--- a/tf-psa-crypto/drivers/builtin/src/bignum.c
++++ b/tf-psa-crypto/drivers/builtin/src/bignum.c
+@@ -26,6 +26,7 @@
+ #if defined(MBEDTLS_BIGNUM_C)
+ 
+ #include "mbedtls/private/bignum.h"
++#include "mbedtls/bignum.h"
+ #include "bignum_core.h"
+ #include "bignum_internal.h"
+ #include "bn_mul.h"
+@@ -38,7 +39,7 @@
+ 
+ #include "mbedtls/platform.h"
+ 
+-
++#if !defined(MBEDTLS_BIGNUM_ALT)
+ 
+ /*
+  * Conditionally select an MPI sign in constant time.
+@@ -1191,6 +1192,8 @@
+ 
+     return mbedtls_mpi_sub_mpi(X, A, &B);
+ }
++
++#if !defined(MBEDTLS_MPI_MUL_MPI_ALT)
+ 
+ /*
+  * Baseline multiplication: X = A * B  (HAC 14.12)
+@@ -1288,6 +1291,8 @@
+     return ret;
+ }
+ 
++#endif /* !MBEDTLS_MPI_MUL_MPI_ALT */
++
+ /*
+  * Unsigned integer divide - double mbedtls_mpi_uint dividend, u1/u0, and
+  * mbedtls_mpi_uint divisor, d
+@@ -1616,6 +1621,8 @@
+     return 0;
+ }
+ 
++#if !defined(MBEDTLS_MPI_EXP_MOD_ALT) || defined(MBEDTLS_MPI_EXP_MOD_ALT_FALLBACK)
++
+ /*
+  * Warning! If the parameter E_public has MBEDTLS_MPI_IS_PUBLIC as its value,
+  * this function is not constant time with respect to the exponent (parameter E).
+@@ -1734,18 +1741,30 @@
+     return ret;
+ }
+ 
++#if !defined(MBEDTLS_MPI_EXP_MOD_ALT_FALLBACK)
+ int mbedtls_mpi_exp_mod(mbedtls_mpi *X, const mbedtls_mpi *A,
+                         const mbedtls_mpi *E, const mbedtls_mpi *N,
+                         mbedtls_mpi *prec_RR)
++#else
++int mbedtls_mpi_exp_mod_soft(mbedtls_mpi *X, const mbedtls_mpi *A,
++                             const mbedtls_mpi *E, const mbedtls_mpi *N,
++                             mbedtls_mpi *prec_RR)
++#endif
++
+ {
+     return mbedtls_mpi_exp_mod_optionally_safe(X, A, E, MBEDTLS_MPI_IS_SECRET, N, prec_RR);
+ }
++#endif /* !MBEDTLS_MPI_EXP_MOD_ALT || MBEDTLS_MPI_EXP_MOD_ALT_FALLBACK */
+ 
+ int mbedtls_mpi_exp_mod_unsafe(mbedtls_mpi *X, const mbedtls_mpi *A,
+                                const mbedtls_mpi *E, const mbedtls_mpi *N,
+                                mbedtls_mpi *prec_RR)
+ {
++#if defined(MBEDTLS_MPI_EXP_MOD_ALT)
++    return mbedtls_mpi_exp_mod(X, A, E, N, prec_RR);
++#else
+     return mbedtls_mpi_exp_mod_optionally_safe(X, A, E, MBEDTLS_MPI_IS_PUBLIC, N, prec_RR);
++#endif /* MBEDTLS_MPI_EXP_MOD_ALT */
+ }
+ 
+ /* Constant-time GCD and/or modinv with odd modulus and A <= N */
+@@ -2369,6 +2388,7 @@
+ }
+ 
+ #endif /* MBEDTLS_GENPRIME */
++#endif /* MBEDTLS_MPI_EXP_MOD_ALT */
+ 
+ 
+ #if defined(MBEDTLS_ASN1_WRITE_C)
+--- a/tf-psa-crypto/drivers/builtin/src/ecp.c
++++ b/tf-psa-crypto/drivers/builtin/src/ecp.c
+@@ -34,6 +34,7 @@
+ #if defined(MBEDTLS_ECP_LIGHT)
+ 
+ #include "mbedtls/private/ecp.h"
++#include "mbedtls/ecp.h"
+ #include "mbedtls/threading.h"
+ #include "mbedtls/platform_util.h"
+ #include "mbedtls/private/error_common.h"
+@@ -1289,6 +1290,8 @@
+     return ret;
+ }
+ 
++
++#if !defined(MBEDTLS_ECP_MUL_ALT)
+ /*
+  * Normalize jacobian coordinates of an array of (pointers to) points,
+  * using Montgomery's trick to perform only one inversion mod P.
+@@ -1402,6 +1405,8 @@
+     return ret;
+ }
+ 
++#endif /* MBEDTLS_ECP_MUL_ALT */
++
+ /*
+  * Point doubling R = 2 P, Jacobian coordinates
+  *
+@@ -1583,6 +1588,8 @@
+ 
+     return ret;
+ }
++
++#if !defined(MBEDTLS_ECP_MUL_ALT)
+ 
+ /*
+  * Randomize jacobian coordinates:
+@@ -2293,6 +2300,9 @@
+     return ret;
+ }
+ 
++
++#endif /* MBEDTLS_ECP_MUL_ALT */
++
+ #endif /* MBEDTLS_ECP_SHORT_WEIERSTRASS_ENABLED */
+ 
+ #if defined(MBEDTLS_ECP_MONTGOMERY_ENABLED)
+@@ -2303,6 +2313,8 @@
+  *
+  * For scalar multiplication, we'll use a Montgomery ladder.
+  */
++
++#if !defined(MBEDTLS_ECP_MUL_ALT)
+ 
+ /*
+  * Normalize Montgomery x/z coordinates: X = X/Z, Z = 1
+@@ -2461,7 +2473,11 @@
+     return ret;
+ }
+ 
++#endif /* MBEDTLS_ECP_MUL_ALT */
++
+ #endif /* MBEDTLS_ECP_MONTGOMERY_ENABLED */
++
++#if !defined(MBEDTLS_ECP_MUL_ALT)
+ 
+ /*
+  * Restartable multiplication R = m * P
+@@ -2469,10 +2485,17 @@
+  * This internal function can be called without an RNG in case where we know
+  * the inputs are not sensitive.
+  */
++#if defined(MBEDTLS_ECP_MUL_ALT_SOFT_FALLBACK)
++int ecp_mul_restartable_internal_soft(mbedtls_ecp_group *grp, mbedtls_ecp_point *R,
++                                      const mbedtls_mpi *m, const mbedtls_ecp_point *P,
++                                      int (*f_rng)(void *, unsigned char *, size_t), void *p_rng,
++                                      mbedtls_ecp_restart_ctx *rs_ctx)
++#else
+ static int ecp_mul_restartable_internal(mbedtls_ecp_group *grp, mbedtls_ecp_point *R,
+                                         const mbedtls_mpi *m, const mbedtls_ecp_point *P,
+                                         int (*f_rng)(void *, unsigned char *, size_t), void *p_rng,
+                                         mbedtls_ecp_restart_ctx *rs_ctx)
++#endif /* MBEDTLS_ECP_MUL_ALT_SOFT_FALLBACK */
+ {
+     int ret = MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
+ 
+@@ -2522,6 +2545,8 @@
+     return ret;
+ }
+ 
++#endif /* !MBEDTLS_ECP_MUL_ALT */
++
+ /*
+  * Restartable multiplication R = m * P
+  */
+@@ -2547,6 +2572,8 @@
+     return mbedtls_ecp_mul_restartable(grp, R, m, P, f_rng, p_rng, NULL);
+ }
+ #endif /* MBEDTLS_ECP_C */
++
++#if !defined(MBEDTLS_ECP_VERIFY_ALT)
+ 
+ #if defined(MBEDTLS_ECP_SHORT_WEIERSTRASS_ENABLED)
+ /*
+@@ -2586,6 +2613,7 @@
+     return ret;
+ }
+ #endif /* MBEDTLS_ECP_SHORT_WEIERSTRASS_ENABLED */
++#endif /* MBEDTLS_ECP_VERIFY_ALT */
+ 
+ #if defined(MBEDTLS_ECP_C)
+ #if defined(MBEDTLS_ECP_SHORT_WEIERSTRASS_ENABLED)
+@@ -2726,6 +2754,7 @@
+ #endif /* MBEDTLS_ECP_SHORT_WEIERSTRASS_ENABLED */
+ #endif /* MBEDTLS_ECP_C */
+ 
++#if !defined(MBEDTLS_ECP_VERIFY_ALT)
+ #if defined(MBEDTLS_ECP_MONTGOMERY_ENABLED)
+ #if defined(MBEDTLS_ECP_DP_CURVE25519_ENABLED)
+ #define ECP_MPI_INIT(_p, _n) { .p = (mbedtls_mpi_uint *) (_p), .s = 1, .n = (_n) }
+@@ -2836,12 +2865,19 @@
+     return ecp_check_bad_points_mx(&pt->X, &grp->P, grp->id);
+ }
+ #endif /* MBEDTLS_ECP_MONTGOMERY_ENABLED */
+-
++#endif /* MBEDTLS_ECP_VERIFY_ALT */
++
++#if !defined(MBEDTLS_ECP_VERIFY_ALT)
+ /*
+  * Check that a point is valid as a public key
+  */
++#if defined(MBEDTLS_ECP_VERIFY_ALT_SOFT_FALLBACK)
++int mbedtls_ecp_check_pubkey_soft(const mbedtls_ecp_group *grp,
++                                  const mbedtls_ecp_point *pt)
++#else
+ int mbedtls_ecp_check_pubkey(const mbedtls_ecp_group *grp,
+                              const mbedtls_ecp_point *pt)
++#endif /* MBEDTLS_ECP_VERIFY_ALT_SOFT_FALLBACK */
+ {
+     /* Must use affine coordinates */
+     if (mbedtls_mpi_cmp_int(&pt->Z, 1) != 0) {
+@@ -2860,6 +2896,8 @@
+ #endif
+     return MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
+ }
++
++#endif /* MBEDTLS_ECP_VERIFY_ALT */
+ 
+ /*
+  * Check that an mbedtls_mpi is valid as a private key
+--- a/tf-psa-crypto/drivers/driver.cmake
++++ b/tf-psa-crypto/drivers/driver.cmake
+@@ -25,7 +25,7 @@
+ endif()
+ 
+ foreach (target IN LISTS target_libraries)
+-    add_library(${target} OBJECT ${${tf_psa_crypto_driver}_src_files})
++  add_library(${target} STATIC ${${tf_psa_crypto_driver}_src_files})
+     tf_psa_crypto_set_base_compile_options(${target})
+     tf_psa_crypto_set_extra_compile_options(${target})
+ 
+--- a/tf-psa-crypto/drivers/everest/CMakeLists.txt
++++ b/tf-psa-crypto/drivers/everest/CMakeLists.txt
+@@ -9,7 +9,7 @@
+ endif()
+ 
+ foreach (target IN LISTS target_libraries)
+-    add_library(${target} OBJECT
++    add_library(${target} STATIC
+       library/x25519.c
+       library/Hacl_Curve25519_joined.c)
+ 
+--- a/tf-psa-crypto/drivers/p256-m/CMakeLists.txt
++++ b/tf-psa-crypto/drivers/p256-m/CMakeLists.txt
+@@ -9,7 +9,7 @@
+ endif()
+ 
+ foreach (target IN LISTS target_libraries)
+-    add_library(${target} OBJECT
++    add_library(${target} STATIC
+         p256-m_driver_entrypoints.c
+         p256-m/p256-m.c)
+ 
+--- a/tf-psa-crypto/include/psa/crypto_driver_contexts_composites.h
++++ b/tf-psa-crypto/include/psa/crypto_driver_contexts_composites.h
+@@ -32,6 +32,30 @@
+ /* Include the context structure definitions for those drivers that were
+  * declared during the autogeneration process. */
+ 
++#if defined(ESP_AES_DRIVER_ENABLED)
++#include "psa_crypto_driver_esp_aes_contexts.h"
++#endif /* ESP_AES_DRIVER_ENABLED */
++
++#if defined(ESP_ECDSA_DRIVER_ENABLED)
++#include "psa_crypto_driver_esp_ecdsa_contexts.h"
++#endif /* ESP_ECDSA_DRIVER_ENABLED */
++
++#if defined(ESP_RSA_DS_DRIVER_ENABLED)
++#include "psa_crypto_driver_esp_rsa_ds_contexts.h"
++#endif /* ESP_RSA_DS_DRIVER_ENABLED */
++
++#if defined(ESP_CMAC_DRIVER_ENABLED)
++#include "psa_crypto_driver_esp_cmac_contexts.h"
++#endif
++
++#if defined(ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
++#include "psa_crypto_driver_esp_hmac_transparent_contexts.h"
++#endif
++
++#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
++#include "psa_crypto_driver_esp_hmac_opaque_contexts.h"
++#endif
++
+ #if defined(MBEDTLS_TEST_LIBTESTDRIVER1)
+ #if defined(TF_PSA_CRYPTO_TEST_LIBTESTDRIVER1)
+ #include "mbedtls/private/libtestdriver1-crypto_builtin_composites.h"
+@@ -124,6 +148,15 @@
+     mbedtls_transparent_test_driver_mac_operation_t transparent_test_driver_ctx;
+     mbedtls_opaque_test_driver_mac_operation_t opaque_test_driver_ctx;
+ #endif
++#if defined(ESP_CMAC_DRIVER_ENABLED)
++    esp_cmac_operation_t esp_cmac_ctx;
++#endif
++#if defined(ESP_HMAC_TRANSPARENT_DRIVER_ENABLED)
++    esp_hmac_transparent_operation_t esp_hmac_transparent_ctx;
++#endif
++#if defined(ESP_HMAC_OPAQUE_DRIVER_ENABLED)
++    esp_hmac_opaque_operation_t esp_hmac_opaque_ctx;
++#endif
+ } psa_driver_mac_context_t;
+ 
+ typedef union {
+@@ -132,16 +165,28 @@
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+     mbedtls_transparent_test_driver_aead_operation_t transparent_test_driver_ctx;
+ #endif
++#if defined(ESP_AES_DRIVER_ENABLED)
++    esp_aes_gcm_operation_t esp_aes_gcm_ctx;
++#endif
+ } psa_driver_aead_context_t;
+ 
+ typedef union {
+     unsigned dummy; /* Make sure this union is always non-empty */
+     mbedtls_psa_sign_hash_interruptible_operation_t mbedtls_ctx;
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_SIGN_DRIVER_ENABLED)
++    esp_ecdsa_opaque_sign_hash_operation_t esp_ecdsa_opaque_sign_hash_ctx;
++#endif
++#if defined(ESP_RSA_DS_DRIVER_ENABLED)
++    esp_rsa_ds_opaque_sign_hash_operation_t esp_rsa_ds_opaque_sign_hash_ctx;
++#endif
+ } psa_driver_sign_hash_interruptible_context_t;
+ 
+ typedef union {
+     unsigned dummy; /* Make sure this union is always non-empty */
+     mbedtls_psa_verify_hash_interruptible_operation_t mbedtls_ctx;
++#if defined(ESP_ECDSA_DRIVER_ENABLED) && defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED)
++    esp_ecdsa_transparent_verify_hash_operation_t esp_ecdsa_transparent_verify_hash_ctx;
++#endif
+ } psa_driver_verify_hash_interruptible_context_t;
+ 
+ typedef union {
+--- a/tf-psa-crypto/include/psa/crypto_driver_contexts_primitives.h
++++ b/tf-psa-crypto/include/psa/crypto_driver_contexts_primitives.h
+@@ -37,6 +37,18 @@
+ #else
+ #include <libtestdriver1/tf-psa-crypto/include/psa/crypto.h>
+ #endif
++#endif
++
++#if defined(ESP_SHA_DRIVER_ENABLED)
++#include "psa_crypto_driver_esp_sha_contexts.h"
++#endif
++
++#if defined(ESP_MD5_DRIVER_ENABLED)
++#include "psa_crypto_driver_esp_md5_contexts.h"
++#endif
++
++#if defined(ESP_AES_DRIVER_ENABLED)
++#include "psa_crypto_driver_esp_aes_contexts.h"
+ #endif
+ 
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+@@ -112,6 +124,12 @@
+ #if defined(PSA_CRYPTO_DRIVER_TEST)
+     mbedtls_transparent_test_driver_hash_operation_t test_driver_ctx;
+ #endif
++#if defined(ESP_SHA_DRIVER_ENABLED)
++    esp_sha_hash_operation_t esp_ctx;
++#endif
++#if defined(ESP_MD5_DRIVER_ENABLED)
++    esp_md5_hash_operation_t md5_ctx;
++#endif
+ } psa_driver_hash_context_t;
+ 
+ typedef union {
+@@ -129,6 +147,9 @@
+     mbedtls_transparent_test_driver_cipher_operation_t transparent_test_driver_ctx;
+     mbedtls_opaque_test_driver_cipher_operation_t opaque_test_driver_ctx;
+ #endif
++#if defined(ESP_AES_DRIVER_ENABLED)
++    esp_aes_operation_t esp_aes_ctx;
++#endif
+ } psa_driver_cipher_context_t;
+ 
+ #endif /* PSA_CRYPTO_DRIVER_CONTEXTS_PRIMITIVES_H */
+--- a/tf-psa-crypto/objlib.cmake
++++ b/tf-psa-crypto/objlib.cmake
+@@ -20,7 +20,7 @@
+ endif()
+ 
+ foreach (target IN LISTS target_libraries)
+-    add_library(${target} OBJECT ${${tf_psa_crypto_objlib}_src_files})
++    add_library(${target} STATIC ${${tf_psa_crypto_objlib}_src_files})
+     tf_psa_crypto_set_base_compile_options(${target})
+     tf_psa_crypto_set_extra_compile_options(${target})
+ 
+--- a/tf-psa-crypto/scripts/data_files/driver_jsons/driverlist.json
++++ b/tf-psa-crypto/scripts/data_files/driver_jsons/driverlist.json
+@@ -1 +1,7 @@
+-["mbedtls_test_opaque_driver.json","mbedtls_test_transparent_driver.json","p256_transparent_driver.json"]
++[
++    "mbedtls_test_opaque_driver.json",
++    "mbedtls_test_transparent_driver.json",
++    "p256_transparent_driver.json",
++    "esp_sha_driver.json",
++    "esp_aes_driver.json"
++]
+--- /dev/null
++++ b/tf-psa-crypto/scripts/data_files/driver_jsons/esp_aes_driver.json
+@@ -0,0 +1,15 @@
++{
++    "prefix":       "esp_aes",
++    "type":         "transparent",
++    "mbedtls/h_condition":   "defined(ESP_AES_DRIVER_ENABLED)",
++    "headers":      ["../../../port/psa_driver/include/psa_crypto_driver_esp_aes.h", "../../../port/psa_driver/include/psa_crypto_driver_esp_aes_gcm.h"],
++    "capabilities": [
++        {
++            "mbedtls/c_condition": "defined(ESP_AES_DRIVER_ENABLED)",
++            "_comment": "This driver will support AES operations using the ESP hardware accelerator.",
++            "entry_points": ["cipher_encrypt", "cipher_decrypt", "cipher_encrypt_setup", "cipher_decrypt_setup", "cipher_set_iv", "cipher_update", "cipher_finish", "cipher_abort"],
++            "algorithms": ["PSA_ALG_AES_CBC", "PSA_ALG_AES_GCM"],
++            "fallback": false
++        }
++    ]
++}
+--- /dev/null
++++ b/tf-psa-crypto/scripts/data_files/driver_jsons/esp_ecdsa_opaque_driver.json
+@@ -0,0 +1,17 @@
++{
++    "prefix":       "esp_ecdsa",
++    "type":         "opaque",
++    "mbedtls/h_condition":   "defined(ESP_ECDSA_DRIVER_ENABLED), defined(ESP_ECDSA_SIGN_DRIVER_ENABLED)",
++    "headers":      ["../../../port/psa_driver/include/psa_crypto_driver_esp_ecdsa.h"],
++    "capabilities": [
++        {
++            "mbedtls/c_condition": "defined(ESP_ECDSA_DRIVER_ENABLED), defined(ESP_ECDSA_SIGN_DRIVER_ENABLED)",
++            "_comment": "This driver will support ECDSA operations using the ESP hardware accelerator.",
++            "entry_points": ["sign_hash", "export_public_key", "import_key"],
++            "algorithms": ["PSA_ALG_ECDSA(PSA_ALG_SHA_256), PSA_ALG_ECDSA(PSA_ALG_SHA_384)"],
++            "key_types": ["PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1)"],
++            "key_sizes": [192, 256, 384],
++            "fallback": false
++        }
++    ]
++}
+--- /dev/null
++++ b/tf-psa-crypto/scripts/data_files/driver_jsons/esp_ecdsa_transparent_driver.json
+@@ -0,0 +1,17 @@
++{
++    "prefix":       "esp_ecdsa",
++    "type":         "transparent",
++    "mbedtls/h_condition":   "defined(ESP_ECDSA_DRIVER_ENABLED), defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED)",
++    "headers":      ["../../../port/psa_driver/include/psa_crypto_driver_esp_ecdsa.h"],
++    "capabilities": [
++        {
++            "mbedtls/c_condition": "defined(ESP_ECDSA_DRIVER_ENABLED), defined(ESP_ECDSA_VERIFY_DRIVER_ENABLED)",
++            "_comment": "This driver will support ECDSA operations using the ESP hardware accelerator.",
++            "entry_points": ["verify_hash"],
++            "algorithms": ["PSA_ALG_ECDSA(PSA_ALG_SHA_256), PSA_ALG_ECDSA(PSA_ALG_SHA_384)"],
++            "key_types": ["PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1)"],
++            "key_sizes": [192, 256, 384],
++            "fallback": true
++        }
++    ]
++}
+--- /dev/null
++++ b/tf-psa-crypto/scripts/data_files/driver_jsons/esp_md5_driver.json
+@@ -0,0 +1,16 @@
++
++{
++    "prefix":       "esp_md5",
++    "type":         "transparent",
++    "mbedtls/h_condition":   "defined(ESP_MD5_DRIVER_ENABLED)",
++    "headers":      ["../../../port/psa_driver/include/psa_crypto_driver_esp_md5.h"],
++    "capabilities": [
++        {
++            "mbedtls/c_condition": "defined(ESP_MD5_DRIVER_ENABLED)",
++            "_comment": "This driver will support MD5 operations using the ESP hardware accelerator.",
++            "entry_points": ["hash_setup", "hash_update", "hash_finish", "hash_abort", "hash_compute"],
++            "algorithms": ["PSA_ALG_MD5"],
++            "fallback": false
++        }
++    ]
++}
+\ No newline at end of file
+--- /dev/null
++++ b/tf-psa-crypto/scripts/data_files/driver_jsons/esp_sha_driver.json
+@@ -0,0 +1,16 @@
++
++{
++    "prefix":       "esp_sha",
++    "type":         "transparent",
++    "mbedtls/h_condition":   "defined(ESP_SHA_DRIVER_ENABLED)",
++    "headers":      ["../../../port/psa_driver/include/psa_crypto_driver_esp_sha.h"],
++    "capabilities": [
++        {
++            "mbedtls/c_condition": "defined(ESP_SHA_DRIVER_ENABLED)",
++            "_comment": "This driver will support SHA operations using the ESP hardware accelerator.",
++            "entry_points": ["hash_setup", "hash_update", "hash_finish", "hash_abort", "hash_compute"],
++            "algorithms": ["PSA_ALG_SHA_1", "PSA_ALG_SHA_256", "PSA_ALG_SHA_384", "PSA_ALG_SHA_512"],
++            "fallback": false
++        }
++    ]
++}
+\ No newline at end of file

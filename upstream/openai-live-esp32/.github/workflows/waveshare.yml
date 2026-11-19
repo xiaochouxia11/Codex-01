@@ -1,0 +1,56 @@
+name: Waveshare launcher
+on:
+  pull_request:
+    paths: ['components/**', 'packages/peer/**', 'examples/common/**', 'examples/waveshare/**', 'tools/prepare_voice.py', 'tools/prepare_peer.py', 'tools/prepare_mbedtls.py', '.github/workflows/waveshare.yml']
+  push:
+    branches: [main]
+    paths: ['components/**', 'packages/peer/**', 'examples/common/**', 'examples/waveshare/**', 'tools/prepare_voice.py', 'tools/prepare_peer.py', 'tools/prepare_mbedtls.py', '.github/workflows/waveshare.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container: espressif/idf:v5.5.2
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Prepare and build without the vendor Xiaozhi app
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          OPENAI_API_KEY: ci-fixture-key-not-a-credential
+        run: |
+          . "$IDF_PATH/export.sh"
+          python -m pip install --disable-pip-version-check 'idf-component-manager==2.5.2'
+          python tools/prepare_voice.py --cache /tmp/live-waveshare
+          export LIVE_VOICE_PRIVATE_DIR=/tmp/live-waveshare/private
+          idf.py -C /tmp/live-waveshare/vendor/waveshare/firmware/brookesia/v2 build
+      - name: Verify firmware components and filesystem contents
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import yaml
+          root = Path('/tmp/live-waveshare/vendor/waveshare/firmware/brookesia/v2')
+          build = root / 'build'
+          deps = yaml.safe_load((root / 'dependencies.lock').read_text())['dependencies']
+          excluded = {'78/xiaozhi-fonts', 'espressif/esp_xiaozhi', 'espressif/esp-sr',
+                      'espressif/esp_audio_effects', 'espressif/gmf_fft', 'espressif/dl_fft',
+                      'espressif/mcp-c-sdk', 'espressif/esp_websocket_client', 'espressif/mqtt'}
+          assert not excluded.intersection(deps), 'Excluded registry dependencies returned'
+          graph = json.loads((build / 'project_description.json').read_text())['build_components']
+          assert not any('xiaozhi' in c.lower() for c in graph), 'Xiaozhi component returned'
+          assert {'waveshare', 'live_esp32', 'live_peer', 'Settings'}.issubset(graph)
+          linked = (build / 'esp32-s3-touch-amoled-1-8-brookesia-v2.map').read_text()
+          for symbol in ('XiaozhiApp', 'xiaozhi-fonts', 'font_puhui', 'font_awesome_30_4', 'font_emoji_64'):
+              assert symbol not in linked, f'Excluded object in link map: {symbol}'
+          assert not (root.parent / 'components/XiaozhiApp').exists()
+          assert not (root.parent / 'spiffs/xiaozhi').exists()
+          staged = build / 'storage_spiffs'
+          assert staged.is_dir() and not (staged / 'xiaozhi').exists()
+          flash = json.loads((build / 'flasher_args.json').read_text())['flash_files']
+          assert 0x110000 not in {int(offset, 0) for offset in flash}, 'Unused model partition is flashed'
+          assert 0xa00000 in {int(offset, 0) for offset in flash}, 'Storage image is missing'
+          PY

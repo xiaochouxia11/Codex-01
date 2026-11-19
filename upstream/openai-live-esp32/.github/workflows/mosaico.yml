@@ -1,0 +1,61 @@
+name: ESP-Mosaico S31
+on:
+  pull_request:
+    paths: ['components/**', 'packages/peer/**', 'examples/common/**', 'examples/mosaico/**', 'tools/prepare_*.py', '.github/workflows/mosaico.yml']
+  push:
+    branches: [main]
+    paths: ['components/**', 'packages/peer/**', 'examples/common/**', 'examples/mosaico/**', 'tools/prepare_*.py', '.github/workflows/mosaico.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install the pinned ESP32-S31 preview toolchain
+        shell: bash
+        run: |
+          git clone --filter=blob:none https://github.com/espressif/esp-idf.git "$RUNNER_TEMP/esp-idf-mosaico"
+          git -C "$RUNNER_TEMP/esp-idf-mosaico" checkout 7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe
+          git -C "$RUNNER_TEMP/esp-idf-mosaico" submodule update --init --recursive --jobs 8
+          export IDF_TOOLS_PATH="$RUNNER_TEMP/idf-tools"
+          "$RUNNER_TEMP/esp-idf-mosaico/install.sh" esp32s31
+      - name: Build with synthetic credentials and verify the dependency lock
+        shell: bash
+        run: |
+          export IDF_TOOLS_PATH="$RUNNER_TEMP/idf-tools"
+          . "$RUNNER_TEMP/esp-idf-mosaico/export.sh"
+          python -m pip install --disable-pip-version-check 'idf-component-manager==3.1.2'
+          cp examples/mosaico/dependencies.lock "$RUNNER_TEMP/expected.lock"
+          umask 077
+          mkdir -p "$RUNNER_TEMP/mosaico-input"
+          printf '%s\n' 'ci-fixture-key-not-a-credential' > "$RUNNER_TEMP/mosaico-input/api-key"
+          printf '%s\n' '{"ssid":"ci-fixture-network","password":"testpass"}' > "$RUNNER_TEMP/mosaico-input/wifi.json"
+          python tools/prepare_mosaico.py --cache "$RUNNER_TEMP/mosaico" \
+            --key-file "$RUNNER_TEMP/mosaico-input/api-key" --wifi-file "$RUNNER_TEMP/mosaico-input/wifi.json"
+          export LIVE_VOICE_PRIVATE_DIR="$RUNNER_TEMP/mosaico/private"
+          export LIVE_PEER_DEPS_DIR="$RUNNER_TEMP/mosaico/vendor/peer"
+          idf.py --preview -C examples/mosaico build
+          python - <<'PY'
+          import difflib
+          import json
+          import os
+          from pathlib import Path
+          import yaml
+          def canonical(value):
+              if isinstance(value, dict):
+                  return {k: v.rstrip('/') if k == 'registry_url' else canonical(v)
+                          for k, v in value.items()}
+              if isinstance(value, list):
+                  return [canonical(v) for v in value]
+              return value
+          expected = canonical(yaml.safe_load((Path(os.environ['RUNNER_TEMP']) / 'expected.lock').read_text()))
+          actual = canonical(yaml.safe_load(Path('examples/mosaico/dependencies.lock').read_text()))
+          if actual != expected:
+              print(''.join(difflib.unified_diff(
+                  json.dumps(expected, indent=2, sort_keys=True).splitlines(True),
+                  json.dumps(actual, indent=2, sort_keys=True).splitlines(True),
+                  fromfile='reviewed dependencies.lock', tofile='resolved dependencies.lock')))
+              raise SystemExit('Component versions, hashes, sources, or dependency graph drifted')
+          PY

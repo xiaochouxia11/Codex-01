@@ -1,0 +1,19 @@
+name: USB screen viewer
+on:
+  pull_request:
+    paths: ['tools/screen_mirror.*', 'tools/mirror_protocol.py', 'tests/test_screen_mirror_http.py', 'tests/test_mirror_protocol.py', '.github/workflows/screen-mirror.yml']
+  push:
+    branches: [main]
+    paths: ['tools/screen_mirror.*', 'tools/mirror_protocol.py', 'tests/test_screen_mirror_http.py', 'tests/test_mirror_protocol.py', '.github/workflows/screen-mirror.yml']
+permissions:
+  contents: read
+jobs:
+  viewer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Test viewer access, private launch files, and USB frame decoding
+        run: |
+          python3 -m unittest discover -s tests -p 'test_screen_mirror_http.py' -v
+          python3 -m unittest discover -s tests -p 'test_mirror_protocol.py' -v

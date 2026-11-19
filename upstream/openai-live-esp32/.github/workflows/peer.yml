@@ -1,0 +1,123 @@
+name: Portable peer
+on:
+  pull_request:
+    paths: ['packages/peer/**', '.github/workflows/peer.yml']
+  push:
+    branches: [main]
+    paths: ['packages/peer/**', '.github/workflows/peer.yml']
+permissions:
+  contents: read
+jobs:
+  security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+        with:
+          version: '0.12.23'
+          python-version: '3.13'
+      - name: Build all transport dependencies with ASan and UBSan
+        run: |
+          cmake -S packages/peer -B build-peer -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DLIVE_PEER_FUZZ=ON
+          cmake --build build-peer -j 4
+          ctest --test-dir build-peer --output-on-failure
+      - name: Standalone embedding without sanitizers
+        run: |
+          cmake -S packages/peer/tests/consumer -B build-consumer -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-consumer -j 4
+          ./build-consumer/consumer
+      - name: Interoperability and negative tests
+        run: |
+          uv sync --locked --project packages/peer/tests/interop
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --attacks --rounds 3 --corpus build-peer/dtls-corpus
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --server --attacks --rounds 3 --corpus build-peer/dtls-corpus
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --sdp-variants
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --sdp-variants --server
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --reject
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --server --reject
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --media audio
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --media data
+      - name: Recover from injected UDP backpressure in both DTLS roles
+        run: |
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_backpressure_interop --rounds 3
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_backpressure_interop --server --rounds 3
+      - name: Chromium audio, data channels, and reconnects in both DTLS roles
+        run: |
+          google-chrome --version
+          python3 packages/peer/tests/interop/chromium.py ./build-peer/peer_interop --rounds 3
+          python3 packages/peer/tests/interop/chromium.py ./build-peer/peer_interop --server --rounds 3
+          python3 packages/peer/tests/interop/chromium.py ./build-peer/peer_backpressure_interop --rounds 1
+          python3 packages/peer/tests/interop/chromium.py ./build-peer/peer_backpressure_interop --server --rounds 1
+      - name: Bounded parser, DTLS, and SCTP fuzz smoke tests
+        run: |
+          python3 packages/peer/tests/interop/seed_fuzz.py build-peer/corpus
+          ./build-peer/peer_fuzz build-peer/corpus -max_total_time=30 -max_len=8193 -timeout=3 -rss_limit_mb=1024
+          ./build-peer/peer_fuzz_dtls build-peer/dtls-corpus -max_total_time=30 -max_len=16384 -timeout=3 -rss_limit_mb=1024
+          mkdir -p build-peer/corpus-sctp
+          ./build-peer/peer_fuzz_sctp build-peer/corpus-sctp -max_total_time=30 -max_len=8192 -timeout=3 -rss_limit_mb=1024
+      - name: Preserve fuzz failure inputs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: peer-fuzz-failures
+          path: |
+            crash-*
+            timeout-*
+            oom-*
+          if-no-files-found: ignore
+          retention-days: 7
+  mbedtls4:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+        with:
+          version: '0.12.23'
+          python-version: '3.13'
+      - name: Build all transport dependencies with ASan and UBSan
+        run: |
+          cmake -S packages/peer -B build-peer -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DLIVE_PEER_FUZZ=ON -DLIVE_PEER_MBEDTLS4=ON
+          cmake --build build-peer -j 4
+          ctest --test-dir build-peer --output-on-failure
+      - name: Interoperability and negative tests
+        run: |
+          uv sync --locked --project packages/peer/tests/interop
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --attacks --rounds 3 --corpus build-peer/dtls-corpus
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --server --attacks --rounds 3 --corpus build-peer/dtls-corpus
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --sdp-variants
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --sdp-variants --server
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --reject
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --server --reject
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --media audio
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_interop --media data
+      - name: Recover from injected UDP backpressure in both DTLS roles
+        run: |
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_backpressure_interop --rounds 3
+          uv run --locked --project packages/peer/tests/interop packages/peer/tests/interop/run.py ./build-peer/peer_backpressure_interop --server --rounds 3
+      - name: Chromium audio, data channels, and reconnects in both DTLS roles
+        run: |
+          google-chrome --version
+          python3 packages/peer/tests/interop/chromium.py ./build-peer/peer_interop --rounds 3
+          python3 packages/peer/tests/interop/chromium.py ./build-peer/peer_interop --server --rounds 3
+          python3 packages/peer/tests/interop/chromium.py ./build-peer/peer_backpressure_interop --rounds 1
+          python3 packages/peer/tests/interop/chromium.py ./build-peer/peer_backpressure_interop --server --rounds 1
+      - name: Bounded parser, DTLS, and SCTP fuzz smoke tests
+        run: |
+          python3 packages/peer/tests/interop/seed_fuzz.py build-peer/corpus
+          ./build-peer/peer_fuzz build-peer/corpus -max_total_time=30 -max_len=8193 -timeout=3 -rss_limit_mb=1024
+          ./build-peer/peer_fuzz_dtls build-peer/dtls-corpus -max_total_time=30 -max_len=16384 -timeout=3 -rss_limit_mb=1024
+          mkdir -p build-peer/corpus-sctp
+          ./build-peer/peer_fuzz_sctp build-peer/corpus-sctp -max_total_time=30 -max_len=8192 -timeout=3 -rss_limit_mb=1024
+      - name: Preserve fuzz failure inputs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: peer4-fuzz-failures
+          path: |
+            crash-*
+            timeout-*
+            oom-*
+          if-no-files-found: ignore
+          retention-days: 7

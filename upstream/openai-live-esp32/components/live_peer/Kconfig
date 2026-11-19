@@ -1,0 +1,17 @@
+menu "Portable WebRTC peer"
+    config LIVE_PEER_CERTIFICATE_IDENTITY
+        bool
+        default y
+        select MBEDTLS_SSL_KEEP_PEER_CERTIFICATE
+        help
+            WebRTC authenticates the peer certificate against the fingerprint
+            from signaling after DTLS completes. IDF 6 defaults to discarding
+            that certificate, which prevents this mandatory identity check.
+
+    config LIVE_PEER_TRACE_ICE
+        bool "Log ICE consent diagnostics"
+        default n
+        help
+            Log consent send results, response validation flags and round-trip
+            times. Does not log credentials, transaction IDs or IP addresses.
+endmenu

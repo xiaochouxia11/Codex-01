@@ -1,0 +1,22 @@
+openai-live-esp32 portable peer connection
+Copyright 2026 OpenAI
+
+Original OpenAI code and locally maintained modifications are licensed under
+the Apache License, Version 2.0. Third-party code retains its own licenses.
+
+This package derives from libpeer:
+Copyright (c) 2021 sepfy
+The original MIT license is retained in LICENSE.libpeer.
+
+This package uses Mbed TLS, developed by the Mbed TLS project and contributors,
+under its Apache-2.0 license option. See licenses/LICENSE.mbedtls.
+Device compatibility patches derive from Espressif Systems (Shanghai) CO LTD
+hardware/PSA integration; original upstream notices remain in the fetched sources.
+OpenAI adapted those patches to the pinned maintenance releases; see patches/README.md.
+It also uses libSRTP and usrsctp under their retained BSD license notices in
+licenses/LICENSE.libsrtp and licenses/LICENSE.usrsctp.
+
+Fetched dependency sources retain additional copyright and license notices.
+See docs/provenance.md for pinned upstream sources and modifications. These
+notices do not replace the applicable license texts or additional notices in
+third-party source files.

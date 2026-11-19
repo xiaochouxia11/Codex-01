@@ -1,0 +1,6 @@
+config LIVE_ESP32_HTTPS_PRECONNECT
+    bool
+    default y
+    select ESP_HTTP_CLIENT_ENABLE_CUSTOM_TRANSPORT
+    help
+        Enable the transport adapter used by the SDK's opt-in TLS preconnection.

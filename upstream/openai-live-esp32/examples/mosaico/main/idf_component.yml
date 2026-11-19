@@ -1,0 +1,16 @@
+dependencies:
+  idf: ">=6.2,<6.3"
+  espressif/esp_audio_codec: "2.6.2"
+  espressif/esp_tinyusb: "2.4.0"
+  # Kconfig discovery re-solves transitive dependencies; retain the reviewed revision.
+  espressif/tinyusb: "0.21.0~4"
+  espressif/cjson: "1.7.19~2"
+  # Optional display dependencies are resolved again after Kconfig discovery.
+  # Keep the tested decoder when that pass re-solves the dependency graph.
+  espressif/esp_lv_decoder: "0.5.0"
+  # Pin its transitive font/image libraries and the camera's USB host library
+  # too: the second resolution pass can otherwise upgrade the reviewed lock.
+  espressif/freetype: "2.15.0"
+  espressif/libpng: "1.6.59~1"
+  espressif/zlib: "1.4.0"
+  espressif/usb: "1.6.1"

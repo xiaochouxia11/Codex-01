@@ -1,0 +1,434 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -18,7 +18,9 @@
+ 
+ # We specify a minimum requirement of 3.10.2, but for now use 3.5.1 here
+ # until our infrastructure catches up.
+-cmake_minimum_required(VERSION 3.5.1)
++# Espressif: Updating the version to 3.10.2. CMake versions 
++#            older than 3.10 are getting deprecated
++cmake_minimum_required(VERSION 3.10.2)
+ 
+ include(CMakePackageConfigHelpers)
+ 
+@@ -302,8 +304,6 @@
+ 
+ include(CheckCCompilerFlag)
+ 
+-set(CMAKE_C_EXTENSIONS OFF)
+-set(CMAKE_C_STANDARD 99)
+ 
+ if(CMAKE_COMPILER_IS_GNU)
+     # some warnings we want are not available with old GCC versions
+@@ -419,15 +419,6 @@
+ if(LIB_INSTALL_DIR)
+     set(CMAKE_INSTALL_LIBDIR "${LIB_INSTALL_DIR}")
+ endif()
+-
+-if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/framework/CMakeLists.txt")
+-    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
+-        message(FATAL_ERROR "${CMAKE_CURRENT_SOURCE_DIR}CMakeLists.txt not found (and does appear to be a git checkout). Run `git submodule update --init` from the source tree to fetch the submodule contents.")
+-    else ()
+-        message(FATAL_ERROR "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt not found (and does not appear to be a git checkout). Please ensure you have downloaded the right archive from the release page on GitHub.")
+-    endif()
+-endif()
+-add_subdirectory(framework)
+ 
+ add_subdirectory(include)
+ 
+--- a/include/mbedtls/bignum.h
++++ b/include/mbedtls/bignum.h
+@@ -99,6 +99,8 @@
+ #define MBEDTLS_MPI_RW_BUFFER_SIZE             (((MBEDTLS_MPI_MAX_BITS_SCALE100 + \
+                                                   MBEDTLS_LN_2_DIV_LN_10_SCALE100 - 1) / \
+                                                  MBEDTLS_LN_2_DIV_LN_10_SCALE100) + 10 + 6)
++
++#if !defined(MBEDTLS_BIGNUM_ALT)
+ 
+ /*
+  * Define the base integer type, architecture-wise.
+@@ -1069,6 +1071,9 @@
+ int mbedtls_mpi_gen_prime(mbedtls_mpi *X, size_t nbits, int flags,
+                           mbedtls_f_rng_t *f_rng,
+                           void *p_rng);
++#else /* MBEDTLS_BIGNUM_ALT */
++#include "bignum_alt.h"
++#endif /* MBEDTLS_BIGNUM_ALT */
+ 
+ #if defined(MBEDTLS_SELF_TEST)
+ 
+--- a/include/mbedtls/gcm.h
++++ b/include/mbedtls/gcm.h
+@@ -44,7 +44,17 @@
+ extern "C" {
+ #endif
+ 
+-#if !defined(MBEDTLS_GCM_ALT)
++#if defined(MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK)
++#define SOFT(name) name##_soft
++#else
++#define SOFT(name) name
++#endif /* MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK */
++
++#if defined(MBEDTLS_GCM_ALT)
++#include "gcm_alt.h"
++#endif /* !MBEDTLS_GCM_ALT */
++
++#if !defined(MBEDTLS_GCM_ALT) || defined(MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK)
+ 
+ #if defined(MBEDTLS_GCM_LARGE_TABLE)
+ #define MBEDTLS_GCM_HTABLE_SIZE 256
+@@ -55,7 +65,8 @@
+ /**
+  * \brief          The GCM context structure.
+  */
+-typedef struct mbedtls_gcm_context {
++typedef struct SOFT(mbedtls_gcm_context) {
++
+ #if defined(MBEDTLS_BLOCK_CIPHER_C)
+     mbedtls_block_cipher_context_t MBEDTLS_PRIVATE(block_cipher_ctx);  /*!< The cipher context used. */
+ #else
+@@ -72,11 +83,7 @@
+                                                               #MBEDTLS_GCM_DECRYPT. */
+     unsigned char MBEDTLS_PRIVATE(acceleration);             /*!< The acceleration to use. */
+ }
+-mbedtls_gcm_context;
+-
+-#else  /* !MBEDTLS_GCM_ALT */
+-#include "gcm_alt.h"
+-#endif /* !MBEDTLS_GCM_ALT */
++SOFT(mbedtls_gcm_context);
+ 
+ /**
+  * \brief           This function initializes the specified GCM context,
+@@ -367,6 +374,9 @@
+  */
+ void mbedtls_gcm_free(mbedtls_gcm_context *ctx);
+ 
++#endif /* !defined(MBEDTLS_GCM_ALT) || defined(MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK) */
++
++
+ #if defined(MBEDTLS_SELF_TEST)
+ 
+ /**
+--- a/library/bignum.c
++++ b/library/bignum.c
+@@ -38,7 +38,7 @@
+ 
+ #include "mbedtls/platform.h"
+ 
+-
++#if !defined(MBEDTLS_BIGNUM_ALT)
+ 
+ /*
+  * Conditionally select an MPI sign in constant time.
+@@ -1192,6 +1192,7 @@
+     return mbedtls_mpi_sub_mpi(X, A, &B);
+ }
+ 
++#if !defined(MBEDTLS_MPI_MUL_MPI_ALT)
+ /*
+  * Baseline multiplication: X = A * B  (HAC 14.12)
+  */
+@@ -1287,6 +1288,7 @@
+ cleanup:
+     return ret;
+ }
++#endif
+ 
+ /*
+  * Unsigned integer divide - double mbedtls_mpi_uint dividend, u1/u0, and
+@@ -1617,6 +1619,14 @@
+ }
+ 
+ /*
++ * MbedTLS has added new software API mbedtls_mpi_exp_mod_optionally_safe().
++ * This API handles RSA public operations in non-constant time manner (and hence efficient),
++ * but for the hardware MPI case, we fallback to the `mbedtls_mpi_exp_mod()` implementation itself
++ * and hence disabling it here.
++ */
++#if !defined(MBEDTLS_MPI_EXP_MOD_ALT)
++
++/*
+  * Warning! If the parameter E_public has MBEDTLS_MPI_IS_PUBLIC as its value,
+  * this function is not constant time with respect to the exponent (parameter E).
+  */
+@@ -1733,20 +1743,40 @@
+ 
+     return ret;
+ }
+-
++ 
++/*
++* Sliding-window exponentiation: X = A^E mod N  (HAC 14.85)
++*/
++#if !defined(MBEDTLS_MPI_EXP_MOD_ALT_FALLBACK)
+ int mbedtls_mpi_exp_mod(mbedtls_mpi *X, const mbedtls_mpi *A,
+                         const mbedtls_mpi *E, const mbedtls_mpi *N,
+                         mbedtls_mpi *prec_RR)
++#else
++int mbedtls_mpi_exp_mod_soft(mbedtls_mpi *X, const mbedtls_mpi *A,
++                             const mbedtls_mpi *E, const mbedtls_mpi *N,
++                             mbedtls_mpi *prec_RR)
++#endif
+ {
+     return mbedtls_mpi_exp_mod_optionally_safe(X, A, E, MBEDTLS_MPI_IS_SECRET, N, prec_RR);
+ }
++#endif
+ 
+ int mbedtls_mpi_exp_mod_unsafe(mbedtls_mpi *X, const mbedtls_mpi *A,
+                                const mbedtls_mpi *E, const mbedtls_mpi *N,
+                                mbedtls_mpi *prec_RR)
+ {
++
++/*
++ * If hardware is enabled, we use MPI crypto layer implementation,
++ * else we use mbedtls implementation.
++ */
++#if defined(MBEDTLS_MPI_EXP_MOD_ALT)
++    return mbedtls_mpi_exp_mod(X, A, E, N, prec_RR);
++#else
+     return mbedtls_mpi_exp_mod_optionally_safe(X, A, E, MBEDTLS_MPI_IS_PUBLIC, N, prec_RR);
+-}
++#endif
++}
++ 
+ 
+ /* Constant-time GCD and/or modinv with odd modulus and A <= N */
+ int mbedtls_mpi_gcd_modinv_odd(mbedtls_mpi *G,
+@@ -2369,6 +2399,7 @@
+ }
+ 
+ #endif /* MBEDTLS_GENPRIME */
++#endif /* MBEDTLS_BIGNUM_ALT */
+ 
+ #if defined(MBEDTLS_SELF_TEST)
+ 
+--- a/library/ecp.c
++++ b/library/ecp.c
+@@ -1344,6 +1344,7 @@
+ #endif /* !defined(MBEDTLS_ECP_NO_FALLBACK) || !defined(MBEDTLS_ECP_NORMALIZE_JAC_ALT) */
+ }
+ 
++#if !defined(MBEDTLS_ECP_MUL_ALT)
+ /*
+  * Normalize jacobian coordinates of an array of (pointers to) points,
+  * using Montgomery's trick to perform only one inversion mod P.
+@@ -1466,6 +1467,7 @@
+     mbedtls_mpi_free(&tmp);
+     return ret;
+ }
++#endif /* MBEDTLS_ECP_MUL_ALT */
+ 
+ /*
+  * Point doubling R = 2 P, Jacobian coordinates
+@@ -1669,6 +1671,7 @@
+ #endif /* !defined(MBEDTLS_ECP_NO_FALLBACK) || !defined(MBEDTLS_ECP_ADD_MIXED_ALT) */
+ }
+ 
++#if !defined(MBEDTLS_ECP_MUL_ALT)
+ /*
+  * Randomize jacobian coordinates:
+  * (X, Y, Z) -> (l^2 X, l^3 Y, l Z) for random l
+@@ -2388,6 +2391,8 @@
+     return ret;
+ }
+ 
++#endif /* MBEDTLS_ECP_MUL_ALT */
++
+ #endif /* MBEDTLS_ECP_SHORT_WEIERSTRASS_ENABLED */
+ 
+ #if defined(MBEDTLS_ECP_MONTGOMERY_ENABLED)
+@@ -2399,6 +2404,7 @@
+  * For scalar multiplication, we'll use a Montgomery ladder.
+  */
+ 
++#if !defined(MBEDTLS_ECP_MUL_ALT)
+ /*
+  * Normalize Montgomery x/z coordinates: X = X/Z, Z = 1
+  * Cost: 1M + 1I
+@@ -2586,18 +2592,27 @@
+     return ret;
+ }
+ 
++#endif /* MBEDTLS_ECP_MUL_ALT */
+ #endif /* MBEDTLS_ECP_MONTGOMERY_ENABLED */
+ 
++#if !defined(MBEDTLS_ECP_MUL_ALT)
+ /*
+  * Restartable multiplication R = m * P
+  *
+  * This internal function can be called without an RNG in case where we know
+  * the inputs are not sensitive.
+  */
++#if defined(MBEDTLS_ECP_MUL_ALT_SOFT_FALLBACK)
++int ecp_mul_restartable_internal_soft(mbedtls_ecp_group *grp, mbedtls_ecp_point *R,
++                                      const mbedtls_mpi *m, const mbedtls_ecp_point *P,
++                                      int (*f_rng)(void *, unsigned char *, size_t), void *p_rng,
++                                      mbedtls_ecp_restart_ctx *rs_ctx)
++#else
+ static int ecp_mul_restartable_internal(mbedtls_ecp_group *grp, mbedtls_ecp_point *R,
+                                         const mbedtls_mpi *m, const mbedtls_ecp_point *P,
+                                         int (*f_rng)(void *, unsigned char *, size_t), void *p_rng,
+                                         mbedtls_ecp_restart_ctx *rs_ctx)
++#endif
+ {
+     int ret = MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
+ #if defined(MBEDTLS_ECP_INTERNAL_ALT)
+@@ -2661,6 +2676,7 @@
+ 
+     return ret;
+ }
++#endif /* MBEDTLS_ECP_MUL_ALT */
+ 
+ /*
+  * Restartable multiplication R = m * P
+@@ -2688,7 +2704,10 @@
+ }
+ #endif /* MBEDTLS_ECP_C */
+ 
++#if !defined(MBEDTLS_ECP_VERIFY_ALT)
++
+ #if defined(MBEDTLS_ECP_SHORT_WEIERSTRASS_ENABLED)
++
+ /*
+  * Check that an affine point is valid as a public key,
+  * short weierstrass curves (SEC1 3.2.3.1)
+@@ -2726,6 +2745,7 @@
+     return ret;
+ }
+ #endif /* MBEDTLS_ECP_SHORT_WEIERSTRASS_ENABLED */
++#endif /* MBEDTLS_ECP_VERIFY_ALT */
+ 
+ #if defined(MBEDTLS_ECP_C)
+ #if defined(MBEDTLS_ECP_SHORT_WEIERSTRASS_ENABLED)
+@@ -2880,6 +2900,8 @@
+ }
+ #endif /* MBEDTLS_ECP_SHORT_WEIERSTRASS_ENABLED */
+ #endif /* MBEDTLS_ECP_C */
++
++#if !defined(MBEDTLS_ECP_VERIFY_ALT)
+ 
+ #if defined(MBEDTLS_ECP_MONTGOMERY_ENABLED)
+ #if defined(MBEDTLS_ECP_DP_CURVE25519_ENABLED)
+@@ -2992,11 +3014,19 @@
+ }
+ #endif /* MBEDTLS_ECP_MONTGOMERY_ENABLED */
+ 
++#endif /* MBEDTLS_ECP_VERIFY_ALT */
++
++#if !defined(MBEDTLS_ECP_VERIFY_ALT)
+ /*
+  * Check that a point is valid as a public key
+  */
++#if defined(MBEDTLS_ECP_VERIFY_ALT_SOFT_FALLBACK)
++int mbedtls_ecp_check_pubkey_soft(const mbedtls_ecp_group *grp,
++                                  const mbedtls_ecp_point *pt)
++#else
+ int mbedtls_ecp_check_pubkey(const mbedtls_ecp_group *grp,
+                              const mbedtls_ecp_point *pt)
++#endif
+ {
+     /* Must use affine coordinates */
+     if (mbedtls_mpi_cmp_int(&pt->Z, 1) != 0) {
+@@ -3015,6 +3045,7 @@
+ #endif
+     return MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
+ }
++#endif /* MBEDTLS_ECP_VERIFY_ALT */
+ 
+ /*
+  * Check that an mbedtls_mpi is valid as a private key
+--- a/library/gcm.c
++++ b/library/gcm.c
+@@ -39,7 +39,33 @@
+ #endif
+ #include "constant_time_internal.h"
+ 
+-#if !defined(MBEDTLS_GCM_ALT)
++#if defined(MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK)
++
++#undef mbedtls_gcm_context
++#undef mbedtls_gcm_init
++#undef mbedtls_gcm_setkey
++#undef mbedtls_gcm_starts
++#undef mbedtls_gcm_update_ad
++#undef mbedtls_gcm_update
++#undef mbedtls_gcm_finish
++#undef mbedtls_gcm_crypt_and_tag
++#undef mbedtls_gcm_auth_decrypt
++#undef mbedtls_gcm_free
++
++#define mbedtls_gcm_context         mbedtls_gcm_context_soft
++#define mbedtls_gcm_init            mbedtls_gcm_init_soft
++#define mbedtls_gcm_setkey          mbedtls_gcm_setkey_soft
++#define mbedtls_gcm_starts          mbedtls_gcm_starts_soft
++#define mbedtls_gcm_update_ad       mbedtls_gcm_update_ad_soft
++#define mbedtls_gcm_update          mbedtls_gcm_update_soft
++#define mbedtls_gcm_finish          mbedtls_gcm_finish_soft
++#define mbedtls_gcm_crypt_and_tag   mbedtls_gcm_crypt_and_tag_soft
++#define mbedtls_gcm_auth_decrypt    mbedtls_gcm_auth_decrypt_soft
++#define mbedtls_gcm_free            mbedtls_gcm_free_soft
++
++#endif
++
++#if !defined(MBEDTLS_GCM_ALT) || defined(MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK)
+ 
+ /* Used to select the acceleration mechanism */
+ #define MBEDTLS_GCM_ACC_SMALLTABLE  0
+@@ -812,7 +838,7 @@
+     mbedtls_platform_zeroize(ctx, sizeof(mbedtls_gcm_context));
+ }
+ 
+-#endif /* !MBEDTLS_GCM_ALT */
++#endif /* !defined(MBEDTLS_GCM_ALT) || defined(MBEDTLS_GCM_NON_AES_CIPHER_SOFT_FALLBACK) */
+ 
+ #if defined(MBEDTLS_SELF_TEST) && defined(MBEDTLS_CCM_GCM_CAN_AES)
+ /*
+--- a/library/pk.c
++++ b/library/pk.c
+@@ -1443,6 +1443,18 @@
+                                        sig, sig_size, sig_len);
+ #else /* MBEDTLS_USE_PSA_CRYPTO */
+ 
++#if defined(MBEDTLS_PK_RSA_ALT_SUPPORT)
++    if (ctx->pk_info->type == MBEDTLS_PK_RSA_ALT) {
++        mbedtls_rsa_alt_context *rsa_alt = ctx->pk_ctx;
++        mbedtls_rsa_context *rsa = (mbedtls_rsa_context *)rsa_alt->key;
++        if (rsa != NULL) {
++            mbedtls_rsa_set_padding(rsa, MBEDTLS_RSA_PKCS_V21, md_alg);
++            return mbedtls_pk_sign(ctx, md_alg, hash, hash_len,
++                                sig, sig_size, sig_len, f_rng, p_rng);
++        }
++    }
++#endif /* MBEDTLS_PK_RSA_ALT_SUPPORT */
++
+     if (sig_size < mbedtls_pk_get_len(ctx)) {
+         return MBEDTLS_ERR_PK_BUFFER_TOO_SMALL;
+     }
+--- a/library/pk_wrap.c
++++ b/library/pk_wrap.c
+@@ -1295,7 +1295,7 @@
+ 
+ static int rsa_alt_can_do(mbedtls_pk_type_t type)
+ {
+-    return type == MBEDTLS_PK_RSA;
++    return (type == MBEDTLS_PK_RSA) || (type == MBEDTLS_PK_RSASSA_PSS);
+ }
+ 
+ static size_t rsa_alt_get_bitlen(mbedtls_pk_context *pk)
+--- a/library/ssl_tls.c
++++ b/library/ssl_tls.c
+@@ -1491,6 +1491,12 @@
+ #if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
+     size_t in_buf_len = ssl->in_buf_len;
+     size_t out_buf_len = ssl->out_buf_len;
++/* ESP Change: For dynamic buffer feature, the buffer allocation shall be 
++ * handled on-demand basis and hence skip the memset in this API on the buffer pointers 
++ */
++#elif defined(CONFIG_MBEDTLS_DYNAMIC_BUFFER)
++    size_t in_buf_len = 0;
++    size_t out_buf_len = 0;
+ #else
+     size_t in_buf_len = MBEDTLS_SSL_IN_BUFFER_LEN;
+     size_t out_buf_len = MBEDTLS_SSL_OUT_BUFFER_LEN;
