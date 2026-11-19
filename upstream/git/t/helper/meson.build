@@ -1,9 +1,11 @@
 test_tool_sources = [
   '../unit-tests/test-lib.c',
   'test-advise.c',
+  'test-base85.c',
   'test-bitmap.c',
   'test-bloom.c',
   'test-bundle-uri.c',
+  'test-cache-entry.c',
   'test-cache-tree.c',
   'test-chmtime.c',
   'test-config.c',
@@ -83,6 +85,7 @@ test_tool_sources = [
 
 test_tool = executable('test-tool',
   sources: test_tool_sources,
+  c_pch: '../../tools/precompiled.h',
   dependencies: [libgit_commonmain],
 )
 bin_wrappers += test_tool

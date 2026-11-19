@@ -35,6 +35,7 @@
 #include "hex.h"
 #include "entry.h"
 #include "merge-ll.h"
+#include "merge.h"
 #include "match-trees.h"
 #include "mem-pool.h"
 #include "object-file.h"
@@ -418,6 +419,9 @@ struct merge_options_internal {
 
 	/* field that holds submodule conflict information */
 	struct string_list conflicted_submodules;
+
+	/* Copies of the labels used for conflict markers */
+	const char *labels[3];
 };
 
 struct conflicted_submodule_item {
@@ -2111,7 +2115,7 @@ static int merge_3way(struct merge_options *opt,
 		      const struct object_id *b,
 		      const char *pathnames[3],
 		      const int extra_marker_size,
-		      mmbuffer_t *result_buf)
+		      mmfile_t *result_buf)
 {
 	mmfile_t orig, src1, src2;
 	struct ll_merge_options ll_opts = LL_MERGE_OPTIONS_INIT;
@@ -2247,7 +2251,7 @@ static int handle_content_merge(struct merge_options *opt,
 
 	/* Remaining rules depend on file vs. submodule vs. symlink. */
 	else if (S_ISREG(a->mode)) {
-		mmbuffer_t result_buf;
+		mmfile_t result_buf;
 		int ret = 0, merge_status;
 		int two_way;
 
@@ -4969,6 +4973,14 @@ void merge_switch_to_result(struct merge_options *opt,
 			return;
 		}
 		trace2_region_leave("merge", "write_auto_merge", opt->repo);
+
+		if (!result->clean) {
+			struct merge_options_internal *priv = result->priv;
+
+			trace2_region_enter("merge", "write_merge_labels", opt->repo);
+			write_merge_labels(opt->repo, priv->labels);
+			trace2_region_leave("merge", "write_merge_labels", opt->repo);
+		}
 	}
 	if (display_update_msgs)
 		merge_display_update_messages(opt, /* detailed */ 0, result);
@@ -5234,6 +5246,14 @@ static void move_opt_priv_to_result_priv(struct merge_options *opt,
 	 * to move it.
 	 */
 	assert(opt->priv && !result->priv);
+	if (!result->clean) {
+		opt->priv->labels[0] =
+			mem_pool_strdup(&opt->priv->pool, opt->ancestor);
+		opt->priv->labels[1] =
+			mem_pool_strdup(&opt->priv->pool, opt->branch1);
+		opt->priv->labels[2] =
+			mem_pool_strdup(&opt->priv->pool, opt->branch2);
+	}
 	result->priv = opt->priv;
 	result->_properly_initialized = RESULT_INITIALIZED;
 	opt->priv = NULL;
@@ -5453,31 +5473,27 @@ void merge_incore_recursive(struct merge_options *opt,
 static void merge_recursive_config(struct merge_options *opt, int ui)
 {
 	char *value = NULL;
+	const char *v;
 	int renormalize = 0;
 	repo_config_get_int(opt->repo, "merge.verbosity", &opt->verbosity);
 	repo_config_get_int(opt->repo, "diff.renamelimit", &opt->rename_limit);
 	repo_config_get_int(opt->repo, "merge.renamelimit", &opt->rename_limit);
 	repo_config_get_bool(opt->repo, "merge.renormalize", &renormalize);
 	opt->renormalize = renormalize;
-	if (!repo_config_get_string(opt->repo, "diff.renames", &value)) {
-		opt->detect_renames = git_config_rename("diff.renames", value);
-		free(value);
-	}
-	if (!repo_config_get_string(opt->repo, "merge.renames", &value)) {
-		opt->detect_renames = git_config_rename("merge.renames", value);
-		free(value);
-	}
-	if (!repo_config_get_string(opt->repo, "merge.directoryrenames", &value)) {
-		int boolval = git_parse_maybe_bool(value);
+	if (!repo_config_get_value(opt->repo, "diff.renames", &v))
+		opt->detect_renames = git_config_rename("diff.renames", v);
+	if (!repo_config_get_value(opt->repo, "merge.renames", &v))
+		opt->detect_renames = git_config_rename("merge.renames", v);
+	if (!repo_config_get_value(opt->repo, "merge.directoryrenames", &v)) {
+		int boolval = git_parse_maybe_bool(v);
 		if (0 <= boolval) {
 			opt->detect_directory_renames = boolval ?
 				MERGE_DIRECTORY_RENAMES_TRUE :
 				MERGE_DIRECTORY_RENAMES_NONE;
-		} else if (!strcasecmp(value, "conflict")) {
+		} else if (!strcasecmp(v, "conflict")) {
 			opt->detect_directory_renames =
 				MERGE_DIRECTORY_RENAMES_CONFLICT;
 		} /* avoid erroring on values from future versions of git */
-		free(value);
 	}
 	if (ui) {
 		if (!repo_config_get_string(opt->repo, "diff.algorithm", &value)) {

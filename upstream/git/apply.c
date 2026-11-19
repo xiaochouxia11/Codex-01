@@ -14,6 +14,7 @@
 #include "abspath.h"
 #include "base85.h"
 #include "config.h"
+#include "date.h"
 #include "odb.h"
 #include "delta.h"
 #include "diff.h"
@@ -851,7 +852,7 @@ static int has_epoch_timestamp(const char *nameline)
 	if (*colon == ':')
 		zoneoffset = zoneoffset * 60 + strtol(colon + 1, NULL, 10);
 	else
-		zoneoffset = (zoneoffset / 100) * 60 + (zoneoffset % 100);
+		zoneoffset = tz_to_minutes(zoneoffset);
 	if (timestamp[m[3].rm_so] == '-')
 		zoneoffset = -zoneoffset;
 
@@ -2053,6 +2054,7 @@ static struct fragment *parse_binary_hunk(struct apply_state *state,
 	char *data = NULL;
 	int hunk_size = 0;
 	struct fragment *frag;
+	const char *error_msg = NULL;
 
 	llen = linelen(buffer, size);
 	used = llen;
@@ -2069,6 +2071,11 @@ static struct fragment *parse_binary_hunk(struct apply_state *state,
 	}
 	else
 		return NULL;
+
+	if (origlen >= MAX_APPLY_SIZE) {
+		error_msg = _("patch too large");
+		goto corrupt;
+	}
 
 	state->linenr++;
 	buffer += llen;
@@ -2117,8 +2124,10 @@ static struct fragment *parse_binary_hunk(struct apply_state *state,
 	CALLOC_ARRAY(frag, 1);
 	frag->patch = inflate_it(data, hunk_size, origlen);
 	frag->free_patch = 1;
-	if (!frag->patch)
+	if (!frag->patch) {
+		free(frag);
 		goto corrupt;
+	}
 	free(data);
 	frag->size = origlen;
 	*buf_p = buffer;
@@ -2130,8 +2139,11 @@ static struct fragment *parse_binary_hunk(struct apply_state *state,
  corrupt:
 	free(data);
 	*status_p = -1;
-	error(_("corrupt binary patch at %s:%d: %.*s"),
-	      state->patch_input_file, state->linenr-1, llen-1, buffer);
+	if (error_msg)
+		error("%s", error_msg);
+	else
+		error(_("corrupt binary patch at %s:%d: %.*s"),
+		      state->patch_input_file, state->linenr-1, llen-1, buffer);
 	return NULL;
 }
 
@@ -3646,7 +3658,7 @@ static int three_way_merge(struct apply_state *state,
 {
 	mmfile_t base_file, our_file, their_file;
 	struct ll_merge_options merge_opts = LL_MERGE_OPTIONS_INIT;
-	mmbuffer_t result = { NULL };
+	mmfile_t result = { NULL };
 	enum ll_merge_result status;
 
 	/* resolve trivial cases first */

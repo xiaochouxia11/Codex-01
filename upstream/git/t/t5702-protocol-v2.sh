@@ -929,28 +929,35 @@ test_expect_success 'file:// --negotiate-only with protocol v0' '
 test_expect_success 'push with custom path does not request v2' '
 	rm -f env.trace &&
 	git -C client push \
-		--receive-pack="env >../env.trace; git-receive-pack" \
+		--receive-pack="
+			echo GIT_PROTOCOL=\$GIT_PROTOCOL >../env.trace
+			git-receive-pack" \
 		origin HEAD:refs/heads/custom-push-test &&
-	test_path_is_file env.trace &&
-	test_grep ! ^GIT_PROTOCOL env.trace
+	echo GIT_PROTOCOL= >expect &&
+	test_cmp expect env.trace
 '
 
 test_expect_success 'fetch with custom path does request v2' '
 	rm -f env.trace &&
 	git -C client fetch \
-		--upload-pack="env >../env.trace; git-upload-pack" \
+		--upload-pack="
+			echo GIT_PROTOCOL=\$GIT_PROTOCOL >../env.trace
+			git-upload-pack" \
 		origin HEAD &&
-	test_grep ^GIT_PROTOCOL=version=2 env.trace
+	echo GIT_PROTOCOL=version=2 >expect &&
+	test_cmp expect env.trace
 '
 
 test_expect_success 'archive with custom path does not request v2' '
 	rm -f env.trace &&
 	git -C client archive \
-		--exec="env >../env.trace; git-upload-archive" \
+		--exec="
+			echo GIT_PROTOCOL=\$GIT_PROTOCOL >../env.trace
+			git-upload-archive" \
 		--remote=origin \
 		HEAD >/dev/null &&
-	test_path_is_file env.trace &&
-	test_grep ! ^GIT_PROTOCOL env.trace
+	echo "GIT_PROTOCOL=" >expect &&
+	test_cmp expect env.trace
 '
 
 test_expect_success 'reject client packfile-uris if not advertised' '
@@ -1106,6 +1113,76 @@ test_expect_success 'clone big repository with http:// using protocol v2' '
 	test_grep "git< version 2" log &&
 	# Verify that the chunked encoding sending codepath is exercised
 	test_grep "Send header: Transfer-Encoding: chunked" log
+'
+
+test_expect_success 'clone with http:// using protocol v2 rejects invalid unborn symref-target' '
+	P="$HTTPD_DOCUMENT_ROOT_PATH/http_unborn_invalid" &&
+
+	git init "$P" &&
+	test_commit -C "$P" --no-tag stuff &&
+	git -C "$P" config lsrefs.unborn advertise &&
+	git -C "$P" symbolic-ref HEAD refs/heads/mydefaultbranch &&
+
+	# Advertise an unborn symref-target HEAD to include invalid characters
+	write_script "$HTTPD_ROOT_PATH/one-time-script" <<-\EOF &&
+	sed "s/mydefaultbranch/this*is*invalid/" "$1"
+	EOF
+
+	GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME= \
+	git -c init.defaultBranch=main -c protocol.version=2 \
+		clone "$HTTPD_URL/one_time_script/http_unborn_invalid" \
+		http_unborn_child 2>stderr &&
+
+	# Client rejects the invalid HEAD and falls back to its default branch name
+	echo "refs/heads/main" >expect &&
+	git -C http_unborn_child symbolic-ref HEAD >actual &&
+	test_cmp expect actual &&
+	test_grep "remote advertised invalid symref-target" stderr
+'
+
+test_expect_success 'clone with http:// using protocol v2 rejects invalid symref-target' '
+	P="$HTTPD_DOCUMENT_ROOT_PATH/http_head_invalid" &&
+
+	git init "$P" &&
+	test_commit -C "$P" one &&
+
+	# Advertise a symref-target HEAD to include invalid characters
+	write_script "$HTTPD_ROOT_PATH/one-time-script" <<-\EOF &&
+	sed "s|symref-target:refs/heads/main|symref-target:refs/heads/ma*n|" "$1"
+	EOF
+
+	git -c protocol.version=2 \
+		clone "$HTTPD_URL/one_time_script/http_head_invalid" \
+		http_head_child 2>stderr &&
+
+	# Client rejects the invalid HEAD and guess_remote_head falls back
+	# to a ref matching the OID matching, being refs/heads/main
+	echo "refs/heads/main" >expect &&
+	git -C http_head_child symbolic-ref HEAD >actual &&
+	test_cmp expect actual &&
+	test_grep "remote advertised invalid symref-target" stderr
+'
+
+test_expect_success 'clone via http:// using protocol v2 rejects invalid ref from ls-refs' '
+	P="$HTTPD_DOCUMENT_ROOT_PATH/http_lsref_invalid" &&
+
+	git init "$P" &&
+	test_commit -C "$P" one &&
+	git -C "$P" checkout -b branchwithstuff &&
+	test_commit -C "$P" two &&
+
+	# Inject a ref with invalid characters
+	write_script "$HTTPD_ROOT_PATH/one-time-script" <<-\EOF &&
+	sed "s| refs/heads/main| refs/heads/ma*n|" "$1"
+	EOF
+
+	git -c protocol.version=2 \
+		clone "$HTTPD_URL/one_time_script/http_lsref_invalid" \
+		http_lsref_child 2>stderr &&
+
+	# The invalid ref name should be rejected with a warning
+	git -C http_lsref_child rev-parse refs/remotes/origin/branchwithstuff &&
+	test_grep "remote advertised invalid ref name" stderr
 '
 
 test_expect_success 'fetch with http:// using protocol v2' '
@@ -1318,7 +1395,7 @@ test_expect_success 'packfile URI resumes after a credential challenge' '
 
 test_expect_success 'part of packfile response provided as URI' '
 	P="$HTTPD_DOCUMENT_ROOT_PATH/http_parent" &&
-	rm -rf "$P" http_child log &&
+	rm -rf "$P" http_child log trace2 &&
 
 	git init "$P" &&
 	git -C "$P" config "uploadpack.allowsidebandall" "true" &&
@@ -1333,9 +1410,14 @@ test_expect_success 'part of packfile response provided as URI' '
 	configure_exclusion "$P" other-blob >h2 &&
 
 	GIT_TRACE=1 GIT_TRACE_PACKET="$(pwd)/log" GIT_TEST_SIDEBAND_ALL=1 \
+	GIT_TRACE2_EVENT="$(pwd)/trace2" \
 	git -c protocol.version=2 \
 		-c fetch.uriprotocols=http,https \
 		clone "$HTTPD_URL/smart/http_parent" http_child &&
+
+	test_grep \"event\":\"region_enter\".*\"label\":\"packfile-uris\" trace2 &&
+	test_grep \"key\":\"packfile-uris/count\",\"value\":\"2\" trace2 &&
+	test_grep \"event\":\"region_leave\".*\"label\":\"packfile-uris\" trace2 &&
 
 	# Ensure that my-blob and other-blob are in separate packfiles.
 	for idx in http_child/.git/objects/pack/*.idx

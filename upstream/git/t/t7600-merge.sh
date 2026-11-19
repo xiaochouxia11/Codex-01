@@ -801,6 +801,15 @@ test_expect_success 'fast-forward merge with --autostash' '
 	test_cmp result.1-5 file
 '
 
+test_expect_success 'fast-forward merge with --autostash, stash.index' '
+	git reset --hard c0 &&
+	git stash clear &&
+	echo staged >>z && git add z &&
+	git -c stash.index=true merge --autostash c1 2>err &&
+	test_grep "Applied autostash." err &&
+	test_stdout_line_count = 0 git stash list
+'
+
 test_expect_success 'failed fast-forward merge with --autostash' '
 	git reset --hard c0 &&
 	git merge-file file file.orig file.5 &&
@@ -1049,6 +1058,43 @@ test_expect_success GPG 'merge --no-edit tag should skip editor' '
 	git rev-parse signed^0 >expect &&
 	git rev-parse HEAD^2 >actual &&
 	test_cmp expect actual
+'
+
+test_expect_success GPG 'merge tag with multiple signatures' '
+	git commit --allow-empty -m "A newer commit" &&
+	git tag -s -m "A newer commit" signed_base &&
+
+	OBJECT_ID=$(git rev-parse HEAD) &&
+	git cat-file -p signed_base >base &&
+	HEADERS=$(sed "/^$/q" base) &&
+	BODY=$(sed "1,/^$/d" base) &&
+
+	# Manually craft a tag with multiple signatures. But we
+	# utilize the signature of a valid tag, so that this new tag will
+	# also pass verification.
+	cat >tag-text <<-EOF &&
+	$HEADERS
+	gpgsig -----BEGIN PGP SIGNATURE-----
+	 VGhpcyBpcyBub3QgcmVhbGx5IGEgc2lnbmF0dXJlLg==
+	 -----END PGP SIGNATURE-----
+	gpgsig-sha256 -----BEGIN PGP SIGNATURE-----
+	 VGhpcyBpcyBub3QgcmVhbGx5IGEgc2lnbmF0dXJlLg==
+	 -----END PGP SIGNATURE-----
+	gpgsig-sha256 -----BEGIN PGP SIGNATURE-----
+	 VGhpcyBpcyBub3QgcmVhbGx5IGEgc2lnbmF0dXJlLg==
+	 -----END PGP SIGNATURE-----
+
+	$BODY
+	EOF
+
+	TAG_HASH=$(git hash-object -t tag -w tag-text) &&
+	git update-ref refs/tags/multiple-signs $TAG_HASH &&
+	git reset --hard @~1 &&
+	git merge --no-edit multiple-signs &&
+	git cat-file -p HEAD >actual &&
+	# During the merge of signed tags, validation is done against the
+	# payload after stripping any additional signature.
+	test_grep "Good signature" actual
 '
 
 test_expect_success 'set up mod-256 conflict scenario' '

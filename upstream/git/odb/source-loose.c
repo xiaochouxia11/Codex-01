@@ -12,6 +12,7 @@
 #include "odb/streaming.h"
 #include "oidtree.h"
 #include "path.h"
+#include "progress.h"
 #include "repository.h"
 #include "strbuf.h"
 #include "tempfile.h"
@@ -221,16 +222,6 @@ static enum odb_read_status odb_source_loose_read_object_info(struct odb_source 
 {
 	struct odb_source_loose *loose = odb_source_loose_downcast(source);
 	static struct strbuf buf = STRBUF_INIT;
-
-	/*
-	 * The second read shouldn't cause new loose objects to show up, unless
-	 * there was a race condition with a secondary process. We don't care
-	 * about this case though, so we simply skip reading loose objects a
-	 * second time.
-	 */
-	if (flags & OBJECT_INFO_SECOND_READ)
-		return ODB_READ_NOT_FOUND;
-
 	odb_loose_path(loose, &buf, oid);
 	return read_object_info_from_path(loose, buf.buf, oid, oi, flags, errmsg);
 }
@@ -473,8 +464,6 @@ static int odb_source_loose_for_each_object(struct odb_source *source,
 	/* There are no loose promisor objects, so we can return immediately. */
 	if ((opts->flags & ODB_FOR_EACH_OBJECT_PROMISOR_ONLY))
 		return 0;
-	if ((opts->flags & ODB_FOR_EACH_OBJECT_LOCAL_ONLY) && !source->local)
-		return 0;
 
 	if (opts->prefix)
 		return oidtree_each(odb_source_loose_cache(loose, opts->prefix),
@@ -598,7 +587,7 @@ static int odb_source_loose_freshen_object(struct odb_source *source,
 static void close_loose_object(struct odb_source_loose *loose,
 			       int fd, const char *filename)
 {
-	if (loose->base.will_destroy)
+	if (loose->will_destroy)
 		goto out;
 
 	if (batch_fsync_enabled(FSYNC_COMPONENT_LOOSE_OBJECT))
@@ -984,18 +973,6 @@ static int odb_source_loose_begin_transaction(struct odb_source *source UNUSED,
 	return error("loose source does not support transactions");
 }
 
-static int odb_source_loose_read_alternates(struct odb_source *source UNUSED,
-					    struct strvec *out UNUSED)
-{
-	return 0;
-}
-
-static int odb_source_loose_write_alternate(struct odb_source *source UNUSED,
-					    const char *alternate UNUSED)
-{
-	return error("loose source does not support alternates");
-}
-
 static void odb_source_loose_clear_cache(struct odb_source_loose *loose)
 {
 	oidtree_clear(loose->cache);
@@ -1038,18 +1015,108 @@ static void odb_source_loose_free(struct odb_source *source)
 	free(loose);
 }
 
+struct fsck_loose_data {
+	struct odb_source_loose *source;
+	struct odb_fsck_options *opts;
+	struct progress *progress;
+	bool error_found;
+};
+
+static int fsck_loose(const struct object_id *oid, const char *path,
+		      void *cb_data)
+{
+	struct fsck_loose_data *data = cb_data;
+	enum object_type type = OBJ_NONE;
+	size_t size;
+	void *contents = NULL;
+	int eaten = 0;
+	struct object_info oi = OBJECT_INFO_INIT;
+	struct object_id real_oid = *null_oid(data->source->base.odb->repo->hash_algo);
+	int err = 0;
+
+	oi.sizep = &size;
+	oi.typep = &type;
+
+	if (read_loose_object(data->source->base.odb->repo,
+			      path, oid, &real_oid, &contents, &oi) < 0) {
+		if (contents && !oideq(&real_oid, oid))
+			err = error(_("%s: hash-path mismatch, found at: %s"),
+				    oid_to_hex(&real_oid), path);
+		else
+			err = error(_("%s: object corrupt or missing: %s"),
+				    oid_to_hex(oid), path);
+	}
+	if (err < 0)
+		goto out;
+
+	if (!contents && type != OBJ_BLOB)
+		BUG("read_loose_object streamed a non-blob");
+
+	if (data->opts->object_cb(oid, type, size, contents, &eaten,
+				  data->opts->object_payload)) {
+		err = -1;
+		goto out;
+	}
+
+out:
+	if (err)
+		data->error_found = true;
+	if (!eaten)
+		free(contents);
+	return 0; /* keep checking other objects, even if we saw an error */
+}
+
+static int fsck_cruft(const char *basename, const char *path,
+		      void *data UNUSED)
+{
+	if (!starts_with(basename, "tmp_obj_"))
+		fprintf_ln(stderr, _("bad sha1 file: %s"), path);
+	return 0;
+}
+
+static int fsck_subdir(unsigned int nr, const char *path UNUSED, void *cb_data)
+{
+	struct fsck_loose_data *data = cb_data;
+	display_progress(data->progress, nr + 1);
+	return 0;
+}
+
+static int odb_source_loose_fsck(struct odb_source *source,
+				 struct odb_fsck_options *opts)
+{
+	struct odb_source_loose *loose = odb_source_loose_downcast(source);
+	struct fsck_loose_data data = {
+		.source = loose,
+		.opts = opts,
+	};
+
+	if (opts->flags & ODB_FSCK_VERBOSE)
+		fprintf_ln(stderr, _("Checking object directory"));
+
+	if (opts->flags & ODB_FSCK_PROGRESS)
+		data.progress = start_progress(source->odb->repo,
+					       _("Checking object directories"), 256);
+
+	for_each_loose_file_in_source(source, fsck_loose,
+				      fsck_cruft, fsck_subdir, &data);
+	display_progress(data.progress, 256);
+	stop_progress(&data.progress);
+
+	return data.error_found ? -1 : 0;
+}
+
 struct odb_source_loose *odb_source_loose_new(struct object_database *odb,
-					      const char *path,
-					      bool local)
+					      const char *path)
 {
 	struct odb_source_loose *loose;
 
 	CALLOC_ARRAY(loose, 1);
-	odb_source_init(&loose->base, odb, ODB_SOURCE_LOOSE, path, local);
+	odb_source_init(&loose->base, odb, ODB_SOURCE_LOOSE, path);
 
 	loose->base.free = odb_source_loose_free;
 	loose->base.close = odb_source_loose_close;
 	loose->base.prepare = odb_source_loose_prepare;
+	loose->base.fsck = odb_source_loose_fsck;
 	loose->base.read_object_info = odb_source_loose_read_object_info;
 	loose->base.read_object_stream = odb_source_loose_read_object_stream;
 	loose->base.for_each_object = odb_source_loose_for_each_object;
@@ -1059,8 +1126,6 @@ struct odb_source_loose *odb_source_loose_new(struct object_database *odb,
 	loose->base.write_object = odb_source_loose_write_object;
 	loose->base.write_object_stream = odb_source_loose_write_object_stream;
 	loose->base.begin_transaction = odb_source_loose_begin_transaction;
-	loose->base.read_alternates = odb_source_loose_read_alternates;
-	loose->base.write_alternate = odb_source_loose_write_alternate;
 
 	if (!is_absolute_path(loose->base.path))
 		chdir_notify_register(odb_source_loose_reparent, loose);

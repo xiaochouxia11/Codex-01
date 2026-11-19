@@ -374,6 +374,48 @@ test_expect_success 'stash apply -q --index refreshes the index' '
 	test_cmp expect actual
 '
 
+test_expect_success 'stash apply --index leaves everything untouched on failure' '
+	git reset --hard &&
+	echo test >other-file &&
+	git add other-file &&
+	git stash &&
+	echo unrelated >file &&
+	echo unrelated >another-file &&
+	git add another-file &&
+	echo conflict >other-file &&
+	git add other-file &&
+	git diff-files -p >expect &&
+	git diff-index --cached HEAD >expect-index &&
+
+	test_must_fail git stash apply --index 2>err &&
+	test_grep "conflicts in index. Try without --index" err &&
+	git diff-files -p >actual &&
+	test_cmp expect actual &&
+	git diff-index --cached HEAD >actual-index &&
+	test_cmp expect-index actual-index
+'
+
+# the later "stash -k" test is not expecting us to muck with file so much, so
+# reset when finished
+test_expect_success 'stash apply --index merges the correct trees' '
+	head=$(git rev-parse HEAD) &&
+	test_when_finished "git reset --hard $head" &&
+	test_write_lines A B C >file &&
+	git commit -m setup file &&
+	test_write_lines A B staged >file &&
+	git add file &&
+	test_write_lines A B unstaged >file &&
+	git stash &&
+	test_write_lines committed B C >file &&
+	git commit -m to-be-merged file &&
+	git stash pop --index &&
+	git show :file >actual &&
+	test_write_lines committed B staged >expect &&
+	test_cmp expect actual &&
+	test_write_lines committed B unstaged >expect &&
+	test_cmp expect file
+'
+
 test_expect_success 'stash -k' '
 	echo bar3 >file &&
 	echo bar4 >file2 &&
@@ -777,6 +819,23 @@ test_expect_success 'stash show --patience shows diff' '
 	+foo
 	EOF
 	git stash show --patience ${STASH_ID} >actual &&
+	diff_cmp expected actual
+'
+
+test_expect_success 'stash show supports prefixes' '
+	git reset --hard &&
+	echo foo >>file &&
+	git stash &&
+	cat >expected <<-\EOF &&
+	diff --git foo/file bar/file
+	index 7601807..71b52c4 100644
+	--- foo/file
+	+++ bar/file
+	@@ -1 +1,2 @@
+	 baz
+	+foo
+	EOF
+	git stash show --src-prefix=foo/ --dst-prefix=bar/ >actual &&
 	diff_cmp expected actual
 '
 
@@ -1791,13 +1850,13 @@ test_expect_success 'stash.index=false overridden by --index' '
 	test_cmp expect file
 '
 
-test_expect_success 'apply with custom conflict labels' '
+test_expect_success 'apply exits 1 on conflicts' '
 	git reset --hard initial &&
 	test_commit label-base conflict-file base-content &&
 	echo stashed >conflict-file &&
 	git stash push -m "stashed" &&
 	test_commit label-upstream conflict-file upstream-content &&
-	test_must_fail git -c merge.conflictStyle=diff3 stash apply --label-ours=UP --label-theirs=STASH &&
+	test_expect_code 1 git -c merge.conflictStyle=diff3 stash apply --label-ours=UP --label-theirs=STASH &&
 	test_grep "^<<<<<<< UP" conflict-file &&
 	test_grep "^||||||| Stash base" conflict-file &&
 	test_grep "^>>>>>>> STASH" conflict-file
@@ -1809,9 +1868,28 @@ test_expect_success 'apply with empty conflict labels' '
 	echo stashed >conflict-file &&
 	git stash push -m "stashed" &&
 	test_commit empty-label-upstream conflict-file upstream-content &&
-	test_must_fail git stash apply --label-ours= --label-theirs= &&
+	test_expect_code 1 git stash apply --label-ours= --label-theirs= &&
 	test_grep "^<<<<<<<$" conflict-file &&
 	test_grep "^>>>>>>>$" conflict-file
+'
+
+test_expect_success 'pop exits 1 on conflicts and keeps the stash entry' '
+	git reset --hard initial &&
+	echo stashed >file &&
+	git stash push -m pop-stashed &&
+	test_commit pop-upstream file upstream-content &&
+	test_expect_code 1 git stash pop &&
+	git stash list >list &&
+	test_grep pop-stashed list
+'
+
+test_expect_success 'stash branch exits with a non-1 status on errors' '
+	git reset --hard initial &&
+	echo stashed >file &&
+	git stash push -m branch-stashed &&
+	test_expect_code 128 git stash branch conflicting-branch refs/heads/does-not-exist &&
+	git stash list >list &&
+	test_grep branch-stashed list
 '
 
 test_expect_success 'stash show --include-untracked includes untracked files' '

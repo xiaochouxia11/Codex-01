@@ -113,6 +113,8 @@ pack may include additional objects based on the following:
 This mode is useful, for example, to resurrect once-unreachable
 objects found in cruft packs to generate packs which are closed under
 reachability up to the boundary set by the excluded packs.
+Trees and tags in included or `!` packs are followed even when no
+commit reaches them, as are loose trees and tags with `--unpacked`.
 +
 Incompatible with `--revs`, or options that imply `--revs` (such as
 `--all`), with the exception of `--unpacked`, which is compatible.
@@ -369,8 +371,8 @@ raise an error.
 	Keep unreachable objects in loose form. This implies `--revs`.
 
 --delta-islands::
-	Restrict delta matches based on "islands". See DELTA ISLANDS
-	below.
+	Restrict delta matches based on "islands".
+	See <<DELTA_ISLANDS,DELTA ISLANDS>> below.
 
 --name-hash-version=<n>::
 	While performing delta compression, Git groups objects that may be
@@ -417,6 +419,7 @@ request. The `--path-walk` option supports the `--filter=<spec>` forms
 `combine:<spec>+<spec>` form.
 
 
+[[DELTA_ISLANDS]]
 DELTA ISLANDS
 -------------
 

@@ -385,42 +385,28 @@ out:
 	return should_prune;
 }
 
-static int maintenance_task_rerere_gc(struct maintenance_run_opts *opts UNUSED,
+static int maintenance_task_rerere_gc(struct maintenance_run_opts *opts,
 				      struct gc_config *cfg UNUSED)
 {
 	struct child_process rerere_cmd = CHILD_PROCESS_INIT;
 	rerere_cmd.git_cmd = 1;
 	strvec_pushl(&rerere_cmd.args, "rerere", "gc", NULL);
+	if (opts->auto_flag)
+		strvec_push(&rerere_cmd.args, "--skip-locked");
 	return run_command(&rerere_cmd);
 }
 
 static int rerere_gc_condition(struct gc_config *cfg UNUSED)
 {
-	struct strbuf path = STRBUF_INIT;
-	int should_gc = 0, limit = 1;
-	DIR *dir = NULL;
+	int limit = 512;
 
 	repo_config_get_int(the_repository, "maintenance.rerere-gc.auto", &limit);
-	if (limit <= 0) {
-		should_gc = limit < 0;
-		goto out;
-	}
+	if (!limit)
+		return 0; /* never prune */
+	if (limit < 0)
+		return 1; /* always prune */
 
-	/*
-	 * We skip garbage collection in case we either have no "rr-cache"
-	 * directory or when it doesn't contain at least one entry.
-	 */
-	repo_git_path_replace(the_repository, &path, "rr-cache");
-	dir = opendir(path.buf);
-	if (!dir)
-		goto out;
-	should_gc = !!readdir_skip_dot_and_dotdot(dir);
-
-out:
-	strbuf_release(&path);
-	if (dir)
-		closedir(dir);
-	return should_gc;
+	return rerere_gc_needed(the_repository, (size_t)limit);
 }
 
 #define OPTIMIZE_FIELDS_FROM_GC_CONFIG(cfg, aggressive) \
@@ -749,7 +735,8 @@ int cmd_gc(int argc,
 	}
 
 	if (the_repository->settings.gc_write_commit_graph == 1)
-		write_commit_graph_reachable(the_repository->objects->sources,
+		write_commit_graph_reachable(the_repository,
+					     the_repository->objects->source->path,
 					     !opts.quiet && !daemonized ? COMMIT_GRAPH_WRITE_PROGRESS : 0,
 					     NULL);
 
@@ -1013,7 +1000,7 @@ static int loose_object_auto_condition(struct gc_config *cfg UNUSED)
 	if (loose_object_auto_limit < 0)
 		return 1;
 
-	return for_each_loose_file_in_source(the_repository->objects->sources,
+	return for_each_loose_file_in_source(the_repository->objects->source,
 					     loose_object_count,
 					     NULL, NULL, &count);
 }
@@ -1048,7 +1035,7 @@ static int pack_loose(struct maintenance_run_opts *opts)
 	 * Do not start pack-objects process
 	 * if there are no loose objects.
 	 */
-	if (!for_each_loose_file_in_source(r->objects->sources,
+	if (!for_each_loose_file_in_source(r->objects->source,
 					   bail_on_loose,
 					   NULL, NULL, NULL))
 		return 0;
@@ -1060,7 +1047,7 @@ static int pack_loose(struct maintenance_run_opts *opts)
 		strvec_push(&pack_proc.args, "--quiet");
 	else
 		strvec_push(&pack_proc.args, "--no-quiet");
-	strvec_pushf(&pack_proc.args, "%s/pack/loose", r->objects->sources->path);
+	strvec_pushf(&pack_proc.args, "%s/pack/loose", r->objects->source->path);
 
 	pack_proc.in = -1;
 
@@ -1088,7 +1075,7 @@ static int pack_loose(struct maintenance_run_opts *opts)
 	else if (data.batch_size > 0)
 		data.batch_size--; /* Decrease for equality on limit. */
 
-	for_each_loose_file_in_source(r->objects->sources,
+	for_each_loose_file_in_source(r->objects->source,
 				      write_loose_object_to_stdin,
 				      NULL, NULL, &data);
 
@@ -1411,7 +1398,7 @@ static int maintenance_run_tasks(struct maintenance_run_opts *opts,
 	int result = 0;
 	struct lock_file lk;
 	struct repository *r = the_repository;
-	char *lock_path = xstrfmt("%s/maintenance", r->objects->sources->path);
+	char *lock_path = xstrfmt("%s/maintenance", r->objects->source->path);
 	enum auto_gc_hook_result auto_gc_hook_result = AUTO_GC_HOOK_UNDECIDED;
 
 	if (repo_hold_lock_file_for_update(r, &lk, lock_path, LOCK_NO_DEREF) < 0) {
@@ -2987,7 +2974,7 @@ static int update_background_schedule(const struct maintenance_start_opts *opts,
 	unsigned int i;
 	int result = 0;
 	struct lock_file lk;
-	char *lock_path = xstrfmt("%s/schedule", the_repository->objects->sources->path);
+	char *lock_path = xstrfmt("%s/schedule", the_repository->objects->source->path);
 
 	if (hold_lock_file_for_update(&lk, lock_path, LOCK_NO_DEREF) < 0) {
 		if (errno == EEXIST)

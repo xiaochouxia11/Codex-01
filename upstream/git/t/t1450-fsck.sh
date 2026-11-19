@@ -548,7 +548,7 @@ test_expect_success 'rev-list --verify-objects with truncated loose blob' '
 		# Truncate the loose blob such that its header can still be
 		# parsed, but reading the object data fails mid-stream.
 		test_copy_bytes 64 <"$obj" >obj.tmp &&
-		mv obj.tmp "$obj" &&
+		mv -f obj.tmp "$obj" &&
 
 		test_must_fail git rev-list --verify-objects "$blob" 2>err &&
 		test_grep "hash mismatch" err
@@ -844,6 +844,11 @@ test_expect_success 'alternate objects are correctly blamed' '
 	echo "../../alt.git/objects" >.git/objects/info/alternates &&
 	mkdir alt.git/objects/$(dirname $path) &&
 	>alt.git/objects/$(dirname $path)/$(basename $path) &&
+
+	# Without "--full", only the local object source is checked.
+	git fsck --no-full >out 2>&1 &&
+	test_must_be_empty out &&
+
 	test_must_fail git fsck >out 2>&1 &&
 	test_grep alt.git out
 '
@@ -1145,6 +1150,19 @@ test_expect_success 'fsck reports problems in current worktree index without fil
 	missing blob $blob (:file)
 	EOF
 	test_cmp expect actual
+'
+
+test_expect_success 'fsck with blob size equal to core.bigFileThreshold' '
+	test_when_finished rm -rf big-blob-fsck &&
+	git init big-blob-fsck &&
+	(
+		cd big-blob-fsck &&
+		test-tool genzeros 1024 >blob &&
+		git add blob &&
+		git commit -m "blob equal to threshold" &&
+		git repack -ad &&
+		git -c core.bigFileThreshold=1k fsck --no-dangling
+	)
 '
 
 test_done

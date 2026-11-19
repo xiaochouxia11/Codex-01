@@ -223,9 +223,13 @@ explicitly.
 	Pretend as if all objects mentioned as ref tips of alternate
 	repositories were listed on the command line. An alternate
 	repository is any repository whose object directory is specified
-	in `objects/info/alternates`.  The set of included objects may
-	be modified by `core.alternateRefsCommand`, etc. See
-	linkgit:git-config[1].
+	in `objects/info/alternates`.  The refs of shallow and grafted
+	alternate repositories are ignored, as the history behind them
+	may be missing.  The repository's own object directory does not
+	count, even when it is passed in as an alternate, as happens
+	inside the object quarantine of	linkgit:git-receive-pack[1].
+	The set of included objects may be modified by
+	`core.alternateRefsCommand`, etc. See linkgit:git-config[1].
 
 `--single-worktree`::
 	By default, all working trees will be examined by the
@@ -1083,12 +1087,31 @@ If some tips passed to the traversal are missing, they will be
 considered as missing too, and the traversal will ignore them. In case
 we cannot get their Object ID though, an error will be raised.
 
+`--missing-only`::
+	When used together with `--missing=print` or `--missing=print-info`,
+	suppress all output for present objects and print only the missing
+	ones.  The selected `--missing=` format is preserved (so
+	`--missing=print-info` still emits `path=` / `type=` fields), but the
+	leading ``?'' prefix used by the non-`-z` forms is omitted.  This is
+	useful for scripting, as a simpler and faster alternative to
+	post-processing the output of `--missing=print`.
++
+This option is incompatible with `--count` and `--disk-usage`.
+It is an error to use `--missing-only` without `--missing=print` or
+`--missing=print-info`.
+
 `--exclude-promisor-objects`::
 	(For internal use only.)  Prefilter object traversal at
 	promisor boundary.  This is used with partial clone.  This is
 	stronger than `--missing=allow-promisor` because it limits the
 	traversal, rather than just silencing errors about missing
 	objects.
+
+`--connectivity-check=(full|incremental|auto[=<cutoff>])`::
+	(For internal use only.)  Used by `check_connected()` to
+	select the connectivity check algorithm; see
+	`transfer.connectivityCheck` in linkgit:git-config[1].
+	Replacement objects are ignored, as with `--no-replace-objects`.
 endif::git-rev-list[]
 
 `--no-walk[=(sorted|unsorted)]`::

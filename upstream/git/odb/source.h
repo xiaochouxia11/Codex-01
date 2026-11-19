@@ -37,45 +37,26 @@ struct odb_stream;
 struct strbuf;
 struct strvec;
 
+struct odb_create_on_disk_options {
+	/*
+	 * Alternates that shall be written into the newly created object
+	 * database. Whether or not this option can be handled is specific to
+	 * the backend.
+	 */
+	const struct strvec *alternates;
+};
+
 /*
  * The source is the part of the object database that stores the actual
  * objects. It thus encapsulates the logic to read and write the specific
- * on-disk format. An object database can have multiple sources:
- *
- *   - The primary source, which is typically located in "$GIT_DIR/objects".
- *     This is where new objects are usually written to.
- *
- *   - Alternate sources, which are configured via "objects/info/alternates" or
- *     via the GIT_ALTERNATE_OBJECT_DIRECTORIES environment variable. These
- *     alternate sources are only used to read objects.
+ * on-disk format.
  */
 struct odb_source {
-	struct odb_source *next;
-
-	/*
-	 * Entry in the object database's map of sources, keyed by this
-	 * source's path.
-	 */
-	struct hashmap_entry by_path_entry;
-
 	/* Object database that owns this object source. */
 	struct object_database *odb;
 
 	/* The type used by this source. */
 	enum odb_source_type type;
-
-	/*
-	 * Figure out whether this is the local source of the owning
-	 * repository, which would typically be its ".git/objects" directory.
-	 * This local object directory is usually where objects would be
-	 * written to.
-	 */
-	bool local;
-
-	/*
-	 * This object store is ephemeral, so there is no need to fsync.
-	 */
-	int will_destroy;
 
 	/*
 	 * Path to the source. If this is a relative path, it is relative to
@@ -107,7 +88,8 @@ struct odb_source {
 	 * This callback may be NULL in case the source does not need any
 	 * on-disk setup.
 	 */
-	int (*create_on_disk)(struct odb_source *source);
+	int (*create_on_disk)(struct odb_source *source,
+			      const struct odb_create_on_disk_options *opts);
 
 	/*
 	 * This callback is expected to prepare the source so that it becomes
@@ -128,13 +110,6 @@ struct odb_source {
 	 *
 	 *   - `OBJECT_INFO_QUICK` indicates it is fine to use caches without
 	 *     re-verifying the data.
-	 *
-	 *   - `OBJECT_INFO_SECOND_READ` indicates that the initial object
-	 *     lookup has failed and that the object sources should check
-	 *     whether any of its on-disk state has changed that may have
-	 *     caused the object to appear. Sources are free to ignore the
-	 *     second read in case they know that the first read would have
-	 *     already surfaced the object without reloading any on-disk state.
 	 *
 	 * The callback is expected to return an `enum odb_read_status`. Please
 	 * refer to the individual values that can be returned. In case reading
@@ -269,32 +244,6 @@ struct odb_source {
 				 enum odb_transaction_flags flags);
 
 	/*
-	 * This callback is expected to read the list of alternate object
-	 * database sources connected to it and write them into the `strvec`.
-	 *
-	 * The result is expected to be paths to the alternates. All paths must
-	 * be resolved to absolute paths.
-	 *
-	 * The callback is expected to return 0 on success, a negative error
-	 * code otherwise.
-	 */
-	int (*read_alternates)(struct odb_source *source,
-			       struct strvec *out);
-
-	/*
-	 * This callback is expected to persist the singular alternate passed
-	 * to it into its list of alternates. Any pre-existing alternates are
-	 * expected to remain active. Subsequent calls to `read_alternates` are
-	 * thus expected to yield the pre-existing list of alternates plus the
-	 * newly added alternate appended to its end.
-	 *
-	 * The callback is expected to return 0 on success, a negative error
-	 * code otherwise.
-	 */
-	int (*write_alternate)(struct odb_source *source,
-			       const char *alternate);
-
-	/*
 	 * This callback is expected to optimize the object database source.
 	 * Returns 0 on success, a negative error code otherwise.
 	 */
@@ -325,21 +274,31 @@ struct odb_source {
 	int (*generate_pack)(struct odb_source *source,
 			     struct odb_pack_generator **out,
 			     const struct odb_generate_pack_options *opts);
+
+	/*
+	 * This callback is expected to check the integrity of the object source
+	 * and report any errors found via the fsck options. The checks performed
+	 * are backend-specific.
+	 *
+	 * The callback is expected to return 0 on success, a negative error
+	 * code otherwise.
+	 */
+	int (*fsck)(struct odb_source *source,
+		    struct odb_fsck_options *options);
 };
 
 /*
- * Allocate and initialize a new source for the given object database located
- * at `path`. `local` indicates whether or not the source is the local and thus
- * primary object source of the object database.
+ * Allocate and initialize a new source for the given object database. The path
+ * of the source is derived from repository paths or from the object storage
+ * format.
  */
 struct odb_source *odb_source_new(struct object_database *odb,
-				  const char *path,
-				  bool local);
+				  enum object_storage_format format,
+				  const char *payload,
+				  enum odb_new_flags flags);
 
 /*
  * Initialize the source for the given object database located at `path`.
- * `local` indicates whether or not the source is the local and thus primary
- * object source of the object database.
  *
  * This function is only supposed to be called by specific object source
  * implementations.
@@ -347,8 +306,7 @@ struct odb_source *odb_source_new(struct object_database *odb,
 void odb_source_init(struct odb_source *source,
 		     struct object_database *odb,
 		     enum odb_source_type type,
-		     const char *path,
-		     bool local);
+		     const char *path);
 
 /*
  * Free the object database source, releasing all associated resources and
@@ -378,11 +336,12 @@ static inline void odb_source_close(struct odb_source *source)
  * Create on-disk data structures that are required for this source to operate
  * correctly. Returns 0 on success, a negative error code otherwise.
  */
-static inline int odb_source_create_on_disk(struct odb_source *source)
+static inline int odb_source_create_on_disk(struct odb_source *source,
+					    const struct odb_create_on_disk_options *opts)
 {
 	if (!source->create_on_disk)
 		return 0;
-	return source->create_on_disk(source);
+	return source->create_on_disk(source, opts);
 }
 
 /*
@@ -521,33 +480,6 @@ static inline int odb_source_write_object_stream(struct odb_source *source,
 }
 
 /*
- * Read the list of alternative object database sources from the given backend
- * and populate the `strvec` with them. The listing is not recursive -- that
- * is, if any of the yielded alternate sources has alternates itself, those
- * will not be yielded as part of this function call.
- *
- * Return 0 on success, a negative error code otherwise.
- */
-static inline int odb_source_read_alternates(struct odb_source *source,
-					     struct strvec *out)
-{
-	return source->read_alternates(source, out);
-}
-
-/*
- * Write and persist a new alternate object database source for the given
- * source. Any preexisting alternates are expected to stay valid, and the new
- * alternate shall be appended to the end of the list.
- *
- * Returns 0 on success, a negative error code otherwise.
- */
-static inline int odb_source_write_alternate(struct odb_source *source,
-					      const char *alternate)
-{
-	return source->write_alternate(source, alternate);
-}
-
-/*
  * Create a new transaction that can be used to write objects into a temporary
  * staging area. The objects will only be persisted when the transaction is
  * committed.
@@ -596,6 +528,16 @@ static inline int odb_source_generate_pack(struct odb_source *source,
 					   const struct odb_generate_pack_options *opts)
 {
 	return source->generate_pack(source, out, opts);
+}
+
+/*
+ * Check the integrity of the object database source. The checks performed
+ * are backend-specific. Returns 0 on success, a negative error code otherwise.
+ */
+static inline int odb_source_fsck(struct odb_source *source,
+				  struct odb_fsck_options *opts)
+{
+	return source->fsck(source, opts);
 }
 
 #endif

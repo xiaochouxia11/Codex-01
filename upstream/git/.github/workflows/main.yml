@@ -5,18 +5,20 @@ on: [push, pull_request]
 env:
   DEVELOPER: 1
 
-# If more than one workflow run is triggered for the very same commit hash
-# (which happens when multiple branches pointing to the same commit), only
-# the first one is allowed to run, the second will be kept in the "queued"
-# state. This allows a successful completion of the first run to be reused
-# in the second run via the `skip-if-redundant` logic in the `config` job.
+# For pull requests, only the latest workflow run is allowed to proceed.
+# Older runs are canceled when a new revision is pushed.
 #
-# The only caveat is that if a workflow run is triggered for the same commit
-# hash that another run is already being held, that latter run will be
-# canceled. For more details about the `concurrency` attribute, see:
+# For pushes, if more than one workflow run is triggered for the very same
+# commit hash (which happens when multiple branches point to the same commit),
+# only the first one is allowed to run. This allows a successful completion of
+# the first run to be reused in the second run via the `skip-if-redundant`
+# logic in the `config` job.
+#
+# For more details about the `concurrency` attribute, see:
 # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#concurrency
 concurrency:
-  group: ${{ github.sha }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   ci-config:
@@ -113,9 +115,31 @@ jobs:
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     steps:
     - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-    - uses: git-for-windows/setup-git-for-windows-sdk@aed153d1258c311b680b81584a72a1a4807401f0 # v2.2.1
-      with:
-        architecture: mingw64
+    - uses: git-for-windows/setup-git-for-windows-sdk@aed153d1258c311b680b81584a72a1a4807401f0 # v2
+    - name: Install GCC-compatible Rust target
+      shell: bash
+      run: |
+        # The hosted Windows runners ship a rustup-managed Rust whose
+        # default toolchain targets the MSVC ABI. That produces a
+        # `gitcore.lib` which the MinGW GCC used by the rest of the
+        # build cannot link. Install the precompiled `std` for a
+        # GCC-compatible target triple matching the MSYS2 subsystem;
+        # the Makefile selects the same triple via $(MSYSTEM) and
+        # passes it to `cargo build --target`.
+        case "$MSYSTEM" in
+        CLANGARM64) target=aarch64-pc-windows-gnullvm ;;
+        CLANG64)    target=x86_64-pc-windows-gnullvm  ;;
+        CLANG32)    target=i686-pc-windows-gnullvm    ;;
+        UCRT64)     target=x86_64-pc-windows-gnu      ;;
+        MINGW64)    target=x86_64-pc-windows-gnu      ;;
+        MINGW32)    target=i686-pc-windows-gnu        ;;
+        *) echo "::error::Unsupported MSYSTEM: $MSYSTEM"; exit 1 ;;
+        esac &&
+        rustup target add "$target" &&
+
+        # Ensure that cargo.exe is found even with the minimal SDK's restricted PATH
+        CARGO="$(type -p cargo.exe)" &&
+        echo "export PATH=\$PATH:${CARGO%/cargo.exe}" >>/etc/profile
     - name: build
       shell: bash
       env:
@@ -149,9 +173,7 @@ jobs:
     - name: extract tracked files and build artifacts
       shell: bash
       run: tar xf artifacts.tar.gz && tar xf tracked.tar.gz
-    - uses: git-for-windows/setup-git-for-windows-sdk@aed153d1258c311b680b81584a72a1a4807401f0 # v2.2.1
-      with:
-        architecture: mingw64
+    - uses: git-for-windows/setup-git-for-windows-sdk@aed153d1258c311b680b81584a72a1a4807401f0 # v2
     - name: test
       shell: bash
       run: . /etc/profile && ci/run-test-slice.sh $((${{matrix.nr}} + 1)) 10
@@ -178,9 +200,7 @@ jobs:
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     steps:
     - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-    - uses: git-for-windows/setup-git-for-windows-sdk@aed153d1258c311b680b81584a72a1a4807401f0 # v2.2.1
-      with:
-        architecture: mingw64
+    - uses: git-for-windows/setup-git-for-windows-sdk@aed153d1258c311b680b81584a72a1a4807401f0 # v2
     - name: initialize vcpkg
       uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       with:
@@ -230,9 +250,7 @@ jobs:
       group: vs-test-${{ matrix.nr }}-${{ github.ref }}
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     steps:
-    - uses: git-for-windows/setup-git-for-windows-sdk@aed153d1258c311b680b81584a72a1a4807401f0 # v2.2.1
-      with:
-        architecture: mingw64
+    - uses: git-for-windows/setup-git-for-windows-sdk@aed153d1258c311b680b81584a72a1a4807401f0 # v2
     - name: download tracked files and build artifacts
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
       with:
@@ -331,16 +349,16 @@ jobs:
         vector:
           - jobname: osx-clang
             cc: clang
-            pool: macos-14
+            pool: macos-15
           - jobname: osx-reftable
             cc: clang
-            pool: macos-14
+            pool: macos-26
           - jobname: osx-gcc
             cc: gcc-13
-            pool: macos-14
+            pool: macos-26
           - jobname: osx-meson
             cc: clang
-            pool: macos-14
+            pool: macos-15
     env:
       CC: ${{matrix.vector.cc}}
       CC_PACKAGE: ${{matrix.vector.cc_package}}
@@ -387,13 +405,8 @@ jobs:
         - jobname: linux-sha256
           image: ubuntu:rolling
           cc: clang
-        - jobname: linux-reftable
-          image: ubuntu:rolling
-          cc: clang
-        - jobname: linux-TEST-vars
-          image: ubuntu:20.04
-          cc: gcc
-          cc_package: gcc-8
+        - jobname: linux-feature-testbed
+          image: ubuntu:latest
         - jobname: linux-breaking-changes
           cc: gcc
           image: ubuntu:rolling
@@ -413,9 +426,8 @@ jobs:
           cc: gcc
         - jobname: linux-musl-meson
           image: alpine:latest
-        # Supported until 2025-04-02.
         - jobname: linux32
-          image: i386/ubuntu:20.04
+          image: i386/debian:latest
         # A RHEL 8 compatible distro.  Supported until 2029-05-31.
         - jobname: almalinux-8
           image: almalinux:8
@@ -427,14 +439,16 @@ jobs:
       CC: ${{matrix.vector.cc}}
       CI_JOB_IMAGE: ${{matrix.vector.image}}
       CUSTOM_PATH: /custom
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ matrix.vector.jobname == 'linux32'
+          && 'ubuntu-24.04' || 'ubuntu-latest' }}
     container:
       image: ${{ matrix.vector.image }}
       options: ${{ github.repository_visibility == 'private' && '--pids-limit 16384 --ulimit nproc=16384:16384 --ulimit nofile=32768:32768' || '' }}
     steps:
     - name: prepare libc6 for actions
       if: matrix.vector.jobname == 'linux32'
-      run: apt -q update && apt -q -y install libc6-amd64 lib64stdc++6
+      run: apt-get -q update && apt-get -q -y install libc6-amd64 lib64stdc++6
     - name: install git in container
       run: |
         if command -v git
