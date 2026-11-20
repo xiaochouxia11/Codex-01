@@ -569,6 +569,36 @@ func (worker *Worker) syncVMs(
 		switch action {
 		case ActionCreate:
 			// Remote VM was created, but not the local VM
+			if vmResource.PowerState == v1.PowerStateStopped || vmResource.PowerState == v1.PowerStateSuspended {
+				if vmResource.ObservedGeneration == vmResource.Generation &&
+					v1.ConditionIsFalse(vmResource.Conditions, v1.ConditionTypeRunning) {
+					continue
+				}
+
+				// A launch from a previous worker may still be waiting on this disk.
+				exists, err := worker.hasLocalVMDisk(onDiskName)
+				if err != nil {
+					worker.logger.Warnf("cannot check pending VM %s: %v", onDiskName, err)
+					continue
+				}
+
+				if exists {
+					continue
+				}
+
+				vmResource.ObservedGeneration = vmResource.Generation
+				v1.ConditionsSet(&vmResource.Conditions, v1.Condition{
+					Type:  v1.ConditionTypeRunning,
+					State: v1.ConditionStateFalse,
+				})
+
+				if err := updateVM(ctx, *vmResource); err != nil {
+					return err
+				}
+
+				continue
+			}
+
 			if hasUnaccountedRecoveredVM {
 				worker.logger.Warnf("deferring VM %s while recovered VMs are missing from controller inventory",
 					onDiskName)
@@ -670,6 +700,15 @@ func (worker *Worker) syncVMs(
 				return err
 			}
 		}
+	}
+
+	// A disk can outlive both its controller resource and its local VM handle.
+	stopTimeout := time.Duration(worker.vmStopTimeoutSeconds) * time.Second
+	cleanupCtx, cancel := context.WithTimeout(ctx, onDiskVMSyncTimeout+stopTimeout)
+	defer cancel()
+
+	if err := worker.syncOnDiskVMs(cleanupCtx); err != nil {
+		worker.logger.Warnf("failed to sync on-disk VMs: %v", err)
 	}
 
 	return nil
@@ -854,6 +893,14 @@ func shouldPreserveRecoveredVM(
 	delete(recoveredVMs, onDiskName)
 
 	return false
+}
+
+func (worker *Worker) hasLocalVMDisk(onDiskName ondiskname.OnDiskName) (bool, error) {
+	if worker.runtime.Synthetic() {
+		return false, nil
+	}
+
+	return vmmanager.DiskExists(onDiskName, string(worker.runtime.ID()))
 }
 
 func (worker *Worker) listOnDiskVMs(ctx context.Context) ([]vmmanager.VMInfo, error) {
