@@ -6453,14 +6453,14 @@
             {
               "title": "Create a WebRTC session",
               "request": {
-                "curl": "curl https://api.openai.com/v1/live/sessions \\\n  -H \"Authorization: Bearer $OPENAI_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"session\":{\"model\":\"gpt-live-1\",\"instructions\":\"Be concise. Ask for clarification when needed.\"},\"transport\":{\"type\":\"webrtc\",\"sdp\":\"<SDP offer>\"}}'"
+                "curl": "curl https://api.openai.com/v1/live/sessions \\\n  -H \"Authorization: Bearer $OPENAI_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"session\":{\"model\":\"gpt-live-1.1\",\"instructions\":\"Be concise. Ask for clarification when needed.\"},\"transport\":{\"type\":\"webrtc\",\"sdp\":\"<SDP offer>\"}}'"
               },
               "response": "{\"session\":{\"id\":\"live_123\"},\"transport\":{\"type\":\"webrtc\",\"sdp\":\"<SDP answer>\"}}"
             },
             {
               "title": "Place an outbound SIP call",
               "request": {
-                "curl": "# Export SIP_USERNAME and SIP_PASSWORD in your environment first.\njq -n '{\n    \"session\": {\n      \"model\": \"gpt-live-1\",\n      \"instructions\": \"Help the user schedule an appointment.\",\n      \"audio\": { \"output\": { \"voice\": \"marin\" } },\n      \"delegation\": { \"type\": \"client\" }\n    },\n    \"transport\": {\n      \"type\": \"sip\",\n      \"destination\": \"+14155550123\",\n      \"trunk\": {\n        \"provider_url\": \"sips:sip.example.com:5061\",\n        \"auth\": {\n          \"type\": \"digest\",\n          \"username\": env.SIP_USERNAME,\n          \"password\": env.SIP_PASSWORD\n        },\n        \"caller_number\": \"+14155550100\"\n      }\n    }\n  }' | curl https://api.openai.com/v1/live/sessions \\\n    -H \"Authorization: Bearer $OPENAI_API_KEY\" \\\n    -H \"Content-Type: application/json\" \\\n    --data-binary @-"
+                "curl": "# Export SIP_USERNAME and SIP_PASSWORD in your environment first.\njq -n '{\n    \"session\": {\n      \"model\": \"gpt-live-1.1\",\n      \"instructions\": \"Help the user schedule an appointment.\",\n      \"audio\": { \"output\": { \"voice\": \"marin\" } },\n      \"delegation\": { \"type\": \"client\" }\n    },\n    \"transport\": {\n      \"type\": \"sip\",\n      \"destination\": \"+14155550123\",\n      \"trunk\": {\n        \"provider_url\": \"sips:sip.example.com:5061\",\n        \"auth\": {\n          \"type\": \"digest\",\n          \"username\": env.SIP_USERNAME,\n          \"password\": env.SIP_PASSWORD\n        },\n        \"caller_number\": \"+14155550100\"\n      }\n    }\n  }' | curl https://api.openai.com/v1/live/sessions \\\n    -H \"Authorization: Bearer $OPENAI_API_KEY\" \\\n    -H \"Content-Type: application/json\" \\\n    --data-binary @-"
               },
               "response": "{\"session\":{\"id\":\"live_123\"},\"transport\":{\"type\":\"sip\"}}"
             }
@@ -7417,11 +7417,8 @@
                     },
                     "object": {
                       "type": "string",
-                      "enum": [
-                        "organization.admin_api_key.deleted"
-                      ],
-                      "example": "organization.admin_api_key.deleted",
-                      "x-stainless-const": true
+                      "const": "organization.admin_api_key.deleted",
+                      "example": "organization.admin_api_key.deleted"
                     },
                     "deleted": {
                       "type": "boolean",
@@ -36673,11 +36670,8 @@
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "organization.admin_api_key"
-            ],
-            "description": "The object type, which is always `organization.admin_api_key`",
-            "x-stainless-const": true
+            "const": "organization.admin_api_key",
+            "description": "The object type, which is always `organization.admin_api_key`"
           },
           "id": {
             "type": "string",
@@ -36809,11 +36803,8 @@
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "list"
-            ],
-            "example": "list",
-            "x-stainless-const": true
+            "const": "list",
+            "example": "list"
           },
           "data": {
             "type": "array",
@@ -43103,7 +43094,7 @@
             "maximum": 128,
             "default": 1,
             "example": 1,
-            "description": "How many completions to generate for each prompt. Omit `n` to generate one completion per prompt. Newer models reject an explicit `n`, even `n=1`.\n\n**Note:** Because this parameter generates many completions, it can quickly consume your token quota. Use carefully and ensure that you have reasonable settings for `max_tokens` and `stop`.\n"
+            "description": "How many completions to generate for each prompt. Omit `n` to generate one completion per prompt.\n\n**Note:** Because this parameter generates many completions, it can quickly consume your token quota. Use carefully and ensure that you have reasonable settings for `max_tokens` and `stop`.\n"
           },
           "presence_penalty": {
             "type": [
@@ -47773,9 +47764,8 @@
               }
             ],
             "x-oaiTypeLabel": "string",
-            "default": "gpt-image-2.5-sunburst",
-            "example": "gpt-image-2.5-sunburst",
-            "description": "The GPT image model to use for image editing, including `gpt-image-2`, its dated\nsnapshot `gpt-image-2-2026-04-21`, `gpt-image-2.5-sunburst`,\n`gpt-image-2.5-sunburst-2026-09-08`, `gpt-image-2.5-flare`,\n`gpt-image-2.5-flare-2026-09-08`, `gpt-image-2.6-sunburst`, and `gpt-image-2.6-flare`.\nDefaults to `gpt-image-2.5-sunburst`.\n\n`gpt-image-1` was shut down on October 23, 2026. Use\n`gpt-image-2.5-sunburst` or `gpt-image-2.5-flare` instead.\n"
+            "default": "gpt-image-2.6-sunburst",
+            "description": "The GPT image model to use for image editing, including `gpt-image-2`, its dated\nsnapshot `gpt-image-2-2026-04-21`, `gpt-image-2.5-sunburst`,\n`gpt-image-2.5-sunburst-2026-09-08`, `gpt-image-2.5-flare`,\n`gpt-image-2.5-flare-2026-09-08`, `gpt-image-2.6-sunburst`, and `gpt-image-2.6-flare`.\nDefaults to `gpt-image-2.6-sunburst`.\n\n`gpt-image-1` was shut down on October 23, 2026. Use\n`gpt-image-2.5-sunburst` or `gpt-image-2.5-flare` instead.\n"
           },
           "images": {
             "type": "array",
@@ -53630,6 +53620,12 @@
           },
           "client": {
             "$ref": "#/components/schemas/LiveClientConfigParam"
+          },
+          "wake_policy": {
+            "$ref": "#/components/schemas/LiveSpeechWakePolicyParam"
+          },
+          "idle_timeout_s": {
+            "$ref": "#/components/schemas/idle_timeout_s"
           }
         },
         "required": [
@@ -53919,6 +53915,12 @@
           },
           {
             "$ref": "#/components/schemas/LiveSessionUpdated"
+          },
+          {
+            "$ref": "#/components/schemas/LiveSessionResumed"
+          },
+          {
+            "$ref": "#/components/schemas/LiveSessionPaused"
           },
           {
             "$ref": "#/components/schemas/LiveInputAudioMuted"
@@ -55563,7 +55565,7 @@
       },
       "ModelIdsLive": {
         "description": "The Live model. Required in the session configuration for every transport; do not pass it as a URL query parameter.",
-        "example": "gpt-live-1",
+        "example": "gpt-live-1.1",
         "anyOf": [
           {
             "type": "string",
@@ -55572,7 +55574,8 @@
           {
             "type": "string",
             "enum": [
-              "gpt-live-1"
+              "gpt-live-1",
+              "gpt-live-1.1"
             ]
           }
         ]
@@ -57086,11 +57089,8 @@
           },
           "object": {
             "type": "string",
-            "enum": [
-              "organization.project"
-            ],
-            "description": "The object type, which is always `organization.project`",
-            "x-stainless-const": true
+            "const": "organization.project",
+            "description": "The object type, which is always `organization.project`"
           },
           "name": {
             "anyOf": [
@@ -57685,10 +57685,7 @@
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "list"
-            ],
-            "x-stainless-const": true
+            "const": "list"
           },
           "data": {
             "type": "array",
@@ -57820,11 +57817,8 @@
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "project.rate_limit"
-            ],
-            "description": "The object type, which is always `project.rate_limit`",
-            "x-stainless-const": true
+            "const": "project.rate_limit",
+            "description": "The object type, which is always `project.rate_limit`"
           },
           "id": {
             "type": "string",
@@ -57876,10 +57870,7 @@
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "list"
-            ],
-            "x-stainless-const": true
+            "const": "list"
           },
           "data": {
             "type": "array",
@@ -57952,11 +57943,8 @@
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "organization.project.service_account"
-            ],
-            "description": "The object type, which is always `organization.project.service_account`",
-            "x-stainless-const": true
+            "const": "organization.project.service_account",
+            "description": "The object type, which is always `organization.project.service_account`"
           },
           "id": {
             "type": "string",
@@ -57998,11 +57986,8 @@
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "organization.project.service_account.api_key"
-            ],
-            "description": "The object type, which is always `organization.project.service_account.api_key`",
-            "x-stainless-const": true
+            "const": "organization.project.service_account.api_key",
+            "description": "The object type, which is always `organization.project.service_account.api_key`"
           },
           "value": {
             "type": "string"
@@ -58079,10 +58064,7 @@
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "organization.project.service_account"
-            ],
-            "x-stainless-const": true
+            "const": "organization.project.service_account"
           },
           "id": {
             "type": "string"
@@ -58127,10 +58109,7 @@
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "organization.project.service_account.deleted"
-            ],
-            "x-stainless-const": true
+            "const": "organization.project.service_account.deleted"
           },
           "id": {
             "type": "string"
@@ -58150,10 +58129,7 @@
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "list"
-            ],
-            "x-stainless-const": true
+            "const": "list"
           },
           "data": {
             "type": "array",
@@ -58368,11 +58344,8 @@
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "organization.project.user"
-            ],
-            "description": "The object type, which is always `organization.project.user`",
-            "x-stainless-const": true
+            "const": "organization.project.user",
+            "description": "The object type, which is always `organization.project.user`"
           },
           "id": {
             "type": "string",
@@ -58460,10 +58433,7 @@
         "properties": {
           "object": {
             "type": "string",
-            "enum": [
-              "organization.project.user.deleted"
-            ],
-            "x-stainless-const": true
+            "const": "organization.project.user.deleted"
           },
           "id": {
             "type": "string"
@@ -74729,10 +74699,7 @@
           "type": {
             "type": "string",
             "description": "The type of the event. Always `speech.audio.delta`.\n",
-            "enum": [
-              "speech.audio.delta"
-            ],
-            "x-stainless-const": true
+            "const": "speech.audio.delta"
           },
           "audio": {
             "type": "string",
@@ -74756,10 +74723,7 @@
           "type": {
             "type": "string",
             "description": "The type of the event. Always `speech.audio.done`.\n",
-            "enum": [
-              "speech.audio.done"
-            ],
-            "x-stainless-const": true
+            "const": "speech.audio.done"
           },
           "usage": {
             "type": "object",
@@ -88442,6 +88406,34 @@
           "data_channel"
         ]
       },
+      "LiveSpeechWakePolicyParam": {
+        "description": "Starts inference when microphone speech is detected.",
+        "type": "object",
+        "properties": {
+          "type": {
+            "description": "The wake policy type, always `speech`.",
+            "default": "speech",
+            "x-stainless-const": true,
+            "type": "string",
+            "enum": [
+              "speech"
+            ]
+          },
+          "vad_threshold": {
+            "description": "The speech detection threshold for the first wake and each later wake, from 0 to 1 inclusive. Defaults to 0.5. Higher values require stronger evidence of speech. This setting is independent of active turn detection.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "idle_timeout_s": {
+        "description": "Whole seconds of inactivity after which a Live WebRTC session with a speech wake policy pauses inference. The connection and conversation history are retained. Omit to keep inference active after the first wake until the session ends.",
+        "type": "integer",
+        "minimum": 5,
+        "maximum": 60
+      },
       "session": {
         "type": "object",
         "description": "The newly created Live session. Use its ID for session controls and sideband connections.",
@@ -92045,6 +92037,39 @@
         ],
         "description": "The current enforcement state of a hard spend limit."
       },
+      "EmailNotificationChannel": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "email"
+            ],
+            "default": "email",
+            "x-stainless-const": true
+          },
+          "recipients": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subject_prefix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "recipients"
+        ]
+      },
       "OrganizationSpendLimitResource": {
         "properties": {
           "object": {
@@ -92071,6 +92096,10 @@
           "enforcement": {
             "$ref": "#/components/schemas/SpendLimitEnforcement",
             "description": "The current enforcement state of the hard spend limit."
+          },
+          "notification_channel": {
+            "$ref": "#/components/schemas/EmailNotificationChannel",
+            "description": "Email notifications sent when the hard spend limit is reached."
           }
         },
         "type": "object",
@@ -92079,9 +92108,44 @@
           "threshold_amount",
           "currency",
           "interval",
-          "enforcement"
+          "enforcement",
+          "notification_channel"
         ],
         "description": "Represents a hard spend limit configured at the organization level."
+      },
+      "SpendLimitEmailNotificationChannelParams": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "email"
+            ],
+            "default": "email",
+            "x-stainless-const": true
+          },
+          "recipients": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "description": "Additional email recipients. Omit to keep them unchanged; send [] to clear them."
+          },
+          "subject_prefix": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Email subject prefix. Omit to keep it unchanged; send null or an empty string to clear it."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "type"
+        ]
       },
       "UpdateOrganizationSpendLimitBody": {
         "properties": {
@@ -92103,6 +92167,24 @@
               "month"
             ],
             "description": "The time interval for evaluating spend against the threshold. Currently, only `month` is supported."
+          },
+          "notification_channel": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SpendLimitEmailNotificationChannelParams"
+                  }
+                ],
+                "description": "Configure email notifications when the spend limit is reached. Leave this out to keep the current settings, or send null to reset to owner-only notifications.",
+                "discriminator": {
+                  "propertyName": "type"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -92162,6 +92244,10 @@
           "enforcement": {
             "$ref": "#/components/schemas/SpendLimitEnforcement",
             "description": "The current enforcement state of the hard spend limit."
+          },
+          "notification_channel": {
+            "$ref": "#/components/schemas/EmailNotificationChannel",
+            "description": "Email notifications sent when the hard spend limit is reached."
           }
         },
         "type": "object",
@@ -92170,7 +92256,8 @@
           "threshold_amount",
           "currency",
           "interval",
-          "enforcement"
+          "enforcement",
+          "notification_channel"
         ],
         "description": "Represents a hard spend limit configured at the project level."
       },
@@ -92194,6 +92281,24 @@
               "month"
             ],
             "description": "The time interval for evaluating spend against the threshold. Currently, only `month` is supported."
+          },
+          "notification_channel": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SpendLimitEmailNotificationChannelParams"
+                  }
+                ],
+                "description": "Configure email notifications when the spend limit is reached. Leave this out to keep the current settings, or send null to reset to owner-only notifications.",
+                "discriminator": {
+                  "propertyName": "type"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -112074,7 +112179,7 @@
           "type": "session.start",
           "event_id": "evt_start_001",
           "session": {
-            "model": "gpt-live-1",
+            "model": "gpt-live-1.1",
             "instructions": "Help the caller plan a restaurant reservation. Confirm details before booking.",
             "audio": {
               "format": {
@@ -112127,7 +112232,7 @@
             "type": "session.start",
             "event_id": "evt_start_001",
             "session": {
-              "model": "gpt-live-1",
+              "model": "gpt-live-1.1",
               "instructions": "Help the caller plan a restaurant reservation. Confirm details before booking.",
               "audio": {
                 "format": {
@@ -113817,7 +113922,7 @@
           "client_event_id": "evt_start_001",
           "session": {
             "id": "live_abc123",
-            "model": "gpt-live-1",
+            "model": "gpt-live-1.1",
             "status": "active",
             "expires_at": 1788555600,
             "instructions": "Help the caller plan a restaurant reservation. Confirm details before booking.",
@@ -113871,7 +113976,7 @@
             "client_event_id": "evt_start_001",
             "session": {
               "id": "live_abc123",
-              "model": "gpt-live-1",
+              "model": "gpt-live-1.1",
               "status": "active",
               "expires_at": 1788555600,
               "instructions": "Help the caller plan a restaurant reservation. Confirm details before booking.",
@@ -113900,7 +114005,7 @@
           "client_event_id": "evt_update_001",
           "session": {
             "id": "live_def456",
-            "model": "gpt-live-1",
+            "model": "gpt-live-1.1",
             "status": "active",
             "expires_at": 1788555600,
             "instructions": "Help the caller plan a restaurant reservation. Confirm details before booking.",
@@ -113960,7 +114065,7 @@
             "client_event_id": "evt_update_001",
             "session": {
               "id": "live_def456",
-              "model": "gpt-live-1",
+              "model": "gpt-live-1.1",
               "status": "active",
               "expires_at": 1788555600,
               "instructions": "Help the caller plan a restaurant reservation. Confirm details before booking.",
@@ -113984,6 +114089,78 @@
                 }
               }
             }
+          }
+        }
+      },
+      "LiveSessionResumed": {
+        "description": "Sent when speech wakes inference and it is ready for audio in a Live WebRTC session. This occurs on the first wake and after each later wake. Delivered to the sideband and, when permitted by its event settings, the data channel.",
+        "example": {
+          "type": "session.resumed",
+          "event_id": "evt_resumed_001"
+        },
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "description": "The unique ID of the Live server event.",
+            "type": "string"
+          },
+          "client_event_id": {
+            "description": "The event_id of the client command associated with this server event, when supplied.",
+            "type": "string"
+          },
+          "type": {
+            "default": "session.resumed",
+            "x-stainless-const": true,
+            "type": "string",
+            "enum": [
+              "session.resumed"
+            ]
+          }
+        },
+        "required": [
+          "event_id",
+          "type"
+        ],
+        "x-oaiMeta": {
+          "example": {
+            "type": "session.resumed",
+            "event_id": "evt_resumed_001"
+          }
+        }
+      },
+      "LiveSessionPaused": {
+        "description": "Sent when the idle timeout pauses inference in a Live WebRTC session. The WebRTC connection, sideband, and session ID persist. Delivered to the sideband and, when permitted by its event settings, the data channel.",
+        "example": {
+          "type": "session.paused",
+          "event_id": "evt_paused_001"
+        },
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "description": "The unique ID of the Live server event.",
+            "type": "string"
+          },
+          "client_event_id": {
+            "description": "The event_id of the client command associated with this server event, when supplied.",
+            "type": "string"
+          },
+          "type": {
+            "default": "session.paused",
+            "x-stainless-const": true,
+            "type": "string",
+            "enum": [
+              "session.paused"
+            ]
+          }
+        },
+        "required": [
+          "event_id",
+          "type"
+        ],
+        "x-oaiMeta": {
+          "example": {
+            "type": "session.paused",
+            "event_id": "evt_paused_001"
           }
         }
       },
@@ -115486,12 +115663,20 @@
         }
       },
       "LiveSessionUsage": {
-        "description": "Cumulative audio duration for a Live session. Values are totals for the session, not increments to sum across usage events.",
+        "description": "Cumulative billable duration for a Live session. Eligible WebRTC sessions also report the active and paused breakdown. Do not sum values across usage events.",
         "type": "object",
         "properties": {
           "seconds": {
-            "description": "The cumulative Live audio duration in seconds. Do not sum this value across usage events.",
-            "type": "number"
+            "description": "The cumulative billable duration in whole seconds. When present, the active and paused breakdown adds up to this total.",
+            "type": "integer"
+          },
+          "active_seconds": {
+            "description": "The remaining billable seconds attributed to active audio and any unused prepaid duration.",
+            "type": "integer"
+          },
+          "paused_seconds": {
+            "description": "Billable time attributed to paused inference at the configured rate, rounded down to whole seconds.",
+            "type": "integer"
           }
         },
         "required": [
@@ -115517,7 +115702,7 @@
           "type": "session.usage.updated",
           "event_id": "evt_usage_001",
           "usage": {
-            "seconds": 32.5
+            "seconds": 32
           },
           "context_window": {
             "usage_ratio": 0.12
@@ -115561,7 +115746,7 @@
             "type": "session.usage.updated",
             "event_id": "evt_usage_001",
             "usage": {
-              "seconds": 32.5
+              "seconds": 32
             },
             "context_window": {
               "usage_ratio": 0.12
@@ -115578,7 +115763,7 @@
           "reason": "close_requested",
           "session": {
             "id": "live_abc123",
-            "model": "gpt-live-1",
+            "model": "gpt-live-1.1",
             "status": "active",
             "expires_at": 1788555600,
             "instructions": "Help the caller plan a restaurant reservation. Confirm details before booking.",
@@ -115597,7 +115782,7 @@
             }
           },
           "usage": {
-            "seconds": 45.8
+            "seconds": 45
           }
         },
         "type": "object",
@@ -115687,7 +115872,7 @@
             "reason": "close_requested",
             "session": {
               "id": "live_abc123",
-              "model": "gpt-live-1",
+              "model": "gpt-live-1.1",
               "status": "active",
               "expires_at": 1788555600,
               "instructions": "Help the caller plan a restaurant reservation. Confirm details before booking.",
@@ -115706,7 +115891,7 @@
               }
             },
             "usage": {
-              "seconds": 45.8
+              "seconds": 45
             }
           }
         }
@@ -116103,6 +116288,12 @@
           },
           {
             "$ref": "#/components/schemas/LiveSessionUpdated"
+          },
+          {
+            "$ref": "#/components/schemas/LiveSessionResumed"
+          },
+          {
+            "$ref": "#/components/schemas/LiveSessionPaused"
           },
           {
             "$ref": "#/components/schemas/LiveInputAudioMuted"
