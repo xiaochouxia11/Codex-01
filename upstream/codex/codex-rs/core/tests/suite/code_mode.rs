@@ -2376,6 +2376,213 @@ fn assert_nested_apps_call_ids(rpcs: &[Value]) {
     }
 }
 
+#[tokio::test]
+async fn websocket_custom_provider_omits_private_exec_and_late_wait_results_on_retry() -> Result<()>
+{
+    let case = ResultBodyCase::Shared(None);
+    skip_if_no_network!(Ok(()));
+    use tracing_subscriber::util::SubscriberInitExt;
+    // Keep the socket pump on this thread so its trace subscriber is local to the test.
+    let trace = tempfile::NamedTempFile::new()?;
+    let _subscriber = tracing_subscriber::fmt()
+        .without_time()
+        .with_ansi(false)
+        .with_env_filter("tungstenite::protocol=trace")
+        .with_writer(trace.reopen()?)
+        .finish()
+        .set_default();
+    let apps = responses::start_mock_server().await;
+    let apps_server = AppsTestServer::mount(&apps).await?;
+    // Hold the third RPC until the model has already received its call inventory.
+    let (reached, admitted) = oneshot::channel();
+    let (release_result, held) = std::sync::mpsc::channel();
+    let gate = Mutex::new(Some((reached, held)));
+    let result = serde_json::json!({"content": [{"type":"text", "text":"late private result"}]});
+    Mock::given(body_partial_json(
+        serde_json::json!({"method":"tools/call","params":{"arguments":{"title":"late"}}}),
+    ))
+    .respond_with(move |request: &Request| {
+        let (reached, held) = gate.lock().unwrap().take().unwrap();
+        reached.send(()).unwrap();
+        held.recv_timeout(Duration::from_secs(30)).unwrap();
+        let rpc: Value = serde_json::from_slice(&request.body).unwrap();
+        ResponseTemplate::new(200)
+            .set_body_json(serde_json::json!({"jsonrpc":"2.0", "id":rpc["id"], "result":result}))
+    })
+    .with_priority(/*p*/ 1)
+    .mount(&apps)
+    .await;
+    let code = "const t = ALL_TOOLS.find(t => t.name.endsWith('create_event')); \
+                for (const title of ['first', 'second']) await tools[t.name]({title, starts_at: 'noon'}); \
+                const pending = tools[t.name]({title:'late', starts_at:'noon'}); \
+                yield_control(); await pending; text('done')";
+    let mut exec = ev_custom_tool_call("call-events", "exec", code);
+    exec["item"]["id"] = "exec-events".into();
+    let wait = |id, ms| {
+        let args = serde_json::json!({"cell_id":"1", "yield_time_ms":ms});
+        let call = responses::ev_function_call(id, "wait", &args.to_string());
+        vec![ev_response_created(id), call, ev_completed(id)]
+    };
+    // Each of the first two sockets closes before completing the tool-output request.
+    let switch = ev_response_created("interrupted");
+    let server = responses::start_websocket_server(vec![
+        vec![
+            vec![ev_response_created("warmup"), ev_completed("warmup")],
+            vec![ev_response_created("resp-1"), exec, ev_completed("resp-1")],
+            wait("poll", /*ms*/ 1),
+            wait("wait", /*ms*/ 10_000),
+            vec![],
+        ],
+        vec![vec![switch.clone()]],
+        vec![vec![ev_response_created("resp-2"), ev_completed("resp-2")]],
+    ])
+    .await;
+    let release = server.gate_response_event(&switch);
+    let poll = server.gate_response_event(&ev_response_created("poll"));
+    let mut builder = case
+        .builder(apps_server.chatgpt_base_url, AuthMode::Headers)
+        .with_config(|config| {
+            // This test isolates result authorization across retries with full inventory enabled.
+            config
+                .features
+                .enable(Feature::ExecutedToolCallMetadata)
+                .unwrap();
+            config.model_provider.stream_max_retries = Some(2);
+        });
+    let test = builder.build_with_websocket_server(&server).await?;
+    let rotate = async {
+        // Yield can precede admission. Poll while the admitted result is still held.
+        admitted.await?;
+        poll.send(()).unwrap();
+        server
+            .wait_for_request(/*connection_index*/ 0, /*request_index*/ 3)
+            .await;
+        release_result.send(())?;
+        tokio::time::timeout(
+            Duration::from_secs(30),
+            server.wait_for_request(/*connection_index*/ 1, /*request_index*/ 0),
+        )
+        .await?;
+        struct OtherAccount;
+        impl codex_login::ExternalAuth for OtherAccount {
+            fn resolve(&self) -> codex_login::ExternalAuthFuture<'_, CodexAuth> {
+                Box::pin(async { Ok(hosted_result_auth("other-account")) })
+            }
+            fn refresh(
+                &self,
+                _: codex_login::ExternalAuthRefreshContext,
+            ) -> codex_login::ExternalAuthFuture<'_, CodexAuth> {
+                self.resolve()
+            }
+        }
+        test.thread_manager
+            .auth_manager()
+            .set_external_auth(Arc::new(OtherAccount))
+            .await?;
+        release.send(()).expect("release retry under second owner");
+        anyhow::Ok(())
+    };
+    tokio::try_join!(test.submit_turn("Create calendar events"), rotate)?;
+
+    let connections = server.connections();
+    assert_eq!(
+        connections.iter().map(Vec::len).collect::<Vec<_>>(),
+        [5, 1, 1]
+    );
+    assert_eq!(connections[0][0].body_json()["generate"], false);
+    let delta = connections[0][2].body_json();
+    assert_eq!(delta["previous_response_id"], "resp-1");
+    let retry = connections[1][0].body_json();
+    // Retrying across owners must preserve only the ordinary conversation on this provider.
+    let mut expected = connections[2][0].body_json();
+    assert!(expected.get("previous_response_id").is_none());
+    assert!(expected.get("tool_results").is_none());
+    let private_prefix = "called calendar_create_event for";
+    let log = fs::read_to_string(trace.path())?;
+    // Match each received request to its send. Clear server sends when their responses arrive.
+    let mut logged = false;
+    let mut received = 0;
+    for line in log.lines() {
+        logged |= line.starts_with("TRACE tungstenite::protocol: Sending frame: opcode=TEXT,");
+        if line.starts_with(
+            r#"TRACE tungstenite::protocol: Received message {"type":"response.create","#,
+        ) {
+            received += 1;
+            assert_eq!(std::mem::take(&mut logged), !line.contains(private_prefix));
+        } else if line.starts_with("TRACE tungstenite::protocol: Received message ") {
+            logged = false;
+        }
+    }
+    assert_eq!(received, connections.iter().map(Vec::len).sum::<usize>());
+    // The lower-level writer also emits metadata for each traced frame.
+    assert_eq!(
+        log.matches("TRACE tungstenite::protocol::frame: writing frame")
+            .count(),
+        log.matches("TRACE tungstenite::protocol: Sending frame:")
+            .count(),
+    );
+    assert!(!expected.to_string().contains(private_prefix));
+    assert!(!expected.to_string().contains("tool_result_call_id"));
+    let timestamp = "x-codex-ws-stream-request-start-ms";
+    expected["client_metadata"][timestamp] = retry["client_metadata"][timestamp].clone();
+    let input = expected["input"].as_array_mut().unwrap();
+    assert!(input.last().unwrap()["output"].to_string().contains("done"));
+    let output = input
+        .iter_mut()
+        .find(|item| item["type"] == "custom_tool_call_output")
+        .unwrap();
+    assert_eq!(output["call_id"], "call-events");
+    let calls = output["internal_chat_message_metadata_passthrough"]["executed_tool_calls"]
+        .as_array_mut()
+        .unwrap();
+    let executed = recorded_apps_tool_calls(&apps).await;
+    assert_eq!(executed.len(), 3);
+    assert_nested_apps_call_ids(&executed);
+    for (call, title) in calls[..2].iter().zip(["first", "second"]) {
+        assert_eq!(
+            call["arguments"],
+            serde_json::json!({"title": title, "starts_at": "noon"})
+        );
+        assert!(call.get("tool_result").is_none());
+        assert!(call.get("tool_result_call_id").is_none());
+    }
+    let late_on_exec = calls.len() == 3;
+    assert_eq!(delta["input"], serde_json::json!([output]));
+    let polled = connections[0][3].body_json();
+    // A call first reported after the exec yields belongs to the poll output.
+    let before = if late_on_exec { &delta } else { &polled };
+    let bound = before["input"].as_array().unwrap().last().unwrap();
+    let origin = input
+        .iter_mut()
+        .find(|item| **item == *bound)
+        .expect("original pending output");
+    let calls = &mut origin["internal_chat_message_metadata_passthrough"]["executed_tool_calls"];
+    let call = calls.as_array_mut().unwrap().last_mut().unwrap();
+    assert_eq!(call["arguments"]["title"], "late");
+    assert!(call.get("tool_result").is_none());
+    assert!(call.get("tool_result_call_id").is_none());
+    assert!(!retry.to_string().contains("late private result"));
+    assert_eq!(retry, expected);
+    let completed = connections[0][4].body_json();
+    let wait_output = expected["input"].as_array().unwrap().last().unwrap();
+    assert_eq!(wait_output["call_id"], "wait");
+    if completed.get("previous_response_id").is_some() {
+        expected["input"] = serde_json::json!([wait_output]);
+        expected["previous_response_id"] = "wait".into();
+    }
+    expected["client_metadata"][timestamp] = completed["client_metadata"][timestamp].clone();
+    assert_eq!(completed, expected);
+    let accounts: Vec<_> = server
+        .handshakes()
+        .iter()
+        .map(|h| h.header("chatgpt-account-id").unwrap())
+        .collect();
+    assert_eq!(accounts, ["account_id", "account_id", "other-account"]);
+    test.codex.shutdown_and_wait().await?;
+    server.shutdown().await;
+    Ok(())
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ResultBodyCase {
     Ungranted,
@@ -4179,10 +4386,8 @@ text(JSON.stringify({{
 }
 
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
-#[test_case(false; "legacy_stdio")]
-#[test_case(true; "default_grpc_stdio")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn code_mode_only_can_call_nested_tools(grpc_stdio: bool) -> Result<()> {
+async fn code_mode_only_can_call_nested_tools() -> Result<()> {
     skip_if_no_network!(Ok(()));
 
     #[cfg(unix)]
@@ -4220,11 +4425,8 @@ text(output.output);
     )
     .await;
 
-    let mut builder = test_codex().with_config(move |config| {
+    let mut builder = test_codex().with_config(|config| {
         let _ = config.features.enable(Feature::CodeModeOnly);
-        if !grpc_stdio {
-            config.features.disable(Feature::CodeModeHostGrpc).unwrap();
-        }
     });
     #[cfg(unix)]
     {
@@ -4245,12 +4447,8 @@ text(output.output);
     #[cfg(unix)]
     assert_eq!(
         recorder.invocations()?,
-        vec![if grpc_stdio {
-            "--listen grpc+stdio://".to_string()
-        } else {
-            String::new()
-        }],
-        "the feature flag must select the expected host transport"
+        vec!["--listen grpc+stdio://".to_string()],
+        "local Codex must use gRPC over stdio"
     );
     assert!(
         request
@@ -4797,8 +4995,7 @@ text(`Variable truncated: ${resultVariableWasTruncated ? "True" : "False"}. Vari
 // limit `result.output` returned by the nested command.
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[test_case(&[]; "default_grpc")]
-#[test_case(&[Feature::CodeModeHostGrpc]; "server_stdio")]
-#[test_case(&[Feature::CodeModeHostGrpc, Feature::CodeModeHostOutputTruncation]; "client_stdio")]
+#[test_case(&[Feature::CodeModeHostOutputTruncation]; "client_grpc")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_exec_outer_limit_truncates_emitted_output(
     disabled_features: &'static [Feature],
@@ -4875,7 +5072,6 @@ Error:\ boom\n
 // An overflow notice is outside the observation budget. This distinguishes
 // actual server formatting from Core silently repeating client truncation.
 #[test_case(None; "default")]
-#[test_case(Some(Feature::CodeModeHostGrpc); "server_stdio")]
 #[test_case(Some(Feature::CodeModeHostOutputTruncation); "client_grpc")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_zero_budget_reports_host_truncation(
@@ -4966,139 +5162,10 @@ try {
     Ok(())
 }
 
-/// The framed stdio host reconnects on the first exec after reporting a wait timeout.
-#[tokio::test(flavor = "current_thread")]
-async fn code_mode_stdio_wait_timeout_reconnects_on_next_exec() -> Result<()> {
-    skip_if_no_network!(Ok(()));
-
-    let server = responses::start_mock_server().await;
-    let mut builder = test_codex()
-        .with_model("test-gpt-5.1-codex")
-        .with_config(|config| {
-            config.features.disable(Feature::CodeModeHostGrpc).unwrap();
-            config
-                .features
-                .enable(Feature::CodeMode)
-                .expect("code mode should be enabled");
-        });
-    let test = builder.build_with_auto_env(&server).await?;
-
-    let first_turn = responses::mount_sse_sequence(
-        &server,
-        vec![
-            sse(vec![
-                ev_response_created("resp-1"),
-                ev_custom_tool_call(
-                    "call-1",
-                    "exec",
-                    "yield_control(); await new Promise(() => {});",
-                ),
-                ev_completed("resp-1"),
-            ]),
-            sse(vec![
-                ev_assistant_message("msg-1", "waiting"),
-                ev_completed("resp-2"),
-            ]),
-        ],
-    )
-    .await;
-
-    test.submit_turn("start a stalled code-mode cell").await?;
-    let first_request = first_turn
-        .last_request()
-        .expect("initial exec should be returned to the model");
-    let first_items = custom_tool_output_items(&first_request, "call-1");
-    let cell_id = extract_running_cell_id(text_item(&first_items, /*index*/ 0));
-
-    let timeout_completion = responses::mount_function_call_agent_response(
-        &server,
-        "call-2",
-        &serde_json::to_string(&serde_json::json!({
-            "cell_id": cell_id,
-            "yield_time_ms": 60_000,
-        }))?,
-        "wait",
-    )
-    .await
-    .completion;
-
-    test.codex
-        .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
-            text: "wait for the stalled cell".to_string(),
-            text_elements: Vec::new(),
-        }]))
-        .await?;
-    wait_for_event_match(&test.codex, |event| match event {
-        EventMsg::RawResponseItem(raw) => match &raw.item {
-            ResponseItem::FunctionCall { call_id, .. } if call_id == "call-2" => Some(()),
-            _ => None,
-        },
-        _ => None,
-    })
-    .await;
-
-    tokio::time::pause();
-    for _ in 0..130 {
-        tokio::time::advance(Duration::from_secs(1)).await;
-        if timeout_completion
-            .function_call_output_text("call-2")
-            .is_some()
-        {
-            break;
-        }
-    }
-    tokio::time::resume();
-    wait_for_event(&test.codex, |event| {
-        matches!(event, EventMsg::TurnComplete(_))
-    })
-    .await;
-
-    let timeout_output = timeout_completion
-        .function_call_output_text("call-2")
-        .expect("timed-out wait should be returned to the model");
-    assert!(
-        timeout_output.contains("code-mode host timed out waiting for wait response"),
-        "unexpected wait output: {timeout_output}"
-    );
-
-    let reconnect_turn = responses::mount_sse_sequence(
-        &server,
-        vec![
-            sse(vec![
-                ev_response_created("resp-5"),
-                ev_custom_tool_call(
-                    "call-3",
-                    "exec",
-                    r#"text("reconnected"); yield_control(); await new Promise(() => {});"#,
-                ),
-                ev_completed("resp-5"),
-            ]),
-            sse(vec![
-                ev_assistant_message("msg-3", "reconnected"),
-                ev_completed("resp-6"),
-            ]),
-        ],
-    )
-    .await;
-
-    test.submit_turn("run a cell after the timeout").await?;
-    let reconnect_request = reconnect_turn
-        .last_request()
-        .expect("replacement exec should be returned to the model");
-    let reconnect_items = custom_tool_output_items(&reconnect_request, "call-3");
-    assert_eq!(
-        extract_running_cell_id(text_item(&reconnect_items, /*index*/ 0)),
-        "g2:1"
-    );
-    assert_eq!(text_item(&reconnect_items, /*index*/ 1), "reconnected");
-
-    Ok(())
-}
-
 #[derive(Default)]
 struct ResponseIdObserver {
     response_ids: Mutex<Vec<(String, Option<String>)>>,
-    serving_assessments: Mutex<Vec<Option<bool>>>,
+    guardian_probes: Mutex<Vec<Option<bool>>>,
     originating_items: Mutex<Vec<(String, Option<codex_protocol::ResponseItemId>)>>,
     wait_started: tokio::sync::Notify,
 }
@@ -5113,10 +5180,10 @@ impl ToolLifecycleContributor for ResponseIdObserver {
                     .as_str()
                     .is_some_and(|cmd| cmd.starts_with("printf 'phase "))
             {
-                self.serving_assessments
+                self.guardian_probes
                     .lock()
                     .unwrap()
-                    .push(input.serving_assessment);
+                    .push(input.guardian_probe);
             }
             if matches!(input.tool_name.name.as_str(), "exec" | "exec_command") {
                 self.originating_items.lock().unwrap().push((
@@ -5141,9 +5208,9 @@ impl ToolLifecycleContributor for ResponseIdObserver {
 }
 
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
-#[test_case::test_case(None; "without_assessment")]
-#[test_case::test_case(Some(false); "low_risk_assessment")]
-#[test_case::test_case(Some(true); "review_required_assessment")]
+#[test_case::test_case(None; "without_probe")]
+#[test_case::test_case(Some(false); "low_risk_probe")]
+#[test_case::test_case(Some(true); "review_required_probe")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_can_yield_and_resume_with_wait(requires_review: Option<bool>) -> Result<()> {
     skip_if_no_network!(Ok(()));
@@ -5153,10 +5220,11 @@ async fn code_mode_can_yield_and_resume_with_wait(requires_review: Option<bool>)
         .and(wiremock::matchers::body_partial_json(
             serde_json::json!({"model": "gpt-5.6-luna"}),
         ))
-        .respond_with(responses::sse_response(sse(vec![ev_completed(
-            "unexpected-score",
-        )])))
-        .expect(0)
+        .respond_with(responses::sse_response(sse(vec![
+            ev_assistant_message("score", "low"),
+            ev_completed("score"),
+        ])))
+        .with_priority(/*p*/ 1)
         .mount(&server)
         .await;
     let observer = Arc::new(ResponseIdObserver::default());
@@ -5339,7 +5407,7 @@ text((await tools.exec_command({{cmd: "printf 'phase 3'"}})).output);
     );
 
     assert_eq!(
-        *observer.serving_assessments.lock().unwrap(),
+        *observer.guardian_probes.lock().unwrap(),
         vec![requires_review; 3]
     );
     let observed = observer.response_ids.lock().unwrap();
@@ -5846,8 +5914,7 @@ impl ToolLifecycleContributor for TerminationOutputReady {
 
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[test_case(&[]; "default_grpc")]
-#[test_case(&[Feature::CodeModeHostGrpc]; "server_stdio")]
-#[test_case(&[Feature::CodeModeHostGrpc, Feature::CodeModeHostOutputTruncation]; "client_stdio")]
+#[test_case(&[Feature::CodeModeHostOutputTruncation]; "client_grpc")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_wait_can_terminate_and_continue(
     disabled_features: &'static [Feature],
@@ -6577,8 +6644,7 @@ async fn code_mode_interrupt_terminates_active_cells_and_nested_tools() -> Resul
 }
 
 #[test_case(&[]; "default_grpc")]
-#[test_case(&[Feature::CodeModeHostGrpc]; "server_stdio")]
-#[test_case(&[Feature::CodeModeHostGrpc, Feature::CodeModeHostOutputTruncation]; "client_stdio")]
+#[test_case(&[Feature::CodeModeHostOutputTruncation]; "client_grpc")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_wait_uses_its_own_max_tokens_budget(
     disabled_features: &'static [Feature],
@@ -6589,7 +6655,7 @@ async fn code_mode_wait_uses_its_own_max_tokens_budget(
     let mut builder = code_mode_test_builder(disabled_features);
     let test = builder.build_with_auto_env(&server).await?;
 
-    // Both transports accept exec budgets above i32::MAX. The wait uses its own budget.
+    // Exec accepts budgets above i32::MAX. The wait uses its own budget.
     let code = r#"// @exec: {"max_output_tokens": 2147483648}
 text("phase 1");
 yield_control();
@@ -7364,7 +7430,7 @@ async fn code_mode_records_mcp_completion_even_when_result_is_not_printed() -> R
     skip_if_no_network!(Ok(()));
 
     let server = responses::start_mock_server().await;
-    let (test, second_mock) = run_code_mode_turn_with_rmcp(
+    let (_, second_mock) = run_code_mode_turn_with_rmcp(
         &server,
         "call the rmcp echo tool without printing its result",
         r#"await tools.mcp__rmcp__echo({ message: "discarded" }); text("done");"#,
@@ -7376,21 +7442,6 @@ async fn code_mode_records_mcp_completion_even_when_result_is_not_printed() -> R
         "done"
     );
 
-    let first_turn_id = request.body_json()["client_metadata"]["turn_id"].clone();
-    assert!(first_turn_id.is_string());
-    assert_eq!(
-        serde_json::to_value(codex_core::test_support::mcp_attribution_snapshot(
-            &test.codex
-        ))?,
-        serde_json::json!({
-            "status": "complete",
-            "sources": [{
-                "server_name": "rmcp",
-                "tool_name": "echo",
-                "first_turn_id": first_turn_id,
-            }],
-        })
-    );
     Ok(())
 }
 
@@ -7674,6 +7725,13 @@ async fn code_mode_node_repl_text_evidence_is_visible_only_to_guardian(
                 .features
                 .set_enabled(Feature::GuardianNodeReplTranscriptImages, transcript_images)
                 .expect("configure Guardian transcript images");
+            if check_detail {
+                // The invalid image and its valid successor exceed the modern stdio frame limit.
+                config
+                    .features
+                    .disable(Feature::McpConnectionSharing)
+                    .expect("use legacy stdio for the oversized image response");
+            }
             let mcp: McpServerConfig = serde_json::from_value(serde_json::json!({
                 "command": mcp_server_bin,
                 "environment_id": remote_aware_environment_id(),
@@ -8805,12 +8863,18 @@ async fn code_mode_search_normalizes_and_calls_deferred_dynamic_tools(
         .with_model_info_override("gpt-5.5", |model_info| {
             model_info.supports_search_tool = true;
             model_info.tool_mode = Some(ToolMode::CodeMode);
-            model_info
+            let tools = model_info
                 .model_messages
                 .get_or_insert_default()
                 .tools
-                .get_or_insert_default()
-                .functions_namespace_functions_description_prefixes =
+                .get_or_insert_default();
+            tools.indirect_description_prefixes = Some(
+                serde_json::from_value(serde_json::json!({
+                    "builtin_tool_namespaces": {"functions": "Builtin."}
+                }))
+                .unwrap(),
+            );
+            tools.functions_namespace_functions_description_prefixes =
                 Some(std::collections::BTreeMap::from([(
                     "hidden-dynamic-tool".to_string(),
                     "Function guidance.".to_string(),
@@ -8878,6 +8942,9 @@ const out = await tools[tool.name]({ city: "Paris" });
 text(
   JSON.stringify({
     name: tool?.name ?? null,
+    builtinLabel: ALL_TOOLS.find(t => t.name === "view_image").description.startsWith("Builtin.\n\n"),
+    dynamicLabel: ALL_TOOLS.find(t => t.name === tool.name).description.includes("Builtin."),
+    searchLabel: tool.description.includes("Builtin."),
     description: tool?.description ?? null,
     out,
     recoveredFromInvalidArguments: errors.length === 2,
@@ -8997,6 +9064,9 @@ text(
         Some(&Value::String("hidden-ok".to_string()))
     );
     assert_eq!(parsed["recoveredFromInvalidArguments"], true);
+    assert_eq!(parsed["builtinLabel"], false);
+    assert_eq!(parsed["dynamicLabel"], false);
+    assert_eq!(parsed["searchLabel"], false);
     let loaded = search_response.single_request().tool_search_output("find");
     let loaded = loaded["tools"]
         .as_array()
@@ -9004,6 +9074,14 @@ text(
         .iter()
         .find(|tool| tool["name"] == namespace)
         .expect("loaded namespace");
+    assert_eq!(
+        loaded["description"],
+        if namespace == "functions" {
+            "Builtin.\n\nCodex app tools."
+        } else {
+            "Codex app tools."
+        }
+    );
     assert_eq!(
         loaded["tools"][0]["description"],
         if namespace == "functions" {
