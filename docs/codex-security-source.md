@@ -1,8 +1,8 @@
 # openai/codex-security 同步记录
 
 - 上游：https://github.com/openai/codex-security
-- 上游提交：8b114ad59518ba8529e9ea9e7d66004f6b4bc26e
-- 上游 tree：c72d5d111bec987bc37e6b819b8fc9611b9d67b5
+- 上游提交：9b7b90c94c94b7eaec65018b0265b868f8b37e28
+- 上游 tree：c379dfd3584c31772f8b9d06f6108fb77f86ca87
 - 目录：upstream/codex-security/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
