@@ -14,7 +14,7 @@ internal class MediaSessionConfigTest {
     fun createAndRoundtrip() {
         val mediaSessionConfig =
             MediaSessionConfig.builder()
-                .model(MediaSessionConfig.Model.GPT_LIVE_1)
+                .model(MediaSessionConfig.Model.GPT_LIVE_1_1)
                 .audio(
                     MediaSessionConfig.Audio.builder()
                         .output(
@@ -35,6 +35,7 @@ internal class MediaSessionConfigTest {
                         .build()
                 )
                 .delegation(ClientDelegation.builder().acknowledgementDelayMs(0L).build())
+                .idleTimeoutS(5L)
                 .addInput(
                     InitialItem.Developer.builder()
                         .addContent(
@@ -66,9 +67,10 @@ internal class MediaSessionConfigTest {
                         .eventType(DecisionTrigger.EventType.SESSION_INPUT_TRANSCRIPT_DELTA)
                         .build()
                 )
+                .wakePolicy(MediaSessionConfig.WakePolicy.builder().vadThreshold(0.0).build())
                 .build()
 
-        assertThat(mediaSessionConfig.model()).isEqualTo(MediaSessionConfig.Model.GPT_LIVE_1)
+        assertThat(mediaSessionConfig.model()).isEqualTo(MediaSessionConfig.Model.GPT_LIVE_1_1)
         assertThat(mediaSessionConfig.audio())
             .contains(
                 MediaSessionConfig.Audio.builder()
@@ -94,6 +96,7 @@ internal class MediaSessionConfigTest {
                     ClientDelegation.builder().acknowledgementDelayMs(0L).build()
                 )
             )
+        assertThat(mediaSessionConfig.idleTimeoutS()).contains(5L)
         assertThat(mediaSessionConfig.input().getOrNull())
             .containsExactly(
                 InitialItem.ofDeveloper(
@@ -129,6 +132,8 @@ internal class MediaSessionConfigTest {
                     .eventType(DecisionTrigger.EventType.SESSION_INPUT_TRANSCRIPT_DELTA)
                     .build()
             )
+        assertThat(mediaSessionConfig.wakePolicy())
+            .contains(MediaSessionConfig.WakePolicy.builder().vadThreshold(0.0).build())
 
         val jsonMapper = jsonMapper()
 

@@ -1,8 +1,8 @@
 # openai/openai-java 同步记录
 
 - 上游：https://github.com/openai/openai-java
-- 上游提交：1ab811c34720ae18e2a5f0ac2b4527a66aedcb4b
-- 上游 tree：ff91c62effd61130238850e5b7245927db1a8a38
+- 上游提交：2c2e249a2a3c18b45ebcbeaee7cf5f8e602220ab
+- 上游 tree：baec7726b4e89298b06337e92b9958d8e4515a78
 - 目录：upstream/openai-java/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。

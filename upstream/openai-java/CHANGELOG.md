@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.111.0](https://github.com/openai/openai-java/compare/v4.110.0...v4.111.0) (2026-11-20)
+
+
+### Features
+
+* **api:** support Live WebRTC standby ([#1422](https://github.com/openai/openai-java/issues/1422)) ([616184c](https://github.com/openai/openai-java/commit/616184ce4fb1676ed0020120343201e794d268d4))
+
+## [4.110.0](https://github.com/openai/openai-java/compare/v4.109.0...v4.110.0) (2026-11-19)
+
+
+### Features
+
+* **api:** add gpt-live-1.1 to Live model choices ([#1420](https://github.com/openai/openai-java/issues/1420)) ([a12f786](https://github.com/openai/openai-java/commit/a12f78620a726eca9d07a2752bc1b622278d5b37))
+
 ## [4.109.0](https://github.com/openai/openai-java/compare/v4.108.0...v4.109.0) (2026-11-18)
 
 

@@ -12,7 +12,7 @@ internal class LiveCreateParamsTest {
         LiveCreateParams.builder()
             .session(
                 MediaSessionConfig.builder()
-                    .model(MediaSessionConfig.Model.GPT_LIVE_1)
+                    .model(MediaSessionConfig.Model.GPT_LIVE_1_1)
                     .audio(
                         MediaSessionConfig.Audio.builder()
                             .output(
@@ -33,6 +33,7 @@ internal class LiveCreateParamsTest {
                             .build()
                     )
                     .delegation(ClientDelegation.builder().acknowledgementDelayMs(0L).build())
+                    .idleTimeoutS(5L)
                     .addInput(
                         InitialItem.Developer.builder()
                             .addContent(
@@ -64,6 +65,7 @@ internal class LiveCreateParamsTest {
                             .eventType(DecisionTrigger.EventType.SESSION_INPUT_TRANSCRIPT_DELTA)
                             .build()
                     )
+                    .wakePolicy(MediaSessionConfig.WakePolicy.builder().vadThreshold(0.0).build())
                     .build()
             )
             .transport(LiveCreateParams.Transport.builder().sdp("x").build())
@@ -76,7 +78,7 @@ internal class LiveCreateParamsTest {
             LiveCreateParams.builder()
                 .session(
                     MediaSessionConfig.builder()
-                        .model(MediaSessionConfig.Model.GPT_LIVE_1)
+                        .model(MediaSessionConfig.Model.GPT_LIVE_1_1)
                         .audio(
                             MediaSessionConfig.Audio.builder()
                                 .output(
@@ -97,6 +99,7 @@ internal class LiveCreateParamsTest {
                                 .build()
                         )
                         .delegation(ClientDelegation.builder().acknowledgementDelayMs(0L).build())
+                        .idleTimeoutS(5L)
                         .addInput(
                             InitialItem.Developer.builder()
                                 .addContent(
@@ -128,6 +131,9 @@ internal class LiveCreateParamsTest {
                                 .eventType(DecisionTrigger.EventType.SESSION_INPUT_TRANSCRIPT_DELTA)
                                 .build()
                         )
+                        .wakePolicy(
+                            MediaSessionConfig.WakePolicy.builder().vadThreshold(0.0).build()
+                        )
                         .build()
                 )
                 .transport(LiveCreateParams.Transport.builder().sdp("x").build())
@@ -138,7 +144,7 @@ internal class LiveCreateParamsTest {
         assertThat(body.session())
             .isEqualTo(
                 MediaSessionConfig.builder()
-                    .model(MediaSessionConfig.Model.GPT_LIVE_1)
+                    .model(MediaSessionConfig.Model.GPT_LIVE_1_1)
                     .audio(
                         MediaSessionConfig.Audio.builder()
                             .output(
@@ -159,6 +165,7 @@ internal class LiveCreateParamsTest {
                             .build()
                     )
                     .delegation(ClientDelegation.builder().acknowledgementDelayMs(0L).build())
+                    .idleTimeoutS(5L)
                     .addInput(
                         InitialItem.Developer.builder()
                             .addContent(
@@ -190,6 +197,7 @@ internal class LiveCreateParamsTest {
                             .eventType(DecisionTrigger.EventType.SESSION_INPUT_TRANSCRIPT_DELTA)
                             .build()
                     )
+                    .wakePolicy(MediaSessionConfig.WakePolicy.builder().vadThreshold(0.0).build())
                     .build()
             )
         assertThat(body.transport())
@@ -201,7 +209,9 @@ internal class LiveCreateParamsTest {
         val params =
             LiveCreateParams.builder()
                 .session(
-                    MediaSessionConfig.builder().model(MediaSessionConfig.Model.GPT_LIVE_1).build()
+                    MediaSessionConfig.builder()
+                        .model(MediaSessionConfig.Model.GPT_LIVE_1_1)
+                        .build()
                 )
                 .transport(LiveCreateParams.Transport.builder().sdp("x").build())
                 .build()
@@ -210,7 +220,7 @@ internal class LiveCreateParamsTest {
 
         assertThat(body.session())
             .isEqualTo(
-                MediaSessionConfig.builder().model(MediaSessionConfig.Model.GPT_LIVE_1).build()
+                MediaSessionConfig.builder().model(MediaSessionConfig.Model.GPT_LIVE_1_1).build()
             )
         assertThat(body.transport())
             .isEqualTo(LiveCreateParams.Transport.builder().sdp("x").build())
