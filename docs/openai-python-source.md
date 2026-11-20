@@ -1,8 +1,8 @@
 # openai/openai-python 同步记录
 
 - 上游：https://github.com/openai/openai-python
-- 上游提交：0d50c9daece1a4a0f4920f64b5ff90846b4e2050
-- 上游 tree：7919a3b1b40b31c48a37e075cd0d11b30435bde9
+- 上游提交：f63f14b34754fa77fc839ac2cf95da3ef42e1f6a
+- 上游 tree：ded94d4e6c2d694eff297503fc402c06995c3ae9
 - 目录：upstream/openai-python/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
