@@ -1,8 +1,8 @@
 # openai/codex 同步记录
 
 - 上游：https://github.com/openai/codex
-- 上游提交：076ac7856b1235947f271930bd7437bae54a0dfc
-- 上游 tree：1d3d53952792779eafb99be501998ee80aa2053e
+- 上游提交：1145028ae47e8119955323d38ce34122d418f951
+- 上游 tree：06b95fb95c4d94f934a723ca6d16b7a6793c0de2
 - 目录：upstream/codex/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。

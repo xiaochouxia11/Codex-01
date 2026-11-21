@@ -1863,7 +1863,13 @@ impl RmcpClient {
         {
             Ok(result) => Ok(result),
             Err(error) if Self::is_session_expired_404(&error) => {
-                self.reinitialize_after_session_expiry(&service).await?;
+                self.reinitialize_after_session_expiry(&service)
+                    .await
+                    .inspect_err(|_| {
+                        if let TransportRecipe::StreamableHttp { server_name, .. } = &self.transport_recipe {
+                            tracing::error!(server = ?server_name, operation = label, "MCP operation failed during session recovery");
+                        }
+                    })?;
                 let recovered_service = self.service().await?;
                 Self::run_service_operation_with_transient_retries(
                     recovered_service,
@@ -1909,9 +1915,7 @@ impl RmcpClient {
             .await
             {
                 Ok(result) => return Ok(result),
-                Err(error)
-                    if label == "tools/list" && Self::is_retryable_transport_error(&error) =>
-                {
+                Err(error) if Self::is_retryable_tools_list_error(label, &error) => {
                     let Some(retry_delay_ms) = retry_delay_ms else {
                         return Err(error);
                     };
@@ -1962,7 +1966,10 @@ impl RmcpClient {
         }
     }
 
-    pub(crate) fn is_retryable_transport_error(error: &ClientOperationError) -> bool {
+    fn is_retryable_tools_list_error(label: &str, error: &ClientOperationError) -> bool {
+        if label != "tools/list" {
+            return false;
+        }
         let ClientOperationError::Service(rmcp::service::ServiceError::TransportSend(error)) =
             error
         else {

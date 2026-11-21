@@ -3119,6 +3119,7 @@ dependencies = [
  "codex-thread-context-ids",
  "codex-thread-context-ids-test-support",
  "codex-thread-store",
+ "codex-tool-call-id",
  "codex-tools",
  "codex-user-input",
  "codex-utils-absolute-path",
@@ -3590,6 +3591,7 @@ dependencies = [
  "schemars 0.8.22",
  "serde",
  "serde_json",
+ "serde_with",
  "ts-rs",
 ]
 
@@ -4971,6 +4973,7 @@ dependencies = [
  "anyhow",
  "codex-code-mode",
  "codex-protocol",
+ "codex-tool-call-id",
  "http 1.4.0",
  "pretty_assertions",
  "serde",
@@ -5272,6 +5275,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "codex-tool-call-id"
+version = "0.0.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "codex-tools"
 version = "0.0.0"
 dependencies = [
@@ -5287,6 +5297,7 @@ dependencies = [
  "codex-utils-output-truncation",
  "codex-utils-path-uri",
  "codex-utils-string",
+ "divan",
  "jsonptr",
  "pretty_assertions",
  "rmcp",

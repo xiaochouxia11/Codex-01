@@ -30,9 +30,17 @@ use codex_app_server_protocol::WindowsSandboxSetupMode;
 pub(super) const SHUTDOWN_FIRST_EXIT_TIMEOUT: Duration = Duration::from_secs(/*secs*/ 2);
 
 impl App {
-    // Keep the existing dispatcher layout until it can be formatted separately.
+    pub(crate) fn handle_event<'a>(
+        &'a mut self,
+        tui: &'a mut tui::Tui,
+        app_server: &'a mut AppServerSession,
+        event: AppEvent,
+    ) -> futures::future::LocalBoxFuture<'a, Result<AppRunControl>> {
+        Box::pin(self.dispatch_event(tui, app_server, event))
+    }
+
     #[rustfmt::skip]
-    pub(crate) async fn handle_event(
+    async fn dispatch_event(
         &mut self,
         tui: &mut tui::Tui,
         app_server: &mut AppServerSession,
@@ -86,6 +94,8 @@ impl App {
                     | AppEvent::TestConfigNotification
                     | AppEvent::SendConfigTestNotification { .. }
                     | AppEvent::SaveConfigPreference(_)
+                    | AppEvent::SaveReasoningSummary { .. }
+                    | AppEvent::RefreshConfigReasoningSummary
                     | AppEvent::CopyWarning(_)
                     | AppEvent::UpdateWarnings { .. }
                     | AppEvent::CopySelection { .. }
@@ -4129,6 +4139,16 @@ impl App {
             }
             AppEvent::SaveConfigPreference(preference) => {
                 self.save_config_preference(tui, preference).await;
+            }
+            AppEvent::SaveReasoningSummary { backend, summary } => {
+                if backend == app_server.backend_id() {
+                    self.update_reasoning_summary(app_server, Some(summary)).await;
+                }
+                tui.frame_requester().schedule_frame();
+            }
+            AppEvent::RefreshConfigReasoningSummary => {
+                self.update_reasoning_summary(app_server, /*requested*/ None).await;
+                tui.frame_requester().schedule_frame();
             }
             AppEvent::PersistAgentsOverviewGrouping(grouping) => {
                 self.persist_agents_overview_grouping(grouping).await;

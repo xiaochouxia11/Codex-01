@@ -1176,6 +1176,10 @@ pub struct Config {
     /// Explicit or feature-derived web search mode.
     pub web_search_mode: Constrained<WebSearchMode>,
 
+    /// Whether this mode came from an accepted explicit `web_search` setting.
+    /// Kept with the session-static mode when user config layers are refreshed.
+    pub web_search_mode_was_explicit: bool,
+
     /// Additional parameters for the web search tool when it is enabled.
     pub web_search_config: Option<WebSearchConfig>,
 
@@ -1756,6 +1760,22 @@ impl Config {
         } else {
             codex_guardian_context::ContextBudgeting::Fixed
         }
+    }
+
+    /// Resolves recorder limits from the Sync Elastic retained-instruction entry budget.
+    pub(crate) fn guardian_retention_policy(
+        &self,
+    ) -> Option<codex_protocol::protocol::GuardianRetentionPolicy> {
+        let entry_tokens = self
+            .guardian_sync_elastic_budget
+            .as_ref()?
+            .section_limits(codex_guardian_context::ElasticSection::RetainedUserInstructions)
+            .max_section_entry_tokens();
+        let record_bytes = codex_utils_output_truncation::approx_bytes_for_tokens(entry_tokens);
+        Some(codex_protocol::protocol::GuardianRetentionPolicy {
+            assistant_record_bytes: Some(record_bytes),
+            user_record_bytes: Some(record_bytes),
+        })
     }
 
     pub fn sqlite_config(&self) -> &codex_state::SqliteConfig {
@@ -2884,18 +2904,30 @@ pub fn resolve_oss_provider(
     }
 }
 
-/// Resolve the web search mode from explicit config and feature flags.
-fn resolve_web_search_mode(config_toml: &ConfigToml, features: &Features) -> Option<WebSearchMode> {
+/// Resolve the configured preference, or select an allowed implicit default.
+fn resolve_web_search_mode(
+    config_toml: &ConfigToml,
+    features: &Features,
+    constrained_default: &Constrained<WebSearchMode>,
+) -> WebSearchMode {
     if let Some(mode) = config_toml.web_search {
-        return Some(mode);
+        return mode;
     }
     if features.enabled(Feature::WebSearchCached) {
-        return Some(WebSearchMode::Cached);
+        return WebSearchMode::Cached;
     }
     if features.enabled(Feature::WebSearchRequest) {
-        return Some(WebSearchMode::Live);
+        return WebSearchMode::Live;
     }
-    None
+    let default_mode = constrained_default.value();
+    if default_mode == WebSearchMode::Cached
+        && features.enabled(Feature::WebSearchIndexedDefault)
+        && constrained_default.can_set(&WebSearchMode::Indexed).is_ok()
+    {
+        WebSearchMode::Indexed
+    } else {
+        default_mode
+    }
 }
 
 fn resolve_web_search_config(config_toml: &ConfigToml) -> Option<WebSearchConfig> {
@@ -3365,6 +3397,7 @@ pub fn resolve_bootstrap_http_client_factory(
 
 pub(crate) fn resolve_web_search_mode_for_turn(
     web_search_mode: &Constrained<WebSearchMode>,
+    web_search_mode_was_explicit: bool,
     permission_profile: &PermissionProfile,
     provider_capabilities: ProviderCapabilities,
 ) -> WebSearchMode {
@@ -3380,30 +3413,28 @@ pub(crate) fn resolve_web_search_mode_for_turn(
         provider_supports_mode && web_search_mode.can_set(&mode).is_ok()
     };
 
-    if matches!(permission_profile, PermissionProfile::Disabled)
-        && !matches!(preferred, WebSearchMode::Disabled | WebSearchMode::Indexed)
-    {
-        for mode in [
-            WebSearchMode::Live,
-            WebSearchMode::Cached,
-            WebSearchMode::Disabled,
-        ] {
-            if is_allowed(mode) {
-                return mode;
+    let full_access_promotes_to_live = matches!(permission_profile, PermissionProfile::Disabled)
+        && match preferred {
+            WebSearchMode::Cached | WebSearchMode::Live => true,
+            WebSearchMode::Indexed => {
+                !web_search_mode_was_explicit
+                    && web_search_mode.can_set(&WebSearchMode::Cached).is_ok()
             }
-        }
-    } else {
-        if is_allowed(preferred) {
-            return preferred;
-        }
-        for mode in [
-            WebSearchMode::Cached,
-            WebSearchMode::Live,
-            WebSearchMode::Disabled,
-        ] {
-            if is_allowed(mode) {
-                return mode;
-            }
+            WebSearchMode::Disabled => false,
+        };
+    if full_access_promotes_to_live && is_allowed(WebSearchMode::Live) {
+        return WebSearchMode::Live;
+    }
+    if is_allowed(preferred) {
+        return preferred;
+    }
+    for mode in [
+        WebSearchMode::Cached,
+        WebSearchMode::Live,
+        WebSearchMode::Disabled,
+    ] {
+        if is_allowed(mode) {
+            return mode;
         }
     }
 
@@ -4201,8 +4232,7 @@ impl Config {
             );
             approvals_reviewer = constrained_approvals_reviewer.value();
         }
-        let web_search_mode =
-            resolve_web_search_mode(&cfg, &features).unwrap_or(WebSearchMode::Cached);
+        let web_search_mode = resolve_web_search_mode(&cfg, &features, &constrained_web_search_mode);
         let web_search_config = resolve_web_search_config(&cfg);
         let experimental_request_user_input_enabled =
             resolve_experimental_request_user_input_enabled(&cfg);
@@ -4643,6 +4673,8 @@ impl Config {
             &mut constrained_web_search_mode,
             &mut startup_warnings,
         )?;
+        let web_search_mode_was_explicit =
+            cfg.web_search == Some(constrained_web_search_mode.value());
 
         let mcp_servers = constrain_mcp_servers(cfg.mcp_servers.clone(), mcp_servers.as_ref())
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("{e}")))?;
@@ -4971,6 +5003,7 @@ impl Config {
             forced_chatgpt_workspace_id,
             forced_login_method,
             web_search_mode: constrained_web_search_mode.value,
+            web_search_mode_was_explicit,
             web_search_config,
             experimental_request_user_input_enabled,
             update_plan_enabled,

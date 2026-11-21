@@ -203,10 +203,10 @@ pub enum Feature {
     /// Allow the model to request web searches that fetch cached content.
     /// Takes precedence over `WebSearchRequest`.
     WebSearchCached,
+    /// Prefer indexed search when the implicit cached default can be upgraded.
+    WebSearchIndexedDefault,
     /// Expose the extension-backed standalone web search tool.
     StandaloneWebSearch,
-    /// Let the host authorize MCP search independently of native search through per-turn policy.
-    HostedSearchPolicy,
     /// Request the legacy Landlock mode of the Linux sandbox.
     UseLegacyLandlock,
     /// Experimental shell snapshotting.
@@ -1466,14 +1466,14 @@ pub const FEATURES: &[FeatureSpec] = &[
         default_enabled: false,
     },
     FeatureSpec {
-        id: Feature::StandaloneWebSearch,
-        key: "standalone_web_search",
-        stage: Stage::UnderDevelopment,
+        id: Feature::WebSearchIndexedDefault,
+        key: "web_search_indexed_default",
+        stage: Stage::Stable,
         default_enabled: false,
     },
     FeatureSpec {
-        id: Feature::HostedSearchPolicy,
-        key: "hosted_search_policy",
+        id: Feature::StandaloneWebSearch,
+        key: "standalone_web_search",
         stage: Stage::UnderDevelopment,
         default_enabled: false,
     },
@@ -2148,8 +2148,8 @@ pub const FEATURES: &[FeatureSpec] = &[
     FeatureSpec {
         id: Feature::ConcurrentReasoningSummaries,
         key: "concurrent_reasoning_summaries",
-        stage: Stage::UnderDevelopment,
-        default_enabled: false,
+        stage: Stage::Stable,
+        default_enabled: true,
     },
     FeatureSpec {
         id: Feature::OutputTokenReplay,
