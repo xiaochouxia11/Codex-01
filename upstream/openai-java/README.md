@@ -461,7 +461,20 @@ OpenAIClient client = OpenAIOkHttpClient.builder()
     .build();
 ```
 
+### Responses history normalization
+
+Use [`ResponseInputItems`](docs/response-history.md) to convert previous response output into
+typed input items for a locally managed conversation. It preserves reasoning and tool-call
+relationships, removes known replay-only metadata, and leaves the source history unchanged.
+
+```java
+history.addAll(ResponseInputItems.toInputItems(response.output()));
+```
+
 ### Streaming helpers
+
+See [streaming accumulation and final results](docs/streaming-accumulation.md) for
+finality, snapshots, cancellation, and error handling.
 
 The SDK provides conveniences for streamed chat completions. A
 [`ChatCompletionAccumulator`](openai-java-core/src/main/kotlin/com/openai/helpers/ChatCompletionAccumulator.kt)
@@ -898,6 +911,10 @@ class MyObject {
 
 ## Function calling with JSON schemas
 
+For an automatic callback-and-follow-up loop, use the handwritten
+[`ChatCompletionToolRunner`](docs/chat-tool-runner.md). It registers typed callbacks,
+preserves tool-call IDs, and bounds the number of model requests.
+
 OpenAI [Function Calling](https://platform.openai.com/docs/guides/function-calling?api-mode=chat)
 lets you integrate external functions directly into the language model's responses. Instead of
 producing plain text, the model can output instructions (with parameters) for calling a function
@@ -1186,6 +1203,15 @@ If serializing a multipart upload fails, the SDK attempts to close all of its in
 including files it has not read yet. Rebuild the upload parameters with fresh streams before
 retrying after a serialization failure.
 
+### Vector-store polling and bulk uploads
+
+Use [`VectorStoreHelpers`](docs/vector-store-helpers.md) to poll existing vector-store files or
+batches, attach files and wait for ingestion, or upload local files with bounded concurrency before
+creating and polling a batch. The helper preserves failed/cancelled terminal states for inspection
+and never deletes remote files automatically. Async methods use a caller-owned worker executor.
+See [VectorStorePollingExample](openai-java-example/src/main/java/com/openai/example/VectorStorePollingExample.java)
+for a complete bulk-upload example.
+
 ## Webhook Verification
 
 Verifying webhook signatures is _optional but encouraged_.
@@ -1363,7 +1389,24 @@ HttpResponseFor<ChatCompletion> chatCompletion = client.chat().completions().wit
 Optional<String> requestId = chatCompletion.requestId();
 ```
 
-This can be used to quickly log failing requests and report them back to OpenAI.
+HTTP errors and SSE errors thrown as `OpenAIServiceException` expose the same server ID:
+
+```java
+import com.openai.errors.OpenAIServiceException;
+
+try {
+    client.chat().completions().create(params);
+} catch (OpenAIServiceException error) {
+    Optional<String> requestId = error.requestId();
+    // Include the request ID when reporting the failure to OpenAI.
+    throw error;
+}
+```
+
+`requestId()` returns an empty `Optional` when the response has no `x-request-id` header.
+It does not substitute your `X-Client-Request-Id`, which you can send through additional request
+headers. SSE event IDs are separate from HTTP request IDs; typed error events delivered as data
+are not exceptions and are not covered by this accessor.
 
 ## Error handling
 
@@ -2016,6 +2059,10 @@ To use a completely custom HTTP client:
 3. Construct [`OpenAIClientImpl`](openai-java-core/src/main/kotlin/com/openai/client/OpenAIClientImpl.kt) or [`OpenAIClientAsyncImpl`](openai-java-core/src/main/kotlin/com/openai/client/OpenAIClientAsyncImpl.kt), similarly to [`OpenAIOkHttpClient`](openai-java-client-okhttp/src/main/kotlin/com/openai/client/okhttp/OpenAIOkHttpClient.kt) or [`OpenAIOkHttpClientAsync`](openai-java-client-okhttp/src/main/kotlin/com/openai/client/okhttp/OpenAIOkHttpClientAsync.kt), using your new client class
 
 ## Undocumented API functionality
+
+For endpoints without a generated service method, use the handwritten
+[`CustomRequests`](docs/custom-requests.md) helper to send a relative-path request through
+your existing client configuration and receive a raw response.
 
 The SDK is typed for convenient usage of the documented API. However, it also supports working with undocumented or not yet supported parts of the API.
 
