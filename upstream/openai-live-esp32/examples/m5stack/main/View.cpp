@@ -22,6 +22,7 @@ static_assert(LVGL_VERSION_MAJOR == 9 && LVGL_VERSION_MINOR == 6 &&
 namespace board {
 namespace {
 constexpr int CONTENT_HEIGHT = 176, LINE_WIDTH = 292;
+constexpr uint32_t STANDBY_COLOR = 0xC1AE88;
 const lv_font_t *caption_font = &live_font_22;
 bool control_large = false;
 uint32_t button_color = UINT32_MAX;
@@ -37,6 +38,8 @@ int brightness = VIVID.brightness;
 lv_obj_t *display_test = nullptr, *test_title, *test_user, *test_assistant;
 int64_t display_test_expires_us = 0;
 lv_obj_t *welcome, *status_label, *captions, *usage, *button, *button_text;
+lv_obj_t *session_badge, *session_badge_dot, *session_badge_text;
+uint32_t session_badge_color = UINT32_MAX;
 lv_obj_t *photo_label;
 lv_obj_t *photo_image;
 std::atomic<uint8_t *> pending_photo{nullptr};
@@ -255,6 +258,16 @@ void view_init(const char *title) {
   lv_obj_add_event_cb(button, press, LV_EVENT_CLICKED, nullptr);
   button_text = label(button, 0, 0, LV_SIZE_CONTENT, profile->start);
   lv_obj_center(button_text);
+  session_badge = area(screen, 243, 193, 74, 40);
+  lv_obj_set_clickable(session_badge, false);
+  session_badge_dot = area(session_badge, 0, 17, 6, 6);
+  lv_obj_set_clickable(session_badge_dot, false);
+  lv_obj_set_style_radius(session_badge_dot, LV_RADIUS_CIRCLE, 0);
+  lv_obj_set_style_border_width(session_badge_dot, 1, 0);
+  session_badge_text = label(session_badge, 11, 0, 63, profile->start);
+  lv_obj_set_style_text_font(session_badge_text, &live_font_16, 0);
+  lv_obj_align(session_badge_text, LV_ALIGN_LEFT_MID, 11, 0);
+  show(session_badge, false);
   photo_label = label(screen, 8, 210, 68, profile->assistant);
   lv_obj_set_style_text_font(photo_label, &live_font_16, 0);
   text(photo_label, "Photo");
@@ -357,11 +370,28 @@ void view_update() {
   const char *status = wifi_ready() ? state.status : "Connecting Wi-Fi...";
   show(status_label, !state.active && !final && !movie &&
                          strcmp(status, "Ready - tap Start") != 0);
-  show(captions, transcripts && !shown_photo);
+  const bool conversation_visible = transcripts && !shown_photo;
+  show(captions, conversation_visible);
   show(usage, final && !movie);
   show(button, controls || shown_photo || !movie);
   text(status_label, status);
-  if (transcripts && !shown_photo && revision != state.transcript_revision)
+  show(session_badge, conversation_visible);
+  if (conversation_visible) {
+    const uint32_t color = state.standby ? STANDBY_COLOR : profile->start;
+    if (session_badge_color != color) {
+      session_badge_color = color;
+      const auto ink = lv_color_hex(color);
+      text(session_badge_text, state.standby ? "Standby" : "Live");
+      lv_obj_set_style_text_color(session_badge_text, ink, 0);
+      lv_obj_set_style_border_color(session_badge_dot, ink, 0);
+      lv_obj_set_style_bg_color(session_badge_dot, ink, 0);
+      lv_obj_set_style_bg_opa(session_badge_dot,
+                              state.standby ? LV_OPA_TRANSP : LV_OPA_COVER, 0);
+      ESP_LOGI("M5View", "session indicator: %s",
+               state.standby ? "Standby" : "Live");
+    }
+  }
+  if (conversation_visible && revision != state.transcript_revision)
     render_captions();
   if (final && !movie) {
     char value[160];

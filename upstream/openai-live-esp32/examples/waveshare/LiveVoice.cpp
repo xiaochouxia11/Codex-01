@@ -264,6 +264,8 @@ bool LiveVoice::init() {
   live_esp32_config_t cfg{};
   cfg.api_key = LIVE_API_KEY;
   cfg.model = LIVE_MODEL;
+  cfg.wake_on_speech = true;
+  cfg.idle_timeout_s = 30;
   cfg.responses_model = LIVE_RESPONSES_MODEL;
   cfg.responses_service_tier = "priority";
   cfg.responses_web_search = true;

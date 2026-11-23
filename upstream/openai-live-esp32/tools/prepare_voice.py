@@ -254,7 +254,7 @@ def write_secrets(private, key, networks):
     private.chmod(0o700)
     values = {
         "LIVE_API_KEY": key,
-        "LIVE_MODEL": os.environ.get("LIVE_MODEL", "gpt-live-1"),
+        "LIVE_MODEL": os.environ.get("LIVE_MODEL", "gpt-live-1.1"),
         "LIVE_RESPONSES_MODEL": os.environ.get("LIVE_RESPONSES_MODEL", "gpt-6-luna"),
     }
     secret_header = private / "live_voice_secrets.h"

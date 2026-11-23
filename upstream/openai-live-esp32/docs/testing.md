@@ -1,6 +1,6 @@
 # Testing and emulation
 
-Activate ESP-IDF 5.5.2 before running these commands from the repository root.
+Activate ESP-IDF 5.5.6 before running these commands from the repository root.
 
 ## Native tests
 
@@ -63,6 +63,12 @@ Follow the setup guide for
    launcher; on M5Stack, wait for Start. On Sonatino, press and release BOOT
    only while idle, or issue USB `live start`.
 2. Start a call and check HTTP 201, `session.started`, and advancing audio counters.
+   For an example with speech wake, stay quiet after Start. Speak and listen
+   for a reply. Wait at least 30 seconds after the
+   last transcript to see `session.paused`, then ask a follow-up that relies
+   on the previous turn. Check for `session.resumed` and confirm the session
+   ID and audio counters persist.
+   Tap Stop during standby and check for `session.closed`.
 3. Speak and verify audible replies. Check both transcript colors on screen,
    or use `live transcripts` on Sonatino.
 4. Ask for a web lookup and inspect nested Responses lifecycle events.
@@ -79,7 +85,7 @@ switch shares GPIO0 with the active audio clock. `live diagnostics` reports
 whether GPIO0 is an idle input or an active clock output.
 
 The [standalone-board CI workflow](../.github/workflows/m5stack.yml) builds
-M5Stack and Sonatino with ESP-IDF 5.5.2 and synthetic credentials, verifies their
+M5Stack and Sonatino with ESP-IDF 5.5.6 and synthetic credentials, verifies their
 dependency-lock versions/hashes, and runs the host CTest and Python suites.
 CI does not flash hardware or make Live calls. Board-specific hardware results
 and limitations are in each example's README; the historical measurements

@@ -465,6 +465,105 @@ cleanup:
   return failed;
 }
 
+static int test_standby_lifecycle(void) {
+  static const char resumed[] =
+      "{\"type\":\"session.resumed\",\"event_id\":\"wake\"}";
+  static const char paused[] =
+      "{\"type\":\"session.paused\",\"event_id\":\"idle\"}";
+  fixture_t f = {0};
+  cJSON *root = NULL;
+  int failed = 0;
+  live_config_t config = {.model = "fixture-model",
+                          .send = send_message,
+                          .on_event = on_event,
+                          .context = &f,
+                          .idle_timeout_s = 30};
+  CHECK(live_session_create(&config, &f.session) == LIVE_INVALID_ARGUMENT);
+  config.wake_on_speech = true;
+  config.idle_timeout_s = 4;
+  CHECK(live_session_create(&config, &f.session) == LIVE_INVALID_ARGUMENT);
+  config.idle_timeout_s = 61;
+  CHECK(live_session_create(&config, &f.session) == LIVE_INVALID_ARGUMENT);
+  config.idle_timeout_s = 30;
+  CHECK(live_session_create(&config, &f.session) == LIVE_OK);
+  CHECK(live_session_offer(f.session, offer_sdp, buffer, sizeof(buffer)) ==
+        LIVE_OK);
+  root = cJSON_Parse(buffer);
+  const cJSON *session = get(root, "session");
+  CHECK(equals(get(session, "wake_policy"), "type", "speech"));
+  const cJSON *timeout = get(session, "idle_timeout_s");
+  CHECK(cJSON_IsNumber(timeout) && timeout->valueint == 30);
+  CHECK(live_session_answer(f.session, 201, answer, strlen(answer), sdp_buffer,
+                            sizeof(sdp_buffer)) == LIVE_OK);
+  CHECK(receive(&f, started) == LIVE_OK);
+  CHECK(live_session_state(f.session) == LIVE_ACTIVE);
+  CHECK(live_session_in_standby(f.session));
+  CHECK(live_session_commentary(f.session, "Hello") == LIVE_INVALID_STATE);
+  CHECK(live_session_mute(f.session, true) == LIVE_OK);
+  CHECK(live_session_mute(f.session, false) == LIVE_OK);
+  // Live can deliver an opening turn before its first pause/resume cycle.
+  const char transcript[] =
+      "{\"type\":\"session.input_transcript.delta\",\"delta\":\"Hello\"}";
+  CHECK(receive(&f, transcript) == LIVE_OK);
+  CHECK(!live_session_in_standby(f.session));
+  CHECK(live_session_commentary(f.session, "Hello") == LIVE_OK);
+  CHECK(receive(&f, "{\"type\":\"session.paused\"}") == LIVE_INVALID_JSON);
+  CHECK(!live_session_in_standby(f.session));
+  CHECK(receive(&f, paused) == LIVE_OK);
+  CHECK(!strcmp(f.type, "session.paused"));
+  CHECK(live_session_in_standby(f.session));
+  CHECK(live_session_state(f.session) == LIVE_ACTIVE);
+  CHECK(!strcmp(live_session_id(f.session), "opaque-42"));
+  CHECK(receive(&f, transcript) == LIVE_OK);
+  CHECK(live_session_in_standby(f.session));
+  CHECK(receive(&f, resumed) == LIVE_OK);
+  CHECK(!live_session_in_standby(f.session));
+  CHECK(receive(&f, paused) == LIVE_OK);
+  CHECK(live_session_close(f.session) == LIVE_OK);
+  CHECK(live_session_state(f.session) == LIVE_CLOSING);
+  CHECK(receive(&f, resumed) == LIVE_OK);
+  CHECK(live_session_state(f.session) == LIVE_CLOSING);
+  CHECK(receive(&f, closed) == LIVE_OK);
+  CHECK(live_session_finalized(f.session));
+cleanup:
+  cJSON_Delete(root);
+  live_session_destroy(f.session);
+  return failed;
+}
+
+static int test_gpt_6_2_developer_prefix(void) {
+  fixture_t f = {0};
+  cJSON *root = NULL;
+  int failed = 0;
+  char prompt[] = "Use tools for \"current\" facts.";
+  live_config_t config = {.model = "gpt-live-1.1",
+                          .instructions = "Speak naturally.",
+                          .responses_model = "gpt-6.2-sol-2026-11-17",
+                          .send = send_message,
+                          .responses_instructions = prompt};
+  CHECK(live_session_create(&config, &f.session) == LIVE_OK);
+  prompt[0] = 'X';
+  CHECK(live_session_offer(f.session, offer_sdp, buffer, sizeof(buffer)) ==
+        LIVE_OK);
+  root = cJSON_Parse(buffer);
+  const cJSON *session = get(root, "session");
+  const cJSON *input = get(session, "input");
+  const cJSON *message = cJSON_GetArrayItem(input, 0);
+  const cJSON *part = cJSON_GetArrayItem(get(message, "content"), 0);
+  CHECK(equals(session, "instructions", config.instructions));
+  CHECK(cJSON_IsArray(input) && cJSON_GetArraySize(input) == 1);
+  CHECK(equals(message, "type", "message"));
+  CHECK(equals(message, "role", "developer"));
+  CHECK(equals(part, "type", "input_text"));
+  CHECK(equals(part, "text", "Use tools for \"current\" facts."));
+  CHECK(!get(get(get(session, "delegation"), "responses"), "instructions"));
+  CHECK(!get(session, "wake_policy") && !get(session, "idle_timeout_s"));
+cleanup:
+  cJSON_Delete(root);
+  live_session_destroy(f.session);
+  return failed;
+}
+
 int live_run_tests(bool verbose) {
   const struct {
     const char *name;
@@ -482,6 +581,8 @@ int live_run_tests(bool verbose) {
       {"server initiated close", test_server_initiated_close},
       {"callback reentry", test_callback_reentry},
       {"frontend commentary", test_commentary},
+      {"standby lifecycle", test_standby_lifecycle},
+      {"GPT-6.2 developer prefix", test_gpt_6_2_developer_prefix},
   };
   int failed = 0;
   for (size_t i = 0; i < sizeof(tests) / sizeof(tests[0]); ++i) {

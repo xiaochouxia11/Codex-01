@@ -16,6 +16,8 @@ extern "C" {
 #define LIVE_MAX_JSON_BYTES 16384
 #define LIVE_MAX_SDP_BYTES 8192
 #define LIVE_MAX_COMMENTARY_BYTES 256
+#define LIVE_MIN_IDLE_TIMEOUT_S 5
+#define LIVE_MAX_IDLE_TIMEOUT_S 60
 
 typedef struct live_session live_session_t;
 typedef enum {
@@ -57,12 +59,19 @@ typedef struct {
   /* Optional Responses settings; require responses_model. Strings are copied.
    */
   const char *responses_service_tier; /* Nonempty, at most 31 bytes. */
-  const char *responses_instructions; /* At most 4096 bytes. */
+  /* At most 4096 bytes. With GPT-6.2 model IDs, these static instructions
+   * become the first developer message in session.input. */
+  const char *responses_instructions;
   bool responses_web_search; /* Enable hosted web_search with auto tool choice.
                               */
   /* Optional JSON array of up to eight client function tools (4096 bytes).
    * Copied and validated. Client tools are requested serially. */
   const char *responses_tools_json;
+  /* Wait for speech before starting inference. Keep sending microphone RTP.
+   * A nonzero timeout returns to standby after 5..60 seconds without
+   * transcript activity and requires wake_on_speech. */
+  bool wake_on_speech;
+  unsigned idle_timeout_s;
 } live_config_t;
 
 /* Configuration strings are copied. context remains application-owned. */
@@ -72,6 +81,9 @@ live_result_t live_session_destroy(live_session_t *session);
 live_state_t live_session_state(const live_session_t *session);
 const char *live_session_id(const live_session_t *session);
 bool live_session_finalized(const live_session_t *session);
+/* True during initial speech wait or after session.paused. An open session
+ * stays LIVE_ACTIVE while on standby, and can still be muted or closed. */
+bool live_session_in_standby(const live_session_t *session);
 
 /* Builds POST /v1/live/sessions JSON. The application supplies a gathered SDP
  * offer and sends this body through an authenticated signaling transport.
@@ -89,7 +101,7 @@ live_result_t live_session_answer(live_session_t *session, int http_status,
 live_result_t live_session_receive(live_session_t *session, const char *json,
                                    size_t length);
 live_result_t live_session_mute(live_session_t *session, bool muted);
-/* Append short speakable context to the frontend in an ACTIVE session.
+/* Append short speakable context to the frontend while inference is awake.
  * Text must be nonempty and at most LIVE_MAX_COMMENTARY_BYTES. The model may
  * paraphrase or be interrupted; transport acceptance is not proof of speech.
  * No Responses delegation is needed. Call outside event callbacks. */

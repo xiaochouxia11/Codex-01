@@ -62,8 +62,10 @@ calling `live_esp32_init()`:
 | Setting | Configuration | Example configuration |
 | --- | --- | --- |
 | Frontend instructions | `instructions` | Your board-specific system prompt; `NULL` keeps the adapter default |
-| Startup greeting | `greeting` | Optional spoken welcome, up to 256 bytes; `NULL` keeps existing startup behavior |
-| Frontend voice model | `model` | `LIVE_MODEL`, generated from the environment; defaults to `gpt-live-1` |
+| Startup greeting | `greeting` | Optional spoken welcome of up to 256 bytes, sent once inference is awake |
+| Speech wake | `wake_on_speech` | Wait for speech to start inference while WebRTC stays connected |
+| Standby timeout | `idle_timeout_s` | 5–60 seconds without transcript activity. Zero keeps inference active after the first wake. |
+| Frontend voice model | `model` | `LIVE_MODEL`, generated from the environment; defaults to `gpt-live-1.1` |
 | Delegated Responses model | `responses_model` | `LIVE_RESPONSES_MODEL`, generated from the environment; defaults to `gpt-6-luna` |
 | Backend instructions | `responses_instructions` | Instructions for the delegated backend, such as when to search and how to summarize findings |
 | Backend service tier | `responses_service_tier` | `"priority"` in the device examples |
@@ -78,8 +80,19 @@ config.instructions =
     "Delegate current-information questions to your backend and wait for its findings.";
 ```
 
-`NULL` preserves the adapter's default prompt. `responses_instructions`
-controls the delegated backend and does not replace the frontend prompt.
+Omit `instructions` to use the adapter's default frontend prompt. Set
+`responses_instructions` for delegated work. When `responses_model` starts
+with `gpt-6.2-`, the SDK puts that static text in the first developer message
+in `session.input` at creation, following the
+[GPT-6.2 prompt caching guidance](https://developers.openai.com/api/docs/guides/latest-model).
+That message is part of the shared Live history. Other model IDs use
+`session.delegation.responses.instructions`.
+
+The standard examples enable [Live standby](https://developers.openai.com/api/docs/guides/live-conversations#managing-idle-sessions)
+with a 30-second timeout. Speak after connecting to wake inference, and speak
+again after a pause to resume the same conversation. The microphone keeps
+streaming while the session is in standby. The cinema example starts awake
+to deliver its opening greeting immediately.
 An optional `greeting` is submitted once after the session is active using
 `session.commentary.append`, without a delegated backend call. The model may
 paraphrase it, and the user can interrupt. A new connection gets a new greeting;
@@ -106,7 +119,7 @@ file permissions `600`. Pass it to your board's preparation script with
 `--key-file`. For example, the Waveshare preparation command is:
 
 ```sh
-LIVE_MODEL=gpt-live-1 LIVE_RESPONSES_MODEL=gpt-6-luna \
+LIVE_MODEL=gpt-live-1.1 LIVE_RESPONSES_MODEL=gpt-6-luna \
 python tools/prepare_voice.py \
   --key-file "$HOME/.config/openai-live-esp32/api-key"
 ```
@@ -139,7 +152,7 @@ device to get started, or adapt its board drivers and controls for your own
 project. The same core SDK supports these integrations.
 
 The ESP-IDF adapter targets dual-core **ESP32-S3 boards with PSRAM** and
-the **ESP32-S31 Mosaico**. S3 examples use IDF 5.5.2; Mosaico uses a separate
+the **ESP32-S31 Mosaico**. S3 examples use IDF 5.5.6; Mosaico uses a separate
 pinned IDF 6.2 preview toolchain.
 Other boards need compatible networking and audio drivers, sufficient memory,
 and validation of task scheduling and audio performance. A display is optional;
@@ -188,7 +201,7 @@ It provides:
 - A [USB screen mirror](examples/waveshare/README.md#usb-screen-mirror-and-demo-recording)
   with a laptop viewer and screen-only video recording.
 
-The example uses `gpt-live-1` for voice. Model availability and API usage charges
+The example uses `gpt-live-1.1` for voice. Model availability and API usage charges
 depend on your account. Model names can be configured at build time.
 The launcher retains its other apps, including Settings, but excludes the vendor
 Xiaozhi assistant and its separate font, emoji, prompt-audio, and speech-model
@@ -238,7 +251,7 @@ start a session automatically. See the
 
 ## Build and test the core
 
-Install [ESP-IDF 5.5.2](https://docs.espressif.com/projects/esp-idf/en/v5.5.2/esp32s3/get-started/index.html),
+Install [ESP-IDF 5.5.6](https://docs.espressif.com/projects/esp-idf/en/v5.5.6/esp32s3/get-started/index.html),
 including its ESP32-S3 tools, and activate its `export.sh`. The documented command
 line workflow targets macOS/Linux. From this repository:
 

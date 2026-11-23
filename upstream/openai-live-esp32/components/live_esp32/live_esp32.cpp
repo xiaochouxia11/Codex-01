@@ -351,16 +351,30 @@ void publish_usage(const char *type, const cJSON *root) {
   portEXIT_CRITICAL(&status_lock);
 }
 
+void inference_status() {
+  const bool standby = live_session_in_standby(session);
+  portENTER_CRITICAL(&status_lock);
+  status.active = true;
+  status.standby = standby;
+  const bool mic_muted = status.muted;
+  portEXIT_CRITICAL(&status_lock);
+  message(mic_muted ? "Microphone muted"
+          : standby ? "Standby - speak to wake"
+                    : "Listening - speak naturally");
+}
+
 void event(void *, const char *type, const char *json, size_t length) {
   if (!strcmp(type, "session.started")) {
     cJSON *root = cJSON_ParseWithLength(json, length);
     publish_usage(type, root);
     cJSON_Delete(root);
     mark_startup(LIVE_STARTUP_SESSION_STARTED);
-    portENTER_CRITICAL(&status_lock);
-    status.active = true;
-    portEXIT_CRITICAL(&status_lock);
-    message("Listening - speak naturally");
+    inference_status();
+  } else if (!strcmp(type, "session.paused") ||
+             !strcmp(type, "session.resumed")) {
+    ESP_LOGI(TAG, "event: %s", type);
+    if (live_session_state(session) == LIVE_ACTIVE && !stop)
+      inference_status();
   } else if (!strcmp(type, "session.closed") ||
              !strcmp(type, "session.usage.updated")) {
     cJSON *root = cJSON_ParseWithLength(json, length);
@@ -474,7 +488,10 @@ void event(void *, const char *type, const char *json, size_t length) {
       portENTER_CRITICAL(&status_lock);
       transcripts = captions;
       status.transcript_revision = captions.revision;
+      const bool woke = status.standby && !live_session_in_standby(session);
       portEXIT_CRITICAL(&status_lock);
+      if (woke && live_session_state(session) == LIVE_ACTIVE && !stop)
+        inference_status();
       ESP_LOGI(TAG, "%s: %s", type, delta->valuestring);
     }
     cJSON_Delete(root);
@@ -1034,6 +1051,8 @@ void run_session() {
   cfg.responses_service_tier = config.responses_service_tier;
   cfg.responses_instructions = config.responses_instructions;
   cfg.responses_web_search = config.responses_web_search;
+  cfg.wake_on_speech = config.wake_on_speech;
+  cfg.idle_timeout_s = config.idle_timeout_s;
   cfg.responses_tools_json = tools_json.empty() ? nullptr : tools_json.c_str();
   cfg.voice = "marin";
   cfg.instructions =
@@ -1154,21 +1173,22 @@ void run_session() {
         break;
       }
       const auto greeting_result =
-          greeting.poll(state, stop.load() || closing || failed.load(),
+          greeting.poll(state, stop.load() || closing || failed.load() ||
+                                   live_session_in_standby(session),
                         config.greeting, [](const char *text) {
                           return live_session_commentary(session, text);
                         });
       if (greeting_result != LIVE_OK)
         ESP_LOGW(TAG, "Startup greeting send failed: %d; no automatic retry",
                  int(greeting_result));
-      if (!closing && state == LIVE_ACTIVE && muted.load() != applied_mute) {
-        if (live_session_mute(session, muted.load()) == LIVE_OK) {
-          applied_mute = muted;
+      const bool requested_mute = muted.load();
+      if (!closing && state == LIVE_ACTIVE && requested_mute != applied_mute) {
+        if (live_session_mute(session, requested_mute) == LIVE_OK) {
+          applied_mute = requested_mute;
           portENTER_CRITICAL(&status_lock);
           status.muted = applied_mute;
           portEXIT_CRITICAL(&status_lock);
-          message(applied_mute ? "Microphone muted"
-                               : "Listening - speak naturally");
+          inference_status();
         }
       }
       if (esp_timer_get_time() > report_at) {
@@ -1253,6 +1273,7 @@ cleanup:
   }
   portENTER_CRITICAL(&status_lock);
   status.active = false;
+  status.standby = false;
   status.busy = false;
   status.network_required = false;
   portEXIT_CRITICAL(&status_lock);
@@ -1546,6 +1567,10 @@ esp_err_t live_esp32_init(const live_esp32_config_t *cfg) {
     return ESP_ERR_INVALID_ARG;
   if (cfg->playout_buffer_ms &&
       !live_audio::Prebuffer::valid_delay(cfg->playout_buffer_ms))
+    return ESP_ERR_INVALID_ARG;
+  if (cfg->idle_timeout_s &&
+      (!cfg->wake_on_speech || cfg->idle_timeout_s < LIVE_MIN_IDLE_TIMEOUT_S ||
+       cfg->idle_timeout_s > LIVE_MAX_IDLE_TIMEOUT_S))
     return ESP_ERR_INVALID_ARG;
   if (initialized)
     return ESP_ERR_INVALID_STATE;

@@ -1,8 +1,8 @@
 # openai/openai-live-esp32 同步记录
 
 - 上游：https://github.com/openai/openai-live-esp32
-- 上游提交：6520b96840493c285ecbb7c72cace3b8116b619d
-- 上游 tree：7731b173db8f419545d1b13a3b01579e198cebe7
+- 上游提交：fdfcc74afdaaab7c452ad2e7d8f2c62b5a02bd7e
+- 上游 tree：652e508dc276c56f7820d982c93ff1b2cece7a0a
 - 目录：upstream/openai-live-esp32/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。

@@ -15,7 +15,7 @@ expander at I²C address `0x6f` controls motor power. See the
 
 ## Build and flash
 
-Use **ESP-IDF 5.5.2** and `idf-component-manager==2.5.2`, as in the
+Use **ESP-IDF 5.5.6** and `idf-component-manager==2.5.2`, as in the
 [CoreS3 setup guide](../m5stack/README.md#build-and-flash). Keep your API key and
 Wi-Fi profiles outside the repository. `wifi.json` accepts one to eight saved
 networks, for example `{"networks":[{"ssid":"YOUR_SSID","password":"YOUR_PASSWORD"}]}`.
@@ -32,9 +32,13 @@ idf.py -C examples/stackchan build
 ```
 
 `LIVE_MODEL` and `LIVE_RESPONSES_MODEL` before preparation select the frontend
-and backend models (defaults `gpt-live-1` and `gpt-6-luna`). The app requests
+and backend models (defaults `gpt-live-1.1` and `gpt-6-luna`). The app requests
 priority Responses delegation and hosted web search. Prompts and optional tool
 callbacks are configured in [`main/main.cpp`](main/main.cpp).
+
+The indicator beside Stop shows **Live** while inference is awake and
+**Standby** while the session is waiting for speech. The microphone stays
+connected in standby, and speaking resumes the conversation.
 
 Connect USB to the **base**, place the robot upright with room for its head to
 move, and identify its serial port. M5Stack recommends the base port so head

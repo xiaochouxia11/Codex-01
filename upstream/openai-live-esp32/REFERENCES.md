@@ -15,7 +15,7 @@
 
 - [Waveshare device source and launcher](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.8)
 - [Waveshare ESP32 components](https://github.com/waveshareteam/Waveshare-ESP32-components)
-- [ESP-IDF 5.5.2](https://docs.espressif.com/projects/esp-idf/en/v5.5.2/esp32s3/get-started/index.html)
+- [ESP-IDF 5.5.6](https://docs.espressif.com/projects/esp-idf/en/v5.5.6/esp32s3/get-started/index.html)
 - [Espressif WebRTC solution](https://github.com/espressif/esp-webrtc-solution)
 - [Espressif OpenAI Realtime demo](https://github.com/espressif/esp-webrtc-solution/tree/main/solutions/openai_demo)
 - [Peer 1.5.6 ICE nomination issue](https://github.com/espressif/esp-webrtc-solution/issues/208)

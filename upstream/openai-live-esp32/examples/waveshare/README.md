@@ -50,7 +50,7 @@ when available; otherwise it retains the last update and shows "Last reported".
 Missing token reports remain unavailable. These values clear on the next call
 or reboot. See [usage semantics](../../docs/core.md#status-captions-and-usage).
 
-The defaults are `gpt-live-1` for voice and Responses delegation through
+The defaults are `gpt-live-1.1` for voice and Responses delegation through
 `gpt-6-luna`, `service_tier: "priority"`, with hosted `web_search`. Backend
 instructions use search for current-information requests. Set `LIVE_MODEL` and
 `LIVE_RESPONSES_MODEL` before preparation to choose other supported models.
@@ -58,7 +58,7 @@ instructions use search for current-information requests. Set `LIVE_MODEL` and
 ## Prerequisites
 
 - The named Waveshare **V2** device and a USB data cable.
-- ESP-IDF **5.5.2**, installed with ESP32-S3 tools and an activated `export.sh`.
+- ESP-IDF **5.5.6**, installed with ESP32-S3 tools and an activated `export.sh`.
 - A 2.4 GHz Wi-Fi network and an API key with access to the configured models.
 - Python from the ESP-IDF environment, which includes pyserial for USB controls.
 

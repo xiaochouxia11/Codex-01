@@ -19,7 +19,7 @@ boot; the interaction module is initialized during startup.
 ## Build and flash
 
 Mosaico needs the preview S31 toolchain. Keep this installation separate from
-the **ESP-IDF 5.5.2** installation used by the S3 examples. The tested source pin
+the **ESP-IDF 5.5.6** installation used by the S3 examples. The tested source pin
 is ESP-IDF `7b9cc1ac79f865983f59bb8ff3ff43eb74ff1dbe` (6.2 preview):
 
 ```sh

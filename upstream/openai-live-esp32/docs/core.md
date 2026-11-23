@@ -43,6 +43,26 @@ Unknown events and nested Responses events are forwarded unchanged. The core
 does not interpret backend text as spoken transcript text. Use the input/output
 transcript events for captions.
 
+### Speech wake and standby
+
+Set `live_config_t.wake_on_speech` to send `session.wake_policy.type: speech`.
+Optionally set `idle_timeout_s` to 5–60 seconds to return to standby after
+inactivity. Leave both fields zero to start inference immediately. Keep the
+audio track sending while in standby so that speech can wake the session.
+
+`LIVE_ACTIVE` means the session is open. `live_session_in_standby()` tracks
+inference readiness within that state. It starts true for speech wake and
+updates on `session.resumed` and `session.paused`. The first transcript can
+also indicate readiness before the server's first pause. Feed both events to the
+core if you filter data-channel traffic. Mute and close work in standby.
+Send commentary once inference is awake. The ESP32 adapter exposes the
+same readiness as `live_esp32_status_t.standby` and keeps the same local
+session and audio queues across wake cycles.
+
+For GPT-6.2 Responses model IDs, the core serializes `responses_instructions`
+as a developer message at the start of `session.input`. Other backend model
+IDs continue to use `session.delegation.responses.instructions`.
+
 ## ESP-IDF adapter
 
 Add `components/live`, `components/live_esp32`, and `components/live_peer`
@@ -57,7 +77,7 @@ The [Mosaico example](../examples/mosaico/README.md) uses a separately pinned
 IDF 6.2 preview for ESP32-S31, an isolated Mbed TLS 4.1.2/PSA component,
 managed cJSON, and `esp_audio_codec` 2.6.2. Its preparation tool applies the same
 X.509 fix and the matching ESP-IDF hardware port without modifying the IDF checkout. Existing S3 examples
-retain their IDF 5.5.2, Mbed TLS 3.6.8 and codec 2.4.1 pins.
+retain their IDF 5.5.6, Mbed TLS 3.6.8 and codec 2.4.1 pins.
 
 Initialize [`live_esp32.h`](../components/live_esp32/include/live_esp32.h) once
 with an application-owned configuration that remains alive for the process:
@@ -65,7 +85,7 @@ with an application-owned configuration that remains alive for the process:
 ```c
 live_esp32_config_t config = {
     .api_key = device_api_key,
-    .model = "gpt-live-1",
+    .model = "gpt-live-1.1",
     .responses_model = "gpt-6-luna",
     .audio_open = board_audio_open,
     .audio_close = board_audio_close,

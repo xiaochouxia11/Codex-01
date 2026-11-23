@@ -29,7 +29,7 @@ not depend on Espressif's restricted peer or audio libraries.
 | Waveshare board components | `30d0ac3b8b6b27ebd402c5852819cbe0dab92749` | [Apache-2.0](https://github.com/waveshareteam/Waveshare-ESP32-components/blob/30d0ac3b8b6b27ebd402c5852819cbe0dab92749/LICENSE) |
 | WAV file player | `chmorgan/esp-audio-player` 1.1.0, `3cfeb3459e6c9be8055b507f520b2f5e8800b742` | [Apache-2.0](https://github.com/chmorgan/esp-audio-player/blob/3cfeb3459e6c9be8055b507f520b2f5e8800b742/LICENSE); modified to remove Helix MP3 resolution/linking and disable MP3 playback |
 | Shared Roboto bitmap fonts (both Waveshare examples and M5Stack) | Roboto 2 `v2.138`, `Roboto-Medium.ttf` from `roboto-unhinted.zip` | [Apache-2.0](examples/common/fonts/LICENSE), copyright 2011 Google Inc.; [NOTICE](examples/common/fonts/NOTICE), [source and SHA-256 pins](examples/common/fonts/README.md) |
-| ESP-IDF | `v5.5.2` | [Apache-2.0 and component-specific licenses](https://github.com/espressif/esp-idf/tree/v5.5.2) |
+| ESP-IDF | `v5.5.6` | [Apache-2.0 and component-specific licenses](https://github.com/espressif/esp-idf/tree/v5.5.6) |
 
 `tools/prepare_voice.py` applies an integration overlay to the pinned sources.
 Wi-Fi/display/audio adaptations include system-status code copyright 2026
@@ -47,7 +47,7 @@ change does not make the complete vendor firmware OFL-free.
 ## M5Stack CoreS3 LITE integration
 
 The standalone M5Stack example downloads the public Espressif BSP and uses
-ESP-IDF 5.5.2. Its complete registry versions and component hashes are pinned in
+ESP-IDF 5.5.6. Its complete registry versions and component hashes are pinned in
 [`examples/m5stack/dependencies.lock`](examples/m5stack/dependencies.lock).
 The board files are not copied or relicensed in this repository.
 
@@ -95,7 +95,7 @@ the applicable notices, including the FTL acknowledgement and nested licenses.
 
 ## Sonatino integration
 
-The screenless Sonatino example uses ESP-IDF 5.5.2, the shared protocol and
+The screenless Sonatino example uses ESP-IDF 5.5.6, the shared protocol and
 transport dependencies above, and `esp_audio_codec` 2.4.1 under the device-only
 terms below. Its registry versions and hashes are pinned in
 [`examples/sonatino/dependencies.lock`](examples/sonatino/dependencies.lock).

@@ -56,7 +56,7 @@ typedef struct {
                             size_t capacity, bool (*cancelled)(void *),
                             void *cancel_context);
   /* Optional short welcome (1..256 bytes). Submitted as frontend spoken
-   * context once after session.started, never during shutdown. The model may
+   * context once when inference is awake, never during shutdown. The model may
    * paraphrase; NULL preserves existing startup behavior. No backend call is
    * needed. */
   const char *greeting;
@@ -64,6 +64,10 @@ typedef struct {
    * 120 ms default. Larger reserves trade startup latency for burst tolerance.
    */
   uint32_t playout_buffer_ms;
+  /* Optional server standby. Speech wakes inference while the microphone
+   * and WebRTC stay connected. Zero timeout enables first wake only. */
+  bool wake_on_speech;
+  unsigned idle_timeout_s;
 } live_esp32_config_t;
 typedef enum {
   LIVE_STARTUP_CONTROL,
@@ -117,6 +121,8 @@ typedef struct {
    * false after a transcript reset. */
   bool transcript_has_text;
   live_speaker_t transcript_speaker;
+  /* True while an active session is waiting for speech. */
+  bool standby;
 } live_esp32_status_t;
 /* Initialize once. start/stop/mute are nonblocking and safe on the GUI task. */
 esp_err_t live_esp32_init(const live_esp32_config_t *config);

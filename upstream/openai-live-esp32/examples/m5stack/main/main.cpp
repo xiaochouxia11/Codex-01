@@ -100,6 +100,8 @@ extern "C" void app_main() {
   static live_esp32_config_t config{};
   config.api_key = LIVE_API_KEY;
   config.model = LIVE_MODEL;
+  config.wake_on_speech = true;
+  config.idle_timeout_s = 30;
   config.responses_model = LIVE_RESPONSES_MODEL;
   config.responses_service_tier = "priority";
   config.responses_web_search = true;

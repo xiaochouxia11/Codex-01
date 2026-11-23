@@ -33,7 +33,7 @@ with the shared ASCII fallback. The original SDK transcript remains intact.
 
 ## Build and flash
 
-Install and activate **ESP-IDF 5.5.2** with ESP32-S3 tools. Use its Python
+Install and activate **ESP-IDF 5.5.6** with ESP32-S3 tools. Use its Python
 environment and the component-manager version tested in CI:
 
 ```sh
@@ -63,7 +63,7 @@ idf.py -C examples/m5stack build
 The preparation tool creates a private credential header and downloads the same
 hash-verified transport dependencies as Waveshare. ESP-IDF installs the board
 components pinned in [`dependencies.lock`](dependencies.lock). `LIVE_MODEL` and
-`LIVE_RESPONSES_MODEL` may be set before preparation; defaults are `gpt-live-1`
+`LIVE_RESPONSES_MODEL` may be set before preparation; defaults are `gpt-live-1.1`
 and `gpt-6-luna`, with priority Responses delegation and hosted web search.
 
 Identify the **M5Stack's** USB serial port before flashing. Save the existing

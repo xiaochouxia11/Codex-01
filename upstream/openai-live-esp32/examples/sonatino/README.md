@@ -28,7 +28,7 @@ resetting or powering on unless you intend to enter the firmware downloader.
 
 ## Build and flash
 
-Install and activate **ESP-IDF 5.5.2** with ESP32-S3 tools. In its Python
+Install and activate **ESP-IDF 5.5.6** with ESP32-S3 tools. In its Python
 environment, use the component manager tested in CI:
 
 ```sh
@@ -50,7 +50,7 @@ idf.py -C examples/sonatino build
 
 The preparation tool keeps the credential header and hash-verified peer sources
 outside this repository. Set `LIVE_MODEL` and `LIVE_RESPONSES_MODEL` before
-preparation to override `gpt-live-1` and `gpt-6-luna`. The example requests
+preparation to override `gpt-live-1.1` and `gpt-6-luna`. The example requests
 priority Responses delegation with hosted web search. Availability depends on
 your API account.
 

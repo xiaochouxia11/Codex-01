@@ -9,6 +9,12 @@
 
 #include "cJSON.h"
 
+enum inference_state {
+  INFERENCE_AWAKE,
+  INFERENCE_WAITING_FOR_SPEECH,
+  INFERENCE_PAUSED,
+};
+
 struct live_session {
   cJSON *config;
   live_send_fn send;
@@ -18,6 +24,7 @@ struct live_session {
   uint64_t sequence;
   bool busy;
   bool finalized;
+  enum inference_state inference;
   char id[128];
 };
 
@@ -127,6 +134,27 @@ static bool function_tools_valid(const cJSON *tools) {
   return true;
 }
 
+/* Session input is shared with delegated Responses calls. Seed one stable
+ * developer message before any conversational history. */
+static bool add_developer_message(cJSON *session, const char *text) {
+  cJSON *input = cJSON_AddArrayToObject(session, "input");
+  cJSON *message = input ? cJSON_CreateObject() : NULL;
+  if (!message || !cJSON_AddItemToArray(input, message)) {
+    cJSON_Delete(message);
+    return false;
+  }
+  cJSON *content = cJSON_AddArrayToObject(message, "content");
+  cJSON *part = content ? cJSON_CreateObject() : NULL;
+  if (!part || !cJSON_AddItemToArray(content, part)) {
+    cJSON_Delete(part);
+    return false;
+  }
+  return cJSON_AddStringToObject(message, "type", "message") &&
+         cJSON_AddStringToObject(message, "role", "developer") &&
+         cJSON_AddStringToObject(part, "type", "input_text") &&
+         cJSON_AddStringToObject(part, "text", text);
+}
+
 static live_result_t copy_json(const cJSON *root, char *out, size_t capacity) {
   char *encoded = cJSON_PrintUnformatted(root);
   if (!encoded)
@@ -156,6 +184,10 @@ live_result_t live_session_create(const live_config_t *config,
        strlen(config->responses_instructions) > 4096) ||
       (config->responses_tools_json &&
        !text_fits(config->responses_tools_json, 4096)) ||
+      (config->idle_timeout_s &&
+       (!config->wake_on_speech ||
+        config->idle_timeout_s < LIVE_MIN_IDLE_TIMEOUT_S ||
+        config->idle_timeout_s > LIVE_MAX_IDLE_TIMEOUT_S)) ||
       (!config->responses_model &&
        (config->responses_service_tier || config->responses_instructions ||
         config->responses_web_search || config->responses_tools_json)))
@@ -176,6 +208,8 @@ live_result_t live_session_create(const live_config_t *config,
   s->send = config->send;
   s->on_event = config->on_event;
   s->context = config->context;
+  s->inference = config->wake_on_speech ? INFERENCE_WAITING_FOR_SPEECH
+                                        : INFERENCE_AWAKE;
   s->config = cJSON_CreateObject();
   if (!s->config || !cJSON_AddStringToObject(s->config, "model", config->model))
     goto oom;
@@ -186,6 +220,14 @@ live_result_t live_session_create(const live_config_t *config,
     cJSON *audio = cJSON_AddObjectToObject(s->config, "audio");
     cJSON *output = audio ? cJSON_AddObjectToObject(audio, "output") : NULL;
     if (!output || !cJSON_AddStringToObject(output, "voice", config->voice))
+      goto oom;
+  }
+  if (config->wake_on_speech) {
+    cJSON *wake = cJSON_AddObjectToObject(s->config, "wake_policy");
+    if (!wake || !cJSON_AddStringToObject(wake, "type", "speech") ||
+        (config->idle_timeout_s &&
+         !cJSON_AddNumberToObject(s->config, "idle_timeout_s",
+                                  config->idle_timeout_s)))
       goto oom;
   }
   cJSON *delegation = cJSON_AddObjectToObject(s->config, "delegation");
@@ -202,10 +244,17 @@ live_result_t live_session_create(const live_config_t *config,
         !cJSON_AddStringToObject(responses, "service_tier",
                                  config->responses_service_tier))
       goto oom;
-    if (config->responses_instructions &&
-        !cJSON_AddStringToObject(responses, "instructions",
-                                 config->responses_instructions))
-      goto oom;
+    if (config->responses_instructions) {
+      const char *instructions = config->responses_instructions;
+      const char prefix[] = "gpt-6.2-"; // Includes dated snapshots.
+      if (!strncmp(config->responses_model, prefix, sizeof(prefix) - 1)) {
+        if (*instructions && !add_developer_message(s->config, instructions))
+          goto oom;
+      } else if (!cJSON_AddStringToObject(responses, "instructions",
+                                          instructions)) {
+        goto oom;
+      }
+    }
     if (config->responses_web_search || config->responses_tools_json) {
       cJSON *tools = NULL;
       if (config->responses_tools_json)
@@ -324,6 +373,10 @@ live_result_t live_session_answer(live_session_t *s, int status,
   return result;
 }
 
+bool live_session_in_standby(const live_session_t *s) {
+  return s && s->state == LIVE_ACTIVE && s->inference != INFERENCE_AWAKE;
+}
+
 live_result_t live_session_receive(live_session_t *s, const char *json,
                                    size_t length) {
   if (!s)
@@ -362,6 +415,23 @@ live_result_t live_session_receive(live_session_t *s, const char *json,
       s->state = LIVE_CLOSED;
       s->finalized = true;
     }
+  }
+  if (!strcmp(type, "session.paused") || !strcmp(type, "session.resumed")) {
+    // Wake events belong to this session's authenticated data channel. They
+    // carry an event ID, with no session resource.
+    if (!text_fits(string_field(root, "event_id"), 127)) {
+      result = LIVE_INVALID_JSON;
+      goto done;
+    }
+    s->inference = !strcmp(type, "session.paused") ? INFERENCE_PAUSED
+                                                   : INFERENCE_AWAKE;
+  } else if (s->inference == INFERENCE_WAITING_FOR_SPEECH &&
+             (!strcmp(type, "session.input_transcript.delta") ||
+              !strcmp(type, "session.output_transcript.delta"))) {
+    // An opening turn can occur before the server's first pause/resume cycle.
+    const char *delta = string_field(root, "delta");
+    if (delta && *delta)
+      s->inference = INFERENCE_AWAKE;
   }
   if (s->on_event) {
     s->busy = true;
@@ -402,7 +472,7 @@ live_result_t live_session_commentary(live_session_t *s, const char *text) {
     return LIVE_INVALID_ARGUMENT;
   if (s->busy)
     return LIVE_BUSY;
-  if (s->state != LIVE_ACTIVE)
+  if (s->state != LIVE_ACTIVE || s->inference != INFERENCE_AWAKE)
     return LIVE_INVALID_STATE;
   if (strlen(text) > LIVE_MAX_COMMENTARY_BYTES)
     return LIVE_LIMIT_EXCEEDED;
