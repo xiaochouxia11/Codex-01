@@ -273,6 +273,7 @@ pub(crate) use chat_composer::ChatComposer;
 pub(crate) use chat_composer::ChatComposerConfig;
 pub(crate) use chat_composer::ClipboardPasteTarget;
 pub(crate) use chat_composer::ComposerDraftSnapshot;
+pub(crate) use chat_composer::DisconnectedCommandState;
 pub(crate) use chat_composer::InputResult;
 pub(crate) use chat_composer::KillBufferSnapshot;
 pub(crate) use chat_composer::QueuedInputAction;
@@ -1871,6 +1872,10 @@ impl BottomPane {
 
     pub(crate) fn composer_is_empty(&self) -> bool {
         self.composer.is_empty()
+    }
+
+    pub(crate) fn accepts_reconnect_shortcut(&self) -> bool {
+        self.composer.accepts_reconnect_shortcut()
     }
 
     pub(crate) fn composer_is_vim_enabled(&self) -> bool {

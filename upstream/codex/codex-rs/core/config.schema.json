@@ -934,6 +934,9 @@
             "code_mode_interrupt": {
               "type": "boolean"
             },
+            "code_mode_mcp_result_dedup": {
+              "type": "boolean"
+            },
             "code_mode_only": {
               "type": "boolean"
             },
@@ -1010,6 +1013,9 @@
               "type": "boolean"
             },
             "default_mode_request_user_input": {
+              "type": "boolean"
+            },
+            "defer_image_generation": {
               "type": "boolean"
             },
             "defer_mailbox_preemption": {
@@ -3518,6 +3524,10 @@
         },
         "expose_spawn_agent_model_overrides": {
           "description": "Exposes `model` and `reasoning_effort` on the multi-agent v2 spawn tool and adds corresponding guidance to root and subagent usage hints.",
+          "type": "boolean"
+        },
+        "expose_spawn_agent_service_tier": {
+          "description": "Allow V1 and V2 `spawn_agent` to select a `service_tier` for one child. Defaults to false.",
           "type": "boolean"
         },
         "hide_spawn_agent_metadata": {
@@ -8337,6 +8347,9 @@
         "code_mode_interrupt": {
           "type": "boolean"
         },
+        "code_mode_mcp_result_dedup": {
+          "type": "boolean"
+        },
         "code_mode_only": {
           "type": "boolean"
         },
@@ -8413,6 +8426,9 @@
           "type": "boolean"
         },
         "default_mode_request_user_input": {
+          "type": "boolean"
+        },
+        "defer_image_generation": {
           "type": "boolean"
         },
         "defer_mailbox_preemption": {

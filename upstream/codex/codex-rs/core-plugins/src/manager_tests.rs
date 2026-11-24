@@ -1316,7 +1316,7 @@ async fn load_plugins_applies_plugin_mcp_server_policy() {
     "sample": {
       "type": "http",
       "url": "https://sample.example/mcp",
-      "default_tools_approval_mode": "prompt",
+      "default_tools_approval_mode": "writes",
       "enabled_tools": ["read", "search"],
       "tools": {
         "search": { "approval_mode": "prompt", "output_token_limit": 8000 }
@@ -1334,7 +1334,7 @@ enabled = true
 
 [plugins."sample@test".mcp_servers.sample]
 enabled = false
-default_tools_approval_mode = "approve"
+default_tools_approval_mode = "prompt"
 enabled_tools = ["search"]
 disabled_tools = ["delete"]
 
@@ -1353,7 +1353,7 @@ output_token_limit = 12000
     assert!(!server.enabled);
     assert_eq!(
         server.default_tools_approval_mode,
-        Some(AppToolApproval::Approve)
+        Some(AppToolApproval::Prompt)
     );
     assert_eq!(server.enabled_tools, Some(vec!["search".to_string()]));
     assert_eq!(server.disabled_tools, Some(vec!["delete".to_string()]));
@@ -1388,9 +1388,6 @@ async fn remote_installed_plugin_preserves_configured_mcp_server_policy() {
         &codex_home.path().join(CONFIG_TOML_FILE),
         r#"[features]
 plugins = true
-
-[plugins."linear@openai-curated-remote"]
-enabled = false
 
 [plugins."linear@openai-curated-remote".mcp_servers.linear]
 enabled = false
@@ -3447,11 +3444,11 @@ async fn plugin_defaults_resolve_remote_enablement_and_separate_cache_entries() 
             "[plugins._default]\nenabled = false\n[plugins.\"sample@openai-curated-remote\".mcp_servers.example]\ndefault_tools_approval_mode = 'approve'",
             Vec::new(),
         ),
-        // Without the new default, legacy remote account enablement still wins.
         (
             "[plugins.\"sample@openai-curated-remote\"]\nenabled = false",
-            vec![other, sample],
+            vec![other],
         ),
+        ("", vec![other, sample]),
     ] {
         write_file(&config_path, policy);
         let config = load_config(codex_home.path(), codex_home.path()).await;
