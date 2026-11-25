@@ -1,8 +1,8 @@
 # openai/homebrew-tools 同步记录
 
 - 上游：https://github.com/openai/homebrew-tools
-- 上游提交：0b1b8e97216d0488dbe5a2ff0a5197bda5adf90d
-- 上游 tree：00ba42ed068e268f46bab5947736d636a18a0b96
+- 上游提交：63b84db62e097228cb13da9c08a89f7254b2b44a
+- 上游 tree：328efc5d297c2766d11f28d1e89bc7140518b703
 - 目录：upstream/homebrew-tools/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
