@@ -1,0 +1,4 @@
+interface:
+  display_name: "Migration preflight"
+  short_description: "Run migration readiness checks"
+  default_prompt: "Use $preflight to run readiness checks and save the evidence in the migration records."

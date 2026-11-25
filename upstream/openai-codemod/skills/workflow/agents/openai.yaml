@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coordinate a migration"
+  short_description: "Start, resume, or continue the default migration workflow"
+  default_prompt: "Use $workflow to start a migration for this repository."

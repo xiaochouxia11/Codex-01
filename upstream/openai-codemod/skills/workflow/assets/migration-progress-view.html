@@ -1,0 +1,257 @@
+<div id="codemod-progress-view" data-migration-id="{{MIGRATION_ID}}">
+  <!--
+    Copy this fragment into the live visualization file, expand repeatable lists,
+    and replace placeholders with current checkpoint evidence. Keep the
+    structure and classes stable across updates.
+
+    Supported state classes: is-done, is-active, is-blocked, is-pending.
+    Visibility placeholders accept true or false. STEP_n_CURRENT is step for
+    the displayed position and false elsewhere, independent of concurrent work.
+    Omit unused insights; hide unknown or stale bars and unverified HTTPS links.
+  -->
+  <style>
+    #codemod-progress-view {
+      color: var(--foreground);
+      font: inherit;
+    }
+
+    #codemod-progress-view * {
+      box-sizing: border-box;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    #codemod-progress-view .cpv-header,
+    #codemod-progress-view .cpv-row,
+    #codemod-progress-view .cpv-metrics {
+      display: grid;
+      gap: 6px;
+    }
+
+    #codemod-progress-view .cpv-header {
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
+    }
+
+    #codemod-progress-view .cpv-title,
+    #codemod-progress-view .cpv-value {
+      font-weight: 600;
+    }
+
+    #codemod-progress-view .cpv-muted,
+    #codemod-progress-view .cpv-label {
+      color: var(--muted-foreground);
+    }
+
+    #codemod-progress-view .cpv-track {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 5px;
+      list-style: none;
+      padding: 0;
+      margin: 8px 0;
+    }
+
+    #codemod-progress-view .cpv-segment {
+      text-align: center;
+      color: var(--muted-foreground);
+    }
+
+    #codemod-progress-view .cpv-segment::before {
+      content: "";
+      display: block;
+      height: 6px;
+      margin-bottom: 3px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--muted-foreground) 22%, transparent);
+    }
+
+    #codemod-progress-view .cpv-segment.is-done::before {
+      background: var(--green);
+    }
+
+    #codemod-progress-view .cpv-segment.is-active::before {
+      background: var(--viz-series-1);
+    }
+
+    #codemod-progress-view .cpv-segment.is-blocked::before {
+      background: var(--red);
+    }
+
+    #codemod-progress-view .cpv-segment[aria-current="step"] {
+      color: var(--foreground);
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    #codemod-progress-view .cpv-project {
+      margin-bottom: 12px;
+    }
+
+    #codemod-progress-view .cpv-metrics {
+      gap: 10px;
+    }
+
+    #codemod-progress-view .cpv-metric-heading {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+    }
+
+    #codemod-progress-view .cpv-bar {
+      height: 7px;
+      margin-top: 4px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--muted-foreground) 18%, transparent);
+      overflow: hidden;
+    }
+
+    #codemod-progress-view .cpv-fill {
+      display: block;
+      width: var(--value, 0%);
+      height: 100%;
+      border-radius: inherit;
+      background: var(--viz-series-1);
+    }
+
+    #codemod-progress-view .cpv-metric.is-done .cpv-fill {
+      background: var(--green);
+    }
+
+    #codemod-progress-view .cpv-metric.is-blocked .cpv-fill {
+      background: var(--red);
+    }
+
+    #codemod-progress-view .cpv-metric.is-pending .cpv-fill {
+      background: var(--muted-foreground);
+    }
+
+    #codemod-progress-view .cpv-row {
+      grid-template-columns: 8px minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+      margin-top: 8px;
+    }
+
+    #codemod-progress-view .cpv-row .cpv-value,
+    #codemod-progress-view .cpv-metric-heading .cpv-value {
+      text-align: right;
+    }
+
+    #codemod-progress-view .cpv-dot {
+      width: 8px;
+      height: 8px;
+      margin-top: 0.4em;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--muted-foreground) 45%, transparent);
+    }
+
+    #codemod-progress-view .cpv-row.is-done .cpv-dot {
+      background: var(--green);
+    }
+
+    #codemod-progress-view .cpv-row.is-active .cpv-dot {
+      background: var(--viz-series-1);
+    }
+
+    #codemod-progress-view .cpv-row.is-blocked .cpv-dot {
+      background: var(--red);
+    }
+
+    #codemod-progress-view .cpv-note,
+    #codemod-progress-view .cpv-freshness {
+      margin-top: 8px;
+    }
+
+    #codemod-progress-view .cpv-records {
+      margin-top: 8px;
+    }
+
+    #codemod-progress-view .cpv-records ul {
+      margin: 6px 0;
+      padding-left: 1.2em;
+    }
+
+    #codemod-progress-view .cpv-records li {
+      margin-top: 4px;
+    }
+
+    #codemod-progress-view [data-visible="false"],
+    #codemod-progress-view [data-link-visible="false"] > a,
+    #codemod-progress-view [data-link-visible="true"] > .cpv-link-fallback {
+      display: none;
+    }
+  </style>
+
+  <div class="cpv-project" data-link-visible="{{MIGRATION_HOME_VISIBLE}}">
+    <a class="btn btn-primary btn-block" href="{{MIGRATION_HOME_URL}}" target="_blank" rel="noopener noreferrer">{{MIGRATION_HOME_LABEL}}</a>
+  </div>
+
+  <div class="cpv-header">
+    <div class="cpv-title" data-tooltip="{{FRESHNESS}}">{{CURRENT_STEP}}</div>
+    <div data-visible="{{SCOPE_VISIBLE}}">{{CURRENT_SCOPE}}</div>
+  </div>
+
+  <ol class="cpv-track text-small" aria-label="Migration workflow, steps 0 through 6">
+    <li class="cpv-segment {{STEP_0_STATE}}" data-tooltip="{{STEP_0_LABEL}}" aria-label="{{STEP_0_LABEL}}" aria-current="{{STEP_0_CURRENT}}">0</li>
+    <li class="cpv-segment {{STEP_1_STATE}}" data-tooltip="{{STEP_1_LABEL}}" aria-label="{{STEP_1_LABEL}}" aria-current="{{STEP_1_CURRENT}}">1</li>
+    <li class="cpv-segment {{STEP_2_STATE}}" data-tooltip="{{STEP_2_LABEL}}" aria-label="{{STEP_2_LABEL}}" aria-current="{{STEP_2_CURRENT}}">2</li>
+    <li class="cpv-segment {{STEP_3_STATE}}" data-tooltip="{{STEP_3_LABEL}}" aria-label="{{STEP_3_LABEL}}" aria-current="{{STEP_3_CURRENT}}">3</li>
+    <li class="cpv-segment {{STEP_4_STATE}}" data-tooltip="{{STEP_4_LABEL}}" aria-label="{{STEP_4_LABEL}}" aria-current="{{STEP_4_CURRENT}}">4</li>
+    <li class="cpv-segment {{STEP_5_STATE}}" data-tooltip="{{STEP_5_LABEL}}" aria-label="{{STEP_5_LABEL}}" aria-current="{{STEP_5_CURRENT}}">5</li>
+    <li class="cpv-segment {{STEP_6_STATE}}" data-tooltip="{{STEP_6_LABEL}}" aria-label="{{STEP_6_LABEL}}" aria-current="{{STEP_6_CURRENT}}">6</li>
+  </ol>
+
+  <hr>
+
+  <div class="cpv-metrics">
+    {{#METRICS}}
+    <div class="cpv-metric {{STATE}}">
+      <div class="cpv-metric-heading">
+        <div class="cpv-label" data-link-visible="{{LINK_VISIBLE}}">
+          <a href="{{URL}}" target="_blank" rel="noopener noreferrer">{{LABEL}}</a>
+          <span class="cpv-link-fallback">{{LABEL}}</span>
+        </div>
+        <span class="cpv-value tabular-nums">{{VALUE}}</span>
+      </div>
+      <div class="cpv-bar" data-visible="{{BAR_VISIBLE}}" role="progressbar" aria-label="{{LABEL}}" aria-valuenow="{{NOW}}" aria-valuemin="0" aria-valuemax="{{MAX}}">
+        <span class="cpv-fill" style="--value: {{PERCENT}}%"></span>
+      </div>
+    </div>
+    {{/METRICS}}
+  </div>
+
+  {{#ROWS}}
+  <div class="cpv-row {{STATE}}">
+    <span class="cpv-dot" aria-hidden="true"></span>
+    <span>{{LABEL}}</span>
+    <span class="cpv-value tabular-nums">{{VALUE}}</span>
+  </div>
+  {{/ROWS}}
+
+  <div class="cpv-note" data-visible="{{DECISIONS_BLOCKERS_VISIBLE}}">Decisions and blockers: {{DECISIONS_BLOCKERS}}</div>
+
+  <!-- TRANSFORM_BURNDOWN -->
+
+  <hr>
+
+  <details class="cpv-records cpv-issues" data-visible="{{ISSUES_VISIBLE}}">
+    <summary aria-label="{{ISSUES_SUMMARY_LABEL}}" data-tooltip="{{ISSUES_SUMMARY_LABEL}}">{{ISSUES_SUMMARY}}</summary>
+    <ul>
+      {{#ISSUES}}
+      <li><span class="cpv-attention" data-visible="{{USER_REQUIRED}}" role="img" aria-label="Needs your input, review or action" data-tooltip="Needs your input, review or action">🚩</span> <a href="{{URL}}" target="_blank" rel="noopener noreferrer">{{LABEL}}</a></li>
+      {{/ISSUES}}
+    </ul>
+  </details>
+
+  <details class="cpv-records cpv-resources" data-visible="{{RESOURCES_VISIBLE}}">
+    <summary>{{RESOURCES_SUMMARY}}</summary>
+    <ul>
+      {{#RESOURCES}}
+      <li><a href="{{URL}}" data-tooltip="{{RECENCY}}" target="_blank" rel="noopener noreferrer">{{LABEL}}</a></li>
+      {{/RESOURCES}}
+    </ul>
+  </details>
+  <div class="cpv-freshness" data-visible="{{FRESHNESS_WARNING_VISIBLE}}">{{FRESHNESS_WARNING}}</div>
+</div>

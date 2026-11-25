@@ -1,0 +1,45 @@
+{
+  "name": "codemod",
+  "version": "0.2.0-alpha.3",
+  "description": "Plan, implement, and independently verify migrations with GitHub Issues, Linear, Jira, ChatGPT Space, or Git records.",
+  "author": {
+    "name": "OpenAI FDE"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "CodeMod",
+    "shortDescription": "Track migrations in GitHub Issues, Linear, Jira, ChatGPT Space, or Git.",
+    "longDescription": "Use the default workflow to coordinate migration steps from intent through whole-migration verification, or invoke an individual stage for focused work. Transform owns phase implementation, independent phase verification, and repairs. Stages require evidence appropriate to their scope. Intent, the behavior catalog, the migration brief, and changes to agreed outcomes or constraints require human approval. Code and tests stay in Git; reports use the selected store. GitHub Issues uses the GitHub integration with authenticated CLI fallback for missing operations; Projects are optional. Linear and Jira require their connected integrations. ChatGPT Space uses Pages for work and reports. Git-backed records use a writable migration checkout and one state branch. Confluence is optional. Upgrade and architecture rebuild workflows are not yet included.",
+    "developerName": "OpenAI FDE",
+    "category": "Engineering",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "@codemod help me start a migration",
+      "Use codemod:preflight to check readiness for this migration.",
+      "Use codemod:assess to assess this migration and synthesize its reviewed findings.",
+      "Use codemod:behaviors to identify and verify behavior implemented by this migration's source.",
+      "Use codemod:behaviors to review this migration's saved behaviors with me.",
+      "Use codemod:brief to prepare this migration's phased plan for review.",
+      "Use codemod:transform to complete this migration's accepted transformation phase, including required verification and repairs.",
+      "Use codemod:verify-target to independently verify this whole-migration target candidate against the approved contract.",
+      "Use codemod:status to check this migration."
+    ],
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  },
+  "homepage": "https://github.com/openai/openai-codemod",
+  "repository": "https://github.com/openai/openai-codemod",
+  "license": "Apache-2.0",
+  "keywords": [
+    "codemod",
+    "code-migration",
+    "refactoring",
+    "markdown",
+    "issue-tracking"
+  ]
+}

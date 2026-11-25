@@ -1,0 +1,4 @@
+interface:
+  display_name: "Initialize migration"
+  short_description: "Choose tracking and capture migration intent"
+  default_prompt: "Use $initialize to confirm this migration's record provider and report store, define its intent, and prepare its execution context for review."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify migrated behavior"
+  short_description: "Verify target behavior against the approved contract"
+  default_prompt: "Use $verify-target to independently verify the whole-migration target against the approved contract, following the assigned final parent or child role."

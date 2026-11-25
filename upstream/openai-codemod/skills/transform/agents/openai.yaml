@@ -1,0 +1,4 @@
+interface:
+  display_name: "Transform a system"
+  short_description: "Implement and verify a transformation phase"
+  default_prompt: "Use $transform to complete this migration's human-accepted phase, including required independent phase verification and repairs."

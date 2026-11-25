@@ -1,0 +1,4 @@
+interface:
+  display_name: "Migration brief"
+  short_description: "Prepare a migration plan and work for human acceptance"
+  default_prompt: "Use $brief to define reusable target-stack guidance, resolve substantial planning questions, and prepare this migration's phased plan from reviewed evidence. Save the guidance and brief as migration resources in the selected report store, queue the implementation breakdown in Migration blocked by the brief, and request human acceptance of the saved plan and breakdown before execution."

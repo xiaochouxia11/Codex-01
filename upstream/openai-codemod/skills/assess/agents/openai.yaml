@@ -1,0 +1,4 @@
+interface:
+  display_name: "Migration assessment"
+  short_description: "Assess migration impact, journeys, and risks"
+  default_prompt: "Use $assess to investigate this migration and synthesize its reviewed findings in the selected report store."

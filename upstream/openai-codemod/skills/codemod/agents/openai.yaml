@@ -1,0 +1,4 @@
+interface:
+  display_name: "CodeMod"
+  short_description: "Find the right migration skill or workflow"
+  default_prompt: "Use $codemod to start a migration for this repository."

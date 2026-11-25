@@ -1,0 +1,4 @@
+interface:
+  display_name: "Migration status"
+  short_description: "Read migration progress and current evidence"
+  default_prompt: "Use $status to check this migration and explain the next useful action without changing migration records or repository files."

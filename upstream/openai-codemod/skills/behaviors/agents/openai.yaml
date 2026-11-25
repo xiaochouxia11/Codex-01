@@ -1,0 +1,4 @@
+interface:
+  display_name: "Behaviors"
+  short_description: "Identify and review source behavior"
+  default_prompt: "Use $behaviors to identify, verify, and review the behaviors implemented by this migration's source."

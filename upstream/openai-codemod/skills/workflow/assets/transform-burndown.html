@@ -1,0 +1,143 @@
+<section id="codemod-transform-burndown" data-points="{{BURNDOWN_POINTS}}">
+  <style>
+    #codemod-transform-burndown summary { font-weight: 600; }
+    #codemod-transform-burndown dl {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.35fr);
+      gap: 4px;
+      margin: 6px 0 4px;
+    }
+    #codemod-transform-burndown dd { margin: 0; }
+    #codemod-transform-burndown .cpv-burndown-chart { position: relative; }
+    #codemod-transform-burndown svg { display: block; width: 100%; height: 156px; }
+    #codemod-transform-burndown svg text { fill: var(--foreground); }
+    #codemod-transform-burndown .cpv-burndown-control {
+      position: absolute;
+      top: 28px;
+      right: 4px;
+      background: var(--background);
+    }
+    @media (pointer: fine) {
+      #codemod-transform-burndown .cpv-burndown-control { --control-spacing: 6px; }
+    }
+  </style>
+  <hr>
+  <details open>
+    <summary>Transform work burndown</summary>
+    <dl class="tabular-nums">
+      <div><dt class="cpv-muted">Elapsed</dt><dd data-value="elapsed"></dd></div>
+      <div><dt class="cpv-muted">Active</dt><dd data-value="active"></dd></div>
+      <div><dt class="cpv-muted">Idle</dt><dd data-value="idle"></dd></div>
+      <div><dt class="cpv-muted" data-label="left">Active time left</dt><dd data-value="left" aria-live="polite"></dd></div>
+    </dl>
+    <div class="cpv-burndown-chart">
+      <svg id="codemod-burndown-plot" role="img" aria-label="Estimated weighted work remaining over time"></svg>
+      <div class="cpv-burndown-control">
+        <button class="btn" type="button" aria-label="Include idle time" aria-pressed="false" aria-controls="codemod-burndown-plot">+ idle</button>
+      </div>
+    </div>
+  </details>
+  <script>
+    (() => {
+      const root = document.getElementById('codemod-transform-burndown');
+      let points;
+      try { points = JSON.parse(root.dataset.points); } catch { root.remove(); return; }
+      const valid = Array.isArray(points) && points.length >= 2 && points.every((point, i) => {
+        if (!Array.isArray(point) || point.length !== 4) return false;
+        const [elapsed, active, remaining, reopened] = point;
+        if (![elapsed, active, remaining].every(Number.isFinite) || typeof reopened !== 'boolean') return false;
+        if (elapsed < 0 || active < 0 || active > elapsed || remaining < 0 || remaining > 100) return false;
+        if (!i) return elapsed === 0 && active === 0 && remaining === 100 && !reopened;
+        const previous = points[i - 1];
+        return elapsed > previous[0] && active >= previous[1]
+          && active - previous[1] <= elapsed - previous[0] + 1e-6
+          && (remaining <= previous[2] || reopened);
+      }) && points.at(-1)[1] > 0;
+      if (!valid) { root.remove(); return; }
+
+      const last = points.at(-1);
+      const format = new Intl.NumberFormat('en', { maximumFractionDigits: 1 });
+      for (const [name, value] of Object.entries({ elapsed: last[0], active: last[1], idle: last[0] - last[1] })) {
+        root.querySelector(`[data-value="${name}"]`).textContent = `${format.format(value)}h`;
+      }
+      const rates = [];
+      const rateStart = Math.max(0, points.findLastIndex(([, , , reopened]) => reopened));
+      // Acceptance bookkeeping can continue while the active clock is stopped.
+      // Use the final remaining weight at each active timestamp, after the last
+      // reopening, without collapsing the elapsed-time history used by the chart.
+      const ratePoints = points.slice(rateStart).filter((point, i, history) =>
+        i === history.length - 1 || point[1] !== history[i + 1][1]);
+      let anchor = ratePoints[0];
+      for (const point of ratePoints.slice(1)) {
+        if (point[2] === anchor[2]) continue;
+        if (point[1] > anchor[1]) rates.push((anchor[2] - point[2]) / (point[1] - anchor[1]));
+        anchor = point;
+      }
+      const slow = Math.min(...rates), fast = Math.max(...rates);
+      const activeRange = rates.length >= 2 && slow > 0 && last[2] > 0
+        ? [last[2] / fast, last[2] / slow] : null;
+      const svg = root.querySelector('svg');
+      const button = root.querySelector('button');
+      const leftValue = root.querySelector('[data-value="left"]');
+      let includeIdle = false;
+      const mark = (name, attrs, label) => {
+        const element = document.createElementNS(svg.namespaceURI, name);
+        for (const [key, value] of Object.entries(attrs)) element.setAttribute(key, String(value));
+        if (label !== undefined) element.textContent = label;
+        svg.appendChild(element);
+      };
+      function draw() {
+        const width = svg.getBoundingClientRect().width;
+        if (!width) return;
+        const clock = includeIdle ? 0 : 1;
+        const basis = includeIdle ? 'elapsed' : 'active';
+        root.querySelector('[data-label="left"]').textContent = includeIdle ? 'Elapsed time left' : 'Active time left';
+        const factor = includeIdle ? last[0] / last[1] : 1;
+        const candidateRange = activeRange?.map(hours => hours * factor);
+        const range = candidateRange?.every(Number.isFinite) ? candidateRange : null;
+        const low = range && format.format(range[0]), high = range && format.format(range[1]);
+        leftValue.textContent = range ? `${low === high ? `~${low}` : `${low}–${high}`}h` : last[2] === 0 ? '0h' : '—';
+        leftValue.setAttribute('aria-label', range ? `Estimated ${low === high ? `about ${low}` : `${low} to ${high}`} ${basis} hours left`
+          : last[2] === 0 ? 'No weighted work left' : 'Insufficient evidence to estimate time left');
+        button.setAttribute('aria-pressed', String(includeIdle));
+
+        const height = 156, left = 31, right = width - 3, top = 26, bottom = height - 32;
+        const horizon = (last[clock] + (range?.[1] || 0)) * 1.04;
+        const magnitude = 10 ** Math.floor(Math.log10(horizon));
+        const maxTime = Math.ceil(horizon / magnitude) * magnitude;
+        const x = time => left + time / maxTime * (right - left);
+        const y = remaining => bottom - remaining / 100 * (bottom - top);
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        svg.setAttribute('aria-label', `${format.format(last[2])}% of estimated work remains after ${format.format(last[clock])} ${basis} hours. ${leftValue.getAttribute('aria-label')}.`);
+        svg.replaceChildren();
+        if (includeIdle) for (let i = 1; i < points.length; i++) {
+          if (points[i][1] !== points[i - 1][1]) continue;
+          mark('rect', { x: x(points[i - 1][0]), y: top, width: x(points[i][0]) - x(points[i - 1][0]), height: bottom - top, fill: 'var(--muted)', 'data-idle-period': '' });
+        }
+        for (const tick of [0, 50, 100]) {
+          mark('line', { x1: left, x2: right, y1: y(tick), y2: y(tick), stroke: 'var(--border)' });
+          mark('text', { class: 'text-small', x: left - 5, y: y(tick) + 4, 'text-anchor': 'end' }, String(tick));
+        }
+        for (const [index, time] of [0, maxTime / 2, maxTime].entries()) {
+          mark('text', { class: 'text-small', x: x(time), y: bottom + 15, 'text-anchor': ['start', 'middle', 'end'][index] }, format.format(time));
+        }
+        mark('text', { class: 'text-small', x: left, y: top - 8 }, 'Work left (%)');
+        mark('text', { class: 'text-small', x: (left + right) / 2, y: height - 2, 'text-anchor': 'middle' }, `${includeIdle ? 'Elapsed' : 'Active'} time (h)`);
+        if (range) {
+          const early = last[clock] + range[0], late = last[clock] + range[1];
+          if (early < late) mark('polygon', { points: `${x(last[clock])},${y(last[2])} ${x(early)},${y(0)} ${x(late)},${y(0)}`, fill: 'var(--viz-series-1)', 'fill-opacity': 0.14 });
+          mark('line', { x1: x(last[clock]), y1: y(last[2]), x2: x((early + late) / 2), y2: y(0), stroke: 'var(--viz-series-1)', 'stroke-width': 2, 'stroke-dasharray': '5 5' });
+          mark('text', { class: 'text-small', x: x((last[clock] + (early + late) / 2) / 2), y: y(last[2] / 2) - 8, 'text-anchor': 'middle' }, 'Forecast');
+        }
+        const observed = [`${x(points[0][clock])},${y(points[0][2])}`];
+        for (let i = 1; i < points.length; i++) observed.push(`${x(points[i][clock])},${y(points[i - 1][2])}`, `${x(points[i][clock])},${y(points[i][2])}`);
+        mark('polyline', { points: observed.join(' '), fill: 'none', stroke: 'var(--viz-series-1)', 'stroke-width': 2.5, 'stroke-linejoin': 'round' });
+        mark('circle', { cx: x(last[clock]), cy: y(last[2]), r: 4, fill: 'var(--viz-series-1)' });
+        mark('text', { x: Math.max(left + 4, x(last[clock]) - 7), y: Math.max(top + 14, y(last[2]) - 9), 'text-anchor': 'end' }, `${format.format(last[2])}%`);
+      }
+      button.addEventListener('click', () => { includeIdle = !includeIdle; draw(); });
+      new ResizeObserver(draw).observe(svg);
+      draw();
+    })();
+  </script>
+</section>
