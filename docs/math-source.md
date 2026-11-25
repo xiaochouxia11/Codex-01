@@ -1,8 +1,8 @@
 # openai/math 同步记录
 
 - 上游：https://github.com/openai/math
-- 上游提交：f5702854040e97fa7675c21ba37a9608f5f92dd3
-- 上游 tree：1bd77e3e78905e39fbf4ca1b0b493b348069471b
+- 上游提交：3344da59991ed94f9ba711217b29c1d760badfa6
+- 上游 tree：ce9e13b482e0ca6a1ca030a4f15294aae7978107
 - 目录：upstream/math/
 
 每日自动同步默认分支，也支持手动触发。包含归档仓库及公开 fork。保留 Git 文件、模式、符号链接及授权说明；不包含完整历史、Issues、讨论、Release 附件、子模块内容和 Git LFS 实体。空仓库没有可导入文件。
