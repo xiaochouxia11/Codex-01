@@ -48,8 +48,7 @@ module OpenAI
 
         # @!attribute metadata
         #   Set of 16 key-value pairs that can be attached to an object. This can be useful
-        #   for storing additional information about the object in a structured format, and
-        #   querying for objects via API or the dashboard.
+        #   for storing additional information about the object in a structured format.
         #
         #   Keys are strings with a maximum length of 64 characters. Values are strings with
         #   a maximum length of 512 characters.
@@ -415,8 +414,7 @@ module OpenAI
         #
         #   @param metadata [Hash{Symbol=>String}, nil]
         #     Set of 16 key-value pairs that can be attached to an object. This can be useful
-        #     for storing additional information about the object in a structured format, and
-        #     querying for objects via API or the dashboard.
+        #     for storing additional information about the object in a structured format.
         #
         #     Keys are strings with a maximum length of 64 characters. Values are strings with
         #     a maximum length of 512 characters.
@@ -970,6 +968,14 @@ module OpenAI
 
           variant const: -> { OpenAI::Models::Beta::BetaResponse::Model::GPT_6_2_ASTRA_LAW }
 
+          variant const: -> { OpenAI::Models::Beta::BetaResponse::Model::GPT_6_ASTRA_HEALTHCARE }
+
+          variant const: -> { OpenAI::Models::Beta::BetaResponse::Model::GPT_6_1_SOL_HEALTHCARE }
+
+          variant const: -> { OpenAI::Models::Beta::BetaResponse::Model::GPT_6_2_ASTRA_HEALTHCARE }
+
+          variant const: -> { OpenAI::Models::Beta::BetaResponse::Model::GPT_6_2_SOL_HEALTHCARE }
+
           variant String
 
           # @!method self.variants
@@ -1342,6 +1348,10 @@ module OpenAI
           GPT_6_CYBER = :"gpt-6-cyber"
           GPT_ROSALIND_RESEARCH = :"gpt-rosalind-research"
           GPT_6_2_ASTRA_LAW = :"gpt-6.2-astra-law"
+          GPT_6_ASTRA_HEALTHCARE = :"gpt-6-astra-healthcare"
+          GPT_6_1_SOL_HEALTHCARE = :"gpt-6.1-sol-healthcare"
+          GPT_6_2_ASTRA_HEALTHCARE = :"gpt-6.2-astra-healthcare"
+          GPT_6_2_SOL_HEALTHCARE = :"gpt-6.2-sol-healthcare"
 
           # @!endgroup
         end

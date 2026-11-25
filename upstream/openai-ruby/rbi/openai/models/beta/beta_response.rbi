@@ -53,8 +53,7 @@ module OpenAI
         attr_accessor :instructions
 
         # Set of 16 key-value pairs that can be attached to an object. This can be useful
-        # for storing additional information about the object in a structured format, and
-        # querying for objects via API or the dashboard.
+        # for storing additional information about the object in a structured format.
         #
         # Keys are strings with a maximum length of 64 characters. Values are strings with
         # a maximum length of 512 characters.
@@ -544,8 +543,7 @@ module OpenAI
           instructions:,
 
           # Set of 16 key-value pairs that can be attached to an object. This can be useful
-          # for storing additional information about the object in a structured format, and
-          # querying for objects via API or the dashboard.
+          # for storing additional information about the object in a structured format.
           #
           # Keys are strings with a maximum length of 64 characters. Values are strings with
           # a maximum length of 512 characters.
@@ -1135,6 +1133,10 @@ module OpenAI
           GPT_6_CYBER = T.let(:"gpt-6-cyber", OpenAI::Beta::BetaResponse::Model::TaggedSymbol)
           GPT_ROSALIND_RESEARCH = T.let(:"gpt-rosalind-research", OpenAI::Beta::BetaResponse::Model::TaggedSymbol)
           GPT_6_2_ASTRA_LAW = T.let(:"gpt-6.2-astra-law", OpenAI::Beta::BetaResponse::Model::TaggedSymbol)
+          GPT_6_ASTRA_HEALTHCARE = T.let(:"gpt-6-astra-healthcare", OpenAI::Beta::BetaResponse::Model::TaggedSymbol)
+          GPT_6_1_SOL_HEALTHCARE = T.let(:"gpt-6.1-sol-healthcare", OpenAI::Beta::BetaResponse::Model::TaggedSymbol)
+          GPT_6_2_ASTRA_HEALTHCARE = T.let(:"gpt-6.2-astra-healthcare", OpenAI::Beta::BetaResponse::Model::TaggedSymbol)
+          GPT_6_2_SOL_HEALTHCARE = T.let(:"gpt-6.2-sol-healthcare", OpenAI::Beta::BetaResponse::Model::TaggedSymbol)
 
         end
 
