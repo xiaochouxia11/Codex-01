@@ -172,6 +172,18 @@ const AllModelsGPT6Rosalind = shared.AllModelsGPT6Rosalind
 // Equals "gpt-6.2-astra-law"
 const AllModelsGPT6_2AstraLaw = shared.AllModelsGPT6_2AstraLaw
 
+// Equals "gpt-6-astra-healthcare"
+const AllModelsGPT6AstraHealthcare = shared.AllModelsGPT6AstraHealthcare
+
+// Equals "gpt-6.1-sol-healthcare"
+const AllModelsGPT6_1SolHealthcare = shared.AllModelsGPT6_1SolHealthcare
+
+// Equals "gpt-6.2-astra-healthcare"
+const AllModelsGPT6_2AstraHealthcare = shared.AllModelsGPT6_2AstraHealthcare
+
+// Equals "gpt-6.2-sol-healthcare"
+const AllModelsGPT6_2SolHealthcare = shared.AllModelsGPT6_2SolHealthcare
+
 // This is an alias to an internal type.
 type ChatModel = shared.ChatModel
 
@@ -1114,8 +1126,7 @@ type FunctionDefinitionParam = shared.FunctionDefinitionParam
 type FunctionParameters = shared.FunctionParameters
 
 // Set of 16 key-value pairs that can be attached to an object. This can be useful
-// for storing additional information about the object in a structured format, and
-// querying for objects via API or the dashboard.
+// for storing additional information about the object in a structured format.
 //
 // Keys are strings with a maximum length of 64 characters. Values are strings with
 // a maximum length of 512 characters.
@@ -1447,3 +1458,15 @@ const ResponsesModelGPT6Rosalind = shared.ResponsesModelGPT6Rosalind
 
 // Equals "gpt-6.2-astra-law"
 const ResponsesModelGPT6_2AstraLaw = shared.ResponsesModelGPT6_2AstraLaw
+
+// Equals "gpt-6-astra-healthcare"
+const ResponsesModelGPT6AstraHealthcare = shared.ResponsesModelGPT6AstraHealthcare
+
+// Equals "gpt-6.1-sol-healthcare"
+const ResponsesModelGPT6_1SolHealthcare = shared.ResponsesModelGPT6_1SolHealthcare
+
+// Equals "gpt-6.2-astra-healthcare"
+const ResponsesModelGPT6_2AstraHealthcare = shared.ResponsesModelGPT6_2AstraHealthcare
+
+// Equals "gpt-6.2-sol-healthcare"
+const ResponsesModelGPT6_2SolHealthcare = shared.ResponsesModelGPT6_2SolHealthcare
