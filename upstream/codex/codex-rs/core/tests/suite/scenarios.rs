@@ -259,6 +259,10 @@ mod guardian_agent_messages;
 #[path = "scenarios_guardian_handoff.rs"]
 mod guardian_handoff;
 
+#[cfg(not(target_os = "windows"))]
+#[path = "scenarios_guardian_hosted.rs"]
+mod guardian_hosted;
+
 #[path = "scenarios_guardian_heartbeat.rs"]
 mod guardian_heartbeat;
 
@@ -609,17 +613,18 @@ async fn admitted_prompt_id_reaches_responses() -> Result<()> {
 async fn additional_context_tool_outputs(tool_outputs: bool) -> Result<()> {
     skip_if_no_network!(Ok(()));
     let server = start_mock_server().await;
-    let test = test_codex()
-        .with_config(move |config| {
-            configure_scenario_catalog(config);
-            config.include_environment_context = false;
-            if !tool_outputs {
-                config
-                    .features
-                    .disable(Feature::UntrustedAsToolOutput)
-                    .expect("test config should allow feature update");
-            }
-        })
+    let configure = move |config: &mut Config| {
+        configure_scenario_catalog(config);
+        config.include_environment_context = false;
+        if !tool_outputs {
+            config
+                .features
+                .disable(Feature::UntrustedAsToolOutput)
+                .expect("test config should allow feature update");
+        }
+    };
+    let mut test = test_codex()
+        .with_config(configure)
         .build_with_auto_env(&server)
         .await?;
     let mock = mount_sse_sequence(
@@ -630,7 +635,7 @@ async fn additional_context_tool_outputs(tool_outputs: bool) -> Result<()> {
     )
     .await;
 
-    for (prompt, name, value) in [
+    for (index, (prompt, name, value)) in [
         (
             "Summarize the selected document.",
             Some("browser"),
@@ -651,7 +656,17 @@ async fn additional_context_tool_outputs(tool_outputs: bool) -> Result<()> {
             None,
             "The launch is on Tuesday.",
         ),
-    ] {
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        if index == 2 {
+            // The unchanged submission must use the baseline restored from the rollout.
+            test = test_codex()
+                .with_config(configure)
+                .restart_with_auto_env(&server, &test)
+                .await?;
+        }
         test.codex
             .start_or_steer_turn(
                 TurnInputRequest::user_input(vec![text(prompt)]).with_additional_context(
@@ -1189,7 +1204,7 @@ async fn astra_asks_an_async_question_and_receives_the_answer_while_working() ->
                 .tools
                 .get_or_insert_with(Default::default)
                 .send_user_message_async = Some(ToolMessage {
-                parameters: Some(catalog_parameters),
+                parameters: Some(catalog_parameters.into()),
                 ..Default::default()
             });
             config.model_provider.base_url = Some(base_url);
@@ -2940,11 +2955,11 @@ async fn code_mode_catalog_messages(ranked_search: bool) -> Result<()> {
             model.model_messages.as_mut().expect("model messages").tools
                 .get_or_insert_with(Default::default).code_mode = Some(CodeModeToolMessages {
                     exec: Some(ToolMessage {
-                        description: Some("Catalog exec instructions. Default yield: {{ default_exec_yield_time_ms }} ms.\n{{ image_helper }}".to_string()),
+                        description: Some("Catalog exec instructions. Default yield: {{ default_exec_yield_time_ms }} ms.\n{{ image_helper }}".into()),
                         ..Default::default()
                     }),
                     wait: Some(ToolMessage {
-                        description: Some("Catalog wait instructions: resume the yielded cell.".to_string()),
+                        description: Some("Catalog wait instructions: resume the yielded cell.".into()),
                         parameters: Some(json!({
                             "type": "object",
                             "properties": {
@@ -2955,10 +2970,10 @@ async fn code_mode_catalog_messages(ranked_search: bool) -> Result<()> {
                             },
                             "required": ["cell_id"],
                             "additionalProperties": false
-                        }).to_string()),
+                        }).to_string().into()),
                     }),
-                    deferred_nested_tools_guidance: Some("Catalog discovery: find nested tools by name and description in ALL_TOOLS.".to_string()),
-                    mcp_typescript_preamble: Some("type CallToolResult<T = unknown> = { content: unknown[]; structuredContent?: T; isError?: boolean };".to_string()),
+                    deferred_nested_tools_guidance: Some("Catalog discovery: find nested tools by name and description in ALL_TOOLS.".into()),
+                    mcp_typescript_preamble: Some("type CallToolResult<T = unknown> = { content: unknown[]; structuredContent?: T; isError?: boolean };".into()),
                 });
         })
         .build_with_auto_env(&server)
@@ -4504,8 +4519,8 @@ async fn astra_async_compaction_preserves_exec_catalog(change: ExecCatalogRefres
                 .code_mode
                 .get_or_insert_default();
             messages.exec.get_or_insert_default().description =
-                Some("Previous exec instructions.".to_string());
-            messages.mcp_typescript_preamble = Some("type PreviousResult = string;".to_string());
+                Some("Previous exec instructions.".into());
+            messages.mcp_typescript_preamble = Some("type PreviousResult = string;".into());
         }
     }
     mount_models_once_with_etag(&model_server, catalog.clone(), "\"exec-mode-v2\"").await;

@@ -1055,6 +1055,7 @@ See the Codex keymap documentation for supported actions and examples."
             statusline_metrics,
             provider_writes,
             feature_write_lock: Arc::default(),
+            voice_settings_pending: false,
             config_notification_test_generation: 0,
             config_notification_test_pending: None,
             model_catalog,
@@ -1368,6 +1369,8 @@ See the Codex keymap documentation for supported actions and examples."
                 app.app_event_tx.clone(),
                 app.chat_widget.security_setup_request_id,
             );
+        }
+        if app.chat_widget.should_prefetch_rate_limits() {
             let reset_hint_request_id = app.chat_widget.start_rate_limit_reset_startup_check();
             app.refresh_rate_limits(
                 &app_server,

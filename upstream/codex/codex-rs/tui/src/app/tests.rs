@@ -81,11 +81,8 @@ mod history_hydration_tests;
 mod permission_shortcuts_tests;
 mod plugin_catalog;
 mod rate_limits;
-#[path = "tests/realtime_handoff_e2e.rs"]
 mod realtime_handoff_e2e;
-#[path = "tests/realtime_requests.rs"]
 mod realtime_requests;
-#[path = "tests/realtime_start.rs"]
 mod realtime_start;
 #[path = "tests/reasoning_resume_tests.rs"]
 mod reasoning_resume_tests;
@@ -6982,6 +6979,7 @@ async fn side_defers_subagent_approval_overlay_until_side_exits() -> Result<()> 
         ServerRequest::DynamicToolCall {
             request_id: AppServerRequestId::Integer(99),
             params: codex_app_server_protocol::DynamicToolCallParams {
+                supported_result_format: None,
                 thread_id: quiet_thread_id.to_string(),
                 turn_id: "turn-quiet".to_string(),
                 call_id: "call-quiet".to_string(),
@@ -9137,6 +9135,7 @@ async fn make_test_app() -> Box<App> {
         provider_writes: HashMap::new(),
         realtime_call_client: Arc::default(),
         feature_write_lock: Arc::default(),
+        voice_settings_pending: false,
         config_notification_test_generation: 0,
         config_notification_test_pending: None,
         model_catalog: chat_widget.model_catalog(),
@@ -9201,7 +9200,7 @@ async fn make_test_app() -> Box<App> {
             platform_default: true,
             ssh: false,
             wsl: false,
-            vscode: crate::tui::VscodeDetection::Other,
+            owner: crate::terminal_capabilities::PasteOwner::Application,
         },
         daemon_cli_executable: None,
         pending_update_action: None,
@@ -9286,6 +9285,7 @@ pub(super) async fn make_test_app_with_channels() -> (
             provider_writes: HashMap::new(),
             realtime_call_client: Arc::default(),
             feature_write_lock: Arc::default(),
+            voice_settings_pending: false,
             config_notification_test_generation: 0,
             config_notification_test_pending: None,
             model_catalog: chat_widget.model_catalog(),
@@ -9350,7 +9350,7 @@ pub(super) async fn make_test_app_with_channels() -> (
                 platform_default: true,
                 ssh: false,
                 wsl: false,
-                vscode: crate::tui::VscodeDetection::Other,
+                owner: crate::terminal_capabilities::PasteOwner::Application,
             },
             daemon_cli_executable: None,
             pending_update_action: None,
@@ -13231,6 +13231,7 @@ async fn clear_only_ui_reset_preserves_chat_session_state() {
         crate::keymap::RuntimeKeymap::defaults().pager,
         /*copy_on_select*/ false,
         /*mouse_scroll_speed*/ 1.0,
+        /*bidi_layout*/ false,
     ));
     app.deferred_history_lines = vec![Line::from("stale buffered line").into()];
     app.has_emitted_history_lines = true;

@@ -31,6 +31,7 @@ use crate::config_types::ReasoningSummary as ReasoningSummaryConfig;
 use crate::config_types::WindowsSandboxLevel;
 use crate::dynamic_tools::DynamicToolCallOutputContentItem;
 use crate::dynamic_tools::DynamicToolCallRequest;
+use crate::dynamic_tools::DynamicToolCallResult;
 use crate::dynamic_tools::DynamicToolResponse;
 use crate::dynamic_tools::DynamicToolSpec;
 use crate::error::Result as CodexResult;
@@ -223,8 +224,6 @@ pub struct ConversationStartParams {
     pub transport: Option<ConversationStartTransport>,
     /// Overrides the configured realtime protocol version for this session only.
     pub version: Option<RealtimeConversationVersion>,
-    /// None inherits the thread setting; Some(None) selects the provider default.
-    pub voice: Option<Option<RealtimeVoice>>,
 }
 
 /// Authentication selected by the embedding host for an existing call.
@@ -334,48 +333,6 @@ pub enum RealtimeVoice {
     Vale,
     Verse,
     Viola,
-}
-
-impl RealtimeVoice {
-    pub fn wire_name(self) -> &'static str {
-        match self {
-            Self::Alloy => "alloy",
-            Self::Arbor => "arbor",
-            Self::Ash => "ash",
-            Self::Aube => "aube",
-            Self::Ballad => "ballad",
-            Self::Breeze => "breeze",
-            Self::Bubbie => "bubbie",
-            Self::Cedar => "cedar",
-            Self::Coral => "coral",
-            Self::Cove => "cove",
-            Self::Echo => "echo",
-            Self::Ember => "ember",
-            Self::Haetsal => "haetsal",
-            Self::Hanul => "hanul",
-            Self::Himari => "himari",
-            Self::Juniper => "juniper",
-            Self::Leher => "leher",
-            Self::Maple => "maple",
-            Self::Marin => "marin",
-            Self::Miko => "miko",
-            Self::Neer => "neer",
-            Self::Porto => "porto",
-            Self::Rindo => "rindo",
-            Self::Rio => "rio",
-            Self::Rivage => "rivage",
-            Self::Sage => "sage",
-            Self::Selva => "selva",
-            Self::Shimmer => "shimmer",
-            Self::Sol => "sol",
-            Self::Sonna => "sonna",
-            Self::Spruce => "spruce",
-            Self::Tinta => "tinta",
-            Self::Vale => "vale",
-            Self::Verse => "verse",
-            Self::Viola => "viola",
-        }
-    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, JsonSchema, TS)]
@@ -921,6 +878,12 @@ pub enum Op {
         /// Tool output payload.
         response: DynamicToolResponse,
     },
+    /// Reply from a client that supports structured dynamic tool results.
+    #[debug("DynamicToolResult {{ id: {id:?}, success: {} }}", response.success())]
+    DynamicToolResult {
+        id: String,
+        response: DynamicToolCallResult,
+    },
 
     /// Request MCP servers to reinitialize and refresh cached tool lists.
     RefreshMcpServers,
@@ -1172,7 +1135,9 @@ impl Op {
             Self::ResolveElicitation { .. } => "resolve_elicitation",
             Self::UserInputAnswer { .. } => "user_input_answer",
             Self::RequestPermissionsResponse { .. } => "request_permissions_response",
-            Self::DynamicToolResponse { .. } => "dynamic_tool_response",
+            Self::DynamicToolResponse { .. } | Self::DynamicToolResult { .. } => {
+                "dynamic_tool_response"
+            }
             Self::RefreshMcpServers => "refresh_mcp_servers",
             Self::ReloadUserConfig => "reload_user_config",
             Self::Compact => "compact",
@@ -2393,11 +2358,6 @@ pub struct ErrorEvent {
     pub message: String,
     #[serde(default)]
     pub codex_error_info: Option<CodexErrorInfo>,
-    /// Host-only file identities proven rejected against the submitted request.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[schemars(skip)]
-    #[ts(skip)]
-    pub rejected_audio_file_ids: Vec<String>,
     /// Sensitive explanation and steering are delivered live but never enter rollout storage.
     #[serde(skip)]
     #[schemars(skip)]
@@ -6373,7 +6333,6 @@ mod tests {
             misalignment: None,
             message: "rollback failed".into(),
             codex_error_info: Some(CodexErrorInfo::ThreadRollbackFailed),
-            rejected_audio_file_ids: Vec::new(),
         };
         assert!(!event.affects_turn_status());
     }
@@ -6386,7 +6345,6 @@ mod tests {
             codex_error_info: Some(CodexErrorInfo::ActiveTurnNotSteerable {
                 turn_kind: NonSteerableTurnKind::Review,
             }),
-            rejected_audio_file_ids: Vec::new(),
         };
         assert!(!event.affects_turn_status());
     }
@@ -6397,7 +6355,6 @@ mod tests {
             misalignment: None,
             message: "generic".into(),
             codex_error_info: Some(CodexErrorInfo::Other),
-            rejected_audio_file_ids: Vec::new(),
         };
         assert!(event.affects_turn_status());
     }
@@ -6407,7 +6364,6 @@ mod tests {
         let event = ErrorEvent {
             message: "This request violated the misalignment policy.".to_string(),
             codex_error_info: Some(CodexErrorInfo::MisalignmentPolicyViolation),
-            rejected_audio_file_ids: Vec::new(),
             misalignment: Some(MisalignmentErrorDetails {
                 error_type: Some("unauthorized_data_transfer".to_string()),
                 detailed_explanation: Some("Sensitive customer explanation".to_string()),
@@ -6434,22 +6390,6 @@ mod tests {
         assert!(!debug.contains("Sensitive customer explanation"));
         assert!(!debug.contains("Sensitive customer steering"));
         assert!(!debug.contains("sensitive-review-target"));
-    }
-
-    #[test]
-    fn rejected_audio_identity_round_trips_for_host_recovery() {
-        let event = ErrorEvent {
-            message: "invalid recording".to_string(),
-            codex_error_info: Some(CodexErrorInfo::BadRequest),
-            rejected_audio_file_ids: vec!["file_audio".to_string()],
-            misalignment: None,
-        };
-
-        let serialized = serde_json::to_value(&event).expect("serialize error event");
-        assert_eq!(serialized["rejected_audio_file_ids"], json!(["file_audio"]));
-        let restored: ErrorEvent =
-            serde_json::from_value(serialized).expect("deserialize error event");
-        assert_eq!(restored.rejected_audio_file_ids, vec!["file_audio"]);
     }
 
     #[test]

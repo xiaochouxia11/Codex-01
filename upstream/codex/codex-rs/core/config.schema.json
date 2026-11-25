@@ -1099,6 +1099,9 @@
             "guardian_include_additional_context": {
               "type": "boolean"
             },
+            "guardian_native_action_framing": {
+              "type": "boolean"
+            },
             "guardian_native_multi_agent_history": {
               "type": "boolean"
             },
@@ -1418,6 +1421,9 @@
               "type": "boolean"
             },
             "standalone_web_search": {
+              "type": "boolean"
+            },
+            "statsig_gates": {
               "type": "boolean"
             },
             "steer": {
@@ -4733,9 +4739,6 @@
         },
         "version": {
           "$ref": "#/definitions/RealtimeConversationVersion"
-        },
-        "voice": {
-          "$ref": "#/definitions/RealtimeVoice"
         }
       },
       "type": "object"
@@ -4744,46 +4747,6 @@
       "enum": [
         "webrtc",
         "websocket"
-      ],
-      "type": "string"
-    },
-    "RealtimeVoice": {
-      "enum": [
-        "alloy",
-        "arbor",
-        "ash",
-        "aube",
-        "ballad",
-        "breeze",
-        "bubbie",
-        "cedar",
-        "coral",
-        "cove",
-        "echo",
-        "ember",
-        "haetsal",
-        "hanul",
-        "himari",
-        "juniper",
-        "leher",
-        "maple",
-        "marin",
-        "miko",
-        "neer",
-        "porto",
-        "rindo",
-        "rio",
-        "rivage",
-        "sage",
-        "selva",
-        "shimmer",
-        "sol",
-        "sonna",
-        "spruce",
-        "tinta",
-        "vale",
-        "verse",
-        "viola"
       ],
       "type": "string"
     },
@@ -5067,8 +5030,12 @@
     },
     "SendMessageToUserAsyncConfigToml": {
       "additionalProperties": false,
-      "description": "Controls which agents can send async user messages.",
+      "description": "Controls which agents can send async user messages and how they call the tool.",
       "properties": {
+        "direct_only": {
+          "description": "Keep async user messages top-level only (default). Set to false to follow the session's tool mode.",
+          "type": "boolean"
+        },
         "root_agent": {
           "description": "Sets the root agent's feature flag, just like the plain boolean shorthand. The model catalog can still enable the tool for the root when this is false.",
           "type": "boolean"
@@ -5545,8 +5512,8 @@
           "type": "boolean"
         },
         "collapse_turn_details": {
-          "default": false,
-          "description": "Summarize tool calls and collapse completed turns in the full-screen transcript. Defaults to `false`.",
+          "default": true,
+          "description": "Summarize tool calls and collapse completed turns in the full-screen transcript. Defaults to `true`.",
           "type": "boolean"
         },
         "copy_on_select": {
@@ -8512,6 +8479,9 @@
         "guardian_include_additional_context": {
           "type": "boolean"
         },
+        "guardian_native_action_framing": {
+          "type": "boolean"
+        },
         "guardian_native_multi_agent_history": {
           "type": "boolean"
         },
@@ -8831,6 +8801,9 @@
           "type": "boolean"
         },
         "standalone_web_search": {
+          "type": "boolean"
+        },
+        "statsig_gates": {
           "type": "boolean"
         },
         "steer": {

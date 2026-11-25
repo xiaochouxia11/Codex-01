@@ -26,6 +26,7 @@ use crate::motion::MotionMode;
 use crate::pager_overlay::TranscriptHistoryState;
 use crate::sidebar_tab_strip::TabState;
 use crate::terminal_hyperlinks::HyperlinkLine;
+use crate::terminal_hyperlinks::bidi;
 use crate::transcript_image::ImagePlacement;
 use crate::transcript_view::TranscriptView;
 use crate::transcript_view::ViewAction;
@@ -178,8 +179,7 @@ impl App {
         event: crossterm::event::MouseEvent,
     ) -> bool {
         let selection_copy = crate::tui::SelectionCopy::on_select(
-            self.local_settings
-                .copy_on_select(&codex_terminal_detection::terminal_info()),
+            self.local_settings.copy_on_select(),
             self.right_click_paste_environment.primary,
             // Editable selections remain visible so the next input can replace them.
             /*clear_selection*/
@@ -214,9 +214,7 @@ impl App {
         let view = &mut self.transcript_view;
         view.mouse_scroll_speed = self.local_settings.tui.mouse_scroll_speed.unwrap_or(1.0);
         view.primary_selection = self.right_click_paste_environment.primary;
-        view.copy_on_select = self
-            .local_settings
-            .copy_on_select(&codex_terminal_detection::terminal_info());
+        view.copy_on_select = self.local_settings.copy_on_select();
         view.copy_on_select_clear_selection =
             self.local_settings.tui.copy_on_select_clear_selection;
         view.set_keymap_bindings(&self.keymap);
@@ -237,8 +235,11 @@ impl App {
                 chat_widget.active_cell_transcript_hyperlink_lines(width)
             })
         } else if let Some(row) = live_summary {
+            let bidi_layout = view.bidi_layout;
             view.sync_live_layout(transcript_width, active_key, |width| {
-                Some(row.layout(width, expanded, chat_widget.active_auxiliary_lines(width)))
+                let lines =
+                    bidi::session_lines(chat_widget.active_auxiliary_lines(width), bidi_layout);
+                Some(row.layout(width, expanded, lines))
             })
         } else {
             view.sync_live_activity_tail(transcript_width, active_key, expanded, |width| {
@@ -328,8 +329,7 @@ impl App {
         }) {
             self.divider_drag = None;
         }
-        let highlight_divider =
-            self.pane_resize.is_some() || tui.link_hover.shape == tui::PointerShape::Resize;
+        let highlight_divider = self.pane_resize.is_some() || tui.link_hover.sidebar_divider;
         let pointer = tui
             .link_hover
             .mouse
@@ -364,6 +364,7 @@ impl App {
         }
         prepared.floating_shortcuts = hud.is_some();
         let mut painted = PaintedConversation::default();
+        self.chat_widget.begin_steer_hint_draw();
         tui.draw_with_shortcut_hud(screen_size.height, hud, |frame| {
             if let Some(backdrop) = backdrop {
                 let viewport = frame.area();
@@ -397,6 +398,7 @@ impl App {
                         id == panes.passive_thread && self.agent_navigation.is_parent_owned(id)
                     });
                     if let Some(companion) = self.side_companions.get_mut(&panes.passive_thread) {
+                        companion.view.bidi_layout = self.transcript_view.bidi_layout;
                         companion.view.agent_links = self.transcript_view.agent_links;
                         companion.view.image_protocol = self.transcript_view.image_protocol;
                         panes.paint_companion(
@@ -658,6 +660,7 @@ impl App {
             }
             self.paint_centered_dialog(frame);
         })?;
+        self.chat_widget.finish_steer_hint_draw();
         // A shortcut HUD is painted after the conversation and can move over a stationary pointer.
         if hover_mouse != self.hover_pointer(tui, tui.link_hover.mouse) {
             frames.schedule_frame();
@@ -1278,6 +1281,8 @@ impl App {
         // Keys owned by the transcript and non-text keys still need fresh geometry immediately.
         if let TuiEvent::Key(key) = event
             && key.kind != KeyEventKind::Release
+            // Route this key against the hint it arrived on, before refreshing geometry.
+            && !self.chat_widget.interrupts_acknowledged_steer(*key)
             && (!self.chat_widget.is_in_paste_burst()
                 || self.transcript_view.is_search_editing()
                 || self.transcript_view.is_activity_focused()

@@ -70,6 +70,18 @@ const fn default_enabled() -> bool {
     true
 }
 
+/// Resolved per-thread settings for the standalone image generation tool.
+pub struct ImageGenerationSettings {
+    pub provider: codex_model_provider_info::ModelProviderInfo,
+    pub http_client_factory: codex_http_client::HttpClientFactory,
+    pub gif_enabled: bool,
+    pub deferred: bool,
+}
+
+impl ImageGenerationSettings {
+    pub const NAMESPACE: &str = "image_gen";
+}
+
 /// Last selected grouping in Agent Command Center.
 #[derive(Serialize, Deserialize, Debug, Default, Copy, Clone, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
@@ -983,8 +995,8 @@ pub struct Tui {
     #[serde(default = "default_true")]
     pub fullscreen_transcript: bool,
 
-    /// Summarize tool calls and collapse completed turns in the full-screen transcript. Defaults to `false`.
-    #[serde(default)]
+    /// Summarize tool calls and collapse completed turns in the full-screen transcript. Defaults to `true`.
+    #[serde(default = "default_true")]
     pub collapse_turn_details: bool,
 
     /// Preferred docked sidebar width as a percentage of the terminal. Defaults to one third.
