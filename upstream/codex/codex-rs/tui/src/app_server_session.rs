@@ -134,6 +134,7 @@ use codex_app_server_protocol::ThreadSource;
 use codex_app_server_protocol::ThreadStartParams;
 use codex_app_server_protocol::ThreadStartResponse;
 use codex_app_server_protocol::ThreadStartSource;
+use codex_app_server_protocol::ThreadStatus;
 use codex_app_server_protocol::ThreadStatusChangedNotification;
 use codex_app_server_protocol::ThreadUnarchiveParams;
 use codex_app_server_protocol::ThreadUnarchiveResponse;
@@ -144,6 +145,7 @@ use codex_app_server_protocol::TurnInterruptParams;
 use codex_app_server_protocol::TurnInterruptResponse;
 use codex_app_server_protocol::TurnStartParams;
 use codex_app_server_protocol::TurnStartResponse;
+use codex_app_server_protocol::TurnStatus;
 use codex_app_server_protocol::TurnSteerParams;
 use codex_app_server_protocol::TurnSteerResponse;
 use codex_app_server_protocol::UserInput;
@@ -216,7 +218,8 @@ enum ForkPresentation {
     SideConversation(SideChatStorage),
 }
 
-pub(crate) const ATTACHED_SIDE_CHAT_SOURCE: &str = "tui_side_chat";
+pub(crate) const ATTACHED_SIDE_CHAT_SOURCE: &str =
+    codex_protocol::protocol::ThreadSource::TUI_SIDE_CHAT;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum SideChatStorage {
@@ -392,6 +395,7 @@ pub(crate) struct AttachmentMetadata {
     unread_revision: Option<String>,
     history_support: ThreadHistorySupport,
     task_tools: bool,
+    side_chat_fork_name: Option<Option<String>>,
     pub(crate) subscribed: bool,
 }
 
@@ -719,6 +723,7 @@ impl AppServerSession {
             unread_revision: self.unread_revisions.remove(&id),
             history_support: self.history_support,
             task_tools: self.task_tools_available(id),
+            side_chat_fork_name: self.side_chat_fork_names.remove(&id),
             subscribed: self.attachment_subscribed == Some(true),
         }
     }
@@ -739,6 +744,9 @@ impl AppServerSession {
         }
         if metadata.task_tools {
             self.remember_task_tool_thread(id);
+        }
+        if let Some(name) = metadata.side_chat_fork_name {
+            self.side_chat_fork_names.insert(id, name);
         }
         if !observed_receipt {
             self.unread_revisions.remove(&id);
@@ -1169,6 +1177,14 @@ impl AppServerSession {
                         self.remember_read_state(id, Some(change.read_state.clone()));
                     }
                 }
+                codex_app_server_protocol::ServerNotification::ThreadNameUpdated(change) => {
+                    if let Ok(id) = ThreadId::from_string(&change.thread_id) {
+                        self.side_chat_fork_names.remove(&id);
+                        if let Some(gate) = self.automatic_name_writes.remove(&id) {
+                            gate.close();
+                        }
+                    }
+                }
                 _ => {}
             }
         }
@@ -1498,11 +1514,11 @@ impl AppServerSession {
         }
     }
 
-    pub(crate) fn observe_sidebar_fork(&mut self, fork: &SidebarFork) {
+    pub(crate) fn observe_sidebar_fork(&mut self, fork: &mut SidebarFork) {
         if fork.storage == SideChatStorage::Attached && fork.boundary.is_ok() {
-            let child = &fork.thread.session;
+            let child = &mut fork.thread.session;
             self.side_chat_fork_names
-                .insert(child.thread_id, child.thread_name.clone());
+                .insert(child.thread_id, child.thread_name.take());
         }
         if fork.legacy {
             self.history_support = ThreadHistorySupport::LegacyOnly;
@@ -1862,17 +1878,31 @@ impl AppServerSession {
     }
 
     pub(crate) async fn thread_delete(&mut self, thread_id: ThreadId) -> Result<()> {
+        self.delete_thread(thread_id, Vec::new()).await
+    }
+
+    async fn delete_thread(&mut self, thread_id: ThreadId, side_chats: Vec<String>) -> Result<()> {
+        let includes_side_chats = !side_chats.is_empty();
         let request_id = self.next_request_id();
-        let _: ThreadDeleteResponse = self
+        let result = self
             .request_handle
-            .request_typed(ClientRequest::ThreadDelete {
+            .request_typed::<ThreadDeleteResponse>(ClientRequest::ThreadDelete {
                 request_id,
                 params: ThreadDeleteParams {
                     thread_id: thread_id.to_string(),
+                    saved_side_chat_ids: includes_side_chats.then_some(side_chats),
                 },
             })
-            .await
-            .wrap_err("failed to delete session")?;
+            .await;
+        let compatibility_error = includes_side_chats
+            && !self.uses_embedded_app_server()
+            && matches!(&result, Err(TypedRequestError::Server { source, .. })
+                if source.message.ends_with("delete the attached thread first"));
+        result.wrap_err(if compatibility_error {
+            crate::daemon_startup::FAILURE_HINT
+        } else {
+            "failed to delete session"
+        })?;
         self.side_chat_fork_names.remove(&thread_id);
         Ok(())
     }
@@ -3146,11 +3176,24 @@ async fn started_thread_from_start_response(
 }
 
 async fn started_thread_from_resume_response(
-    response: ThreadResumeResponse,
+    mut response: ThreadResumeResponse,
     local_settings: &LocalSettings,
     cwd_convention: Option<PathConvention>,
 ) -> Result<AppServerStartedThread> {
     let blocks_direct_input = thread_blocks_direct_input(&response.thread);
+    // Replay and interrupt routing both infer the active turn from hydrated history.
+    // Match the server's interrupted-turn fallback when that history outlives the task.
+    // An unanchored page can include a turn started after the resume status was read.
+    if (response.thread.history_mode == ThreadHistoryMode::Legacy
+        || response.turns_backwards_cursor.is_some())
+        && !matches!(response.thread.status, ThreadStatus::Active { .. })
+    {
+        for turn in &mut response.thread.turns {
+            if turn.status == TurnStatus::InProgress {
+                turn.status = TurnStatus::Interrupted;
+            }
+        }
+    }
     let session =
         thread_session_state_from_thread_resume_response(&response, local_settings, cwd_convention)
             .await
@@ -3452,9 +3495,7 @@ mod tests {
     use app_test_support::create_fake_rollout;
     use codex_app_server_protocol::ThreadItem;
     use codex_app_server_protocol::ThreadItemsListCursor;
-    use codex_app_server_protocol::ThreadStatus;
     use codex_app_server_protocol::Turn;
-    use codex_app_server_protocol::TurnStatus;
     use codex_features::Feature;
     use codex_protocol::config_types::ReasoningSummary;
     use codex_protocol::config_types::ServiceTier;
@@ -5297,7 +5338,7 @@ mod tests {
         let thread_id = ThreadId::new();
         let forked_from_id = ThreadId::new();
         let read_only_profile = PermissionProfile::read_only();
-        let response = ThreadResumeResponse {
+        let mut response = ThreadResumeResponse {
             disabled_plugin_ids: Vec::new(),
             thread: codex_app_server_protocol::Thread {
                 originator: None,
@@ -5353,6 +5394,12 @@ mod tests {
                             },
                         ),
                         ThreadItem::untimed(
+                            codex_app_server_protocol::ThreadItemPayload::EnteredReviewMode {
+                                id: "review-1".to_string(),
+                                review: "current changes".to_string(),
+                            },
+                        ),
+                        ThreadItem::untimed(
                             codex_app_server_protocol::ThreadItemPayload::AgentMessage {
                                 moderation: None,
                                 id: "assistant-1".to_string(),
@@ -5364,7 +5411,7 @@ mod tests {
                             },
                         ),
                     ],
-                    status: TurnStatus::Completed,
+                    status: TurnStatus::InProgress,
                     error: None,
                     started_at: None,
                     completed_at: None,
@@ -5427,14 +5474,19 @@ mod tests {
             response.instruction_source_path_uris()
         );
         assert_eq!(started.session.permission_profile, read_only_profile);
-        assert_eq!(started.turns.len(), 1);
-        assert_eq!(started.turns[0], response.thread.turns[0]);
+        let mut interrupted = response.thread.turns[0].clone();
+        interrupted.status = TurnStatus::Interrupted;
+        assert_eq!(started.turns, vec![interrupted]);
         assert!(!started.blocks_direct_input);
 
         // The first prompt after resume must preserve the server's restored mode.
         let (mut chat, _sender, _events, mut commands) =
             crate::chatwidget::tests::helpers::make_chatwidget_manual_with_sender().await;
         chat.handle_thread_session(started.session);
+        chat.replay_thread_turns(
+            started.turns,
+            crate::chatwidget::ReplayKind::ResumeInitialMessages,
+        );
         insta::assert_snapshot!(
             "resumed_plan_mode",
             crate::chatwidget::tests::helpers::normalize_snapshot_paths(
@@ -5464,6 +5516,9 @@ mod tests {
             .build()
             .await
             .expect("config should build");
+        response.thread.status = ThreadStatus::Active {
+            active_flags: Vec::new(),
+        };
         let started = started_thread_from_resume_response(
             response.clone(),
             &LocalSettings::from(&embedded_config),
@@ -5471,10 +5526,11 @@ mod tests {
         )
         .await
         .expect("embedded resume response should map");
+        assert_eq!(started.turns, response.thread.turns);
         assert_eq!(started.session.permission_profile, read_only_profile);
 
         let mut thread = response.thread.clone();
-        let mut empty_roots_response = response;
+        let mut empty_roots_response = response.clone();
         empty_roots_response.runtime_workspace_roots = Vec::new();
         let server_cwd = r"/\repo";
         empty_roots_response.cwd = LegacyAppPathString::from_string(server_cwd);
@@ -5497,6 +5553,7 @@ mod tests {
 
         // Cloud can filter every item in its newest page while older prompts remain.
         thread.history_mode = ThreadHistoryMode::Paginated;
+        thread.status = ThreadStatus::Idle;
         let mut turn = thread.turns.pop().unwrap();
         let prompt = turn.items.remove(0);
         turn.items.clear();
@@ -5544,6 +5601,13 @@ mod tests {
             )
             .await
             .expect("Cloud history should load past a hidden page");
+        // Activation was idle, but the unanchored Cloud page includes a live turn.
+        response.thread = thread.clone();
+        let started =
+            started_thread_from_resume_response(response, &settings, /*cwd_convention*/ None)
+                .await
+                .unwrap();
+        assert_eq!(started.turns, thread.turns);
         let cells = crate::thread_transcript::thread_to_transcript_cells(
             thread,
             crate::thread_transcript::RawReasoningVisibility::Hidden,

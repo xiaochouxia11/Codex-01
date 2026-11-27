@@ -19,14 +19,26 @@ const REALTIME_STOP_TIMEOUT: Duration = Duration::from_secs(/*secs*/ 1);
 
 impl App {
     pub(super) fn displayed_conversation_backend_id(&self) -> Option<crate::backend_id::BackendId> {
-        self.current_displayed_thread_id()
-            .and_then(|thread_id| {
-                self.thread_event_channels
-                    .get(&thread_id)
-                    .and_then(|channel| channel.backend_id)
-                    .or_else(|| self.backend_registry.owner(thread_id))
-            })
+        self.conversation_backend_id(self.current_displayed_thread_id())
+    }
+
+    pub(super) fn conversation_backend_id(
+        &self,
+        thread_id: Option<ThreadId>,
+    ) -> Option<crate::backend_id::BackendId> {
+        thread_id
+            .and_then(|thread_id| self.thread_backend_id(thread_id))
             .or(self.app_server_backend_id)
+    }
+
+    pub(super) fn thread_backend_id(
+        &self,
+        thread_id: ThreadId,
+    ) -> Option<crate::backend_id::BackendId> {
+        self.thread_event_channels
+            .get(&thread_id)
+            .and_then(|channel| channel.backend_id)
+            .or_else(|| self.backend_registry.owner(thread_id))
     }
 
     pub(super) async fn stop_realtime_conversation(&mut self, app_server: &mut AppServerSession) {
@@ -160,7 +172,9 @@ impl App {
         let Some(active_id) = self.active_thread_id else {
             return;
         };
-        if let Some(pane) = self.sidebars.get_mut(&Some(active_id)) {
+        let parent = self.active_side_parent_thread_id().unwrap_or(active_id);
+        if let Some(pane) = self.sidebars.get_mut(&Some(parent)) {
+            pane.cancel_scrollback_cycle();
             pane.opening = None;
             pane.cancel_hidden_document_primary(/*visible*/ false);
         }
@@ -615,7 +629,7 @@ impl App {
         thread_id: ThreadId,
         op: AppCommand,
     ) -> Result<()> {
-        if self.thread_unavailable(thread_id) {
+        if self.thread_unavailable(thread_id) || self.abandoned_side_threads.contains(&thread_id) {
             if let AppCommand::RealtimeConversationSpeech { delivery_id, .. } = &op {
                 self.chat_widget
                     .restore_undelivered_realtime_speech(*delivery_id);
@@ -894,6 +908,11 @@ impl App {
                     self.chat_widget
                         .add_error_message(format!("Failed to rename thread: {error}"));
                     return Ok(true);
+                }
+                if let Some(channel) = self.thread_event_channels.get(&thread_id)
+                    && let Some(session) = &mut channel.store.lock().await.session
+                {
+                    session.thread_name = Some(name.clone());
                 }
                 self.chat_widget.display_thread_name(thread_id, name);
                 self.cancel_thread_title_generation(thread_id);
@@ -1317,13 +1336,13 @@ impl App {
             {
                 guard.session = Some(session);
             }
+            if let ServerNotification::ThreadNameUpdated(update) = &notification
+                && let Some(session) = &mut guard.session
+            {
+                session.thread_name.clone_from(&update.thread_name);
+            }
             let previous_pending_status = guard.side_parent_pending_status();
-            let turn_stopped = match &notification {
-                ServerNotification::TurnCompleted(notification) => {
-                    guard.active_turn_id() == Some(notification.turn.id.as_str())
-                }
-                _ => false,
-            };
+            let was_running = guard.active_turn_id().is_some();
             let notification = if guard.active {
                 guard.push_notification_ref(&notification);
                 Some(notification)
@@ -1371,7 +1390,7 @@ impl App {
                 notification,
                 previous_pending_status,
                 guard.side_parent_pending_status(),
-                turn_stopped,
+                was_running && guard.active_turn_id().is_none(),
             )
         };
         if is_turn_started {
@@ -2317,8 +2336,15 @@ impl App {
             // thread, so unrelated shutdowns cannot consume this marker.
             self.pending_shutdown_exit_thread_id = None;
         }
-        // Sidebar chats use their first prompt until they receive an explicit name.
+        // Attached side chats generate a title from their first direct submission.
+        let attached_side_chat = self
+            .active_thread_id
+            .and_then(|id| self.side_threads.get(&id))
+            .is_some_and(|side| {
+                side.storage == crate::app_server_session::SideChatStorage::Attached
+            });
         let automatic_title_user_message = if self.chat_widget.thread_name().is_none()
+            && !attached_side_chat
             && !(self.side_retention_enabled(tui) && self.active_side_parent_thread_id().is_some())
             && let ThreadBufferedEvent::Notification(notification) = &event
             && let ServerNotification::ItemCompleted(notification) = notification.as_ref()

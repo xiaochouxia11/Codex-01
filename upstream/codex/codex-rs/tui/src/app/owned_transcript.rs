@@ -12,6 +12,7 @@ use super::sidebar::PaneFocus;
 use super::sidebar_document::DocumentRenderOptions;
 use super::turn_tips::TipSurface;
 use super::*;
+use crate::app_server_session::fs::AppServerFileSystem;
 use crate::bottom_pane::CommandPopupPlacement;
 use crate::bottom_pane::ComposerRenderOptions;
 use crate::custom_terminal::Frame;
@@ -154,6 +155,25 @@ impl PreparedConversation {
 }
 
 impl App {
+    /// Like Desktop, preview images with the user's file access. Confirm the reply
+    /// belongs to a workspace on this host before interpreting its paths here.
+    fn check_local_image_workspace(
+        &self,
+        source: ThreadId,
+    ) -> Option<impl Future<Output = bool> + use<>> {
+        // A queued switch can still paint cells belonging to the outgoing thread.
+        if self.app_server_target.uses_remote_workspace() || self.pending_thread_switch_resets != 0
+        {
+            return None;
+        }
+        let request_handle = self
+            .conversation_backend_id(Some(source))
+            .filter(|owner| Some(*owner) == self.app_server_backend_id)
+            .and_then(|owner| self.backend_registry.request_handle(owner))?;
+        let fs = AppServerFileSystem { request_handle };
+        Some(async move { fs.preview_workspace(source).await.is_ok() })
+    }
+
     /// Copy draft selections before key shortcuts, or after mouse layout has been refreshed.
     pub(super) fn handle_composer_copy_event(
         &mut self,
@@ -184,7 +204,7 @@ impl App {
     ) -> bool {
         let selection_copy = crate::tui::SelectionCopy::on_select(
             self.local_settings.copy_on_select(),
-            self.right_click_paste_environment.primary,
+            tui.primary_selection_available(),
             // Editable selections remain visible so the next input can replace them.
             /*clear_selection*/
             false,
@@ -217,7 +237,6 @@ impl App {
         let transcript_width = chat_widget.history_wrap_width(width);
         let view = &mut self.transcript_view;
         view.mouse_scroll_speed = self.local_settings.tui.mouse_scroll_speed.unwrap_or(1.0);
-        view.primary_selection = self.right_click_paste_environment.primary;
         view.copy_on_select = self.local_settings.copy_on_select();
         view.copy_on_select_clear_selection =
             self.local_settings.tui.copy_on_select_clear_selection;
@@ -459,6 +478,15 @@ impl App {
                 }
             }
             painted = self.paint_conversation(frame, &prepared);
+            if let Some(local_workspace) =
+                displayed.and_then(|source| self.check_local_image_workspace(source))
+            {
+                self.transcript_view.request_visible_images(
+                    &frames,
+                    local_workspace,
+                    /*streaming*/ None,
+                );
+            }
             let label_style = parent
                 .and_then(|id| self.backend_registry.owner(id))
                 .or(self.app_server_backend_id)
@@ -473,6 +501,7 @@ impl App {
                     let watch_only = self.docked_agent().is_some_and(|(_, id)| {
                         id == panes.passive_thread && self.agent_navigation.is_parent_owned(id)
                     });
+                    let local_workspace = self.check_local_image_workspace(panes.passive_thread);
                     if let Some(companion) = self.side_companions.get_mut(&panes.passive_thread) {
                         companion.view.bidi_layout = self.transcript_view.bidi_layout;
                         companion.view.agent_links = self.transcript_view.agent_links;
@@ -484,6 +513,17 @@ impl App {
                             &frames,
                             watch_only,
                         );
+                        if let Some(local_workspace) = local_workspace {
+                            let streaming = companion
+                                .answer
+                                .as_ref()
+                                .and_then(|a| companion.cells.get(a.index));
+                            companion.view.request_visible_images(
+                                &frames,
+                                local_workspace,
+                                streaming,
+                            );
+                        }
                     }
                 }
                 Some(sidebar::SidebarLayout::Panel { sidebar, focus, .. }) => {

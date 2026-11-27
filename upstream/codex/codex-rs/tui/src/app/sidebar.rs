@@ -123,6 +123,14 @@ pub(super) struct SidebarPane {
 }
 
 impl SidebarPane {
+    pub(super) fn cancel_scrollback_cycle(&mut self) {
+        if let Discovery::Loading { cycle, .. } = &mut self.discovery {
+            *cycle = false;
+        }
+        self.opening
+            .take_if(|opening| opening.scrollback_origin.is_some());
+    }
+
     pub(super) fn visible_link_at(&self, column: u16, row: u16) -> Option<ReaderLink> {
         let SidebarContent::Document(id) = self.visible_content()? else {
             return None;
@@ -174,8 +182,7 @@ impl SidebarPane {
         }
         match content {
             SidebarContent::Chat(id) => {
-                self.add_tab(id);
-                self.visit(SidebarTab::Chat(id));
+                self.visit_chat(id);
             }
             SidebarContent::Chooser
                 if !resume_chooser
@@ -301,6 +308,21 @@ impl SidebarPane {
         self.tabs_revision += 1;
     }
 
+    pub(super) fn invalidate_discovery(
+        &mut self,
+        owner: Option<crate::backend_id::BackendId>,
+    ) -> Option<bool> {
+        if let Discovery::Loading {
+            backend_id, cycle, ..
+        } = self.discovery
+            && owner.is_none_or(|id| id == backend_id)
+        {
+            self.set_discovery(Discovery::Idle);
+            return Some(cycle);
+        }
+        None
+    }
+
     pub(super) fn update_saved_chats(&mut self, mut chats: Vec<SideChat>) {
         let selection = self.input_state().choice;
         let was_empty = self.choices.is_empty();
@@ -379,16 +401,25 @@ impl SidebarPane {
         self.documents.get_mut(&id)
     }
 
+    pub(super) fn diff_tab(&self) -> Option<uuid::Uuid> {
+        self.documents
+            .iter()
+            .find_map(|(&id, doc)| doc.is_diff().then_some(id))
+    }
+
     pub(super) fn document_title(&self, id: uuid::Uuid, width: usize) -> String {
         let Some(document) = self.documents.get(&id) else {
             return String::new();
         };
+        if document.is_diff() {
+            return "Diff".to_owned();
+        }
         let path = document.path.inferred_native_path_string();
         let parts: Vec<_> = path.rsplit(['/', '\\']).collect();
         let depth = self
             .documents
             .values()
-            .filter(|other| other.path != document.path)
+            .filter(|other| !other.is_diff() && other.path != document.path)
             .map(|other| {
                 parts
                     .iter()
@@ -405,7 +436,7 @@ impl SidebarPane {
         let mut index = 1;
         let mut collision = false;
         for (&other_id, other) in &self.documents {
-            if other_id == id {
+            if other_id == id || other.is_diff() {
                 continue;
             }
             let other_path = other.path.inferred_native_path_string();
@@ -437,11 +468,17 @@ impl SidebarPane {
     }
 
     pub(super) fn remove_document(&mut self, id: uuid::Uuid) {
-        self.documents.remove(&id);
+        let is_diff = self.documents.remove(&id).is_some_and(|doc| doc.is_diff());
         let tab = SidebarTab::Document(id);
         self.tabs.retain(|other| *other != tab);
         self.visits.retain(|other| *other != tab);
         self.tabs_revision += 1;
+        if is_diff && self.content == SidebarContent::Document(id) {
+            self.content = SidebarContent::Chooser;
+            self.focus = None;
+            self.hidden = false;
+            self.motion = PaneMotion::default();
+        }
     }
 
     pub(super) fn close_agents(&mut self) -> bool {
@@ -486,6 +523,20 @@ impl SidebarPane {
             }
             self.tabs.push(SidebarTab::Chat(id));
             self.tabs_revision += 1;
+        }
+    }
+
+    fn visit_chat(&mut self, id: ThreadId) {
+        self.add_tab(id);
+        self.visit(SidebarTab::Chat(id));
+        self.opening = None;
+    }
+
+    pub(super) fn select_chat(&mut self, id: ThreadId, fullscreen: bool) {
+        if fullscreen {
+            self.show(SidebarContent::Chat(id), PaneFocus::Sidebar);
+        } else {
+            self.visit_chat(id);
         }
     }
 
@@ -590,6 +641,36 @@ impl App {
                 _ => None,
             }
         })
+    }
+
+    pub(super) fn invalidate_saved_chat_discovery(
+        &mut self,
+        server: &AppServerSession,
+        thread: ThreadId,
+        removed: bool,
+        displayed: bool,
+    ) {
+        let backend_id = server.backend_id();
+        let displayed_parent = displayed.then(|| self.sidebar_parent()).flatten();
+        let mut restart = None;
+        for (parent, pane) in &mut self.sidebars {
+            if let Some(cycle) = pane.invalidate_discovery(Some(backend_id))
+                && *parent == displayed_parent
+                && (cycle || pane.visible_content() == Some(SidebarContent::Chooser))
+            {
+                restart = Some(cycle);
+            }
+            if removed
+                && pane.opening.as_ref().is_some_and(|opening| {
+                    opening.target.backend_id == backend_id && opening.target.child == thread
+                })
+            {
+                pane.opening = None;
+            }
+        }
+        if let (Some(parent), Some(cycle)) = (displayed_parent, restart) {
+            self.discover_saved_chats(server, parent, cycle);
+        }
     }
 
     pub(super) fn refresh_visible_side_chat_prompts(

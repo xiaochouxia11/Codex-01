@@ -103,6 +103,16 @@ fn partial_markup_is_balanced_and_preserves_selected_characters() {
             "ment",                          // codespell:ignore ment
             "[ment](<https://example.com>)", // codespell:ignore ment
         ),
+        (
+            "before [`guide`.md:2-4](guide.md:2-4) after",
+            "guide.md:2-4",
+            "`guide`.md:2-4",
+        ),
+        (
+            "before [**guide**.md:2-4](guide.md:2-4) after",
+            "guide",
+            "**guide**",
+        ),
         ("[**label**](/repo/file.rs)", "label", "**label**"),
         (
             "escaped \\*literal\\* &amp; `code`",
@@ -166,8 +176,8 @@ fn inline_code_selection_copies_only_selected_content() {
 #[test]
 fn mixed_file_targets_preserve_markdown_escaping() {
     for (source, expected) in [
-        ("before [+](/+) after", "before + (+) after"),
-        ("before [1.)](</1.)>) after", "before 1.) (1.)) after"),
+        ("before [+](/+) after", "before + after"),
+        ("before [number](</1.)>) after", "before number (1.)) after"),
         (
             "| File |\n|---|\n| [`foo_bar!`](/repo/foo_bar!) |",
             "| File |\n|---|\n| `foo_bar!` (repo/foo\\_bar\\!) |",
@@ -876,5 +886,21 @@ fn selected_list_and_code_containers_keep_their_structure() {
             crate::clipboard_html::render_markdown(expected),
             "{copied:?} from {source:?}"
         );
+    }
+}
+
+#[test]
+fn file_ranges_keep_hidden_destinations_when_copying_markdown() {
+    crate::markdown_render::preferences::set_document_links(/*enabled*/ true);
+    for dest in ["./src/search.ts#L42-L44", "./src/search.ts:42:5-44:10"] {
+        let link = format!("[src/search.ts:42-44](<{dest}>)");
+        for source in [&link, &format!("| Location |\n|---|\n| {link} |")] {
+            for width in [12, 80] {
+                let layout = markdown_layout(source, width);
+                let (copied, _) = payload(&layout, 0..layout.text().len());
+                assert_eq!(copied.matches(&link).count(), 1, "{copied}");
+                assert!(!layout.text().contains(dest));
+            }
+        }
     }
 }

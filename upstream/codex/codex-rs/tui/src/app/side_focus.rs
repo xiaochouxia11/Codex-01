@@ -73,13 +73,34 @@ impl App {
     }
 
     pub(super) fn refresh_saved_chats(&mut self, server: &AppServerSession, parent: ThreadId) {
-        let pane = self.sidebar_mut();
-        if pane.discovery.request().is_some() || !server.can_list_saved_side_chats(parent) {
+        self.discover_saved_chats(server, parent, /*cycle*/ false);
+    }
+
+    pub(super) fn discover_saved_chats(
+        &mut self,
+        server: &AppServerSession,
+        parent: ThreadId,
+        cycle: bool,
+    ) {
+        if !server.can_list_saved_side_chats(parent) {
+            return;
+        }
+        let pane = self.sidebars.entry(Some(parent)).or_default();
+        if let Discovery::Loading {
+            backend_id,
+            cycle: pending,
+            ..
+        } = &mut pane.discovery
+            && *backend_id == server.backend_id()
+        {
+            *pending |= cycle;
             return;
         }
         let request = uuid::Uuid::new_v4();
         pane.set_discovery(Discovery::Loading {
             request,
+            backend_id: server.backend_id(),
+            cycle,
             started: Instant::now(),
             retry: matches!(pane.discovery, Discovery::Failed(_)),
         });
@@ -192,6 +213,10 @@ impl App {
                         self.sidebar_mut()
                             .show(SidebarContent::Chooser, PaneFocus::Sidebar);
                         self.activate_sidebar_tab(tui, server, previous).await?;
+                    } else if pane.visible_content().is_none() {
+                        // Closing the last Diff tab dismisses the pane.
+                        self.zoomed_thread = None;
+                        self.focus_current_parent_view(tui);
                     } else {
                         self.open_sidebar_tabs(tui, server).await?;
                     }
@@ -257,14 +282,14 @@ impl App {
         } else {
             None
         };
-        let document_shortcut = document.is_some_and(|id| {
-            self.sidebar()
-                .and_then(|pane| pane.documents.get(&id))
-                .is_some_and(|doc| doc.allows_tab_shortcut(key, &self.keymap))
-        });
+        let doc = document.and_then(|id| self.sidebar()?.documents.get(&id));
+        let document_shortcut = doc.is_some_and(|doc| doc.allows_tab_shortcut(key, &self.keymap));
         let close = if let Some(id) = document {
             (bindings.close_sidebar_tab.is_pressed(key)
-                || (document_shortcut && crate::key_hint::plain(KeyCode::Esc).is_press(key)))
+                || (document_shortcut
+                    && (crate::key_hint::plain(KeyCode::Esc).is_press(key)
+                        || (doc.is_some_and(sidebar_document::Document::is_diff)
+                            && self.keymap.pager.close.is_pressed(key)))))
             .then_some(SidebarTab::Document(id))
         } else if bindings.close_sidebar_tab.is_pressed(key) {
             self.current_displayed_thread_id().and_then(|id| {
@@ -368,6 +393,8 @@ impl App {
             self.step_sidebar_tab(tui, app_server, step).await
         } else if tabs {
             self.open_sidebar_tabs(tui, app_server).await
+        } else if sidebar && self.sidebar_is_hidden() {
+            self.restore_sidebar(tui, app_server).await
         } else if resize {
             self.begin_pane_resize(tui)
         } else if let Some(percent) = focused_percent {

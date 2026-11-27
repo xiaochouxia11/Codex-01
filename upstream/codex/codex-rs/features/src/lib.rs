@@ -226,6 +226,8 @@ pub enum Feature {
     DeferredExecutor,
     /// Describe each selected environment's filesystem and permissions separately.
     PerEnvironmentContext,
+    /// Describe uniform workspace-write permissions without repeating paths or nested XML.
+    CompactFilesystemContext,
     /// Use the current working directory for turn diff display paths.
     CwdRelativeTurnDiffs,
     /// Enable runtime metrics snapshots via a manual reader.
@@ -1111,6 +1113,11 @@ impl FeaturesToml {
         if let Some(enabled) = self.guardianv3.as_ref().and_then(FeatureToml::enabled) {
             entries.insert(Feature::GuardianV3.key().to_string(), enabled);
         }
+        if let Some(FeatureToml::Config(config)) = &self.guardianv3
+            && let Some(enabled) = config.shadow_enabled
+        {
+            entries.insert(Feature::GuardianV3Shadow.key().to_string(), enabled);
+        }
         if let Some(enabled) = self.multi_agent_v2.as_ref().and_then(FeatureToml::enabled) {
             entries.insert(Feature::MultiAgentV2.key().to_string(), enabled);
         }
@@ -1361,6 +1368,12 @@ pub const FEATURES: &[FeatureSpec] = &[
     FeatureSpec {
         id: Feature::PerEnvironmentContext,
         key: "per_environment_context",
+        stage: Stage::UnderDevelopment,
+        default_enabled: false,
+    },
+    FeatureSpec {
+        id: Feature::CompactFilesystemContext,
+        key: "compact_filesystem_context",
         stage: Stage::UnderDevelopment,
         default_enabled: false,
     },
@@ -2388,7 +2401,7 @@ pub const FEATURES: &[FeatureSpec] = &[
     },
     FeatureSpec {
         id: Feature::GuardianV3Shadow,
-        key: "guardianv3_shadow",
+        key: "guardianv3.shadow_enabled",
         stage: Stage::UnderDevelopment,
         default_enabled: false,
     },

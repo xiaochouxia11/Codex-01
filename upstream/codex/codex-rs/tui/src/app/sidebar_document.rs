@@ -1,5 +1,6 @@
-//! Read-only Markdown previews use the focused thread's workspace and app-server.
+//! Sidebar files and working tree diffs share a reader. Only file tabs subscribe to changes.
 
+mod diff;
 pub(super) mod footer;
 pub(super) mod model_read;
 mod open_error;
@@ -25,6 +26,7 @@ use crate::terminal_hyperlinks::HyperlinkLine;
 use crate::terminal_hyperlinks::ReaderLink;
 use crate::terminal_hyperlinks::visible_lines;
 use crate::transcript_view::DocumentPosition;
+use crate::transcript_view::DocumentTarget;
 use crate::transcript_view::TranscriptView;
 use crate::transcript_view::ViewAction;
 use codex_app_server_client::AppServerPath;
@@ -130,14 +132,23 @@ struct ModelLoad {
     _cancel: oneshot::Sender<()>,
 }
 
+enum DocumentSource {
+    File {
+        thread: ThreadId,
+        original_path: AppServerPath,
+    },
+    Diff(diff::DiffSource),
+}
+
 pub(super) struct Document {
-    source: ThreadId,
+    source: DocumentSource,
+    /// The file path, or the working directory of the conversation that ran `/diff`.
     pub(super) path: PathUri,
-    original_path: AppServerPath,
     pub(super) watch: Option<(uuid::Uuid, tokio::sync::watch::Sender<()>)>,
     pub(super) backend: crate::backend_id::BackendId,
     link: Option<usize>,
     location: Option<SourceLocation>,
+    highlight_dismissed: bool,
     state: State,
     pub(super) path_actions: PathActions,
     access: DocumentAccess,
@@ -153,13 +164,39 @@ enum State {
     Image(Box<SidebarImage>),
     Ready {
         view: Box<TranscriptView>,
-        cells: [Arc<dyn HistoryCell>; 1],
+        cells: Vec<Arc<dyn HistoryCell>>,
         line_starts: Vec<usize>,
-        target: Option<(usize, usize)>,
+        target: Option<DocumentTarget>,
     },
 }
 
 impl Document {
+    fn new(
+        source: DocumentSource,
+        path: PathUri,
+        backend: crate::backend_id::BackendId,
+        location: Option<SourceLocation>,
+        state: State,
+        access: DocumentAccess,
+    ) -> Self {
+        Self {
+            source,
+            path,
+            watch: None,
+            backend,
+            link: None,
+            location,
+            highlight_dismissed: false,
+            state,
+            access,
+            path_actions: PathActions::default(),
+        }
+    }
+
+    pub(super) fn is_diff(&self) -> bool {
+        matches!(self.source, DocumentSource::Diff(_))
+    }
+
     pub(super) fn link_at(&self, column: u16, row: u16) -> Option<ReaderLink> {
         if self.path_actions.scroll.is_some() {
             return None;
@@ -191,6 +228,9 @@ impl Document {
     }
 
     pub(super) fn path_actions_available(&self) -> bool {
+        if self.is_diff() {
+            return false;
+        }
         match &self.state {
             State::AwaitingOpen => false,
             State::Ready { view, .. } => self.link.is_none() && !view.has_active_interaction(),
@@ -248,10 +288,13 @@ impl Document {
         else {
             return;
         };
+        let DocumentSource::File { thread, .. } = self.source else {
+            return;
+        };
         let initial = Arc::clone(&initial.permissions);
         self.access = DocumentAccess::Model { load: None };
         let result = match result {
-            Ok(content) => match server.model_preview_permissions(self.source).await {
+            Ok(content) => match server.model_preview_permissions(thread).await {
                 Ok(Some(current))
                     if initial.profile == current.profile
                         && initial.workspace_roots == current.workspace_roots =>
@@ -280,12 +323,37 @@ impl Document {
         }
     }
 
-    pub(super) fn loaded(&mut self, result: Result<DocumentContent>) {
-        let position = match &self.state {
+    fn position(&self) -> Option<DocumentPosition> {
+        match &self.state {
             State::Ready { view, .. } => Some(view.document_position()),
             State::Failed { position, .. } => *position,
             State::AwaitingOpen | State::Loading(_) | State::Image(_) => None,
-        };
+        }
+    }
+
+    fn ready(
+        &self,
+        cells: Vec<Arc<dyn HistoryCell>>,
+        line_starts: Vec<usize>,
+        target: Option<DocumentTarget>,
+    ) -> State {
+        let mut view = Box::<TranscriptView>::default();
+        view.document_links = !self.is_diff();
+        view.show_follow_control = false;
+        match self.position() {
+            Some(position) => view.restore_document_position(&cells, position),
+            None => view.jump_to_offset(&cells, target.map_or(0, |target| target.offset)),
+        }
+        State::Ready {
+            view,
+            cells,
+            line_starts,
+            target,
+        }
+    }
+
+    pub(super) fn loaded(&mut self, result: Result<DocumentContent>) {
+        let position = self.position();
         self.state = match result {
             Ok(DocumentContent::Image(image)) => State::Image(image),
             Ok(DocumentContent::Text(source)) => {
@@ -336,33 +404,24 @@ impl Document {
                 });
                 let target = self
                     .location
+                    .filter(|_| !self.highlight_dismissed)
                     .and_then(|loc| source_target(&source, &line_starts, loc));
-                let cells: [Arc<dyn HistoryCell>; 1] = [Arc::new(FileCell { source, language })];
-                let mut view = Box::<TranscriptView>::default();
-                view.document_links = true;
-                view.show_follow_control = false;
-                match position {
-                    Some(DocumentPosition::Latest) => view.jump_to_latest(),
-                    Some(DocumentPosition::Offset(offset)) => view.jump_to_offset(&cells, offset),
-                    None => view.jump_to_offset(&cells, target.map_or(0, |(_, offset)| offset)),
-                }
-                State::Ready {
-                    view,
-                    cells,
+                self.ready(
+                    vec![Arc::new(FileCell { source, language })],
                     line_starts,
                     target,
-                }
+                )
             }
             Err(error) => State::Failed { error, position },
         };
     }
 
     fn go_to(&mut self, location: Option<SourceLocation>) {
-        let was_located = self.location.is_some();
         let restore_markdown = location.is_none()
-            && was_located
+            && self.location.is_some()
             && crate::markdown_render::is_markdown_file(&self.title());
         self.location = location;
+        self.highlight_dismissed = false;
         self.link = None;
         self.path_actions.dismiss();
         let State::Ready {
@@ -384,10 +443,11 @@ impl Document {
             self.loaded(Ok(DocumentContent::Text(source)));
         } else {
             *target = location.and_then(|location| source_target(source, line_starts, location));
-            if let Some((_, offset)) = target {
-                view.cancel_search();
+            if let Some(target) = target {
+                view.end_select_mode();
                 view.end_selection(cells);
-                view.jump_to_offset(cells, *offset);
+                view.cancel_search();
+                view.jump_to_offset(cells, target.offset);
             }
         }
     }
@@ -491,7 +551,7 @@ impl Document {
                 let path =
                     crate::history_cell::sanitize_user_text(path.into()).replace(['\n', '\t'], " ");
                 let title = match self.location {
-                    Some(location) => format!("Open {path} at line {}?", location.line),
+                    Some(location) => format!("Open {path} at line {}?", location.start.line),
                     None => format!("Open {path}?"),
                 };
                 let mut lines = textwrap::wrap(&title, usize::from(body.width).max(1))
@@ -532,6 +592,7 @@ impl Document {
                 line_starts,
                 target,
             } => {
+                let refreshing = matches!(&self.source, DocumentSource::Diff(source) if source.pending.is_some());
                 view.set_document_resize_preview(resize_preview);
                 view.set_keymap_bindings(keymap);
                 if view.tick_selection(cells) {
@@ -564,7 +625,8 @@ impl Document {
                     if self.link.is_some() && available(KeyCode::Enter) {
                         hints.push(Hint::key("enter", "open link"));
                     }
-                    let link = available(KeyCode::Tab).then(|| Hint::key("Tab", "link"));
+                    let link = (view.document_links && available(KeyCode::Tab))
+                        .then(|| Hint::key("Tab", "link"));
                     hints.extend(footer::reading_hints(
                         keymap,
                         footer::PagerHints::WithChords,
@@ -618,8 +680,16 @@ impl Document {
                 let gap =
                     (gap_height > 0).then(|| Rect::new(body.x, content.bottom(), body.width, 1));
                 view.paint_document_scroll_indicators(content, buf, cells);
-                if let Some(delay) = view.render_composer_gap(gap, /*hint*/ None, buf, now) {
+                if let Some(delay) = view.render_composer_gap(
+                    gap.filter(|_| !refreshing),
+                    /*hint*/ None,
+                    buf,
+                    now,
+                ) {
                     frames.schedule_frame_in(delay);
+                }
+                if refreshing && let Some(gap) = gap {
+                    Line::from("Refreshing…".dim()).render(gap, buf);
                 }
                 if height > 0 {
                     let footer_area =
@@ -641,13 +711,13 @@ fn source_target(
     source: &str,
     starts: &[usize],
     location: SourceLocation,
-) -> Option<(usize, usize)> {
-    let index = (location.line - 1).min(starts.len().saturating_sub(1));
+) -> Option<DocumentTarget> {
+    let index = (location.start.line - 1).min(starts.len().saturating_sub(1));
     let start = *starts.get(index)?;
     let line = source.lines().nth(index)?;
     let column = line
         .char_indices()
-        .nth(location.column - 1)
+        .nth(location.start.column.unwrap_or(1) - 1)
         .map_or(line.len(), |(byte, _)| byte);
     let column = if column == line.len() {
         column
@@ -657,7 +727,14 @@ fn source_target(
             .last()
             .map_or(0, |(byte, _)| byte)
     };
-    Some((index + 1, start + column))
+    Some(DocumentTarget {
+        first_line: index + 1,
+        last_line: location
+            .end
+            .map_or(index + 1, |end| end.line.min(starts.len())),
+        offset: start + column,
+        mark_column: location.end.is_none() || location.start.column.is_some(),
+    })
 }
 
 impl App {
@@ -787,7 +864,7 @@ impl App {
         let existing = self.sidebar().and_then(|pane| {
             pane.documents
                 .iter()
-                .find(|(_, doc)| doc.backend == backend_id && doc.path == path)
+                .find(|(_, doc)| !doc.is_diff() && doc.backend == backend_id && doc.path == path)
                 .map(|(&id, _)| id)
         });
         if let Some(id) = existing {
@@ -800,8 +877,7 @@ impl App {
                     doc.go_to(location);
                     return Some(id);
                 }
-                (DocumentOrigin::Model { permissions: Ok(_) }, DocumentAccess::User)
-                    if doc.source == source =>
+                (DocumentOrigin::Model { permissions: Ok(_) }, DocumentAccess::User) if matches!(doc.source, DocumentSource::File { thread, .. } if thread == source) =>
                 {
                     // The user already authorized this tab. Keep the watch and use its content.
                     if location.is_some() {
@@ -897,18 +973,17 @@ impl App {
         if matches!(access, DocumentAccess::User) && !pane.opened_files.contains(&path) {
             pane.opened_files.push(path.clone());
         }
-        let mut doc = Document {
-            source,
+        let mut doc = Document::new(
+            DocumentSource::File {
+                thread: source,
+                original_path,
+            },
             path,
-            original_path,
-            watch: None,
-            backend: backend_id,
-            link: None,
+            backend_id,
             location,
             state,
             access,
-            path_actions: PathActions::default(),
-        };
+        );
         doc.subscribe(request, parent, server, tx);
         pane.documents.insert(request, doc);
         pane.add_document_tab(request);
@@ -988,6 +1063,7 @@ impl App {
                     tui.frame_requester().schedule_frame();
                     return true;
                 }
+                let path_actions_available = doc.path_actions_available();
                 if let State::Ready {
                     view,
                     cells,
@@ -999,10 +1075,10 @@ impl App {
                         view.cancel_search();
                         view.end_selection(cells);
                         None
-                    } else if escape
-                        && (doc.link.take().is_some()
-                            || (!view.has_active_interaction() && target.take().is_some()))
-                    {
+                    } else if escape && doc.link.take().is_some() {
+                        None
+                    } else if escape && !view.has_active_interaction() && target.take().is_some() {
+                        doc.highlight_dismissed = true;
                         None
                     } else if !view.is_search_editing()
                         && (self.keymap.app.find_transcript.is_pressed(*key)
@@ -1022,7 +1098,8 @@ impl App {
                     {
                         doc.link = None;
                         Some(ViewAction::Changed)
-                    } else if !view.has_active_interaction()
+                    } else if view.document_links
+                        && !view.has_active_interaction()
                         && let (code @ (KeyCode::Tab | KeyCode::BackTab), KeyModifiers::NONE) =
                             crate::key_hint::normalize_key_parts(key.code, key.modifiers)
                     {
@@ -1033,7 +1110,7 @@ impl App {
                         && let Some(index) = doc.link.take()
                     {
                         view.document_link(cells, index).map(ViewAction::from)
-                    } else if doc.link.is_none() && !view.has_active_interaction() {
+                    } else if path_actions_available {
                         doc.path_actions.handle_key(*key, &doc.path, tui);
                         None
                     } else {
@@ -1048,7 +1125,7 @@ impl App {
                         }
                     }
                 } else {
-                    if doc.path_actions_available() {
+                    if path_actions_available {
                         doc.path_actions.handle_key(*key, &doc.path, tui);
                     }
                     None
@@ -1123,13 +1200,13 @@ impl App {
         match action {
             Some(ViewAction::OpenDocument(link)) => {
                 if let Some(doc) = pane.documents.get(&id)
+                    && let DocumentSource::File { thread: source, .. } = doc.source
                     && let Some(parent) = doc.path.parent()
                 {
                     let result = match LegacyAppPathString::from_string(link.path)
                         .resolve_against(&parent, /*user_home_dir*/ None)
                     {
                         Ok(path) if !path.to_url().has_host() => {
-                            let source = doc.source;
                             let original_path =
                                 AppServerPath::from_app_server(path.inferred_native_path_string());
                             self.open_resolved_document(

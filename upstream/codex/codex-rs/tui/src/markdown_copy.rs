@@ -93,14 +93,21 @@ pub(crate) enum Inline {
 }
 
 impl Inline {
-    pub(crate) fn from_event(event: &Event<'_>) -> Option<Self> {
+    pub(crate) fn from_event(
+        event: &Event<'_>,
+        is_hidden_destination: &dyn Fn(&str) -> bool,
+    ) -> Option<Self> {
         match event {
             Event::Start(Tag::Emphasis) => Some(Self::Delimiter("_")),
             Event::Start(Tag::Strong) => Some(Self::Delimiter("**")),
             Event::Start(Tag::Strikethrough) => Some(Self::Delimiter("~~")),
             Event::Start(Tag::Link { dest_url, .. }) => Some(
-                if crate::terminal_hyperlinks::web_destination(dest_url).is_some()
-                    && !dest_url.starts_with(crate::inline_visualization::LINK_PLACEHOLDER_PREFIX)
+                if (crate::terminal_hyperlinks::web_destination(dest_url).is_some()
+                    && !dest_url.starts_with(crate::inline_visualization::LINK_PLACEHOLDER_PREFIX))
+                    || (is_hidden_destination(dest_url)
+                        && crate::markdown_render::sidebar_file_link(dest_url)
+                            .and_then(|link| link.location)
+                            .is_some_and(|location| location.end.is_some()))
                 {
                     Self::Link(dest_url.as_ref().into())
                 } else {
@@ -115,6 +122,7 @@ impl Inline {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct CopyLine {
+    pub(crate) images: Vec<MarkdownImage>,
     pub(crate) block: Option<Arc<block::Block>>,
     pub(crate) prefix: String,
     pub(crate) continuation: String,
@@ -171,7 +179,20 @@ pub(crate) fn has_visible_markup(
             }))
 }
 
+/// A local image and its rendered label in this line's byte coordinates.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct MarkdownImage {
+    pub(crate) path: Arc<std::path::Path>,
+    pub(crate) label: Range<usize>,
+}
+
 impl CopyLine {
+    pub(crate) fn byte_len(&self) -> usize {
+        self.runs
+            .last()
+            .map_or(/*default*/ 0, |(range, _)| range.end)
+    }
+
     pub(crate) fn has_list_marker(&self) -> bool {
         self.prefix != self.continuation
     }
@@ -191,10 +212,7 @@ impl CopyLine {
             .collect::<Vec<_>>();
         inline.sort();
         inline.dedup();
-        let start = self
-            .runs
-            .last()
-            .map_or(/*default*/ 0, |(range, _)| range.end);
+        let start = self.byte_len();
         // Keep literal spans separate so they never split context-sensitive prose escaping.
         if literal {
             if let Some(range) = self.literal_ranges.last_mut()

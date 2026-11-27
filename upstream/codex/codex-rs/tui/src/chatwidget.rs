@@ -228,7 +228,6 @@ use crate::exec_cell::ExecCell;
 use crate::exec_cell::new_active_exec_command;
 use crate::exec_command::split_command_string;
 use crate::exec_command::strip_bash_lc_and_escape;
-use crate::get_git_diff::get_git_diff;
 use crate::history_cell;
 use crate::history_cell::HistoryCell;
 use crate::history_cell::HistoryRenderMode;
@@ -252,6 +251,7 @@ use crate::status::RateLimitSnapshotDisplay;
 use crate::status::remote_connection::RemoteConnectionStatus;
 use crate::status_indicator_widget::STATUS_DETAILS_DEFAULT_MAX_LINES;
 use crate::status_indicator_widget::StatusDetailsCapitalization;
+use crate::status_indicator_widget::StatusHeader;
 use crate::text_formatting::truncate_text;
 use crate::tui::FrameRequester;
 mod activity_groups;
@@ -679,8 +679,8 @@ pub(crate) struct ChatWidget {
     interrupts: InterruptManager,
     // Accumulates the current reasoning block text to extract a header
     reasoning_buffer: String,
-    // Caches the first completed bold header so later deltas do not rescan the whole block.
-    reasoning_header: Option<String>,
+    // Keep the last usable heading through tools and empty reasoning items.
+    reasoning_header: Option<StatusHeader>,
     // Preserves reasoning-summary part boundaries for transcript-only recording.
     reasoning_summary_parts: Vec<String>,
     status_state: StatusState,
@@ -1211,7 +1211,8 @@ impl ChatWidget {
         Some(info.total_token_usage.tokens_in_context_window())
     }
 
-    fn restore_pre_review_token_info(&mut self) {
+    fn reset_review_mode(&mut self) {
+        self.review.is_review_mode = false;
         if let Some(saved) = self.review.pre_review_token_info.take() {
             match saved {
                 Some(info) => self.apply_token_info(info),
@@ -1356,8 +1357,7 @@ impl ChatWidget {
         self.flush_answer_stream_with_separator();
         self.flush_interrupt_queue();
         self.flush_active_cell();
-        self.review.is_review_mode = false;
-        self.restore_pre_review_token_info();
+        self.reset_review_mode();
         self.add_to_history(history_cell::new_review_status_line(
             "<< Code review finished >>".to_string(),
         ));
@@ -1539,14 +1539,6 @@ impl ChatWidget {
 
     pub(crate) fn set_interrupted_turn_notice_mode(&mut self, mode: InterruptedTurnNoticeMode) {
         self.interrupted_turn_notice_mode = mode;
-    }
-
-    pub(crate) fn add_diff_in_progress(&mut self) {
-        self.request_redraw();
-    }
-
-    pub(crate) fn on_diff_complete(&mut self) {
-        self.request_redraw();
     }
 
     pub(crate) fn add_debug_config_output(&mut self) {

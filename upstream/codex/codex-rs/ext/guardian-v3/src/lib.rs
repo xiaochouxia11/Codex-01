@@ -11,6 +11,7 @@ use codex_state::SqliteConfig;
 
 mod actor;
 mod conversation;
+mod shadow_metrics;
 pub use actor::ActorReviewer;
 pub use actor::PreparedReviewer;
 mod delivery;
@@ -22,6 +23,7 @@ mod housekeeper_transport;
 mod inbox;
 pub use host::install;
 pub use host::install_shadow;
+pub use host::route_pending_history;
 mod retrieval_tools;
 mod sampling;
 mod subscription_tools;

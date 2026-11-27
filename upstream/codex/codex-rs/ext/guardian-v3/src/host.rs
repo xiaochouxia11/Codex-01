@@ -8,9 +8,11 @@ use std::sync::PoisonError;
 use std::sync::Weak;
 
 use anyhow::Context;
+use codex_core::CodexThread;
 use codex_core::ThreadManager;
 use codex_core::config::Config;
 use codex_core::guardian_review::PreserveReviewWrites;
+use codex_core::guardian_review::ReviewPreparationError;
 use codex_core::guardian_review::ReviewRetrieval;
 use codex_core::guardian_review::ShadowReviewer;
 use codex_extension_api::ExtensionData;
@@ -24,7 +26,7 @@ use codex_extension_api::TurnAbortInput;
 use codex_extension_api::TurnLifecycleContributor;
 use codex_extension_api::TurnStartInput;
 use codex_extension_api::TurnStopInput;
-use codex_features::GuardianV3HousekeeperConfigToml;
+use codex_features::GuardianV3ConfigToml;
 use codex_guardian_reviewer::ReviewerTasks;
 use codex_guardian_reviewer::routes_approval_policy_to_guardian;
 use codex_history::HistoryInitialization;
@@ -36,6 +38,7 @@ use codex_protocol::ThreadId;
 use codex_protocol::items::TurnItem;
 use codex_state::SqliteConfig;
 use tokio::sync::mpsc;
+use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
 
 use crate::ActorReviewer;
@@ -44,6 +47,9 @@ use crate::Housekeeper;
 use crate::LiveDelivery;
 use crate::local_board;
 use crate::local_board_options;
+use crate::shadow_metrics::BoardSize;
+use crate::shadow_metrics::PayloadLimit;
+use crate::shadow_metrics::ShadowMetrics;
 
 #[path = "shadow.rs"]
 mod shadow;
@@ -58,29 +64,10 @@ pub fn install(
     config: &Config,
     board_host: impl Fn(ThreadId) -> Arc<dyn MessageBoardHost> + Send + Sync + 'static,
 ) {
-    let settings = config.guardian_v3.as_deref();
     let host = Arc::new(Host {
-        shadow: false,
+        live: Some(Arc::new(BoardSettings::live(config))),
         manager,
         deliveries: Arc::default(),
-        storage: if settings
-            .and_then(|settings| settings.message_board_in_memory)
-            .unwrap_or(false)
-        {
-            BoardStorage::Memory
-        } else {
-            BoardStorage::File(config.sqlite_config().clone())
-        },
-        housekeeper: Arc::new(
-            settings
-                .and_then(|settings| settings.housekeeper.clone())
-                .unwrap_or_default(),
-        ),
-        retrieval: crate::board_retrieval(
-            settings
-                .and_then(|settings| settings.reviewer.as_ref())
-                .and_then(|reviewer| reviewer.retrieval_instructions.as_deref()),
-        ),
         board_host: Arc::new(board_host),
     });
     registry.thread_lifecycle_contributor(host.clone());
@@ -94,12 +81,9 @@ pub fn install_shadow(
     board_host: impl Fn(ThreadId) -> Arc<dyn MessageBoardHost> + Send + Sync + 'static,
 ) {
     let host = Arc::new(Host {
-        shadow: true,
+        live: None,
         manager,
         deliveries: Arc::default(),
-        storage: BoardStorage::Memory,
-        housekeeper: Arc::default(),
-        retrieval: crate::board_retrieval(/*instructions*/ None),
         board_host: Arc::new(board_host),
     });
     registry.thread_lifecycle_contributor(host.clone());
@@ -109,11 +93,13 @@ pub fn install_shadow(
 
 impl Host {
     fn enabled(&self, config: &Config) -> bool {
-        !self.shadow
+        self.live.is_some()
             || (config
                 .features
                 .enabled(codex_features::Feature::GuardianV3Shadow)
                 && config.features.enabled(codex_features::Feature::GuardianV2)
+                // A shadow must never open the durable board used by live GV3.
+                && message_board_in_memory(config).unwrap_or(true)
                 && routes_approval_policy_to_guardian(
                     config.permissions.approval_policy.value(),
                     config.approvals_reviewer,
@@ -130,37 +116,93 @@ enum IntakeStart {
     Restart,
 }
 
-#[derive(Clone)]
+fn message_board_in_memory(config: &Config) -> Option<bool> {
+    config.guardian_v3.as_ref()?.message_board_in_memory
+}
+
 enum BoardStorage {
     File(SqliteConfig),
     Memory,
+}
+
+struct BoardSettings {
+    storage: BoardStorage,
+    config: Arc<GuardianV3ConfigToml>,
+    retrieval: ReviewRetrieval,
+}
+
+impl BoardSettings {
+    fn live(config: &Config) -> Self {
+        let storage = if message_board_in_memory(config).unwrap_or(false) {
+            BoardStorage::Memory
+        } else {
+            BoardStorage::File(config.sqlite_config().clone())
+        };
+        Self::new(config, storage)
+    }
+
+    fn new(config: &Config, storage: BoardStorage) -> Self {
+        let config = config.guardian_v3.clone().unwrap_or_default();
+        let retrieval = crate::board_retrieval(
+            config
+                .reviewer
+                .as_ref()
+                .and_then(|reviewer| reviewer.retrieval_instructions.as_deref()),
+        );
+        Self {
+            storage,
+            config,
+            retrieval,
+        }
+    }
+}
+
+pub(super) struct PublishedBoard {
+    pub(super) delivery: Arc<LiveDelivery>,
+    retrieval: ReviewRetrieval,
 }
 
 // Shared by loaded actors, even before their first review.
 // Only the root can initialize the cursor, using its own history.
 #[derive(Default)]
 pub(super) struct TreeDelivery {
-    pub(super) delivery: OnceLock<Arc<LiveDelivery>>,
+    pub(super) board: OnceLock<PublishedBoard>,
     stop: CancellationToken,
+    shadow_intake_stopped: CancellationToken,
     actors: Mutex<Vec<Weak<ActorReviewer>>>,
 }
 
 #[derive(Clone)]
 struct Host {
-    shadow: bool,
+    // Live settings come from server startup. Shadow settings come from each root.
+    live: Option<Arc<BoardSettings>>,
     manager: Weak<ThreadManager>,
     deliveries: Arc<Mutex<HashMap<ThreadId, Weak<TreeDelivery>>>>,
-    storage: BoardStorage,
-    housekeeper: Arc<GuardianV3HousekeeperConfigToml>,
-    retrieval: ReviewRetrieval,
     board_host: Arc<dyn Fn(ThreadId) -> Arc<dyn MessageBoardHost> + Send + Sync>,
 }
 
 pub(super) struct RootWorker {
     pub(super) shadow: bool,
     pub(super) reader: Arc<dyn AgentMessageBoard>,
-    wake: mpsc::Sender<()>,
+    // Live wakes coalesce. Callers that need to wait supply a reply sender.
+    wake: mpsc::Sender<Option<oneshot::Sender<()>>>,
     lifetime: ReviewerTasks,
+}
+
+/// Wake the root worker and wait for it to route pending history to the board.
+pub async fn route_pending_history(root: Arc<CodexThread>) -> Result<(), ReviewPreparationError> {
+    use ReviewPreparationError::EvidenceUnavailable;
+    let worker = root
+        .thread_extension_data()
+        .get::<RootWorker>()
+        .ok_or(EvidenceUnavailable)?;
+    let (done, routed) = oneshot::channel();
+    worker
+        .wake
+        .send(Some(done))
+        .await
+        .map_err(|_| EvidenceUnavailable)?;
+    routed.await.map_err(|_| EvidenceUnavailable)
 }
 
 impl Host {
@@ -184,6 +226,7 @@ impl Host {
         &self,
         identity: &shadow::Actor,
         tree: &Arc<TreeDelivery>,
+        retrieval: &ReviewRetrieval,
         cancellation: CancellationToken,
     ) -> Arc<ActorReviewer> {
         Arc::new(ActorReviewer::new(
@@ -191,7 +234,7 @@ impl Host {
             identity.root,
             identity.actor,
             identity.path.clone(),
-            self.retrieval.clone(),
+            retrieval.clone(),
             Arc::clone(tree),
             cancellation,
         ))
@@ -203,6 +246,7 @@ impl Host {
         tree: &TreeDelivery,
         thread: &ExtensionData,
         start: IntakeStart,
+        settings: &BoardSettings,
     ) -> anyhow::Result<()> {
         let history = self
             .manager
@@ -211,7 +255,7 @@ impl Host {
             .thread_store();
         let cursor = match start {
             IntakeStart::Initial(mode, initialization) => {
-                if matches!(self.storage, BoardStorage::Memory) {
+                if matches!(settings.storage, BoardStorage::Memory) {
                     anyhow::ensure!(
                         matches!(
                             initialization,
@@ -229,7 +273,7 @@ impl Host {
             }
         };
         let board_host = (self.board_host)(root);
-        let board = match &self.storage {
+        let board = match &settings.storage {
             BoardStorage::File(sqlite) => {
                 local_board(sqlite.clone(), root.into())
                     .read_write()
@@ -256,28 +300,38 @@ impl Host {
             cancellation: tree.stop.child_token(),
             ..Default::default()
         };
-        let (wake, mut wakes) = mpsc::channel(1);
+        let (wake, mut wakes) = mpsc::channel::<Option<oneshot::Sender<()>>>(1);
         let initial_position = cursor.position();
-        let delivery = Arc::clone(
-            tree.delivery
-                .get_or_init(|| Arc::new(LiveDelivery::from_cursor(cursor))),
-        );
+        let published = tree.board.get_or_init(|| PublishedBoard {
+            delivery: Arc::new(LiveDelivery::from_cursor(cursor)),
+            retrieval: settings.retrieval.clone(),
+        });
+        let delivery = Arc::clone(&published.delivery);
         let saved = delivery.cursor();
         // A surviving child can keep a cursor behind the resumed root's history tail.
         if saved.position().thread_id == initial_position.thread_id
             && saved.position().end_ordinal_exclusive < initial_position.end_ordinal_exclusive
         {
-            let _ = wake.try_send(());
+            let _ = wake.try_send(None);
         }
-        let shadow = self.shadow;
+        let shadow = self.live.is_none();
+        let intake_guard = shadow.then(|| tree.shadow_intake_stopped.clone().drop_guard());
+        let metrics = thread.get::<ShadowMetrics>();
         let manager = self.manager.clone();
-        let settings = Arc::clone(&self.housekeeper);
+        let config = Arc::clone(&settings.config);
         let cancellation = lifetime.cancellation.clone();
         lifetime.tasks.spawn(async move {
+            let mut failure_stage = "housekeeper";
             let work = async {
                 let board = Arc::new(board);
                 let mut housekeeper = None;
-                while let Some(Some(())) = cancellation.run_until_cancelled(wakes.recv()).await {
+                while let Some(Some(done)) = cancellation.run_until_cancelled(wakes.recv()).await {
+                    // On failure, dropping the sender wakes the caller with an error.
+                    let finish = || {
+                        if let Some(done) = done {
+                            let _ = done.send(());
+                        }
+                    };
                     let cursor = delivery.cursor();
                     let read = async {
                         // Shadow reads can catch up on the next wake without
@@ -295,9 +349,11 @@ impl Host {
                         continue;
                     };
                     let snapshot = cursor.snapshot(records).inspect_err(|error| {
+                        failure_stage = "capture";
                         tracing::warn!(root_thread_id = %root, %error, "Guardian intake rejected stored evidence");
                     })?;
                     if !snapshot.source_advanced() {
+                        finish();
                         continue;
                     }
                     for &source_ordinal in &snapshot.skipped_incomplete_deliveries {
@@ -311,6 +367,7 @@ impl Host {
                     }
                     if snapshot.records().is_empty() {
                         delivery.acknowledge(&snapshot, /*count*/ 0)?;
+                        finish();
                         continue;
                     }
                     let housekeeper = match &mut housekeeper {
@@ -319,13 +376,17 @@ impl Host {
                             let startup = async {
                                 let manager = manager.upgrade().context("Guardian host stopped")?;
                                 let parent = manager.get_thread(root).await?;
-                                Housekeeper::new(
+                                let mut worker = Housekeeper::new(
                                     board.clone(),
                                     Arc::clone(&delivery),
                                     &parent,
                                     &manager,
-                                    &settings,
-                                ).await
+                                    config.housekeeper.as_ref().unwrap_or(&Default::default()),
+                                ).await?;
+                                if shadow {
+                                    worker.shadow_size = Some(BoardSize::new(config.shadow_board_limit_mib));
+                                }
+                                anyhow::Ok(worker)
                             };
                             let Some(worker) = cancellation.run_until_cancelled(startup).await else {
                                 break;
@@ -334,7 +395,12 @@ impl Host {
                         }
                     };
                     // route_next drains accepted appends before honoring cancellation.
-                    while housekeeper.route_next(&snapshot, &cancellation).await? != 0 {}
+                    while housekeeper.route_next(&snapshot, &cancellation).await? != 0 {
+                        if let (Some(size), Some(metrics)) = (housekeeper.shadow_size, &metrics) {
+                            size.record(metrics);
+                        }
+                    }
+                    finish();
                     tracing::debug!(
                         name: "guardian_v3.housekeeping_routed",
                         root_thread_id = %root,
@@ -344,13 +410,24 @@ impl Host {
                 }
                 anyhow::Ok(())
             };
-            if work.await.is_err() && !cancellation.is_cancelled() {
+            let result = work.await;
+            drop(intake_guard);
+            if let Err(error) = result
+                && !cancellation.is_cancelled()
+            {
+                if let Some(metrics) = metrics {
+                    metrics.stopped(if error.is::<PayloadLimit>() {
+                        "payload_limit"
+                    } else {
+                        failure_stage
+                    });
+                }
                 // Provider error messages can quote the evidence being routed.
                 tracing::warn!(%root, "Guardian housekeeping stopped");
             }
         });
         thread.insert(RootWorker {
-            shadow: self.shadow,
+            shadow,
             wake,
             lifetime,
             reader,
@@ -371,9 +448,12 @@ impl ThreadLifecycleContributor<Config> for Host {
             && !input.session_source.is_internal()
             && input.thread_store.level_id() == input.session_store.level_id()
         {
-            if self.shadow {
+            if self.live.is_none() {
                 // Observe settings changes even before the root is ready.
                 input.thread_store.insert(shadow::Enrollment::default());
+                if let Some(metrics) = input.extension_metrics {
+                    input.thread_store.insert(ShadowMetrics(metrics));
+                }
             } else {
                 // Only authoritative GV3 needs evidence writes to survive interruption.
                 input.thread_store.insert(PreserveReviewWrites);
@@ -408,7 +488,7 @@ impl ThreadLifecycleContributor<Config> for Host {
                 return;
             };
             let identity = shadow::Actor { root, actor, path };
-            if self.shadow {
+            let Some(settings) = &self.live else {
                 // Only the root supplies history. Children can inherit context and share its board.
                 if actor == root
                     && (input.history_mode
@@ -420,10 +500,15 @@ impl ThreadLifecycleContributor<Config> for Host {
                 input.thread_store.insert(identity);
                 self.start_shadow_if_needed(input.thread_store);
                 return;
-            }
+            };
             let tree = self.tree_delivery(root);
             // The authoritative reviewer must stay attached even if intake fails.
-            let reviewer = self.reviewer(&identity, &tree, tree.stop.child_token());
+            let reviewer = self.reviewer(
+                &identity,
+                &tree,
+                &settings.retrieval,
+                tree.stop.child_token(),
+            );
             let attached: Arc<dyn codex_core::guardian_review::AttachedReviewer> = reviewer.clone();
             input.thread_store.insert_arc(Arc::clone(&reviewer));
             input.thread_store.insert(attached);
@@ -431,7 +516,10 @@ impl ThreadLifecycleContributor<Config> for Host {
                 return;
             }
             let start = IntakeStart::Initial(input.history_mode, input.history_initialization);
-            if let Err(error) = self.activate(root, &tree, input.thread_store, start).await {
+            if let Err(error) = self
+                .activate(root, &tree, input.thread_store, start, settings)
+                .await
+            {
                 tracing::warn!(%root, error = %error, "Guardian intake unavailable");
                 return;
             }
@@ -494,6 +582,6 @@ impl TurnLifecycleContributor for Host {
 
 fn wake_worker(thread: &ExtensionData) {
     if let Some(worker) = thread.get::<RootWorker>() {
-        let _ = worker.wake.try_send(());
+        let _ = worker.wake.try_send(None);
     }
 }
