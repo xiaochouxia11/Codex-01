@@ -1,8 +1,8 @@
 # Apple Design Skill 同步记录
 
 - 上游仓库：https://github.com/dickwu/apple-design-skill
-- 上游提交：`0ee7d11f3dcd0225f56d6136799094b2d51f7a30`
-- 上游树：`eb48b558ff908c75f195cc34eb34850c4cb37887`
+- 上游提交：`ab027f02f51572fcf494cbc182dd26b888a1d2bd`
+- 上游树：`5da39d5d35006c6545fb87fe8f088a9e8afb1a49`
 - 保存目录：`skills/apple-design-skill/`
 - 同步范围：全部受版本控制文件，保留路径、内容和文件模式。
 - 校验：导入目录的 Git tree SHA 与上游一致。
